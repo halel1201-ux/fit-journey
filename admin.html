@@ -245,6 +245,7 @@
   let activeEmail = null;
   let trainingPlan = [];
   let nutritionPlan = [];
+  let exerciseLibrary = [];
 
   async function init() {
     let { data: { session } } = await sb.auth.getSession();
@@ -266,6 +267,7 @@
       window.location.href = 'login.html'; return;
     }
     await loadClients();
+    await loadExerciseLibrary();
     document.getElementById('loader').style.display = 'none';
   }
 
@@ -381,7 +383,7 @@
     }).join('');
     return `<div style="margin-bottom:10px;background:rgba(255,255,255,0.02);border-radius:8px;padding:10px 12px;">
       <div class="ex-row" style="margin-bottom:7px;">
-        <input value="${esc(ex.name)}" oninput="trainingPlan[${di}].exercises[${ei}].name=this.value" placeholder="שם תרגיל"/>
+        <input value="${esc(ex.name)}" oninput="trainingPlan[${di}].exercises[${ei}].name=this.value;showExSugg(this,${di},${ei})" onblur="setTimeout(hideExSugg,160)" autocomplete="off" placeholder="שם תרגיל"/>
         <input value="${esc(ex.sets)}" oninput="trainingPlan[${di}].exercises[${ei}].sets=this.value" placeholder="סטים (4x10)"/>
         <input value="${esc(ex.video_url||'')}" oninput="trainingPlan[${di}].exercises[${ei}].video_url=this.value" placeholder="קישור לסרטון" style="direction:ltr;text-align:right;"/>
         <button class="btn-sm btn-red" onclick="removeExercise(${di},${ei})">✕</button>
@@ -591,6 +593,62 @@
       `;
     }).join('');
   }
+
+  /* ── EXERCISE LIBRARY (autocomplete) ── */
+  async function loadExerciseLibrary() {
+    const { data } = await sb.from('exercises').select('id,name,muscle_group').order('name');
+    exerciseLibrary = data || [];
+  }
+
+  function showExSugg(input, di, ei) {
+    hideExSugg();
+    trainingPlan[di].exercises[ei].name = input.value;
+    const q = input.value.trim().toLowerCase();
+    if (!q) return;
+    const matches = exerciseLibrary.filter(e => e.name.toLowerCase().includes(q)).slice(0, 8);
+    if (!matches.length) return;
+
+    const rect = input.getBoundingClientRect();
+    const drop = document.createElement('div');
+    drop.id = 'ex-sugg-drop';
+    drop.style.cssText = `position:fixed;top:${rect.bottom + 2}px;right:${window.innerWidth - rect.right}px;
+      width:${rect.width}px;background:#1e1e1e;border:1px solid rgba(255,107,0,0.4);
+      border-radius:8px;z-index:500;overflow:hidden;box-shadow:0 6px 20px rgba(0,0,0,0.6);`;
+
+    matches.forEach(ex => {
+      const item = document.createElement('div');
+      item.style.cssText = 'padding:9px 12px;cursor:pointer;font-size:0.85rem;border-bottom:1px solid rgba(255,255,255,0.05);display:flex;justify-content:space-between;align-items:center;';
+      item.innerHTML = `<span>${hlMatch(ex.name, q)}</span><span style="font-size:0.72rem;color:var(--muted);">${ex.muscle_group}</span>`;
+      item.onmousedown = () => {
+        trainingPlan[di].exercises[ei].name = ex.name;
+        input.value = ex.name;
+        hideExSugg();
+      };
+      item.onmouseover = () => item.style.background = 'rgba(255,107,0,0.1)';
+      item.onmouseout  = () => item.style.background = '';
+      drop.appendChild(item);
+    });
+
+    document.body.appendChild(drop);
+  }
+
+  function hideExSugg() {
+    const d = document.getElementById('ex-sugg-drop');
+    if (d) d.remove();
+  }
+
+  function hlMatch(name, q) {
+    const idx = name.toLowerCase().indexOf(q);
+    if (idx === -1) return esc(name);
+    return esc(name.slice(0, idx)) +
+      `<span style="color:var(--orange);font-weight:700;">${esc(name.slice(idx, idx + q.length))}</span>` +
+      esc(name.slice(idx + q.length));
+  }
+
+  document.addEventListener('click', e => {
+    const drop = document.getElementById('ex-sugg-drop');
+    if (drop && !drop.contains(e.target)) hideExSugg();
+  });
 
   /* ── EXERCISES MANAGEMENT ── */
   let exercisesMode = false;
