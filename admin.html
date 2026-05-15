@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>פאנל ניהול — HF Coaching</title>
+  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;700;900&display=swap" rel="stylesheet"/>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --orange:#FF6B00; --gold:#FFD700; --black:#090909; --graphite:#111; --white:#fff; --muted:#888; --card:rgba(255,255,255,0.04); --border:rgba(255,107,0,0.25); }
+    body { font-family: 'Heebo', sans-serif; background: var(--black); color: var(--white); min-height: 100vh; }
+    ::-webkit-scrollbar { width: 5px; } ::-webkit-scrollbar-track { background: #0e0e0e; } ::-webkit-scrollbar-thumb { background: var(--orange); border-radius: 3px; }
+
+    /* TOP NAV */
+    .topnav {
+      height: 58px; background: rgba(9,9,9,0.95); backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(255,107,0,0.15);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 20px; position: sticky; top: 0; z-index: 100;
+    }
+    .topnav-brand { font-size: 1.2rem; font-weight: 900; background: linear-gradient(135deg, var(--orange), var(--gold)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .topnav-sub { font-size: 0.75rem; color: var(--muted); }
+    .btn-sm {
+      padding: 7px 16px; border-radius: 6px; font-family: 'Heebo', sans-serif;
+      font-size: 0.82rem; font-weight: 700; cursor: pointer; transition: background 0.2s, opacity 0.2s;
+    }
+    .btn-outline { background: transparent; border: 1px solid rgba(255,107,0,0.4); color: var(--orange); }
+    .btn-outline:hover { background: rgba(255,107,0,0.1); }
+    .btn-orange { background: linear-gradient(135deg, var(--orange), #FF8C00); border: none; color: var(--white); }
+    .btn-orange:hover { opacity: 0.88; }
+    .btn-orange:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-red { background: transparent; border: 1px solid rgba(255,60,60,0.35); color: #ff7070; font-size: 0.78rem; padding: 4px 10px; }
+    .btn-red:hover { background: rgba(255,60,60,0.1); }
+
+    /* LAYOUT */
+    .layout { display: flex; min-height: calc(100vh - 58px); }
+
+    /* SIDEBAR */
+    .sidebar {
+      width: 240px; flex-shrink: 0;
+      background: rgba(255,255,255,0.02); border-left: 1px solid rgba(255,255,255,0.06);
+      display: flex; flex-direction: column;
+    }
+    .sidebar-head {
+      padding: 16px 14px 12px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .sidebar-title { font-size: 0.78rem; font-weight: 700; color: var(--muted); letter-spacing: 1px; }
+    .client-list { flex: 1; overflow-y: auto; }
+    .client-item {
+      padding: 12px 14px; cursor: pointer; border-bottom: 1px solid rgba(255,255,255,0.04);
+      transition: background 0.15s;
+    }
+    .client-item:hover { background: rgba(255,107,0,0.06); }
+    .client-item.active { background: rgba(255,107,0,0.1); border-right: 3px solid var(--orange); }
+    .client-item-name { font-size: 0.9rem; font-weight: 700; }
+    .client-item-email { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
+
+    /* MAIN */
+    .main { flex: 1; overflow-y: auto; padding: 24px 28px 60px; }
+    .no-select { display: flex; align-items: center; justify-content: center; height: 300px; color: #333; font-size: 1rem; }
+
+    /* SECTION CARD */
+    .sec-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 14px; padding: 22px 22px; margin-bottom: 24px;
+    }
+    .sec-card-title {
+      font-size: 1rem; font-weight: 900; color: var(--white);
+      margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between;
+    }
+    .sec-card-title span { color: var(--orange); }
+
+    /* FORM GRID */
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .form-grid.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+    .form-grid.cols-1 { grid-template-columns: 1fr; }
+    @media (max-width: 600px) { .form-grid, .form-grid.cols-3 { grid-template-columns: 1fr; } }
+    .f-group { display: flex; flex-direction: column; gap: 5px; }
+    .f-group label { font-size: 0.77rem; font-weight: 700; color: var(--muted); }
+    .f-group input, .f-group select {
+      padding: 9px 12px; background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1); border-radius: 7px;
+      color: var(--white); font-family: 'Heebo', sans-serif; font-size: 0.88rem;
+      outline: none; transition: border-color 0.2s;
+    }
+    .f-group input:focus, .f-group select:focus { border-color: var(--orange); }
+    .f-group select option { background: #1a1a1a; }
+
+    /* TRAINING EDITOR */
+    .day-block { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); border-radius: 10px; padding: 14px 16px; margin-bottom: 10px; }
+    .day-block-head { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+    .day-block-head input { flex: 1; padding: 7px 10px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; color: var(--white); font-family: 'Heebo', sans-serif; font-size: 0.88rem; outline: none; }
+    .day-block-head input:focus { border-color: var(--orange); }
+    .ex-row { display: grid; grid-template-columns: 2fr 1fr 3fr auto; gap: 8px; align-items: center; margin-bottom: 7px; }
+    .ex-row input { padding: 7px 10px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 6px; color: var(--white); font-family: 'Heebo', sans-serif; font-size: 0.82rem; outline: none; }
+    .ex-row input:focus { border-color: rgba(255,107,0,0.5); }
+    .ex-row input::placeholder { color: #444; }
+    @media (max-width: 640px) { .ex-row { grid-template-columns: 1fr 1fr; } }
+    .add-link {
+      display: inline-flex; align-items: center; gap: 5px;
+      font-size: 0.8rem; font-weight: 700; color: var(--orange);
+      background: none; border: none; cursor: pointer; padding: 4px 0;
+      transition: opacity 0.2s; font-family: 'Heebo', sans-serif;
+    }
+    .add-link:hover { opacity: 0.7; }
+
+    /* NUTRITION EDITOR */
+    .meal-block { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); border-radius: 10px; padding: 14px 16px; margin-bottom: 10px; }
+    .meal-block-head { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+    .meal-block-head input { flex: 1; padding: 7px 10px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; color: var(--white); font-family: 'Heebo', sans-serif; font-size: 0.88rem; outline: none; }
+    .meal-block-head input:focus { border-color: var(--orange); }
+    .item-row { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 1fr 1fr auto; gap: 6px; align-items: center; margin-bottom: 6px; }
+    .item-row input { padding: 6px 8px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 6px; color: var(--white); font-family: 'Heebo', sans-serif; font-size: 0.8rem; outline: none; text-align: center; }
+    .item-row input:first-child { text-align: right; }
+    .item-row input:focus { border-color: rgba(255,107,0,0.5); }
+    .item-row input::placeholder { color: #444; font-size: 0.72rem; }
+    @media (max-width: 640px) { .item-row { grid-template-columns: 1fr 1fr 1fr; } }
+    .nutri-header { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 1fr 1fr auto; gap: 6px; margin-bottom: 6px; }
+    .nutri-header span { font-size: 0.7rem; font-weight: 700; color: var(--muted); text-align: center; padding: 0 2px; }
+    .nutri-header span:first-child { text-align: right; }
+
+    /* MODAL */
+    .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(6px); z-index: 200; display: none; align-items: center; justify-content: center; padding: 20px; }
+    .modal-bg.open { display: flex; }
+    .modal { background: #151515; border: 1px solid rgba(255,107,0,0.35); border-radius: 16px; padding: 28px; width: 100%; max-width: 440px; box-shadow: 0 0 60px rgba(255,107,0,0.15); }
+    .modal h3 { font-size: 1.1rem; font-weight: 900; margin-bottom: 20px; }
+    .modal h3 span { color: var(--orange); }
+    .modal-actions { display: flex; gap: 10px; margin-top: 20px; justify-content: flex-end; }
+
+    /* TOAST */
+    .toast {
+      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+      padding: 10px 22px; border-radius: 8px; font-size: 0.88rem; font-weight: 700;
+      z-index: 999; transition: opacity 0.3s; opacity: 0; pointer-events: none;
+    }
+    .toast.ok  { background: rgba(60,200,60,0.15); border: 1px solid rgba(60,200,60,0.4); color: #70dd70; }
+    .toast.err { background: rgba(255,60,60,0.15); border: 1px solid rgba(255,60,60,0.4); color: #ff7070; }
+    .toast.show { opacity: 1; }
+
+    /* LOADER */
+    #loader { position: fixed; inset: 0; background: var(--black); display: flex; align-items: center; justify-content: center; z-index: 999; }
+    .spin { width: 36px; height: 36px; border: 3px solid rgba(255,107,0,0.2); border-top-color: var(--orange); border-radius: 50%; animation: sp 0.7s linear infinite; }
+    @keyframes sp { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+
+<div id="loader"><div class="spin"></div></div>
+
+<div class="topnav">
+  <div>
+    <div class="topnav-brand">HF Admin</div>
+    <div class="topnav-sub">פאנל ניהול לקוחות</div>
+  </div>
+  <button class="btn-sm btn-outline" onclick="logout()">יציאה</button>
+</div>
+
+<div class="layout">
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sidebar-head">
+      <span class="sidebar-title">לקוחות</span>
+      <button class="btn-sm btn-orange" onclick="openAddModal()">+ הוסף</button>
+    </div>
+    <div class="client-list" id="client-list"></div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main" id="main-area">
+    <div class="no-select">← בחר לקוח מהרשימה</div>
+  </div>
+</div>
+
+<!-- ADD CLIENT MODAL -->
+<div class="modal-bg" id="add-modal">
+  <div class="modal">
+    <h3>הוסף <span>לקוח חדש</span></h3>
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <div class="f-group"><label>שם מלא</label><input id="new-name" placeholder="ישראל ישראלי"/></div>
+      <div class="f-group"><label>אימייל</label><input id="new-email" type="email" placeholder="client@email.com" style="direction:ltr;text-align:right;"/></div>
+      <div class="form-grid">
+        <div class="f-group"><label>תחילת ליווי</label><input id="new-start" type="date"/></div>
+        <div class="f-group"><label>סיום ליווי</label><input id="new-end" type="date"/></div>
+      </div>
+      <div class="f-group">
+        <label>סוג מסלול</label>
+        <select id="new-plan">
+          <option value="ליווי חודשי">ליווי חודשי</option>
+          <option value="ליווי 3 חודשים">ליווי 3 חודשים</option>
+          <option value="ליווי חצי שנה">ליווי חצי שנה</option>
+        </select>
+      </div>
+    </div>
+    <div id="add-err" style="margin-top:12px;font-size:0.82rem;color:#ff7070;display:none;"></div>
+    <div class="modal-actions">
+      <button class="btn-sm btn-outline" onclick="closeAddModal()">ביטול</button>
+      <button class="btn-sm btn-orange" id="add-btn" onclick="addClient()">הוסף לקוח</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  const URL_ = 'https://luwknflmhvcxgifzxgrk.supabase.co';
+  const KEY  = 'sb_publishable_k3M7SfBeiBGs3rTKewBzWQ_7RHRskB9';
+  const ADMIN = 'halel1201@gmail.com';
+  const sb = supabase.createClient(URL_, KEY);
+
+  let clients = [];
+  let activeEmail = null;
+  let trainingPlan = [];
+  let nutritionPlan = [];
+
+  async function init() {
+    let { data: { session } } = await sb.auth.getSession();
+
+    if (!session) {
+      await new Promise(resolve => {
+        const { data: { subscription } } = sb.auth.onAuthStateChange((event, s) => {
+          if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
+            session = s;
+            subscription.unsubscribe();
+            resolve();
+          }
+        });
+        setTimeout(resolve, 3000);
+      });
+    }
+
+    if (!session || session.user.email !== ADMIN) {
+      window.location.href = 'login.html'; return;
+    }
+    await loadClients();
+    document.getElementById('loader').style.display = 'none';
+  }
+
+  async function loadClients() {
+    const { data } = await sb.from('clients').select('*').order('created_at');
+    clients = data || [];
+    renderSidebar();
+  }
+
+  function renderSidebar() {
+    const el = document.getElementById('client-list');
+    if (!clients.length) { el.innerHTML = '<div style="padding:16px;color:#444;font-size:0.82rem;text-align:center;">אין לקוחות עדיין</div>'; return; }
+    el.innerHTML = clients.map(c => `
+      <div class="client-item ${c.email === activeEmail ? 'active' : ''}" onclick="selectClient('${c.email}')">
+        <div class="client-item-name">${c.name}</div>
+        <div class="client-item-email">${c.email}</div>
+      </div>
+    `).join('');
+  }
+
+  async function selectClient(email) {
+    activeEmail = email;
+    renderSidebar();
+    const client = clients.find(c => c.email === email);
+    const [{ data: tr }, { data: nu }] = await Promise.all([
+      sb.from('training_plans').select('plan').eq('client_email', email).single(),
+      sb.from('nutrition_plans').select('plan').eq('client_email', email).single()
+    ]);
+    trainingPlan  = tr?.plan  || [];
+    nutritionPlan = nu?.plan  || [];
+    renderMain(client);
+  }
+
+  function renderMain(client) {
+    document.getElementById('main-area').innerHTML = `
+      <!-- Profile -->
+      <div class="sec-card">
+        <div class="sec-card-title">פרטי לקוח <span>${client.name}</span></div>
+        <div class="form-grid" style="margin-bottom:14px;">
+          <div class="f-group"><label>שם</label><input id="e-name" value="${client.name}"/></div>
+          <div class="f-group"><label>אימייל</label><input id="e-email" value="${client.email}" style="direction:ltr;text-align:right;" readonly/></div>
+          <div class="f-group"><label>תחילת ליווי</label><input id="e-start" type="date" value="${client.coaching_start}"/></div>
+          <div class="f-group"><label>סיום ליווי</label><input id="e-end" type="date" value="${client.coaching_end}"/></div>
+        </div>
+        <div class="f-group" style="margin-bottom:16px;">
+          <label>סוג מסלול</label>
+          <select id="e-plan">
+            <option ${client.plan_type==='ליווי חודשי'?'selected':''}>ליווי חודשי</option>
+            <option ${client.plan_type==='ליווי 3 חודשים'?'selected':''}>ליווי 3 חודשים</option>
+            <option ${client.plan_type==='ליווי חצי שנה'?'selected':''}>ליווי חצי שנה</option>
+          </select>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center;">
+          <button class="btn-sm btn-orange" onclick="saveProfile()">שמור פרטים</button>
+          <button class="btn-sm btn-red" onclick="deleteClient('${client.email}')">מחק לקוח</button>
+        </div>
+      </div>
+
+      <!-- Training -->
+      <div class="sec-card">
+        <div class="sec-card-title">🏋️ תוכנית אימונים
+          <button class="btn-sm btn-orange" onclick="addDay()">+ הוסף יום</button>
+        </div>
+        <div id="training-editor"></div>
+        <button class="btn-sm btn-orange" style="margin-top:14px;" onclick="saveTraining()">שמור תוכנית</button>
+      </div>
+
+      <!-- Nutrition -->
+      <div class="sec-card">
+        <div class="sec-card-title">🥗 תפריט תזונה
+          <button class="btn-sm btn-orange" onclick="addMeal()">+ הוסף ארוחה</button>
+        </div>
+        <div id="nutrition-editor"></div>
+        <button class="btn-sm btn-orange" style="margin-top:14px;" onclick="saveNutrition()">שמור תפריט</button>
+      </div>
+    `;
+    renderTrainingEditor();
+    renderNutritionEditor();
+  }
+
+  /* ── TRAINING EDITOR ── */
+  function renderTrainingEditor() {
+    const el = document.getElementById('training-editor');
+    if (!el) return;
+    if (!trainingPlan.length) { el.innerHTML = '<div style="color:#444;font-size:0.85rem;padding:8px 0;">אין ימים עדיין — לחץ + הוסף יום</div>'; return; }
+    el.innerHTML = trainingPlan.map((day, di) => `
+      <div class="day-block">
+        <div class="day-block-head">
+          <input value="${esc(day.day)}" oninput="trainingPlan[${di}].day=this.value" placeholder="שם היום (יום א׳ — חזה)"/>
+          <button class="btn-sm btn-red" onclick="removeDay(${di})">הסר יום</button>
+        </div>
+        <div id="ex-wrap-${di}">
+          ${(day.exercises || []).map((ex, ei) => exRow(di, ei, ex)).join('')}
+        </div>
+        <button class="add-link" onclick="addExercise(${di})">+ הוסף תרגיל</button>
+      </div>
+    `).join('');
+  }
+
+  function exRow(di, ei, ex) {
+    return `<div class="ex-row" id="ex-${di}-${ei}">
+      <input value="${esc(ex.name)}" oninput="trainingPlan[${di}].exercises[${ei}].name=this.value" placeholder="שם תרגיל"/>
+      <input value="${esc(ex.sets)}" oninput="trainingPlan[${di}].exercises[${ei}].sets=this.value" placeholder="סטים (4x10)"/>
+      <input value="${esc(ex.video_url)}" oninput="trainingPlan[${di}].exercises[${ei}].video_url=this.value" placeholder="קישור לסרטון (אופציונלי)" style="direction:ltr;text-align:right;"/>
+      <button class="btn-sm btn-red" onclick="removeExercise(${di},${ei})">✕</button>
+    </div>`;
+  }
+
+  function addDay() {
+    trainingPlan.push({ day: '', exercises: [] });
+    renderTrainingEditor();
+  }
+  function removeDay(i) {
+    trainingPlan.splice(i, 1);
+    renderTrainingEditor();
+  }
+  function addExercise(di) {
+    trainingPlan[di].exercises.push({ name: '', sets: '', video_url: '' });
+    renderTrainingEditor();
+  }
+  function removeExercise(di, ei) {
+    trainingPlan[di].exercises.splice(ei, 1);
+    renderTrainingEditor();
+  }
+
+  async function saveTraining() {
+    const { error } = await sb.from('training_plans')
+      .upsert({ client_email: activeEmail, plan: trainingPlan, updated_at: new Date().toISOString() }, { onConflict: 'client_email' });
+    error ? toast('שגיאה בשמירה', 'err') : toast('תוכנית נשמרה ✓', 'ok');
+  }
+
+  /* ── NUTRITION EDITOR ── */
+  function renderNutritionEditor() {
+    const el = document.getElementById('nutrition-editor');
+    if (!el) return;
+    if (!nutritionPlan.length) { el.innerHTML = '<div style="color:#444;font-size:0.85rem;padding:8px 0;">אין ארוחות עדיין — לחץ + הוסף ארוחה</div>'; return; }
+    el.innerHTML = nutritionPlan.map((meal, mi) => `
+      <div class="meal-block">
+        <div class="meal-block-head">
+          <input value="${esc(meal.meal)}" oninput="nutritionPlan[${mi}].meal=this.value" placeholder="שם ארוחה (ארוחת בוקר)"/>
+          <button class="btn-sm btn-red" onclick="removeMeal(${mi})">הסר ארוחה</button>
+        </div>
+        <div class="nutri-header">
+          <span>מזון</span><span>כמות</span><span>קל׳</span><span>חלבון</span><span>פחמימה</span><span>שומן</span><span></span>
+        </div>
+        <div id="items-wrap-${mi}">
+          ${(meal.items || []).map((item, ii) => itemRow(mi, ii, item)).join('')}
+        </div>
+        <button class="add-link" onclick="addItem(${mi})">+ הוסף מזון</button>
+      </div>
+    `).join('');
+  }
+
+  function itemRow(mi, ii, item) {
+    return `<div class="item-row" id="item-${mi}-${ii}">
+      <input value="${esc(item.food)}"     oninput="nutritionPlan[${mi}].items[${ii}].food=this.value"     placeholder="מזון"/>
+      <input value="${esc(item.quantity)}" oninput="nutritionPlan[${mi}].items[${ii}].quantity=this.value" placeholder="כמות"/>
+      <input value="${item.calories||''}" oninput="nutritionPlan[${mi}].items[${ii}].calories=+this.value" placeholder="קל׳"  type="number"/>
+      <input value="${item.protein||''}"  oninput="nutritionPlan[${mi}].items[${ii}].protein=+this.value"  placeholder="P"    type="number"/>
+      <input value="${item.carbs||''}"    oninput="nutritionPlan[${mi}].items[${ii}].carbs=+this.value"    placeholder="C"    type="number"/>
+      <input value="${item.fat||''}"      oninput="nutritionPlan[${mi}].items[${ii}].fat=+this.value"      placeholder="F"    type="number"/>
+      <button class="btn-sm btn-red" onclick="removeItem(${mi},${ii})">✕</button>
+    </div>`;
+  }
+
+  function addMeal() {
+    nutritionPlan.push({ meal: '', items: [] });
+    renderNutritionEditor();
+  }
+  function removeMeal(i) {
+    nutritionPlan.splice(i, 1);
+    renderNutritionEditor();
+  }
+  function addItem(mi) {
+    nutritionPlan[mi].items.push({ food: '', quantity: '', calories: 0, protein: 0, carbs: 0, fat: 0 });
+    renderNutritionEditor();
+  }
+  function removeItem(mi, ii) {
+    nutritionPlan[mi].items.splice(ii, 1);
+    renderNutritionEditor();
+  }
+
+  async function saveNutrition() {
+    const { error } = await sb.from('nutrition_plans')
+      .upsert({ client_email: activeEmail, plan: nutritionPlan, updated_at: new Date().toISOString() }, { onConflict: 'client_email' });
+    error ? toast('שגיאה בשמירה', 'err') : toast('תפריט נשמר ✓', 'ok');
+  }
+
+  /* ── PROFILE ── */
+  async function saveProfile() {
+    const name  = document.getElementById('e-name').value.trim();
+    const start = document.getElementById('e-start').value;
+    const end   = document.getElementById('e-end').value;
+    const plan  = document.getElementById('e-plan').value;
+    const { error } = await sb.from('clients')
+      .update({ name, coaching_start: start, coaching_end: end, plan_type: plan })
+      .eq('email', activeEmail);
+    if (error) { toast('שגיאה בשמירה', 'err'); return; }
+    await loadClients();
+    toast('פרטים נשמרו ✓', 'ok');
+  }
+
+  async function deleteClient(email) {
+    if (!confirm(`למחוק את ${email}? לא ניתן לשחזר.`)) return;
+    await sb.from('clients').delete().eq('email', email);
+    activeEmail = null;
+    document.getElementById('main-area').innerHTML = '<div class="no-select">← בחר לקוח מהרשימה</div>';
+    await loadClients();
+    toast('לקוח נמחק', 'ok');
+  }
+
+  /* ── ADD CLIENT MODAL ── */
+  function openAddModal() { document.getElementById('add-modal').classList.add('open'); }
+  function closeAddModal() { document.getElementById('add-modal').classList.remove('open'); document.getElementById('add-err').style.display = 'none'; }
+
+  async function addClient() {
+    const name  = document.getElementById('new-name').value.trim();
+    const email = document.getElementById('new-email').value.trim();
+    const start = document.getElementById('new-start').value;
+    const end   = document.getElementById('new-end').value;
+    const plan  = document.getElementById('new-plan').value;
+    const errEl = document.getElementById('add-err');
+    const btn   = document.getElementById('add-btn');
+    errEl.style.display = 'none';
+    if (!name || !email || !start || !end) { errEl.textContent = 'יש למלא את כל השדות'; errEl.style.display = 'block'; return; }
+    btn.disabled = true; btn.textContent = 'מוסיף...';
+
+    // Insert client record — הלקוח מתחבר דרך Magic Link בלבד
+    const { error: insErr } = await sb.from('clients').insert({ email, name, coaching_start: start, coaching_end: end, plan_type: plan });
+    btn.disabled = false; btn.textContent = 'הוסף לקוח';
+    if (insErr) { errEl.textContent = insErr.message; errEl.style.display = 'block'; return; }
+
+    closeAddModal();
+    await loadClients();
+    toast(`${name} נוסף בהצלחה ✓`, 'ok');
+  }
+
+  /* ── UTILS ── */
+  function esc(s) { return (s || '').replace(/"/g, '&quot;').replace(/</g, '&lt;'); }
+
+  function toast(msg, type = 'ok') {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.className = 'toast ' + type + ' show';
+    setTimeout(() => el.classList.remove('show'), 2500);
+  }
+
+  async function logout() {
+    await sb.auth.signOut();
+    window.location.href = 'login.html';
+  }
+
+  init();
+</script>
+</body>
+</html>

@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>אזור אישי — HF Coaching</title>
+  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;700;900&display=swap" rel="stylesheet"/>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --orange:#FF6B00; --gold:#FFD700; --black:#090909; --graphite:#111; --white:#fff; --muted:#aaa; --card:rgba(255,255,255,0.04); --border:rgba(255,107,0,0.25); }
+    html { scroll-behavior: smooth; }
+    body { font-family: 'Heebo', sans-serif; background: var(--black); color: var(--white); min-height: 100vh; }
+    ::-webkit-scrollbar { width: 5px; } ::-webkit-scrollbar-track { background: var(--black); } ::-webkit-scrollbar-thumb { background: var(--orange); border-radius: 3px; }
+
+    /* NAV */
+    nav {
+      position: sticky; top: 0; z-index: 50;
+      background: rgba(9,9,9,0.92); backdrop-filter: blur(14px);
+      border-bottom: 1px solid rgba(255,107,0,0.15);
+      padding: 0 24px; height: 62px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .nav-brand { display: flex; align-items: center; gap: 10px; }
+    .nav-hf { font-size: 1.4rem; font-weight: 900; background: linear-gradient(135deg, var(--orange), var(--gold)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .nav-greeting { font-size: 0.9rem; color: var(--muted); }
+    .nav-greeting span { color: var(--white); font-weight: 700; }
+    .btn-logout {
+      padding: 7px 18px; background: transparent; border: 1px solid rgba(255,107,0,0.4);
+      border-radius: 6px; color: var(--orange); font-family: 'Heebo', sans-serif;
+      font-size: 0.85rem; font-weight: 700; cursor: pointer; transition: background 0.2s;
+    }
+    .btn-logout:hover { background: rgba(255,107,0,0.1); }
+
+    /* LAYOUT */
+    .container { max-width: 900px; margin: 0 auto; padding: 36px 20px 60px; }
+
+    /* TIMER CARD */
+    .timer-card {
+      background: linear-gradient(135deg, rgba(255,107,0,0.1), rgba(255,215,0,0.04));
+      border: 1px solid rgba(255,107,0,0.4);
+      border-radius: 18px; padding: 32px 28px;
+      display: flex; align-items: center; gap: 28px;
+      margin-bottom: 32px;
+      box-shadow: 0 0 40px rgba(255,107,0,0.1);
+    }
+    .timer-num {
+      font-size: clamp(3rem, 8vw, 5rem); font-weight: 900; line-height: 1;
+      background: linear-gradient(135deg, var(--orange), var(--gold));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+      flex-shrink: 0;
+    }
+    .timer-num.expired { background: #555; -webkit-background-clip: text; background-clip: text; }
+    .timer-info h2 { font-size: 1.2rem; font-weight: 900; margin-bottom: 4px; }
+    .timer-info p  { font-size: 0.85rem; color: var(--muted); line-height: 1.6; }
+    .timer-info .plan-badge {
+      display: inline-block; margin-top: 8px; padding: 3px 12px;
+      background: rgba(255,107,0,0.12); border: 1px solid rgba(255,107,0,0.3);
+      border-radius: 20px; font-size: 0.78rem; font-weight: 700; color: var(--orange);
+    }
+    @media (max-width: 480px) { .timer-card { flex-direction: column; text-align: center; gap: 16px; } }
+
+    /* SECTION */
+    .section { margin-bottom: 36px; }
+    .sec-title {
+      font-size: 1.25rem; font-weight: 900; margin-bottom: 18px;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .sec-title::after { content: ''; flex: 1; height: 1px; background: rgba(255,107,0,0.2); }
+    .sec-title .icon { font-size: 1.1rem; }
+
+    /* TRAINING */
+    .day-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 12px; margin-bottom: 12px; overflow: hidden;
+    }
+    .day-header {
+      padding: 14px 18px; cursor: pointer;
+      display: flex; align-items: center; justify-content: space-between;
+      font-weight: 700; font-size: 0.97rem;
+      transition: background 0.2s;
+    }
+    .day-header:hover { background: rgba(255,107,0,0.06); }
+    .day-header .arr { color: var(--orange); transition: transform 0.2s; font-size: 0.85rem; }
+    .day-card.open .arr { transform: rotate(180deg); }
+    .day-body { display: none; padding: 0 18px 16px; }
+    .day-card.open .day-body { display: block; }
+    .exercise-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.05);
+      gap: 12px;
+    }
+    .exercise-row:last-child { border-bottom: none; }
+    .ex-name { font-size: 0.93rem; font-weight: 600; flex: 1; }
+    .ex-sets { font-size: 0.82rem; color: var(--orange); font-weight: 700; white-space: nowrap; }
+    .ex-video {
+      padding: 5px 12px; background: rgba(255,107,0,0.1); border: 1px solid rgba(255,107,0,0.35);
+      border-radius: 6px; color: var(--orange); font-size: 0.78rem; font-weight: 700;
+      text-decoration: none; white-space: nowrap; transition: background 0.2s;
+    }
+    .ex-video:hover { background: rgba(255,107,0,0.2); }
+
+    /* NUTRITION */
+    .meal-block { margin-bottom: 20px; }
+    .meal-name {
+      font-size: 0.9rem; font-weight: 900; color: var(--gold);
+      margin-bottom: 8px; padding-bottom: 6px;
+      border-bottom: 1px solid rgba(255,215,0,0.15);
+    }
+    .nutri-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    .nutri-table th {
+      padding: 7px 10px; text-align: right; font-size: 0.75rem;
+      font-weight: 700; color: var(--muted); border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .nutri-table td {
+      padding: 8px 10px; border-bottom: 1px solid rgba(255,255,255,0.04);
+    }
+    .nutri-table tr:last-child td { border-bottom: none; }
+    .nutri-table .total-row td { font-weight: 700; color: var(--orange); border-top: 1px solid rgba(255,107,0,0.2); padding-top: 10px; }
+    .nutri-table .num { color: var(--muted); font-size: 0.83rem; }
+
+    /* EMPTY */
+    .empty { text-align: center; padding: 40px 20px; color: #444; font-size: 0.9rem; }
+
+    /* LOADER */
+    #loader {
+      position: fixed; inset: 0; background: var(--black);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 999; transition: opacity 0.3s;
+    }
+    .spin {
+      width: 40px; height: 40px; border: 3px solid rgba(255,107,0,0.2);
+      border-top-color: var(--orange); border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+
+<div id="loader"><div class="spin"></div></div>
+
+<nav>
+  <div class="nav-brand">
+    <div class="nav-hf">HF</div>
+    <div class="nav-greeting">שלום, <span id="client-name">—</span></div>
+  </div>
+  <button class="btn-logout" onclick="logout()">יציאה</button>
+</nav>
+
+<div class="container" id="main" style="display:none;">
+
+  <!-- Timer -->
+  <div class="timer-card" id="timer-card">
+    <div class="timer-num" id="timer-num">—</div>
+    <div class="timer-info">
+      <h2 id="timer-label">ימים נותרו לליווי</h2>
+      <p id="timer-dates">—</p>
+      <span class="plan-badge" id="plan-badge"></span>
+    </div>
+  </div>
+
+  <!-- Training Plan -->
+  <div class="section">
+    <div class="sec-title"><span class="icon">🏋️</span> תוכנית אימונים</div>
+    <div id="training-wrap"></div>
+  </div>
+
+  <!-- Nutrition Plan -->
+  <div class="section">
+    <div class="sec-title"><span class="icon">🥗</span> תפריט תזונה</div>
+    <div id="nutrition-wrap"></div>
+  </div>
+
+</div>
+
+<script>
+  const URL_ = 'https://luwknflmhvcxgifzxgrk.supabase.co';
+  const KEY  = 'sb_publishable_k3M7SfBeiBGs3rTKewBzWQ_7RHRskB9';
+  const sb   = supabase.createClient(URL_, KEY);
+
+  async function init() {
+    let { data: { session } } = await sb.auth.getSession();
+
+    // Magic link callback — wait for auth state to settle
+    if (!session) {
+      await new Promise(resolve => {
+        const { data: { subscription } } = sb.auth.onAuthStateChange((event, s) => {
+          if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
+            session = s;
+            subscription.unsubscribe();
+            resolve();
+          }
+        });
+        setTimeout(resolve, 3000);
+      });
+    }
+
+    if (!session) { window.location.href = 'login.html'; return; }
+
+    const email = session.user.email;
+
+    const { data: client } = await sb.from('clients').select('*').eq('email', email).single();
+
+    document.getElementById('loader').style.opacity = '0';
+    setTimeout(() => document.getElementById('loader').style.display = 'none', 300);
+    document.getElementById('main').style.display = 'block';
+
+    if (!client) {
+      document.getElementById('client-name').textContent = email.split('@')[0];
+      document.getElementById('timer-card').innerHTML = '<div style="color:#555;padding:20px;">ממתין לאישור מאמן — צור קשר עם הלאל להפעלת האזור האישי שלך.</div>';
+      return;
+    }
+
+    document.getElementById('client-name').textContent = client.name;
+
+    // Timer
+    const end   = new Date(client.coaching_end);
+    const start = new Date(client.coaching_start);
+    const now   = new Date();
+    const days  = Math.ceil((end - now) / 86400000);
+    const numEl = document.getElementById('timer-num');
+    numEl.textContent = days > 0 ? days : '0';
+    if (days <= 0) {
+      numEl.classList.add('expired');
+      document.getElementById('timer-label').textContent = 'הליווי הסתיים';
+    } else if (days <= 7) {
+      numEl.style.cssText += ';background:linear-gradient(135deg,#ff4444,#ff8800);-webkit-background-clip:text;background-clip:text;';
+    }
+    document.getElementById('timer-dates').textContent =
+      'מ-' + fmt(start) + ' עד ' + fmt(end);
+    document.getElementById('plan-badge').textContent = client.plan_type || 'ליווי אישי';
+
+    // Plans
+    const [{ data: tr }, { data: nu }] = await Promise.all([
+      sb.from('training_plans').select('plan').eq('client_email', email).single(),
+      sb.from('nutrition_plans').select('plan').eq('client_email', email).single()
+    ]);
+
+    renderTraining(tr?.plan || []);
+    renderNutrition(nu?.plan || []);
+  }
+
+  function fmt(d) {
+    return d.toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  }
+
+  function renderTraining(plan) {
+    const wrap = document.getElementById('training-wrap');
+    if (!plan.length) { wrap.innerHTML = '<div class="empty">תוכנית אימונים תתווסף בקרוב 💪</div>'; return; }
+    wrap.innerHTML = plan.map((day, di) => `
+      <div class="day-card" id="day-${di}">
+        <div class="day-header" onclick="toggleDay(${di})">
+          <span>${day.day}</span>
+          <span class="arr">▼</span>
+        </div>
+        <div class="day-body">
+          ${(day.exercises || []).map(ex => `
+            <div class="exercise-row">
+              <span class="ex-name">${ex.name}</span>
+              ${ex.sets ? `<span class="ex-sets">${ex.sets}</span>` : ''}
+              ${ex.video_url ? `<a class="ex-video" href="${ex.video_url}" target="_blank" rel="noopener">▶ צפה</a>` : ''}
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function toggleDay(i) {
+    document.getElementById('day-' + i).classList.toggle('open');
+  }
+
+  function renderNutrition(plan) {
+    const wrap = document.getElementById('nutrition-wrap');
+    if (!plan.length) { wrap.innerHTML = '<div class="empty">תפריט תזונה יתווסף בקרוב 🥗</div>'; return; }
+    wrap.innerHTML = plan.map(meal => {
+      const items = meal.items || [];
+      const totals = items.reduce((a, i) => ({
+        cal: a.cal + (+i.calories || 0),
+        pro: a.pro + (+i.protein  || 0),
+        car: a.car + (+i.carbs    || 0),
+        fat: a.fat + (+i.fat      || 0)
+      }), { cal: 0, pro: 0, car: 0, fat: 0 });
+
+      return `
+        <div class="meal-block">
+          <div class="meal-name">${meal.meal}</div>
+          <table class="nutri-table">
+            <thead><tr>
+              <th>מזון</th><th>כמות</th>
+              <th>קל׳</th><th>חלבון</th><th>פחמימה</th><th>שומן</th>
+            </tr></thead>
+            <tbody>
+              ${items.map(i => `<tr>
+                <td>${i.food}</td>
+                <td class="num">${i.quantity || '—'}</td>
+                <td class="num">${i.calories || '—'}</td>
+                <td class="num">${i.protein  || '—'}</td>
+                <td class="num">${i.carbs    || '—'}</td>
+                <td class="num">${i.fat      || '—'}</td>
+              </tr>`).join('')}
+              <tr class="total-row">
+                <td colspan="2">סה"כ</td>
+                <td>${totals.cal}</td><td>${totals.pro}</td>
+                <td>${totals.car}</td><td>${totals.fat}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      `;
+    }).join('');
+  }
+
+  async function logout() {
+    await sb.auth.signOut();
+    window.location.href = 'login.html';
+  }
+
+  init();
+</script>
+</body>
+</html>
