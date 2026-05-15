@@ -373,12 +373,25 @@
   }
 
   function exRow(di, ei, ex) {
+    const restOpts = [30,45,60,75,90,105,120,150,180,240,300];
+    const curRest  = ex.rest_time || 90;
+    const restHtml = restOpts.map(s => {
+      const lbl = s < 60 ? s + ' שנ׳' : (s % 60 === 0 ? (s/60) + ' דק׳' : Math.floor(s/60) + ':' + (s%60).toString().padStart(2,'0') + ' דק׳');
+      return `<option value="${s}" ${curRest === s ? 'selected' : ''}>${lbl}</option>`;
+    }).join('');
     return `<div style="margin-bottom:10px;background:rgba(255,255,255,0.02);border-radius:8px;padding:10px 12px;">
       <div class="ex-row" style="margin-bottom:7px;">
         <input value="${esc(ex.name)}" oninput="trainingPlan[${di}].exercises[${ei}].name=this.value" placeholder="שם תרגיל"/>
         <input value="${esc(ex.sets)}" oninput="trainingPlan[${di}].exercises[${ei}].sets=this.value" placeholder="סטים (4x10)"/>
         <input value="${esc(ex.video_url||'')}" oninput="trainingPlan[${di}].exercises[${ei}].video_url=this.value" placeholder="קישור לסרטון" style="direction:ltr;text-align:right;"/>
         <button class="btn-sm btn-red" onclick="removeExercise(${di},${ei})">✕</button>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:7px;">
+        <span style="font-size:0.75rem;font-weight:700;color:var(--muted);white-space:nowrap;">⏱ מנוחה בין סטים:</span>
+        <select onchange="trainingPlan[${di}].exercises[${ei}].rest_time=+this.value"
+          style="padding:6px 10px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:6px;color:#fff;font-family:'Heebo',sans-serif;font-size:0.82rem;outline:none;cursor:pointer;">
+          ${restHtml}
+        </select>
       </div>
       <textarea
         oninput="trainingPlan[${di}].exercises[${ei}].description=this.value"
@@ -397,7 +410,7 @@
     renderTrainingEditor();
   }
   function addExercise(di) {
-    trainingPlan[di].exercises.push({ name: '', sets: '', video_url: '', description: '' });
+    trainingPlan[di].exercises.push({ name: '', sets: '', video_url: '', description: '', rest_time: 90 });
     renderTrainingEditor();
   }
   function removeExercise(di, ei) {
