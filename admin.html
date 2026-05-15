@@ -213,21 +213,49 @@
 
 <!-- ADD / EDIT EXERCISE MODAL -->
 <div class="modal-bg" id="ex-modal">
-  <div class="modal">
+  <div class="modal" style="max-width:540px;max-height:88vh;overflow-y:auto;">
     <h3><span id="ex-modal-title">הוסף תרגיל</span></h3>
     <div style="display:flex;flex-direction:column;gap:12px;">
-      <div class="f-group"><label>שם תרגיל</label><input id="ex-name" placeholder="לחיצת חזה בספסל"/></div>
+      <div class="f-group"><label>שם תרגיל</label><input id="ex-name" placeholder="לחיצת חזה בשיפוע חיובי"/></div>
+      <div class="form-grid">
+        <div class="f-group">
+          <label>קבוצת שריר ראשית</label>
+          <select id="ex-muscle" onchange="updateSubMuscles()">
+            <option>חזה</option><option>גב</option><option>כתפיים</option>
+            <option>ביצפס</option><option>טריצפס</option><option>אמות</option>
+            <option>קוואדס</option><option>המסטרינג</option><option>גלוטס</option>
+            <option>תאומים</option><option>ליבה</option>
+          </select>
+        </div>
+        <div class="f-group"><label>תת-קבוצה</label><select id="ex-sub-muscle"></select></div>
+      </div>
       <div class="f-group">
-        <label>קבוצת שריר</label>
-        <select id="ex-muscle">
-          <option>חזה</option><option>גב</option><option>כתפיים</option>
-          <option>ביצפס</option><option>טריצפס</option><option>רגליים</option>
-          <option>ירכיים</option><option>בטן</option><option>עגל</option>
-        </select>
+        <label>שרירים משניים (אופציונלי)</label>
+        <div id="ex-secondary-wrap" style="display:flex;flex-wrap:wrap;gap:5px;padding-top:4px;"></div>
+      </div>
+      <div class="form-grid">
+        <div class="f-group">
+          <label>ציוד</label>
+          <select id="ex-equipment">
+            <option value="">— לא צוין —</option>
+            <option>משקל גוף</option><option>בר / מוט</option><option>משקולות</option>
+            <option>כבל</option><option>מכונה</option><option>סמיט</option>
+            <option>TRX / רצועות</option><option>קטלבל</option>
+          </select>
+        </div>
+        <div class="f-group">
+          <label>רמת קושי</label>
+          <select id="ex-difficulty">
+            <option value="כל הרמות">כל הרמות</option>
+            <option value="מתחיל">מתחיל</option>
+            <option value="ביניים">ביניים</option>
+            <option value="מתקדם">מתקדם</option>
+          </select>
+        </div>
       </div>
       <div class="f-group"><label>קישור סרטון YouTube (אופציונלי)</label><input id="ex-video" placeholder="https://youtube.com/watch?v=..." style="direction:ltr;text-align:right;"/></div>
       <div class="f-group">
-        <label>תיאור (אופציונלי)</label>
+        <label>תיאור / טכניקה (אופציונלי)</label>
         <textarea id="ex-desc" placeholder="הסבר על התרגיל..." style="padding:9px 12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:7px;color:#fff;font-family:'Heebo',sans-serif;font-size:0.88rem;outline:none;resize:vertical;min-height:80px;transition:border-color 0.2s;" onfocus="this.style.borderColor='var(--orange)'" onblur="this.style.borderColor='rgba(255,255,255,0.1)'"></textarea>
       </div>
     </div>
@@ -359,7 +387,21 @@
     loadClientLogs(client.email);
   }
 
-  const MUSCLES_ADMIN = ['חזה','גב','כתפיים','ביצפס','טריצפס','רגליים','ירכיים','בטן','עגל'];
+  const MUSCLE_HIERARCHY = {
+    'חזה':       ['חזה עליון','חזה אמצעי','חזה תחתון','חזה פנימי'],
+    'גב':        ['רוחב גב','גב עליון','טרפזים','גב תחתון','זוקפי גב'],
+    'כתפיים':   ['כתף קדמית','כתף צידית','כתף אחורית'],
+    'ביצפס':    ['ראש ארוך','ראש קצר','ברכיאליס'],
+    'טריצפס':   ['ראש ארוך','ראש לטרלי','ראש מדיאלי'],
+    'אמות':     ['כופפי אמה','פושטי אמה','כוח אחיזה'],
+    'קוואדס':   ['קוואדס חיצוני','קוואדס פנימי','קוואדס אמצעי'],
+    'המסטרינג': ['חלק פנימי','חלק חיצוני'],
+    'גלוטס':    ['גלוטס מקסימוס','גלוטס מדיוס'],
+    'תאומים':   ['גסטרוקנמיוס','סולאוס','טיביאליס'],
+    'ליבה':     ['בטן עליונה','בטן תחתונה','אלכסונים','עומק ליבה']
+  };
+  const MUSCLES_ADMIN = ['חזה','גב','כתפיים','ביצפס','טריצפס','אמות','קוואדס','המסטרינג','גלוטס','תאומים','ליבה'];
+  let exSecondaryMuscles = [];
 
   /* ── TRAINING EDITOR ── */
   function renderTrainingEditor() {
@@ -615,8 +657,32 @@
 
   /* ── EXERCISE LIBRARY (autocomplete) ── */
   async function loadExerciseLibrary() {
-    const { data } = await sb.from('exercises').select('id,name,muscle_group').order('name');
+    const { data } = await sb.from('exercises').select('id,name,muscle_group,sub_muscle_group').order('name');
     exerciseLibrary = data || [];
+  }
+
+  function updateSubMuscles(selectedSub) {
+    const muscle = document.getElementById('ex-muscle').value;
+    const subs = MUSCLE_HIERARCHY[muscle] || [];
+    const select = document.getElementById('ex-sub-muscle');
+    select.innerHTML = `<option value="">— כללי —</option>` +
+      subs.map(s => `<option value="${s}"${s === selectedSub ? ' selected' : ''}>${s}</option>`).join('');
+  }
+
+  function renderSecondaryPills(selected) {
+    exSecondaryMuscles = [...(selected || [])];
+    const wrap = document.getElementById('ex-secondary-wrap');
+    if (!wrap) return;
+    wrap.innerHTML = Object.keys(MUSCLE_HIERARCHY).map(m => {
+      const active = exSecondaryMuscles.includes(m);
+      return `<button type="button" class="muscle-pill${active ? ' muscle-active' : ''}" onclick="toggleSecondary('${m}',this)" style="font-size:0.72rem;padding:3px 9px;">${m}</button>`;
+    }).join('');
+  }
+
+  function toggleSecondary(muscle, btn) {
+    const idx = exSecondaryMuscles.indexOf(muscle);
+    if (idx === -1) { exSecondaryMuscles.push(muscle); btn.classList.add('muscle-active'); }
+    else { exSecondaryMuscles.splice(idx, 1); btn.classList.remove('muscle-active'); }
   }
 
   function showExSugg(input, di, ei) {
@@ -637,7 +703,8 @@
     matches.forEach(ex => {
       const item = document.createElement('div');
       item.style.cssText = 'padding:9px 12px;cursor:pointer;font-size:0.85rem;border-bottom:1px solid rgba(255,255,255,0.05);display:flex;justify-content:space-between;align-items:center;';
-      item.innerHTML = `<span>${hlMatch(ex.name, q)}</span><span style="font-size:0.72rem;color:var(--muted);">${ex.muscle_group}</span>`;
+      const label = ex.sub_muscle_group ? `${ex.muscle_group} › ${ex.sub_muscle_group}` : ex.muscle_group;
+      item.innerHTML = `<span>${hlMatch(ex.name, q)}</span><span style="font-size:0.72rem;color:var(--muted);">${label}</span>`;
       item.onmousedown = () => {
         trainingPlan[di].exercises[ei].name = ex.name;
         input.value = ex.name;
@@ -740,11 +807,15 @@
   function openAddExModal() {
     editingExId = null;
     document.getElementById('ex-modal-title').textContent = 'הוסף תרגיל';
-    document.getElementById('ex-name').value   = '';
-    document.getElementById('ex-muscle').value = 'חזה';
-    document.getElementById('ex-video').value  = '';
-    document.getElementById('ex-desc').value   = '';
+    document.getElementById('ex-name').value       = '';
+    document.getElementById('ex-muscle').value     = 'חזה';
+    document.getElementById('ex-video').value      = '';
+    document.getElementById('ex-desc').value       = '';
+    document.getElementById('ex-equipment').value  = '';
+    document.getElementById('ex-difficulty').value = 'כל הרמות';
     document.getElementById('ex-err').style.display = 'none';
+    updateSubMuscles();
+    renderSecondaryPills([]);
     document.getElementById('ex-modal').classList.add('open');
   }
 
@@ -753,11 +824,15 @@
     if (!ex) return;
     editingExId = id;
     document.getElementById('ex-modal-title').textContent = 'ערוך תרגיל';
-    document.getElementById('ex-name').value   = ex.name || '';
-    document.getElementById('ex-muscle').value = ex.muscle_group || 'חזה';
-    document.getElementById('ex-video').value  = ex.video_url || '';
-    document.getElementById('ex-desc').value   = ex.description || '';
+    document.getElementById('ex-name').value       = ex.name || '';
+    document.getElementById('ex-muscle').value     = ex.muscle_group || 'חזה';
+    document.getElementById('ex-video').value      = ex.video_url || '';
+    document.getElementById('ex-desc').value       = ex.description || '';
+    document.getElementById('ex-equipment').value  = ex.equipment || '';
+    document.getElementById('ex-difficulty').value = ex.difficulty || 'כל הרמות';
     document.getElementById('ex-err').style.display = 'none';
+    updateSubMuscles(ex.sub_muscle_group || '');
+    renderSecondaryPills(ex.secondary_muscles || []);
     document.getElementById('ex-modal').classList.add('open');
   }
 
@@ -766,24 +841,35 @@
   }
 
   async function saveExercise() {
-    const name   = document.getElementById('ex-name').value.trim();
-    const muscle = document.getElementById('ex-muscle').value;
-    const video  = document.getElementById('ex-video').value.trim();
-    const desc   = document.getElementById('ex-desc').value.trim();
-    const errEl  = document.getElementById('ex-err');
-    const btn    = document.getElementById('ex-save-btn');
+    const name       = document.getElementById('ex-name').value.trim();
+    const muscle     = document.getElementById('ex-muscle').value;
+    const subMuscle  = document.getElementById('ex-sub-muscle').value;
+    const video      = document.getElementById('ex-video').value.trim();
+    const desc       = document.getElementById('ex-desc').value.trim();
+    const equipment  = document.getElementById('ex-equipment').value;
+    const difficulty = document.getElementById('ex-difficulty').value;
+    const errEl = document.getElementById('ex-err');
+    const btn   = document.getElementById('ex-save-btn');
     errEl.style.display = 'none';
     if (!name) { errEl.textContent = 'יש להזין שם תרגיל'; errEl.style.display = 'block'; return; }
     btn.disabled = true; btn.textContent = 'שומר...';
 
+    const payload = {
+      name,
+      muscle_group:      muscle,
+      sub_muscle_group:  subMuscle  || null,
+      secondary_muscles: exSecondaryMuscles.length ? exSecondaryMuscles : null,
+      equipment:         equipment  || null,
+      difficulty:        difficulty || null,
+      video_url:         video      || null,
+      description:       desc       || null
+    };
+
     let error;
     if (editingExId) {
-      ({ error } = await sb.from('exercises')
-        .update({ name, muscle_group: muscle, video_url: video || null, description: desc || null })
-        .eq('id', editingExId));
+      ({ error } = await sb.from('exercises').update(payload).eq('id', editingExId));
     } else {
-      ({ error } = await sb.from('exercises')
-        .insert({ name, muscle_group: muscle, video_url: video || null, description: desc || null }));
+      ({ error } = await sb.from('exercises').insert(payload));
     }
 
     btn.disabled = false; btn.textContent = 'שמור';

@@ -49,8 +49,10 @@
     .search-input::placeholder { color: #444; }
 
     /* FILTER TABS */
-    .filter-tabs { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 22px; scrollbar-width: none; }
+    .filter-tabs { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 10px; scrollbar-width: none; }
     .filter-tabs::-webkit-scrollbar { display: none; }
+    .filter-subtabs { display: none; gap: 6px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 18px; scrollbar-width: none; }
+    .filter-subtabs::-webkit-scrollbar { display: none; }
     .tab-btn {
       padding: 8px 18px; border-radius: 20px; font-family: 'Heebo', sans-serif;
       font-size: 0.85rem; font-weight: 700; cursor: pointer; white-space: nowrap;
@@ -59,6 +61,14 @@
     }
     .tab-btn:hover { color: var(--white); border-color: rgba(255,107,0,0.5); }
     .tab-btn.active { background: linear-gradient(135deg, var(--orange), #FF8C00); border-color: transparent; color: var(--white); }
+    .tab-btn-sub {
+      padding: 5px 13px; border-radius: 16px; font-family: 'Heebo', sans-serif;
+      font-size: 0.78rem; font-weight: 700; cursor: pointer; white-space: nowrap;
+      border: 1px solid rgba(255,255,255,0.12); background: transparent; color: var(--muted);
+      transition: all 0.2s;
+    }
+    .tab-btn-sub:hover { color: var(--white); border-color: rgba(255,107,0,0.4); }
+    .tab-btn-sub.active { background: rgba(255,107,0,0.15); border-color: var(--orange); color: var(--orange); }
 
     /* COUNT */
     .results-count { font-size: 0.82rem; color: var(--muted); margin-bottom: 16px; }
@@ -157,6 +167,7 @@
   <input class="search-input" id="search" placeholder="חיפוש תרגיל..." oninput="filterExercises()"/>
 
   <div class="filter-tabs" id="filter-tabs"></div>
+  <div class="filter-subtabs" id="filter-subtabs"></div>
   <div class="results-count" id="results-count"></div>
   <div class="exercises-grid" id="exercises-grid"></div>
 </div>
@@ -173,6 +184,7 @@
     </div>
     <div class="modal-body">
       <div id="modal-video"></div>
+      <div id="modal-meta" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;"></div>
       <div class="modal-desc" id="modal-desc"></div>
     </div>
   </div>
@@ -183,9 +195,22 @@
   const KEY  = 'sb_publishable_k3M7SfBeiBGs3rTKewBzWQ_7RHRskB9';
   const sb   = supabase.createClient(URL_, KEY);
 
-  const MUSCLES = ['הכל','חזה','גב','כתפיים','ביצפס','טריצפס','רגליים','ירכיים','בטן','עגל'];
+  const MUSCLE_HIERARCHY = {
+    'חזה':       ['חזה עליון','חזה אמצעי','חזה תחתון','חזה פנימי'],
+    'גב':        ['רוחב גב','גב עליון','טרפזים','גב תחתון','זוקפי גב'],
+    'כתפיים':   ['כתף קדמית','כתף צידית','כתף אחורית'],
+    'ביצפס':    ['ראש ארוך','ראש קצר','ברכיאליס'],
+    'טריצפס':   ['ראש ארוך','ראש לטרלי','ראש מדיאלי'],
+    'אמות':     ['כופפי אמה','פושטי אמה','כוח אחיזה'],
+    'קוואדס':   ['קוואדס חיצוני','קוואדס פנימי','קוואדס אמצעי'],
+    'המסטרינג': ['חלק פנימי','חלק חיצוני'],
+    'גלוטס':    ['גלוטס מקסימוס','גלוטס מדיוס'],
+    'תאומים':   ['גסטרוקנמיוס','סולאוס','טיביאליס'],
+    'ליבה':     ['בטן עליונה','בטן תחתונה','אלכסונים','עומק ליבה']
+  };
   let allExercises = [];
   let activeTab    = 'הכל';
+  let activeSubTab = null;
 
   async function init() {
     let { data: { session } } = await sb.auth.getSession();
@@ -215,13 +240,33 @@
   }
 
   function renderTabs() {
-    document.getElementById('filter-tabs').innerHTML = MUSCLES.map(m => `
-      <button class="tab-btn${m === activeTab ? ' active' : ''}" onclick="setTab('${m}')">${m}</button>
-    `).join('');
+    const mainGroups = ['הכל', ...Object.keys(MUSCLE_HIERARCHY)];
+    document.getElementById('filter-tabs').innerHTML = mainGroups.map(m =>
+      `<button class="tab-btn${m === activeTab ? ' active' : ''}" onclick="setTab('${m}')">${m}</button>`
+    ).join('');
+
+    const subWrap = document.getElementById('filter-subtabs');
+    const subs = activeTab !== 'הכל' ? (MUSCLE_HIERARCHY[activeTab] || []) : [];
+    if (subs.length) {
+      subWrap.style.display = 'flex';
+      subWrap.innerHTML =
+        `<button class="tab-btn-sub${!activeSubTab ? ' active' : ''}" onclick="setSubTab(null)">הכל</button>` +
+        subs.map(s => `<button class="tab-btn-sub${s === activeSubTab ? ' active' : ''}" onclick="setSubTab('${s}')">${s}</button>`).join('');
+    } else {
+      subWrap.style.display = 'none';
+      subWrap.innerHTML = '';
+    }
   }
 
   function setTab(muscle) {
     activeTab = muscle;
+    activeSubTab = null;
+    renderTabs();
+    filterExercises();
+  }
+
+  function setSubTab(sub) {
+    activeSubTab = sub;
     renderTabs();
     filterExercises();
   }
@@ -230,6 +275,7 @@
     const q = document.getElementById('search').value.trim().toLowerCase();
     let list = allExercises;
     if (activeTab !== 'הכל') list = list.filter(e => e.muscle_group === activeTab);
+    if (activeSubTab) list = list.filter(e => e.sub_muscle_group === activeSubTab);
     if (q) list = list.filter(e => e.name.toLowerCase().includes(q));
     renderGrid(list);
     document.getElementById('results-count').innerHTML =
@@ -244,7 +290,7 @@
     }
     grid.innerHTML = list.map(ex => `
       <div class="ex-card" data-id="${ex.id}" onclick="openModal('${ex.id}')">
-        <span class="ex-muscle-badge">${ex.muscle_group}</span>
+        <span class="ex-muscle-badge">${ex.sub_muscle_group || ex.muscle_group}</span>
         <div class="ex-card-name">${esc(ex.name)}</div>
         <div class="ex-card-footer ${ex.video_url ? 'has-video' : 'no-video'}">
           ${ex.video_url ? '▶ צפה בסרטון' : '— ללא סרטון'}
@@ -258,8 +304,15 @@
     if (!ex) return;
 
     document.getElementById('modal-name').textContent   = ex.name;
-    document.getElementById('modal-muscle').textContent = ex.muscle_group;
+    document.getElementById('modal-muscle').textContent = ex.sub_muscle_group || ex.muscle_group;
     document.getElementById('modal-desc').textContent   = ex.description || '';
+
+    const metaEl = document.getElementById('modal-meta');
+    const chips = [];
+    if (ex.equipment) chips.push(`<span style="padding:3px 10px;border-radius:10px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);font-size:0.75rem;color:#ccc;">${ex.equipment}</span>`);
+    if (ex.difficulty && ex.difficulty !== 'כל הרמות') chips.push(`<span style="padding:3px 10px;border-radius:10px;background:rgba(255,215,0,0.08);border:1px solid rgba(255,215,0,0.2);font-size:0.75rem;color:var(--gold);">${ex.difficulty}</span>`);
+    if (ex.secondary_muscles && ex.secondary_muscles.length) chips.push(`<span style="padding:3px 10px;border-radius:10px;background:rgba(255,107,0,0.06);border:1px solid rgba(255,107,0,0.15);font-size:0.75rem;color:var(--muted);">גם: ${ex.secondary_muscles.join(', ')}</span>`);
+    metaEl.innerHTML = chips.join('');
 
     const videoEl = document.getElementById('modal-video');
     if (ex.video_url) {
