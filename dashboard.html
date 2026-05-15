@@ -185,8 +185,6 @@
     .rest-ctrl { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
     .rest-ctrl-lbl { font-size: 0.78rem; font-weight: 700; color: var(--muted); }
     .rest-ctrl-val { font-size: 0.88rem; font-weight: 700; min-width: 72px; text-align: center; }
-    .btn-rest-adj { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: rgba(255,107,0,0.1); border: 1px solid rgba(255,107,0,0.3); color: var(--orange); font-size: 1rem; font-weight: 900; cursor: pointer; transition: background 0.2s; line-height: 1; }
-    .btn-rest-adj:hover { background: rgba(255,107,0,0.25); }
     .sets-head { display: grid; grid-template-columns: 52px 1fr 1fr 40px; gap: 8px; margin-bottom: 6px; }
     .sets-head span { font-size: 0.7rem; font-weight: 700; color: var(--muted); text-align: center; }
     .sets-head span:first-child { text-align: right; }
@@ -470,7 +468,7 @@
         return {
           name: ex.name,
           description: ex.description || '',
-          restTime: 90,
+          restTime: ex.rest_time || 90,
           sets: Array.from({ length: count }, () => ({
             weight: '',
             reps: plannedReps ? String(plannedReps) : '',
@@ -508,10 +506,8 @@
         <div class="session-ex-title">${esc(ex.name)}</div>
         ${ex.description ? `<div class="session-ex-desc">${esc(ex.description)}</div>` : ''}
         <div class="rest-ctrl">
-          <span class="rest-ctrl-lbl">⏱ זמן מנוחה:</span>
-          <button class="btn-rest-adj" onclick="adjRest(${ei},-15)">−</button>
-          <span class="rest-ctrl-val" id="rv-${ei}">${fmtRest(ex.restTime)}</span>
-          <button class="btn-rest-adj" onclick="adjRest(${ei},15)">+</button>
+          <span class="rest-ctrl-lbl">⏱ מנוחה בין סטים:</span>
+          <span class="rest-ctrl-val" style="color:var(--orange);">${fmtRest(ex.restTime)}</span>
         </div>
         <div class="sets-head">
           <span></span><span>משקל (ק"ג)</span><span>חזרות</span><span></span>
@@ -545,14 +541,6 @@
       const rt = workoutSession.exercises[ei].restTime;
       if (rt > 0) startRest(rt);
     }
-  }
-
-  function adjRest(ei, delta) {
-    if (!workoutSession) return;
-    const ex = workoutSession.exercises[ei];
-    ex.restTime = Math.max(15, Math.min(600, ex.restTime + delta));
-    const el = document.getElementById(`rv-${ei}`);
-    if (el) el.textContent = fmtRest(ex.restTime);
   }
 
   function fmtRest(s) {
