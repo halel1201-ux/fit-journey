@@ -155,7 +155,10 @@
     <div class="topnav-brand">HF Admin</div>
     <div class="topnav-sub">פאנל ניהול לקוחות</div>
   </div>
-  <button class="btn-sm btn-outline" onclick="logout()">יציאה</button>
+  <div style="display:flex;gap:8px;align-items:center;">
+    <button class="btn-sm btn-outline" id="btn-ex-view" onclick="toggleExView()" style="border-color:rgba(255,215,0,0.35);color:#FFD700;">💪 תרגילים</button>
+    <button class="btn-sm btn-outline" onclick="logout()">יציאה</button>
+  </div>
 </div>
 
 <div class="layout">
@@ -203,6 +206,34 @@
 </div>
 
 <div class="toast" id="toast"></div>
+
+<!-- ADD / EDIT EXERCISE MODAL -->
+<div class="modal-bg" id="ex-modal">
+  <div class="modal">
+    <h3><span id="ex-modal-title">הוסף תרגיל</span></h3>
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <div class="f-group"><label>שם תרגיל</label><input id="ex-name" placeholder="לחיצת חזה בספסל"/></div>
+      <div class="f-group">
+        <label>קבוצת שריר</label>
+        <select id="ex-muscle">
+          <option>חזה</option><option>גב</option><option>כתפיים</option>
+          <option>ביצפס</option><option>טריצפס</option><option>רגליים</option>
+          <option>ירכיים</option><option>בטן</option><option>עגל</option>
+        </select>
+      </div>
+      <div class="f-group"><label>קישור סרטון YouTube (אופציונלי)</label><input id="ex-video" placeholder="https://youtube.com/watch?v=..." style="direction:ltr;text-align:right;"/></div>
+      <div class="f-group">
+        <label>תיאור (אופציונלי)</label>
+        <textarea id="ex-desc" placeholder="הסבר על התרגיל..." style="padding:9px 12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:7px;color:#fff;font-family:'Heebo',sans-serif;font-size:0.88rem;outline:none;resize:vertical;min-height:80px;transition:border-color 0.2s;" onfocus="this.style.borderColor='var(--orange)'" onblur="this.style.borderColor='rgba(255,255,255,0.1)'"></textarea>
+      </div>
+    </div>
+    <div id="ex-err" style="margin-top:12px;font-size:0.82rem;color:#ff7070;display:none;"></div>
+    <div class="modal-actions">
+      <button class="btn-sm btn-outline" onclick="closeExModal()">ביטול</button>
+      <button class="btn-sm btn-orange" id="ex-save-btn" onclick="saveExercise()">שמור</button>
+    </div>
+  </div>
+</div>
 
 <script>
   const URL_ = 'https://luwknflmhvcxgifzxgrk.supabase.co';
@@ -310,9 +341,16 @@
         <div id="nutrition-editor"></div>
         <button class="btn-sm btn-orange" style="margin-top:14px;" onclick="saveNutrition()">שמור תפריט</button>
       </div>
+
+      <!-- Workout Logs -->
+      <div class="sec-card">
+        <div class="sec-card-title">📊 יומן אימונים</div>
+        <div id="client-logs-wrap"><div style="color:#444;font-size:0.85rem;">טוען...</div></div>
+      </div>
     `;
     renderTrainingEditor();
     renderNutritionEditor();
+    loadClientLogs(client.email);
   }
 
   /* ── TRAINING EDITOR ── */
@@ -335,11 +373,18 @@
   }
 
   function exRow(di, ei, ex) {
-    return `<div class="ex-row" id="ex-${di}-${ei}">
-      <input value="${esc(ex.name)}" oninput="trainingPlan[${di}].exercises[${ei}].name=this.value" placeholder="שם תרגיל"/>
-      <input value="${esc(ex.sets)}" oninput="trainingPlan[${di}].exercises[${ei}].sets=this.value" placeholder="סטים (4x10)"/>
-      <input value="${esc(ex.video_url)}" oninput="trainingPlan[${di}].exercises[${ei}].video_url=this.value" placeholder="קישור לסרטון (אופציונלי)" style="direction:ltr;text-align:right;"/>
-      <button class="btn-sm btn-red" onclick="removeExercise(${di},${ei})">✕</button>
+    return `<div style="margin-bottom:10px;background:rgba(255,255,255,0.02);border-radius:8px;padding:10px 12px;">
+      <div class="ex-row" style="margin-bottom:7px;">
+        <input value="${esc(ex.name)}" oninput="trainingPlan[${di}].exercises[${ei}].name=this.value" placeholder="שם תרגיל"/>
+        <input value="${esc(ex.sets)}" oninput="trainingPlan[${di}].exercises[${ei}].sets=this.value" placeholder="סטים (4x10)"/>
+        <input value="${esc(ex.video_url||'')}" oninput="trainingPlan[${di}].exercises[${ei}].video_url=this.value" placeholder="קישור לסרטון" style="direction:ltr;text-align:right;"/>
+        <button class="btn-sm btn-red" onclick="removeExercise(${di},${ei})">✕</button>
+      </div>
+      <textarea
+        oninput="trainingPlan[${di}].exercises[${ei}].description=this.value"
+        placeholder="טיפ / תיאור טכני לתרגיל (יוצג למתאמן בזמן האימון)..."
+        style="width:100%;padding:7px 10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:6px;color:#fff;font-family:'Heebo',sans-serif;font-size:0.8rem;outline:none;resize:vertical;min-height:46px;direction:rtl;"
+        onfocus="this.style.borderColor='rgba(255,107,0,0.4)'" onblur="this.style.borderColor='rgba(255,255,255,0.08)'">${esc(ex.description||'')}</textarea>
     </div>`;
   }
 
@@ -352,7 +397,7 @@
     renderTrainingEditor();
   }
   function addExercise(di) {
-    trainingPlan[di].exercises.push({ name: '', sets: '', video_url: '' });
+    trainingPlan[di].exercises.push({ name: '', sets: '', video_url: '', description: '' });
     renderTrainingEditor();
   }
   function removeExercise(di, ei) {
@@ -485,6 +530,187 @@
   async function logout() {
     await sb.auth.signOut();
     window.location.href = 'login.html';
+  }
+
+  /* ── CLIENT WORKOUT LOGS ── */
+  async function loadClientLogs(email) {
+    const el = document.getElementById('client-logs-wrap');
+    if (!el) return;
+    const { data } = await sb.from('workout_logs').select('*')
+      .eq('client_email', email)
+      .order('log_date', { ascending: false })
+      .order('created_at', { ascending: false })
+      .limit(30);
+    renderClientLogs(data || []);
+  }
+
+  function renderClientLogs(logs) {
+    const el = document.getElementById('client-logs-wrap');
+    if (!el) return;
+    if (!logs.length) {
+      el.innerHTML = '<div style="color:#444;font-size:0.85rem;">הלקוח עדיין לא תיעד אימונים</div>';
+      return;
+    }
+    el.innerHTML = logs.map((log, li) => {
+      const d = new Date(log.log_date + 'T12:00:00');
+      const dateStr = d.toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit', year: 'numeric' });
+      return `
+        <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:10px;margin-bottom:6px;overflow:hidden;">
+          <div style="padding:10px 14px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='block'?'none':'block'">
+            <div>
+              <div style="font-size:0.88rem;font-weight:700;">${dateStr}</div>
+              <div style="font-size:0.78rem;color:var(--orange);margin-top:2px;">${esc(log.day_name)}</div>
+            </div>
+            <span style="color:var(--orange);font-size:0.75rem;">▼</span>
+          </div>
+          <div style="display:none;padding:0 14px 12px;">
+            ${(log.exercises || []).map(ex => `
+              <div style="padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.04);">
+                <div style="font-size:0.82rem;font-weight:700;color:var(--gold);margin-bottom:3px;">${esc(ex.name)}</div>
+                <div style="font-size:0.8rem;color:var(--muted);">
+                  ${(ex.sets || []).map((s, i) => `סט ${i+1}: <span style="color:#fff">${s.weight||'—'} ק"ג × ${s.reps||'—'}</span>`).join(' &nbsp;|&nbsp; ')}
+                </div>
+              </div>
+            `).join('')}
+            ${log.notes ? `<div style="margin-top:8px;font-size:0.8rem;color:var(--muted);">📝 ${esc(log.notes)}</div>` : ''}
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  /* ── EXERCISES MANAGEMENT ── */
+  let exercisesMode = false;
+  let allAdminExercises = [];
+  let editingExId = null;
+
+  async function toggleExView() {
+    exercisesMode = !exercisesMode;
+    const btn = document.getElementById('btn-ex-view');
+    if (exercisesMode) {
+      btn.textContent = '← לקוחות';
+      btn.style.color = 'var(--muted)';
+      btn.style.borderColor = 'rgba(255,255,255,0.2)';
+      activeEmail = null;
+      await loadExercises();
+      renderExercisesMain();
+    } else {
+      btn.textContent = '💪 תרגילים';
+      btn.style.color = '#FFD700';
+      btn.style.borderColor = 'rgba(255,215,0,0.35)';
+      renderSidebar();
+      document.getElementById('main-area').innerHTML = '<div class="no-select">← בחר לקוח מהרשימה</div>';
+    }
+  }
+
+  async function loadExercises() {
+    const { data } = await sb.from('exercises').select('*').order('muscle_group').order('name');
+    allAdminExercises = data || [];
+  }
+
+  function renderExercisesMain() {
+    document.getElementById('main-area').innerHTML = `
+      <div class="sec-card">
+        <div class="sec-card-title">💪 מאגר תרגילים
+          <button class="btn-sm btn-orange" onclick="openAddExModal()">+ הוסף תרגיל</button>
+        </div>
+        <div id="ex-table-wrap"></div>
+      </div>
+    `;
+    renderExTable();
+  }
+
+  function renderExTable() {
+    const el = document.getElementById('ex-table-wrap');
+    if (!el) return;
+    if (!allAdminExercises.length) {
+      el.innerHTML = '<div style="color:#444;font-size:0.85rem;padding:8px 0;">אין תרגילים עדיין</div>';
+      return;
+    }
+    const groups = {};
+    allAdminExercises.forEach(ex => {
+      if (!groups[ex.muscle_group]) groups[ex.muscle_group] = [];
+      groups[ex.muscle_group].push(ex);
+    });
+    el.innerHTML = Object.entries(groups).map(([muscle, exes]) => `
+      <div style="margin-bottom:20px;">
+        <div style="font-size:0.78rem;font-weight:900;color:var(--orange);letter-spacing:1px;margin-bottom:8px;padding-bottom:5px;border-bottom:1px solid rgba(255,107,0,0.15);">${muscle}</div>
+        ${exes.map(ex => `
+          <div style="display:flex;align-items:center;gap:12px;padding:8px 10px;background:rgba(255,255,255,0.03);border-radius:8px;margin-bottom:4px;">
+            <span style="font-size:0.88rem;font-weight:600;flex:1;">${esc(ex.name)}</span>
+            <span style="font-size:0.75rem;${ex.video_url ? 'color:#4ade80' : 'color:#555'};">${ex.video_url ? '▶ יש סרטון' : '—'}</span>
+            <button class="btn-sm btn-outline" style="padding:4px 10px;font-size:0.75rem;" onclick="openEditExModal('${ex.id}')">ערוך</button>
+            <button class="btn-sm btn-red" onclick="deleteExercise('${ex.id}')">מחק</button>
+          </div>
+        `).join('')}
+      </div>
+    `).join('');
+  }
+
+  function openAddExModal() {
+    editingExId = null;
+    document.getElementById('ex-modal-title').textContent = 'הוסף תרגיל';
+    document.getElementById('ex-name').value   = '';
+    document.getElementById('ex-muscle').value = 'חזה';
+    document.getElementById('ex-video').value  = '';
+    document.getElementById('ex-desc').value   = '';
+    document.getElementById('ex-err').style.display = 'none';
+    document.getElementById('ex-modal').classList.add('open');
+  }
+
+  function openEditExModal(id) {
+    const ex = allAdminExercises.find(e => String(e.id) === String(id));
+    if (!ex) return;
+    editingExId = id;
+    document.getElementById('ex-modal-title').textContent = 'ערוך תרגיל';
+    document.getElementById('ex-name').value   = ex.name || '';
+    document.getElementById('ex-muscle').value = ex.muscle_group || 'חזה';
+    document.getElementById('ex-video').value  = ex.video_url || '';
+    document.getElementById('ex-desc').value   = ex.description || '';
+    document.getElementById('ex-err').style.display = 'none';
+    document.getElementById('ex-modal').classList.add('open');
+  }
+
+  function closeExModal() {
+    document.getElementById('ex-modal').classList.remove('open');
+  }
+
+  async function saveExercise() {
+    const name   = document.getElementById('ex-name').value.trim();
+    const muscle = document.getElementById('ex-muscle').value;
+    const video  = document.getElementById('ex-video').value.trim();
+    const desc   = document.getElementById('ex-desc').value.trim();
+    const errEl  = document.getElementById('ex-err');
+    const btn    = document.getElementById('ex-save-btn');
+    errEl.style.display = 'none';
+    if (!name) { errEl.textContent = 'יש להזין שם תרגיל'; errEl.style.display = 'block'; return; }
+    btn.disabled = true; btn.textContent = 'שומר...';
+
+    let error;
+    if (editingExId) {
+      ({ error } = await sb.from('exercises')
+        .update({ name, muscle_group: muscle, video_url: video || null, description: desc || null })
+        .eq('id', editingExId));
+    } else {
+      ({ error } = await sb.from('exercises')
+        .insert({ name, muscle_group: muscle, video_url: video || null, description: desc || null }));
+    }
+
+    btn.disabled = false; btn.textContent = 'שמור';
+    if (error) { errEl.textContent = error.message; errEl.style.display = 'block'; return; }
+    closeExModal();
+    await loadExercises();
+    renderExTable();
+    toast(editingExId ? 'תרגיל עודכן ✓' : 'תרגיל נוסף ✓', 'ok');
+  }
+
+  async function deleteExercise(id) {
+    if (!confirm('למחוק תרגיל זה?')) return;
+    const { error } = await sb.from('exercises').delete().eq('id', id);
+    if (error) { toast('שגיאה במחיקה', 'err'); return; }
+    await loadExercises();
+    renderExTable();
+    toast('תרגיל נמחק', 'ok');
   }
 
   init();
