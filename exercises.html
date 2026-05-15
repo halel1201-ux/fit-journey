@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>מאגר תרגילים — HF Coaching</title>
+  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;700;900&display=swap" rel="stylesheet"/>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --orange:#FF6B00; --gold:#FFD700; --black:#090909; --white:#fff; --muted:#aaa; --card:rgba(255,255,255,0.04); --border:rgba(255,107,0,0.25); }
+    html { scroll-behavior: smooth; }
+    body { font-family: 'Heebo', sans-serif; background: var(--black); color: var(--white); min-height: 100vh; }
+    ::-webkit-scrollbar { width: 5px; } ::-webkit-scrollbar-track { background: var(--black); } ::-webkit-scrollbar-thumb { background: var(--orange); border-radius: 3px; }
+
+    /* NAV */
+    nav {
+      position: sticky; top: 0; z-index: 50;
+      background: rgba(9,9,9,0.92); backdrop-filter: blur(14px);
+      border-bottom: 1px solid rgba(255,107,0,0.15);
+      padding: 0 24px; height: 62px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .nav-brand { display: flex; align-items: center; gap: 10px; }
+    .nav-hf { font-size: 1.4rem; font-weight: 900; background: linear-gradient(135deg, var(--orange), var(--gold)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .nav-right { display: flex; align-items: center; gap: 12px; }
+    .nav-back { font-size: 0.85rem; color: var(--muted); text-decoration: none; font-weight: 700; transition: color 0.2s; }
+    .nav-back:hover { color: var(--orange); }
+    .btn-logout { padding: 7px 18px; background: transparent; border: 1px solid rgba(255,107,0,0.4); border-radius: 6px; color: var(--orange); font-family: 'Heebo', sans-serif; font-size: 0.85rem; font-weight: 700; cursor: pointer; transition: background 0.2s; }
+    .btn-logout:hover { background: rgba(255,107,0,0.1); }
+
+    /* LAYOUT */
+    .container { max-width: 1100px; margin: 0 auto; padding: 36px 20px 60px; }
+
+    /* PAGE TITLE */
+    .page-header { margin-bottom: 28px; }
+    .page-title { font-size: 1.9rem; font-weight: 900; margin-bottom: 6px; }
+    .page-title span { background: linear-gradient(135deg, var(--orange), var(--gold)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .page-sub { font-size: 0.88rem; color: var(--muted); }
+
+    /* SEARCH */
+    .search-input {
+      width: 100%; padding: 12px 16px; margin-bottom: 18px;
+      background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 10px; color: var(--white); font-family: 'Heebo', sans-serif;
+      font-size: 0.95rem; outline: none; transition: border-color 0.2s;
+    }
+    .search-input:focus { border-color: var(--orange); }
+    .search-input::placeholder { color: #444; }
+
+    /* FILTER TABS */
+    .filter-tabs { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 22px; scrollbar-width: none; }
+    .filter-tabs::-webkit-scrollbar { display: none; }
+    .tab-btn {
+      padding: 8px 18px; border-radius: 20px; font-family: 'Heebo', sans-serif;
+      font-size: 0.85rem; font-weight: 700; cursor: pointer; white-space: nowrap;
+      border: 1px solid rgba(255,107,0,0.25); background: transparent; color: var(--muted);
+      transition: all 0.2s;
+    }
+    .tab-btn:hover { color: var(--white); border-color: rgba(255,107,0,0.5); }
+    .tab-btn.active { background: linear-gradient(135deg, var(--orange), #FF8C00); border-color: transparent; color: var(--white); }
+
+    /* COUNT */
+    .results-count { font-size: 0.82rem; color: var(--muted); margin-bottom: 16px; }
+    .results-count strong { color: var(--orange); }
+
+    /* GRID */
+    .exercises-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; }
+
+    /* CARD */
+    .ex-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 14px; padding: 18px 16px; cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+      display: flex; flex-direction: column; gap: 10px;
+    }
+    .ex-card:hover { transform: translateY(-3px); box-shadow: 0 8px 28px rgba(255,107,0,0.15); border-color: rgba(255,107,0,0.5); }
+    .ex-muscle-badge {
+      display: inline-block; padding: 3px 10px; border-radius: 12px;
+      background: rgba(255,107,0,0.1); border: 1px solid rgba(255,107,0,0.25);
+      font-size: 0.72rem; font-weight: 700; color: var(--orange); align-self: flex-start;
+    }
+    .ex-card-name { font-size: 0.95rem; font-weight: 700; line-height: 1.4; flex: 1; }
+    .ex-card-footer { font-size: 0.78rem; font-weight: 700; }
+    .has-video { color: var(--orange); }
+    .no-video { color: #444; }
+
+    /* EMPTY */
+    .empty { grid-column: 1 / -1; text-align: center; padding: 60px 20px; color: #444; }
+    .empty-icon { font-size: 3rem; margin-bottom: 12px; }
+
+    /* MODAL */
+    .modal-bg {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.85);
+      backdrop-filter: blur(8px); z-index: 200;
+      display: none; align-items: center; justify-content: center; padding: 20px;
+    }
+    .modal-bg.open { display: flex; }
+    .modal {
+      background: #161616; border: 1px solid rgba(255,107,0,0.3);
+      border-radius: 18px; width: 100%; max-width: 640px;
+      box-shadow: 0 0 80px rgba(255,107,0,0.12); overflow: hidden;
+      max-height: 90vh; overflow-y: auto;
+    }
+    .modal-header {
+      padding: 22px 24px 16px; border-bottom: 1px solid rgba(255,255,255,0.06);
+      display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
+    }
+    .modal-title { font-size: 1.25rem; font-weight: 900; margin-bottom: 6px; }
+    .modal-close {
+      background: none; border: none; color: var(--muted); font-size: 1.3rem;
+      cursor: pointer; padding: 2px 6px; line-height: 1; transition: color 0.2s; flex-shrink: 0;
+    }
+    .modal-close:hover { color: var(--white); }
+    .modal-body { padding: 20px 24px 28px; }
+    .video-wrap { position: relative; width: 100%; padding-bottom: 56.25%; background: #000; border-radius: 10px; overflow: hidden; margin-bottom: 16px; }
+    .video-wrap iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: none; }
+    .no-video-box {
+      aspect-ratio: 16/9; background: rgba(255,255,255,0.02);
+      border: 1px dashed rgba(255,107,0,0.2); border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      color: #444; font-size: 0.88rem; margin-bottom: 16px;
+    }
+    .modal-desc { font-size: 0.9rem; color: var(--muted); line-height: 1.7; }
+
+    /* LOADER */
+    #loader { position: fixed; inset: 0; background: var(--black); display: flex; align-items: center; justify-content: center; z-index: 999; transition: opacity 0.3s; }
+    .spin { width: 40px; height: 40px; border: 3px solid rgba(255,107,0,0.2); border-top-color: var(--orange); border-radius: 50%; animation: spin 0.7s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    @media (max-width: 480px) {
+      .exercises-grid { grid-template-columns: repeat(auto-fill, minmax(155px, 1fr)); }
+      .page-title { font-size: 1.5rem; }
+    }
+  </style>
+</head>
+<body>
+
+<div id="loader"><div class="spin"></div></div>
+
+<nav>
+  <div class="nav-brand">
+    <div class="nav-hf">HF</div>
+  </div>
+  <div class="nav-right">
+    <a href="dashboard.html" class="nav-back">← אזור אישי</a>
+    <button class="btn-logout" onclick="logout()">יציאה</button>
+  </div>
+</nav>
+
+<div class="container" id="main" style="display:none;">
+  <div class="page-header">
+    <div class="page-title">מאגר <span>תרגילים</span></div>
+    <p class="page-sub">חפש תרגיל, סנן לפי קבוצת שריר וצפה בסרטון הסבר אנטומי</p>
+  </div>
+
+  <input class="search-input" id="search" placeholder="חיפוש תרגיל..." oninput="filterExercises()"/>
+
+  <div class="filter-tabs" id="filter-tabs"></div>
+  <div class="results-count" id="results-count"></div>
+  <div class="exercises-grid" id="exercises-grid"></div>
+</div>
+
+<!-- EXERCISE MODAL -->
+<div class="modal-bg" id="ex-modal" onclick="onModalBgClick(event)">
+  <div class="modal" id="modal-inner">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="modal-name"></div>
+        <span class="ex-muscle-badge" id="modal-muscle"></span>
+      </div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="modal-video"></div>
+      <div class="modal-desc" id="modal-desc"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const URL_ = 'https://luwknflmhvcxgifzxgrk.supabase.co';
+  const KEY  = 'sb_publishable_k3M7SfBeiBGs3rTKewBzWQ_7RHRskB9';
+  const sb   = supabase.createClient(URL_, KEY);
+
+  const MUSCLES = ['הכל','חזה','גב','כתפיים','ביצפס','טריצפס','רגליים','ירכיים','בטן','עגל'];
+  let allExercises = [];
+  let activeTab    = 'הכל';
+
+  async function init() {
+    let { data: { session } } = await sb.auth.getSession();
+
+    if (!session) {
+      await new Promise(resolve => {
+        const { data: { subscription } } = sb.auth.onAuthStateChange((event, s) => {
+          if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
+            session = s; subscription.unsubscribe(); resolve();
+          }
+        });
+        setTimeout(resolve, 3000);
+      });
+    }
+
+    if (!session) { window.location.href = 'login.html'; return; }
+
+    const { data, error } = await sb.from('exercises').select('*').order('muscle_group').order('name');
+    allExercises = data || [];
+
+    document.getElementById('loader').style.opacity = '0';
+    setTimeout(() => document.getElementById('loader').style.display = 'none', 300);
+    document.getElementById('main').style.display = 'block';
+
+    renderTabs();
+    filterExercises();
+  }
+
+  function renderTabs() {
+    document.getElementById('filter-tabs').innerHTML = MUSCLES.map(m => `
+      <button class="tab-btn${m === activeTab ? ' active' : ''}" onclick="setTab('${m}')">${m}</button>
+    `).join('');
+  }
+
+  function setTab(muscle) {
+    activeTab = muscle;
+    renderTabs();
+    filterExercises();
+  }
+
+  function filterExercises() {
+    const q = document.getElementById('search').value.trim().toLowerCase();
+    let list = allExercises;
+    if (activeTab !== 'הכל') list = list.filter(e => e.muscle_group === activeTab);
+    if (q) list = list.filter(e => e.name.toLowerCase().includes(q));
+    renderGrid(list);
+    document.getElementById('results-count').innerHTML =
+      `מוצגים <strong>${list.length}</strong> תרגילים`;
+  }
+
+  function renderGrid(list) {
+    const grid = document.getElementById('exercises-grid');
+    if (!list.length) {
+      grid.innerHTML = '<div class="empty"><div class="empty-icon">🔍</div><div>לא נמצאו תרגילים</div></div>';
+      return;
+    }
+    grid.innerHTML = list.map(ex => `
+      <div class="ex-card" data-id="${ex.id}" onclick="openModal('${ex.id}')">
+        <span class="ex-muscle-badge">${ex.muscle_group}</span>
+        <div class="ex-card-name">${esc(ex.name)}</div>
+        <div class="ex-card-footer ${ex.video_url ? 'has-video' : 'no-video'}">
+          ${ex.video_url ? '▶ צפה בסרטון' : '— ללא סרטון'}
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function openModal(id) {
+    const ex = allExercises.find(e => String(e.id) === String(id));
+    if (!ex) return;
+
+    document.getElementById('modal-name').textContent   = ex.name;
+    document.getElementById('modal-muscle').textContent = ex.muscle_group;
+    document.getElementById('modal-desc').textContent   = ex.description || '';
+
+    const videoEl = document.getElementById('modal-video');
+    if (ex.video_url) {
+      const embed = toEmbed(ex.video_url);
+      videoEl.innerHTML = embed
+        ? `<div class="video-wrap"><iframe src="${embed}" allowfullscreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"></iframe></div>`
+        : `<div class="no-video-box">קישור הסרטון אינו נתמך להטמעה</div>`;
+    } else {
+      videoEl.innerHTML = `<div class="no-video-box">סרטון יתווסף בקרוב</div>`;
+    }
+
+    document.getElementById('ex-modal').classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function toEmbed(url) {
+    const yt = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+    if (yt) return `https://www.youtube.com/embed/${yt[1]}?rel=0`;
+    return null;
+  }
+
+  function onModalBgClick(e) {
+    if (e.target === document.getElementById('ex-modal')) closeModal();
+  }
+
+  function closeModal() {
+    document.getElementById('ex-modal').classList.remove('open');
+    document.getElementById('modal-video').innerHTML = '';
+    document.body.style.overflow = '';
+  }
+
+  function esc(s) {
+    return (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  async function logout() {
+    await sb.auth.signOut();
+    window.location.href = 'login.html';
+  }
+
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+  init();
+</script>
+</body>
+</html>
