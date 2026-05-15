@@ -386,7 +386,10 @@
     wrap.innerHTML = plan.map((day, di) => `
       <div class="day-card" id="day-${di}">
         <div class="day-header" onclick="toggleDay(${di})">
-          <span style="flex:1;">${day.day}</span>
+          <span style="flex:1;">
+            <span style="font-weight:700;">${day.name || day.day || ''}</span>
+            ${(day.muscles && day.muscles.length) ? `<span style="margin-right:8px;">${day.muscles.map(m => `<span style="display:inline-block;padding:1px 8px;border-radius:10px;background:rgba(255,107,0,0.12);border:1px solid rgba(255,107,0,0.25);color:var(--orange);font-size:0.7rem;font-weight:700;margin-right:3px;">${m}</span>`).join('')}</span>` : ''}
+          </span>
           <button class="btn-log-day" onclick="event.stopPropagation();startWorkout(${di})">▶ החל אימון</button>
           <span class="arr" style="margin-right:8px;">▼</span>
         </div>
@@ -458,7 +461,7 @@
     const day = trainingPlanLocal[di];
     if (!day) return;
     workoutSession = {
-      dayName: day.day,
+      dayName: day.name || day.day || '',
       startTime: Date.now(),
       timerInterval: null,
       restInterval: null,
@@ -477,7 +480,7 @@
         };
       })
     };
-    document.getElementById('session-day').textContent = day.day;
+    document.getElementById('session-day').textContent = day.name || day.day || '';
     document.getElementById('session-clock').textContent = '00:00';
     renderSession();
     document.getElementById('workout-session').classList.add('open');

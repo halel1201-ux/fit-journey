@@ -91,9 +91,13 @@
 
     /* TRAINING EDITOR */
     .day-block { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); border-radius: 10px; padding: 14px 16px; margin-bottom: 10px; }
-    .day-block-head { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+    .day-block-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
     .day-block-head input { flex: 1; padding: 7px 10px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; color: var(--white); font-family: 'Heebo', sans-serif; font-size: 0.88rem; outline: none; }
     .day-block-head input:focus { border-color: var(--orange); }
+    .muscle-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 12px; }
+    .muscle-pill { padding: 5px 12px; border-radius: 20px; font-family: 'Heebo', sans-serif; font-size: 0.78rem; font-weight: 700; cursor: pointer; white-space: nowrap; border: 1px solid rgba(255,255,255,0.12); background: transparent; color: var(--muted); transition: all 0.15s; }
+    .muscle-pill:hover { border-color: rgba(255,107,0,0.4); color: var(--white); }
+    .muscle-pill.muscle-active { background: rgba(255,107,0,0.15); border-color: var(--orange); color: var(--orange); }
     .ex-row { display: grid; grid-template-columns: 2fr 1fr 3fr auto; gap: 8px; align-items: center; margin-bottom: 7px; }
     .ex-row input { padding: 7px 10px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 6px; color: var(--white); font-family: 'Heebo', sans-serif; font-size: 0.82rem; outline: none; }
     .ex-row input:focus { border-color: rgba(255,107,0,0.5); }
@@ -355,23 +359,38 @@
     loadClientLogs(client.email);
   }
 
+  const MUSCLES_ADMIN = ['חזה','גב','כתפיים','ביצפס','טריצפס','רגליים','ירכיים','בטן','עגל'];
+
   /* ── TRAINING EDITOR ── */
   function renderTrainingEditor() {
     const el = document.getElementById('training-editor');
     if (!el) return;
     if (!trainingPlan.length) { el.innerHTML = '<div style="color:#444;font-size:0.85rem;padding:8px 0;">אין ימים עדיין — לחץ + הוסף יום</div>'; return; }
-    el.innerHTML = trainingPlan.map((day, di) => `
+    el.innerHTML = trainingPlan.map((day, di) => {
+      const activeMuscles = day.muscles || [];
+      return `
       <div class="day-block">
         <div class="day-block-head">
-          <input value="${esc(day.day)}" oninput="trainingPlan[${di}].day=this.value" placeholder="שם היום (יום א׳ — חזה)"/>
+          <input value="${esc(day.name || day.day || '')}" oninput="trainingPlan[${di}].name=this.value" placeholder="שם האימון (אימון A, יום חזה + כתפיים...)"/>
           <button class="btn-sm btn-red" onclick="removeDay(${di})">הסר יום</button>
+        </div>
+        <div class="muscle-row">
+          <span style="font-size:0.72rem;font-weight:700;color:var(--muted);white-space:nowrap;">שרירים:</span>
+          ${MUSCLES_ADMIN.map(m => `<button class="muscle-pill${activeMuscles.includes(m) ? ' muscle-active' : ''}" onclick="toggleMuscle(${di},'${m}',this)">${m}</button>`).join('')}
         </div>
         <div id="ex-wrap-${di}">
           ${(day.exercises || []).map((ex, ei) => exRow(di, ei, ex)).join('')}
         </div>
         <button class="add-link" onclick="addExercise(${di})">+ הוסף תרגיל</button>
-      </div>
-    `).join('');
+      </div>`;
+    }).join('');
+  }
+
+  function toggleMuscle(di, muscle, btn) {
+    if (!trainingPlan[di].muscles) trainingPlan[di].muscles = [];
+    const idx = trainingPlan[di].muscles.indexOf(muscle);
+    if (idx === -1) { trainingPlan[di].muscles.push(muscle); btn.classList.add('muscle-active'); }
+    else { trainingPlan[di].muscles.splice(idx, 1); btn.classList.remove('muscle-active'); }
   }
 
   function exRow(di, ei, ex) {
@@ -404,7 +423,7 @@
   }
 
   function addDay() {
-    trainingPlan.push({ day: '', exercises: [] });
+    trainingPlan.push({ name: '', muscles: [], exercises: [] });
     renderTrainingEditor();
   }
   function removeDay(i) {
