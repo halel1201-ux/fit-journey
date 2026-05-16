@@ -137,6 +137,7 @@
   </div>
   <div style="display:flex;gap:8px;align-items:center;">
     <button class="btn-sm btn-outline" onclick="openRecords()" style="border-color:rgba(255,215,0,0.35);color:#FFD700;">🏆 שיאים</button>
+    <a id="btn-trainee-link" href="dashboard.html" style="display:none;" class="btn-sm btn-outline">החלף מצב — מתאמן</a>
     <button class="btn-sm btn-outline" onclick="logout()">יציאה</button>
   </div>
 </div>
@@ -297,6 +298,8 @@
     coachEmail = session.user.email;
     coachName  = coach.name;
     document.getElementById('coach-brand').textContent = `HF — ${coachName}`;
+    const { data: clientRow } = await sb.from('clients').select('email').eq('email', coachEmail).single();
+    if (clientRow) document.getElementById('btn-trainee-link').style.display = 'block';
     await Promise.all([loadClients(), loadExerciseLibrary(), loadFoodItems()]);
     document.getElementById('loader').style.display = 'none';
   }
