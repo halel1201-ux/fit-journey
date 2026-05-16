@@ -101,7 +101,11 @@
   async function redirect(email) {
     if (email === ADMIN) { window.location.href = 'admin.html'; return; }
     const { data: coach } = await sb.from('coaches').select('email').eq('email', email).single();
-    if (coach) { window.location.href = 'coach.html'; return; }
+    if (coach) {
+      const { data: client } = await sb.from('clients').select('email').eq('email', email).single();
+      window.location.href = client ? 'dashboard.html' : 'coach.html';
+      return;
+    }
     window.location.href = 'dashboard.html';
   }
 
