@@ -135,61 +135,6 @@
     .lib-sub { font-size: 0.82rem; color: var(--muted); margin-top: 2px; }
     .lib-arrow { color: var(--orange); font-size: 1.1rem; font-weight: 900; }
 
-    /* RECIPES */
-    .recipe-filter { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 18px; }
-    .rcf-btn {
-      padding: 6px 14px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1);
-      background: rgba(255,255,255,0.04); color: var(--muted);
-      font-family: 'Heebo', sans-serif; font-size: 0.8rem; font-weight: 700;
-      cursor: pointer; transition: all 0.2s;
-    }
-    .rcf-btn.active { background: rgba(255,107,0,0.15); border-color: var(--orange); color: var(--orange); }
-    .recipe-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
-    .recipe-card {
-      background: var(--card); border: 1px solid var(--border);
-      border-radius: 14px; overflow: hidden; cursor: pointer; transition: all 0.2s;
-    }
-    .recipe-card:hover { border-color: rgba(255,107,0,0.5); box-shadow: 0 4px 20px rgba(255,107,0,0.12); transform: translateY(-2px); }
-    .rc-img { width: 100%; height: 160px; object-fit: cover; display: block; }
-    .rc-img-placeholder { width: 100%; height: 160px; background: rgba(255,107,0,0.06); display: flex; align-items: center; justify-content: center; font-size: 2.5rem; }
-    .rc-body { padding: 14px 16px 16px; }
-    .rc-cat { display: inline-block; padding: 3px 10px; background: rgba(255,107,0,0.12); border-radius: 20px; font-size: 0.72rem; font-weight: 700; color: var(--orange); margin-bottom: 8px; }
-    .rc-name { font-size: 1rem; font-weight: 900; margin-bottom: 10px; }
-    .rc-macros { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
-    .rc-macro { font-size: 0.78rem; color: var(--muted); }
-    .rc-macro span { color: var(--white); font-weight: 700; }
-    .rc-time { font-size: 0.78rem; color: var(--muted); }
-    .rc-time span { color: var(--gold); font-weight: 700; }
-
-    /* RECIPE MODAL */
-    .recipe-modal-bg {
-      position: fixed; inset: 0; background: rgba(0,0,0,0.75);
-      z-index: 200; display: none; align-items: flex-end; justify-content: center;
-    }
-    .recipe-modal-bg.open { display: flex; }
-    @media (min-width: 600px) { .recipe-modal-bg { align-items: center; } }
-    .recipe-modal {
-      background: #111; border: 1px solid rgba(255,107,0,0.25);
-      border-radius: 20px 20px 0 0; width: 100%; max-width: 560px;
-      max-height: 85vh; overflow-y: auto; padding: 24px 22px 36px;
-    }
-    @media (min-width: 600px) { .recipe-modal { border-radius: 20px; } }
-    .rm-img { width: 100%; height: 200px; object-fit: cover; border-radius: 12px; margin-bottom: 16px; display: block; }
-    .rm-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 4px; gap: 12px; }
-    .rm-name { font-size: 1.3rem; font-weight: 900; }
-    .rm-cat-b { font-size: 0.72rem; font-weight: 700; color: var(--orange); margin-bottom: 14px; }
-    .rm-close { background: rgba(255,255,255,0.07); border: none; color: var(--muted); width: 32px; height: 32px; border-radius: 50%; cursor: pointer; font-size: 1rem; flex-shrink: 0; }
-    .rm-macros { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; }
-    .rm-macro-pill { padding: 7px 14px; background: rgba(255,255,255,0.05); border-radius: 20px; text-align: center; }
-    .rm-macro-pill .ml { font-size: 0.65rem; color: var(--muted); }
-    .rm-macro-pill .mv { font-size: 0.85rem; font-weight: 700; }
-    .rm-sec { font-size: 0.75rem; font-weight: 900; color: var(--orange); letter-spacing: 1px; margin-bottom: 10px; }
-    .rm-ings { list-style: none; margin-bottom: 22px; }
-    .rm-ings li { padding: 7px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.9rem; display: flex; align-items: center; gap: 8px; }
-    .rm-ings li:last-child { border-bottom: none; }
-    .rm-ings li::before { content: '•'; color: var(--orange); flex-shrink: 0; }
-    .rm-inst { font-size: 0.9rem; line-height: 1.8; color: #ccc; white-space: pre-wrap; }
-
     /* EMPTY */
     .empty { text-align: center; padding: 40px 20px; color: #444; font-size: 0.9rem; }
 
@@ -338,31 +283,9 @@
     <div id="history-wrap"></div>
   </div>
 
-  <!-- Recipes -->
-  <div class="section">
-    <div class="sec-title"><span class="icon">🍽️</span> ספר מתכונים</div>
-    <div class="recipe-filter" id="recipe-filter"></div>
-    <div id="recipes-wrap"></div>
-  </div>
 
 </div>
 
-<!-- RECIPE MODAL -->
-<div class="recipe-modal-bg" id="recipe-modal-bg" onclick="closeRecipeModal(event)">
-  <div class="recipe-modal" onclick="event.stopPropagation()">
-    <img class="rm-img" id="rm-img" src="" alt="" style="display:none;"/>
-    <div class="rm-header">
-      <div class="rm-name" id="rm-name"></div>
-      <button class="rm-close" onclick="closeRecipeModal()">✕</button>
-    </div>
-    <div class="rm-cat-b" id="rm-cat"></div>
-    <div class="rm-macros" id="rm-macros"></div>
-    <div class="rm-sec">מרכיבים</div>
-    <ul class="rm-ings" id="rm-ings"></ul>
-    <div class="rm-sec">הכנה</div>
-    <div class="rm-inst" id="rm-inst"></div>
-  </div>
-</div>
 
 <!-- WORKOUT SESSION -->
 <div class="session-overlay" id="workout-session">
@@ -417,10 +340,6 @@
     document.getElementById('loader').style.opacity = '0';
     setTimeout(() => document.getElementById('loader').style.display = 'none', 300);
     document.getElementById('main').style.display = 'block';
-
-    // load recipes for everyone regardless of client status
-    const { data: recipesAll } = await sb.from('recipes').select('*').order('category').order('name');
-    renderRecipes(recipesAll || []);
 
     if (!client) {
       document.getElementById('client-name').textContent = email.split('@')[0];
@@ -769,80 +688,6 @@
 
   function esc(s) {
     return (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  }
-
-  /* ── RECIPES ── */
-  let allRecipes = [];
-  let activeRcCat = 'הכל';
-
-  function renderRecipes(data) {
-    allRecipes = data;
-    const cats = ['הכל', ...new Set(data.map(r => r.category))];
-    document.getElementById('recipe-filter').innerHTML = cats.map(c =>
-      `<button class="rcf-btn${c === activeRcCat ? ' active' : ''}" onclick="setRcCat('${c}')">${c}</button>`
-    ).join('');
-    renderRecipeCards();
-  }
-
-  function setRcCat(cat) {
-    activeRcCat = cat;
-    document.querySelectorAll('.rcf-btn').forEach(b => b.classList.toggle('active', b.textContent === cat));
-    renderRecipeCards();
-  }
-
-  function renderRecipeCards() {
-    const wrap = document.getElementById('recipes-wrap');
-    const list = activeRcCat === 'הכל' ? allRecipes : allRecipes.filter(r => r.category === activeRcCat);
-    if (!list.length) { wrap.innerHTML = '<div class="empty">מתכונים יתווספו בקרוב 🍽️</div>'; return; }
-    wrap.innerHTML = `<div class="recipe-grid">${list.map(r => `
-      <div class="recipe-card" onclick="openRecipeModal('${r.id}')">
-        ${r.image_url
-          ? `<img class="rc-img" src="${esc(r.image_url)}" alt="${esc(r.name)}" loading="lazy"/>`
-          : `<div class="rc-img-placeholder">🍽️</div>`}
-        <div class="rc-body">
-          <div class="rc-cat">${esc(r.category)}</div>
-          <div class="rc-name">${esc(r.name)}</div>
-          <div class="rc-macros">
-            ${r.calories ? `<div class="rc-macro">🔥 <span>${r.calories}</span> קק"ל</div>` : ''}
-            ${r.protein  ? `<div class="rc-macro">💪 <span>${r.protein}g</span> חלבון</div>` : ''}
-            ${r.carbs    ? `<div class="rc-macro">🌾 <span>${r.carbs}g</span> פחמימות</div>` : ''}
-            ${r.fat      ? `<div class="rc-macro">🧈 <span>${r.fat}g</span> שומן</div>` : ''}
-          </div>
-          ${r.prep_time ? `<div class="rc-time">⏱ <span>${r.prep_time} דקות</span></div>` : ''}
-        </div>
-      </div>
-    `).join('')}</div>`;
-  }
-
-  function openRecipeModal(id) {
-    const r = allRecipes.find(x => x.id === id);
-    if (!r) return;
-    const imgEl = document.getElementById('rm-img');
-    if (r.image_url) { imgEl.src = r.image_url; imgEl.style.display = 'block'; }
-    else { imgEl.style.display = 'none'; }
-    document.getElementById('rm-name').textContent = r.name;
-    document.getElementById('rm-cat').textContent  = r.category;
-    const macros = [
-      r.calories  ? { l: 'קלוריות',   v: r.calories + ' קק"ל' } : null,
-      r.protein   ? { l: 'חלבון',     v: r.protein + 'g' }       : null,
-      r.carbs     ? { l: 'פחמימות',   v: r.carbs + 'g' }         : null,
-      r.fat       ? { l: 'שומן',      v: r.fat + 'g' }           : null,
-      r.prep_time ? { l: 'זמן הכנה',  v: r.prep_time + ' דק׳' }  : null,
-    ].filter(Boolean);
-    document.getElementById('rm-macros').innerHTML = macros.map(m =>
-      `<div class="rm-macro-pill"><div class="ml">${m.l}</div><div class="mv">${m.v}</div></div>`
-    ).join('');
-    const ings = Array.isArray(r.ingredients) ? r.ingredients : [];
-    document.getElementById('rm-ings').innerHTML = ings.map(i => `<li>${esc(i)}</li>`).join('') || '<li>—</li>';
-    document.getElementById('rm-inst').textContent = r.instructions || '—';
-    document.getElementById('recipe-modal-bg').classList.add('open');
-    document.body.style.overflow = 'hidden';
-  }
-
-  function closeRecipeModal(e) {
-    if (e && e.target !== document.getElementById('recipe-modal-bg')) return;
-    document.getElementById('recipe-modal-bg').classList.remove('open');
-    document.body.style.overflow = '';
   }
 
   init();
