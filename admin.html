@@ -387,6 +387,104 @@
   let nutritionPlan = [];
   let exerciseLibrary = [];
 
+  /* ── UNIT MEASURES DATA ── */
+  const FOOD_UNITS_RAW = [
+    // חלב וגבינות
+    ['קוטג׳','כף שטוחה',15],['קוטג׳','כף גדושה',25],['קוטג׳','כפית',8],['קוטג׳','קופסה',250],
+    ['גבינה לבנה','כף שטוחה',15],['גבינה לבנה','כף גדושה',25],['גבינה לבנה','כפית',8],['גבינה לבנה','קופסה',250],
+    ['לאבנה','כף',20],['לאבנה','כפית',7],
+    ['יוגורט יווני','גביע',200],['יוגורט יווני','כף',15],
+    ['גבינה צהובה','פרוסה ארוזה',28],['גבינת עמק','פרוסה',28],
+    ['גבינת מוצרלה','פרוסה',25],['גבינת פטה','קובייה',30],
+    ['פרמזן מגורד','כף',5],
+    ['חלב','כוס',240],['חלב','כף',15],
+    // בשר / עוף / דגים
+    ['חזה עוף','פרוסת פסטרמה דקה',15],['חזה עוף','שניצל בינוני',150],['חזה עוף','חתיכה ממוצעת',200],
+    ['פרגית','חתיכה',120],
+    ['ירך עוף','יחידה',150],['שוק עוף','יחידה',120],['כנף עוף','יחידה',35],
+    ['חזה הודו','פרוסה',20],['פסטרמה הודו','פרוסה',15],
+    ['בקר טחון','קציצה קטנה',100],['בקר טחון','המבורגר',150],
+    ['אנטריקוט','סטייק',300],['סינטה','סטייק',250],['פילה בקר','סטייק',220],
+    ['שייטל','סטייק',250],['אסאדו','חתיכה',350],
+    ['כבד עוף','יחידה',20],['לבבות עוף','יחידה',10],
+    ['סלמון','פילה',250],['טונה טרייה','סטייק',220],
+    ['אמנון','פילה',180],['דניס','דג שלם',400],['לברק','דג שלם',450],
+    ['מקרל','דג שלם',300],['סרדינים','יחידה',25],
+    ['ביצה','יחידה L',60],['חלבון ביצה','חלבון אחד',33],
+    // פחמימות
+    ['אורז מבושל','כף',15],['אורז מבושל','כוס',160],
+    ['פסטה מבושלת','כף',15],['פסטה מבושלת','כוס',140],
+    ['קינואה מבושלת','כף',15],['קינואה מבושלת','כוס',185],
+    ['בורגול מבושל','כף',15],['בורגול מבושל','כוס',180],
+    ['שיבולת שועל','כף',10],['שיבולת שועל','כוס',80],
+    ['תפוח אדמה','קטן',100],['תפוח אדמה','בינוני',180],
+    ['בטטה','קטנה',130],['בטטה','בינונית',250],
+    ['לחם','פרוסה',30],['פיתה','יחידה',80],['פיתה כוסמין','יחידה',75],
+    ['בננה','יחידה בינונית',120],['תמר מג׳הול','יחידה',24],
+    // שומנים
+    ['טחינה','כף',15],['טחינה','כפית',5],
+    ['חמאת בוטנים','כף',15],['חמאת בוטנים','כפית',5],
+    ['שמן זית','כף',10],['שמן זית','כפית',5],
+    ['אבוקדו','חצי אבוקדו',100],
+    ['שקדים','יחידה',1.2],['אגוז מלך','יחידה',5],['קשיו','יחידה',1.5],['פיסטוק','יחידה',0.6],
+  ];
+  const FOOD_UNITS_MAP = {};
+  for (const [food, unit, grams] of FOOD_UNITS_RAW) {
+    if (!FOOD_UNITS_MAP[food]) FOOD_UNITS_MAP[food] = [];
+    FOOD_UNITS_MAP[food].push({ name: unit, grams });
+  }
+  const GENERIC_UNITS = [
+    { name: 'גרם', grams: 1 },
+    { name: 'כף', grams: 15 },
+    { name: 'כפית', grams: 5 },
+    { name: 'כוס', grams: 240 },
+    { name: 'יחידה', grams: 100 },
+    { name: 'פרוסה', grams: 30 },
+    { name: 'חצי', grams: 50 },
+  ];
+  function getUnitsForFood(foodName) {
+    const specific = FOOD_UNITS_MAP[foodName] || [];
+    if (!specific.length) return GENERIC_UNITS;
+    const hasGram = specific.some(u => u.name === 'גרם');
+    return hasGram ? specific : [{ name: 'גרם', grams: 1 }, ...specific];
+  }
+
+  function toggleItemExpand(mi, ii) {
+    const item = nutritionPlan[mi].items[ii];
+    item._exp = !item._exp;
+    if (!item._unit) item._unit = 'גרם';
+    if (item._qty == null) item._qty = parseFloat(item.quantity) || 100;
+    renderNutritionEditor();
+  }
+  function setItemUnit(mi, ii, unitName) {
+    const item = nutritionPlan[mi].items[ii];
+    item._unit = unitName;
+    item._qty = unitName === 'גרם' ? 100 : 1;
+    recalcItemMacros(mi, ii);
+    renderNutritionEditor();
+  }
+  function setItemQty(mi, ii, qty) {
+    nutritionPlan[mi].items[ii]._qty = qty;
+    recalcItemMacros(mi, ii);
+    renderNutritionEditor();
+  }
+  function recalcItemMacros(mi, ii) {
+    const item = nutritionPlan[mi].items[ii];
+    const food = allFoodItems.find(f => f.name === item.food);
+    if (!food) return;
+    const units = getUnitsForFood(item.food);
+    const unit = units.find(u => u.name === item._unit) || { grams: 1 };
+    const grams = (item._qty || 1) * unit.grams;
+    const r = grams / 100;
+    item.calories = Math.round(food.calories * r * 10) / 10;
+    item.protein  = Math.round(food.protein  * r * 10) / 10;
+    item.carbs    = Math.round(food.carbs    * r * 10) / 10;
+    item.fat      = Math.round(food.fat      * r * 10) / 10;
+    item.quantity = item._unit === 'גרם'
+      ? `${Math.round(grams)} גרם`
+      : `${item._qty} ${item._unit} (${Math.round(grams)}g)`;
+  }
+
   async function init() {
     let { data: { session } } = await sb.auth.getSession();
 
@@ -406,8 +504,7 @@
     if (!session || session.user.email !== ADMIN) {
       window.location.href = 'login.html'; return;
     }
-    await loadClients();
-    await loadExerciseLibrary();
+    await Promise.all([loadClients(), loadExerciseLibrary(), loadFoodItems()]);
     document.getElementById('loader').style.display = 'none';
   }
 
@@ -627,14 +724,48 @@
   }
 
   function itemRow(mi, ii, item) {
-    return `<div class="item-row" id="item-${mi}-${ii}">
-      <input value="${esc(item.food)}"     oninput="nutritionPlan[${mi}].items[${ii}].food=this.value"     placeholder="מזון"/>
-      <input value="${esc(item.quantity)}" oninput="nutritionPlan[${mi}].items[${ii}].quantity=this.value" placeholder="כמות"/>
-      <input value="${item.calories||''}" oninput="nutritionPlan[${mi}].items[${ii}].calories=+this.value" placeholder="קל׳"  type="number"/>
-      <input value="${item.protein||''}"  oninput="nutritionPlan[${mi}].items[${ii}].protein=+this.value"  placeholder="P"    type="number"/>
-      <input value="${item.carbs||''}"    oninput="nutritionPlan[${mi}].items[${ii}].carbs=+this.value"    placeholder="C"    type="number"/>
-      <input value="${item.fat||''}"      oninput="nutritionPlan[${mi}].items[${ii}].fat=+this.value"      placeholder="F"    type="number"/>
-      <button class="btn-sm btn-red" onclick="removeItem(${mi},${ii})">✕</button>
+    const exp      = item._exp || false;
+    const unitName = item._unit || 'גרם';
+    const qty      = item._qty != null ? item._qty : (unitName === 'גרם' ? 100 : 1);
+    const units    = getUnitsForFood(item.food);
+    const selUnit  = units.find(u => u.name === unitName) || units[0];
+    const totalG   = selUnit ? Math.round(qty * selUnit.grams * 10) / 10 : qty;
+
+    const unitPicker = exp ? `
+      <div style="background:rgba(255,107,0,0.06);border:1px solid rgba(255,107,0,0.2);border-radius:8px;padding:8px 12px;margin-top:4px;">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <span style="font-size:0.8rem;color:var(--muted);flex-shrink:0;">מידה:</span>
+          <select onchange="setItemUnit(${mi},${ii},this.value)"
+            style="padding:5px 8px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.14);border-radius:6px;color:#fff;font-family:'Heebo',sans-serif;font-size:0.82rem;outline:none;cursor:pointer;max-width:200px;">
+            ${units.map(u => `<option value="${esc(u.name)}" ${u.name===unitName?'selected':''}>${esc(u.name)}${u.grams!==1?' ('+u.grams+'g)':''}</option>`).join('')}
+          </select>
+          <span style="font-size:0.8rem;color:var(--muted);">×</span>
+          <input type="number" min="0.1" step="0.1" value="${qty}"
+            style="width:72px;padding:5px 8px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.14);border-radius:6px;color:#fff;font-family:'Heebo',sans-serif;font-size:0.82rem;text-align:center;outline:none;"
+            oninput="setItemQty(${mi},${ii},+this.value)"/>
+          <span style="font-size:0.82rem;color:var(--orange);font-weight:700;">= ${totalG}g</span>
+        </div>
+      </div>` : '';
+
+    return `<div style="margin-bottom:6px;">
+      <div class="item-row" id="item-${mi}-${ii}">
+        <div style="display:flex;align-items:center;gap:3px;min-width:0;">
+          <input value="${esc(item.food)}"
+            oninput="nutritionPlan[${mi}].items[${ii}].food=this.value;showFoodSuggAdmin(this,${mi},${ii})"
+            onblur="setTimeout(hideFoodSuggAdmin,160)"
+            autocomplete="off" placeholder="מזון"
+            style="flex:1;min-width:0;padding:6px 8px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:6px;color:#fff;font-family:'Heebo',sans-serif;font-size:0.8rem;outline:none;"/>
+          <button onclick="toggleItemExpand(${mi},${ii})" title="בחר מידה"
+            style="padding:3px 7px;background:${exp?'rgba(255,107,0,0.2)':'rgba(255,255,255,0.04)'};border:1px solid ${exp?'rgba(255,107,0,0.45)':'rgba(255,255,255,0.1)'};border-radius:5px;color:${exp?'var(--orange)':'#666'};cursor:pointer;font-size:0.65rem;flex-shrink:0;">${exp?'▲':'▼'}</button>
+        </div>
+        <input value="${esc(item.quantity)}" oninput="nutritionPlan[${mi}].items[${ii}].quantity=this.value" placeholder="כמות"/>
+        <input value="${item.calories||''}" oninput="nutritionPlan[${mi}].items[${ii}].calories=+this.value" placeholder="קל׳" type="number"/>
+        <input value="${item.protein||''}"  oninput="nutritionPlan[${mi}].items[${ii}].protein=+this.value"  placeholder="P"   type="number"/>
+        <input value="${item.carbs||''}"    oninput="nutritionPlan[${mi}].items[${ii}].carbs=+this.value"    placeholder="C"   type="number"/>
+        <input value="${item.fat||''}"      oninput="nutritionPlan[${mi}].items[${ii}].fat=+this.value"      placeholder="F"   type="number"/>
+        <button class="btn-sm btn-red" onclick="removeItem(${mi},${ii})">✕</button>
+      </div>
+      ${unitPicker}
     </div>`;
   }
 
@@ -856,7 +987,51 @@
   document.addEventListener('click', e => {
     const drop = document.getElementById('ex-sugg-drop');
     if (drop && !drop.contains(e.target)) hideExSugg();
+    const fdrop = document.getElementById('food-sugg-admin');
+    if (fdrop && !fdrop.contains(e.target)) hideFoodSuggAdmin();
   });
+
+  /* ── FOOD AUTOCOMPLETE (nutrition editor) ── */
+  function showFoodSuggAdmin(input, mi, ii) {
+    hideFoodSuggAdmin();
+    const q = input.value.trim();
+    if (!q || !allFoodItems.length) return;
+    const matches = allFoodItems.filter(f => f.name.includes(q)).slice(0, 8);
+    if (!matches.length) return;
+
+    const rect = input.getBoundingClientRect();
+    const drop = document.createElement('div');
+    drop.id = 'food-sugg-admin';
+    drop.style.cssText = `position:fixed;top:${rect.bottom+2}px;right:${window.innerWidth-rect.right}px;
+      min-width:${rect.width+180}px;background:#1e1e1e;border:1px solid rgba(255,107,0,0.4);
+      border-radius:8px;z-index:600;overflow:hidden;box-shadow:0 6px 24px rgba(0,0,0,0.7);`;
+
+    matches.forEach(f => {
+      const item = document.createElement('div');
+      item.style.cssText = 'padding:9px 12px;cursor:pointer;font-size:0.85rem;border-bottom:1px solid rgba(255,255,255,0.05);display:flex;justify-content:space-between;align-items:center;gap:12px;';
+      item.innerHTML = `<span style="font-weight:600;">${esc(f.name)}</span>
+        <span style="font-size:0.72rem;color:#888;white-space:nowrap;">${f.calories}קק"ל | P${f.protein}g C${f.carbs}g F${f.fat}g</span>`;
+      item.onmousedown = () => {
+        nutritionPlan[mi].items[ii].food     = f.name;
+        nutritionPlan[mi].items[ii].calories = f.calories;
+        nutritionPlan[mi].items[ii].protein  = f.protein;
+        nutritionPlan[mi].items[ii].carbs    = f.carbs;
+        nutritionPlan[mi].items[ii].fat      = f.fat;
+        if (!nutritionPlan[mi].items[ii].quantity) nutritionPlan[mi].items[ii].quantity = '100 גרם';
+        hideFoodSuggAdmin();
+        renderNutritionEditor();
+      };
+      item.onmouseover = () => item.style.background = 'rgba(255,107,0,0.1)';
+      item.onmouseout  = () => item.style.background = '';
+      drop.appendChild(item);
+    });
+    document.body.appendChild(drop);
+  }
+
+  function hideFoodSuggAdmin() {
+    const d = document.getElementById('food-sugg-admin');
+    if (d) d.remove();
+  }
 
   /* ── EXERCISES MANAGEMENT ── */
   let allAdminExercises = [];
