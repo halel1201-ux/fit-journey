@@ -8,6 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;700;900&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -2463,34 +2464,43 @@
 
 
   /* ─── RECIPE BOOK ─── */
-  const RECIPES = [
-    // מתכונים יתווספו בהדרגה
-  ];
+  const _sbR = supabase.createClient(
+    'https://luwknflmhvcxgifzxgrk.supabase.co',
+    'sb_publishable_k3M7SfBeiBGs3rTKewBzWQ_7RHRskB9'
+  );
+  let _recipes = [];
 
-  function openRecipeBook() {
+  async function openRecipeBook() {
     const overlay = document.getElementById('recipe-book-overlay');
-    const grid = document.getElementById('recipe-grid');
-    if (RECIPES.length === 0) {
+    const grid    = document.getElementById('recipe-grid');
+    overlay.classList.add('open');
+    document.body.style.overflow = 'hidden';
+
+    if (!_recipes.length) {
+      grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:60px 0;color:#555;">טוען מתכונים...</div>';
+      const { data } = await _sbR.from('recipes').select('*').order('category').order('name');
+      _recipes = data || [];
+    }
+
+    if (!_recipes.length) {
       grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:60px 0;color:#555;font-size:1rem;">מתכונים בדרך... 🔥</div>';
-      overlay.classList.add('open');
-      document.body.style.overflow = 'hidden';
       return;
     }
-    grid.innerHTML = RECIPES.map(r => `
-      <div class="recipe-card" onclick="openRecipeDetail(${r.id})">
+
+    grid.innerHTML = _recipes.map(r => `
+      <div class="recipe-card" onclick="openRecipeDetail('${r.id}')">
         <div class="recipe-card-img-wrap">
-          <img src="${r.img}" alt="${r.name}" loading="lazy"
-               onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
-          <div class="recipe-img-placeholder" style="display:none;">${r.emoji}</div>
+          ${r.image_url
+            ? `<img src="${r.image_url}" alt="${r.name}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">`
+            : ''}
+          <div class="recipe-img-placeholder" style="display:${r.image_url ? 'none' : 'flex'}">🍽️</div>
         </div>
         <div class="recipe-card-body">
           <div class="recipe-card-name">${r.name}</div>
-          <div class="recipe-card-meta">${r.tags[0]} &middot; ${r.tags[2]}</div>
+          <div class="recipe-card-meta">${r.category}${r.calories ? ' · ' + r.calories + ' קק"ל' : ''}${r.prep_time ? ' · ' + r.prep_time + ' דק\'' : ''}</div>
         </div>
       </div>
     `).join('');
-    overlay.classList.add('open');
-    document.body.style.overflow = 'hidden';
   }
 
   function closeRecipeBook() {
@@ -2501,8 +2511,17 @@
   }
 
   function openRecipeDetail(id) {
-    const r = RECIPES.find(x => x.id === id);
+    const r = _recipes.find(x => x.id === id);
     if (!r) return;
+    const ings  = Array.isArray(r.ingredients) ? r.ingredients : [];
+    const steps = r.instructions ? r.instructions.split('\n').filter(Boolean) : [];
+    const tags  = [r.category, r.prep_time ? r.prep_time + ' דקות' : '', r.calories ? r.calories + ' קק"ל' : ''].filter(Boolean);
+    const macros = [
+      r.protein  ? `חלבון ${r.protein}g`    : '',
+      r.carbs    ? `פחמימות ${r.carbs}g`    : '',
+      r.fat      ? `שומן ${r.fat}g`         : '',
+    ].filter(Boolean);
+
     const inner = document.getElementById('recipe-detail-inner');
     inner.innerHTML = `
       <button class="recipe-back-btn" onclick="closeRecipeDetail()">
@@ -2510,28 +2529,20 @@
         חזרה לספר מתכונים
       </button>
       <div class="recipe-detail-img-wrap">
-        <img src="${r.img}" alt="${r.name}"
-             onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
-        <div class="recipe-detail-img-placeholder" style="display:none;">${r.emoji}</div>
+        ${r.image_url ? `<img src="${r.image_url}" alt="${r.name}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">` : ''}
+        <div class="recipe-detail-img-placeholder" style="display:${r.image_url ? 'none' : 'flex'}">🍽️</div>
       </div>
       <div class="recipe-detail-name">${r.name}</div>
-      <div class="recipe-detail-tags">
-        ${r.tags.map(t => `<span class="recipe-tag">${t}</span>`).join('')}
-      </div>
-      <p class="recipe-detail-desc">${r.desc}</p>
-      <div class="recipe-section-title">מרכיבים</div>
-      <ul class="recipe-ingredients">
-        ${r.ingredients.map(i => `<li>${i}</li>`).join('')}
-      </ul>
-      <div class="recipe-section-title">אופן הכנה</div>
-      <ol class="recipe-steps">
-        ${r.steps.map((s, i) => `
-          <li>
-            <div class="step-num">${i + 1}</div>
-            <span>${s}</span>
-          </li>
-        `).join('')}
-      </ol>
+      <div class="recipe-detail-tags">${tags.map(t => `<span class="recipe-tag">${t}</span>`).join('')}</div>
+      ${macros.length ? `<div class="recipe-detail-tags" style="margin-top:6px;">${macros.map(m => `<span class="recipe-tag" style="border-color:rgba(255,215,0,0.3);color:#FFD700;">${m}</span>`).join('')}</div>` : ''}
+      ${ings.length ? `
+        <div class="recipe-section-title">מרכיבים</div>
+        <ul class="recipe-ingredients">${ings.map(i => `<li>${i}</li>`).join('')}</ul>
+      ` : ''}
+      ${steps.length ? `
+        <div class="recipe-section-title">אופן הכנה</div>
+        <ol class="recipe-steps">${steps.map((s, i) => `<li><div class="step-num">${i + 1}</div><span>${s}</span></li>`).join('')}</ol>
+      ` : ''}
     `;
     const overlay = document.getElementById('recipe-detail-overlay');
     overlay.classList.add('open');
