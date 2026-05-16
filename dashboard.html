@@ -336,7 +336,10 @@
     <div class="nav-hf">HF</div>
     <div class="nav-greeting">שלום, <span id="client-name">—</span></div>
   </div>
-  <button class="btn-logout" onclick="logout()">יציאה</button>
+  <div style="display:flex;gap:8px;">
+    <a id="btn-admin-link" href="admin.html" style="display:none;padding:7px 18px;background:linear-gradient(135deg,var(--orange),#FF8C00);border-radius:6px;color:#fff;font-family:'Heebo',sans-serif;font-size:0.85rem;font-weight:700;text-decoration:none;">פאנל ניהול</a>
+    <button class="btn-logout" onclick="logout()">יציאה</button>
+  </div>
 </nav>
 
 <div class="container" id="main" style="display:none;">
@@ -487,6 +490,10 @@
     const email = session.user.email;
     currentEmail = email;
 
+    if (email === 'halel1201@gmail.com') {
+      document.getElementById('btn-admin-link').style.display = 'block';
+    }
+
     const { data: client } = await sb.from('clients').select('*').eq('email', email).single();
     clientData = client;
 
@@ -496,7 +503,7 @@
 
     if (!client) {
       document.getElementById('client-name').textContent = email.split('@')[0];
-      document.getElementById('timer-card').innerHTML = '<div style="color:#555;padding:20px;">ממתין לאישור מאמן — צור קשר עם הלאל להפעלת האזור האישי שלך.</div>';
+      document.getElementById('timer-card').innerHTML = '<div style="color:#555;padding:20px;">ממתין לאישור מאמן — צור קשר עם הלל להפעלת האזור האישי שלך.</div>';
       return;
     }
 
