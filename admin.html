@@ -162,6 +162,7 @@
   </div>
   <div style="display:flex;gap:8px;align-items:center;">
     <button class="btn-sm btn-outline" id="btn-ex-view" onclick="toggleExView()" style="border-color:rgba(255,215,0,0.35);color:#FFD700;">💪 תרגילים</button>
+    <button class="btn-sm btn-outline" id="btn-rc-view" onclick="toggleRecipeView()" style="border-color:rgba(255,215,0,0.35);color:#FFD700;">🍳 מתכונים</button>
     <button class="btn-sm btn-outline" onclick="logout()">יציאה</button>
   </div>
 </div>
@@ -211,6 +212,46 @@
 </div>
 
 <div class="toast" id="toast"></div>
+
+<!-- RECIPE MODAL -->
+<div class="modal-bg" id="recipe-modal">
+  <div class="modal" style="max-width:520px;">
+    <h3><span id="recipe-modal-title">הוסף</span> <span>מתכון</span></h3>
+    <div style="display:flex;flex-direction:column;gap:12px;max-height:60vh;overflow-y:auto;padding-left:4px;">
+      <div class="f-group"><label>שם מתכון</label><input id="rc-name" placeholder="שייק חלבון ושוקולד"/></div>
+      <div class="f-group">
+        <label>קטגוריה</label>
+        <select id="rc-cat">
+          <option>ארוחת בוקר</option><option>ארוחת צהריים</option>
+          <option>ארוחת ערב</option><option>חטיף</option>
+          <option>שייק</option><option>כללי</option>
+        </select>
+      </div>
+      <div class="form-grid">
+        <div class="f-group"><label>זמן הכנה (דקות)</label><input id="rc-time" type="number" placeholder="10"/></div>
+        <div class="f-group"><label>קלוריות</label><input id="rc-cal" type="number" placeholder="450"/></div>
+      </div>
+      <div class="form-grid">
+        <div class="f-group"><label>חלבון (g)</label><input id="rc-prot" type="number" placeholder="35"/></div>
+        <div class="f-group"><label>פחמימות (g)</label><input id="rc-carb" type="number" placeholder="40"/></div>
+        <div class="f-group"><label>שומן (g)</label><input id="rc-fat" type="number" placeholder="12"/></div>
+      </div>
+      <div class="f-group">
+        <label>מרכיבים (שורה לכל מרכיב)</label>
+        <textarea id="rc-ingredients" rows="5" placeholder="200ml חלב&#10;1 מנה אבקת חלבון&#10;1 כפית קקאו" style="width:100%;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:10px;color:#fff;font-family:'Heebo',sans-serif;font-size:0.9rem;padding:12px 14px;resize:vertical;outline:none;transition:border-color 0.2s;" onfocus="this.style.borderColor='var(--orange)'" onblur="this.style.borderColor='rgba(255,255,255,0.1)'"></textarea>
+      </div>
+      <div class="f-group">
+        <label>הוראות הכנה</label>
+        <textarea id="rc-instructions" rows="4" placeholder="שים הכל בבלנדר, ערבב 30 שניות..." style="width:100%;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:10px;color:#fff;font-family:'Heebo',sans-serif;font-size:0.9rem;padding:12px 14px;resize:vertical;outline:none;transition:border-color 0.2s;" onfocus="this.style.borderColor='var(--orange)'" onblur="this.style.borderColor='rgba(255,255,255,0.1)'"></textarea>
+      </div>
+    </div>
+    <div id="rc-err" style="margin-top:12px;font-size:0.82rem;color:#ff7070;display:none;"></div>
+    <div class="modal-actions">
+      <button class="btn-sm btn-outline" onclick="closeRcModal()">ביטול</button>
+      <button class="btn-sm btn-orange" id="rc-save-btn" onclick="saveRecipe()">שמור</button>
+    </div>
+  </div>
+</div>
 
 <!-- ADD / EDIT EXERCISE MODAL -->
 <div class="modal-bg" id="ex-modal">
@@ -738,13 +779,149 @@
   });
 
   /* ── EXERCISES MANAGEMENT ── */
-  let exercisesMode = false;
   let allAdminExercises = [];
-  let editingExId = null;
+  let editingExId  = null;
+  let exercisesMode = false;
+
+  /* ── RECIPES ── */
+  let allAdminRecipes = [];
+  let editingRcId  = null;
+  let recipesMode  = false;
+
+  async function toggleRecipeView() {
+    recipesMode = !recipesMode;
+    if (recipesMode) exercisesMode = false;
+    const btn   = document.getElementById('btn-rc-view');
+    const exBtn = document.getElementById('btn-ex-view');
+    exBtn.textContent = '💪 תרגילים'; exBtn.style.color = '#FFD700'; exBtn.style.borderColor = 'rgba(255,215,0,0.35)';
+    if (recipesMode) {
+      btn.textContent = '← לקוחות';
+      btn.style.color = 'var(--muted)';
+      btn.style.borderColor = 'rgba(255,255,255,0.2)';
+      activeEmail = null;
+      await loadAdminRecipes();
+      renderRecipesMain();
+    } else {
+      btn.textContent = '🍳 מתכונים';
+      btn.style.color = '#FFD700';
+      btn.style.borderColor = 'rgba(255,215,0,0.35)';
+      renderSidebar();
+      document.getElementById('main-area').innerHTML = '<div class="no-select">← בחר לקוח מהרשימה</div>';
+    }
+  }
+
+  async function loadAdminRecipes() {
+    const { data } = await sb.from('recipes').select('*').order('category').order('name');
+    allAdminRecipes = data || [];
+  }
+
+  function renderRecipesMain() {
+    document.getElementById('main-area').innerHTML = `
+      <div class="sec-card">
+        <div class="sec-card-title">🍳 ספר מתכונים
+          <button class="btn-sm btn-orange" onclick="openAddRcModal()">+ הוסף מתכון</button>
+        </div>
+        <div id="rc-table-wrap"></div>
+      </div>`;
+    renderRcTable();
+  }
+
+  function renderRcTable() {
+    const el = document.getElementById('rc-table-wrap');
+    if (!el) return;
+    if (!allAdminRecipes.length) { el.innerHTML = '<div style="color:#444;font-size:0.85rem;padding:8px 0;">אין מתכונים עדיין</div>'; return; }
+    const cats = {};
+    allAdminRecipes.forEach(r => { if (!cats[r.category]) cats[r.category] = []; cats[r.category].push(r); });
+    el.innerHTML = Object.entries(cats).map(([cat, list]) => `
+      <div style="margin-bottom:20px;">
+        <div style="font-size:0.78rem;font-weight:900;color:var(--orange);letter-spacing:1px;margin-bottom:8px;padding-bottom:5px;border-bottom:1px solid rgba(255,107,0,0.15);">${cat}</div>
+        ${list.map(r => `
+          <div style="display:flex;align-items:center;gap:12px;padding:8px 10px;background:rgba(255,255,255,0.03);border-radius:8px;margin-bottom:4px;">
+            <span style="font-size:0.88rem;font-weight:600;flex:1;">${esc(r.name)}</span>
+            <span style="font-size:0.75rem;color:var(--muted);">${r.calories ? r.calories + ' קק"ל' : ''}</span>
+            <button class="btn-sm btn-outline" style="padding:4px 10px;font-size:0.75rem;" onclick="openEditRcModal('${r.id}')">ערוך</button>
+            <button class="btn-sm btn-red" onclick="deleteRecipe('${r.id}')">מחק</button>
+          </div>`).join('')}
+      </div>`).join('');
+  }
+
+  function openAddRcModal() {
+    editingRcId = null;
+    document.getElementById('recipe-modal-title').textContent = 'הוסף';
+    ['rc-name','rc-time','rc-cal','rc-prot','rc-carb','rc-fat','rc-ingredients','rc-instructions'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('rc-cat').value = 'ארוחת בוקר';
+    document.getElementById('rc-err').style.display = 'none';
+    document.getElementById('recipe-modal').classList.add('open');
+  }
+
+  function openEditRcModal(id) {
+    const r = allAdminRecipes.find(x => String(x.id) === String(id));
+    if (!r) return;
+    editingRcId = id;
+    document.getElementById('recipe-modal-title').textContent = 'ערוך';
+    document.getElementById('rc-name').value         = r.name || '';
+    document.getElementById('rc-cat').value          = r.category || 'ארוחת בוקר';
+    document.getElementById('rc-time').value         = r.prep_time || '';
+    document.getElementById('rc-cal').value          = r.calories || '';
+    document.getElementById('rc-prot').value         = r.protein || '';
+    document.getElementById('rc-carb').value         = r.carbs || '';
+    document.getElementById('rc-fat').value          = r.fat || '';
+    document.getElementById('rc-ingredients').value  = Array.isArray(r.ingredients) ? r.ingredients.join('\n') : '';
+    document.getElementById('rc-instructions').value = r.instructions || '';
+    document.getElementById('rc-err').style.display  = 'none';
+    document.getElementById('recipe-modal').classList.add('open');
+  }
+
+  function closeRcModal() { document.getElementById('recipe-modal').classList.remove('open'); }
+
+  async function saveRecipe() {
+    const name  = document.getElementById('rc-name').value.trim();
+    const errEl = document.getElementById('rc-err');
+    const btn   = document.getElementById('rc-save-btn');
+    errEl.style.display = 'none';
+    if (!name) { errEl.textContent = 'יש להזין שם מתכון'; errEl.style.display = 'block'; return; }
+    const ings = document.getElementById('rc-ingredients').value.split('\n').map(s => s.trim()).filter(Boolean);
+    const payload = {
+      name,
+      category:     document.getElementById('rc-cat').value,
+      prep_time:    parseInt(document.getElementById('rc-time').value)  || null,
+      calories:     parseInt(document.getElementById('rc-cal').value)   || null,
+      protein:      parseInt(document.getElementById('rc-prot').value)  || null,
+      carbs:        parseInt(document.getElementById('rc-carb').value)  || null,
+      fat:          parseInt(document.getElementById('rc-fat').value)   || null,
+      ingredients:  ings.length ? ings : null,
+      instructions: document.getElementById('rc-instructions').value.trim() || null,
+    };
+    btn.disabled = true; btn.textContent = 'שומר...';
+    let error;
+    if (editingRcId) {
+      ({ error } = await sb.from('recipes').update(payload).eq('id', editingRcId));
+    } else {
+      ({ error } = await sb.from('recipes').insert(payload));
+    }
+    btn.disabled = false; btn.textContent = 'שמור';
+    if (error) { errEl.textContent = error.message; errEl.style.display = 'block'; return; }
+    closeRcModal();
+    await loadAdminRecipes();
+    renderRcTable();
+    toast(editingRcId ? 'מתכון עודכן ✓' : 'מתכון נוסף ✓', 'ok');
+  }
+
+  async function deleteRecipe(id) {
+    if (!confirm('למחוק מתכון זה?')) return;
+    const { error } = await sb.from('recipes').delete().eq('id', id);
+    if (error) { toast('שגיאה במחיקה', 'err'); return; }
+    await loadAdminRecipes();
+    renderRcTable();
+    toast('מתכון נמחק', 'ok');
+  }
 
   async function toggleExView() {
     exercisesMode = !exercisesMode;
-    const btn = document.getElementById('btn-ex-view');
+    if (exercisesMode) recipesMode = false;
+    const btn   = document.getElementById('btn-ex-view');
+    const rcBtn = document.getElementById('btn-rc-view');
+    rcBtn.textContent = '🍳 מתכונים'; rcBtn.style.color = '#FFD700'; rcBtn.style.borderColor = 'rgba(255,215,0,0.35)';
     if (exercisesMode) {
       btn.textContent = '← לקוחות';
       btn.style.color = 'var(--muted)';
