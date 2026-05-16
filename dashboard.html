@@ -267,6 +267,46 @@
     .hist-note { margin-top: 8px; padding: 7px 10px; background: rgba(255,255,255,0.03); border-radius: 6px; font-size: 0.8rem; color: var(--muted); }
     .btn-del-log { font-size: 0.72rem; color: #555; background: none; border: none; cursor: pointer; padding: 2px 6px; transition: color 0.2s; }
     .btn-del-log:hover { color: #ff7070; }
+
+    /* NUTRITION OVERLAY */
+    .nutri-overlay { position: fixed; inset: 0; z-index: 300; background: var(--black); display: none; flex-direction: column; overflow: hidden; }
+    .nutri-overlay.open { display: flex; }
+    .nutri-hdr { flex-shrink: 0; height: 62px; padding: 0 18px; background: rgba(9,9,9,0.97); backdrop-filter: blur(14px); border-bottom: 1px solid rgba(74,222,128,0.2); display: flex; align-items: center; justify-content: space-between; }
+    .nutri-hdr-title { font-size: 1.1rem; font-weight: 900; background: linear-gradient(135deg,#4ade80,#FFD700); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+    .nutri-body { flex: 1; overflow-y: auto; padding: 20px 16px 40px; max-width: 700px; margin: 0 auto; width: 100%; }
+    .nutri-mode-tabs { display: flex; gap: 8px; margin-bottom: 20px; }
+    .nutri-tab { padding: 8px 18px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.04); color: var(--muted); font-family:'Heebo',sans-serif; font-size:0.85rem; font-weight:700; cursor:pointer; transition:all 0.2s; }
+    .nutri-tab.active { background: rgba(74,222,128,0.1); border-color: #4ade80; color: #4ade80; }
+    .macro-bars { display:flex; flex-direction:column; gap:12px; margin-bottom:24px; padding:16px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.07); border-radius:14px; }
+    .macro-item {}
+    .macro-row { display:flex; justify-content:space-between; align-items:center; margin-bottom:5px; }
+    .macro-name { font-size:0.82rem; font-weight:700; color:var(--muted); }
+    .macro-vals { font-size:0.82rem; font-weight:700; }
+    .macro-track { height:7px; background:rgba(255,255,255,0.07); border-radius:4px; overflow:hidden; }
+    .macro-fill { height:100%; border-radius:4px; transition:width 0.4s ease; }
+    .meal-type-tabs { display:flex; gap:5px; flex-wrap:wrap; margin-bottom:14px; }
+    .mt-tab { padding:5px 11px; border-radius:14px; border:1px solid rgba(255,255,255,0.08); background:transparent; color:#555; font-family:'Heebo',sans-serif; font-size:0.75rem; font-weight:700; cursor:pointer; transition:all 0.2s; white-space:nowrap; }
+    .mt-tab.active { background:rgba(255,107,0,0.12); border-color:var(--orange); color:var(--orange); }
+    .food-add-wrap { position:relative; margin-bottom:20px; }
+    .food-input-row { display:flex; gap:8px; align-items:stretch; }
+    .food-inp { flex:1; padding:11px 14px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12); border-radius:10px; color:var(--white); font-family:'Heebo',sans-serif; font-size:0.9rem; outline:none; }
+    .food-inp:focus { border-color:var(--orange); }
+    .food-grams { width:76px; padding:11px 10px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12); border-radius:10px; color:var(--white); font-family:'Heebo',sans-serif; font-size:0.9rem; outline:none; text-align:center; }
+    .food-grams:focus { border-color:var(--orange); }
+    .btn-add-food { padding:11px 16px; background:var(--orange); border:none; border-radius:10px; color:#fff; font-family:'Heebo',sans-serif; font-size:0.85rem; font-weight:700; cursor:pointer; white-space:nowrap; }
+    .food-preview { font-size:0.75rem; color:var(--muted); margin-top:5px; padding:0 4px; min-height:16px; }
+    .food-sugg { position:absolute; top:100%; right:0; left:0; background:#1e1e1e; border:1px solid rgba(255,107,0,0.4); border-radius:10px; z-index:50; overflow:hidden; box-shadow:0 6px 20px rgba(0,0,0,0.6); margin-top:3px; }
+    .food-sugg-item { padding:10px 14px; cursor:pointer; font-size:0.85rem; border-bottom:1px solid rgba(255,255,255,0.04); display:flex; justify-content:space-between; align-items:center; gap:10px; }
+    .food-sugg-item:hover { background:rgba(255,107,0,0.1); }
+    .food-sugg-macros { font-size:0.72rem; color:var(--muted); white-space:nowrap; flex-shrink:0; }
+    .meal-section { margin-bottom:18px; }
+    .meal-section-title { font-size:0.78rem; font-weight:900; color:var(--orange); letter-spacing:1px; margin-bottom:8px; padding-bottom:4px; border-bottom:1px solid rgba(255,107,0,0.15); }
+    .food-log-item { display:flex; align-items:center; gap:10px; padding:8px 10px; background:rgba(255,255,255,0.03); border-radius:8px; margin-bottom:4px; }
+    .food-log-info { flex:1; min-width:0; }
+    .food-log-name { font-size:0.88rem; font-weight:600; }
+    .food-log-macros { font-size:0.75rem; color:var(--muted); margin-top:1px; }
+    .btn-del-food { background:none; border:none; color:#555; cursor:pointer; font-size:0.85rem; padding:2px 6px; border-radius:4px; flex-shrink:0; }
+    .btn-del-food:hover { color:#ff7070; background:rgba(255,60,60,0.1); }
   </style>
 </head>
 <body>
@@ -319,10 +359,14 @@
     <div id="training-wrap"></div>
   </div>
 
-  <!-- Nutrition Plan -->
-  <div class="section">
-    <div class="sec-title"><span class="icon">🥗</span> תפריט תזונה</div>
-    <div id="nutrition-wrap"></div>
+  <!-- Nutrition -->
+  <div class="lib-banner" onclick="openNutrition()" style="cursor:pointer;">
+    <div class="lib-icon">🥗</div>
+    <div class="lib-text">
+      <div class="lib-title">מעקב תזונה יומי</div>
+      <div class="lib-sub">מאקרו יומי, יומן אכילה ותפריט מוצע</div>
+    </div>
+    <div class="lib-arrow">←</div>
   </div>
 
   <!-- Workout History -->
@@ -334,6 +378,15 @@
 
 </div>
 
+
+<!-- NUTRITION OVERLAY -->
+<div class="nutri-overlay" id="nutri-overlay">
+  <div class="nutri-hdr">
+    <div class="nutri-hdr-title">🥗 מעקב תזונה</div>
+    <button class="btn-close-rec" onclick="closeNutrition()">✕</button>
+  </div>
+  <div class="nutri-body" id="nutri-body"></div>
+</div>
 
 <!-- RECORDS OVERLAY -->
 <div class="records-overlay" id="records-overlay">
@@ -366,9 +419,17 @@
   const KEY  = 'sb_publishable_k3M7SfBeiBGs3rTKewBzWQ_7RHRskB9';
   const sb   = supabase.createClient(URL_, KEY);
 
-  let currentEmail      = null;
-  let trainingPlanLocal = [];
-  let workoutSession    = null;
+  let currentEmail        = null;
+  let trainingPlanLocal   = [];
+  let nutritionPlanLocal  = [];
+  let clientData          = null;
+  let workoutSession      = null;
+  let foodItems           = null;
+  let foodLogs            = null;
+  let nutriMode           = 'track';
+  let nutriMeal           = 'בוקר';
+  let selectedFood        = null;
+  const MEAL_TYPES        = ['בוקר','ביניים','צהריים','ערב','אחרי אימון'];
 
   async function init() {
     let { data: { session } } = await sb.auth.getSession();
@@ -393,6 +454,7 @@
     currentEmail = email;
 
     const { data: client } = await sb.from('clients').select('*').eq('email', email).single();
+    clientData = client;
 
     document.getElementById('loader').style.opacity = '0';
     setTimeout(() => document.getElementById('loader').style.display = 'none', 300);
@@ -430,9 +492,9 @@
       sb.from('workout_logs').select('*').eq('client_email', email).order('log_date', { ascending: false }).order('created_at', { ascending: false }).limit(30)
     ]);
 
-    trainingPlanLocal = tr?.plan || [];
+    trainingPlanLocal  = tr?.plan || [];
+    nutritionPlanLocal = nu?.plan || [];
     renderTraining(trainingPlanLocal);
-    renderNutrition(nu?.plan || []);
     renderHistory(logs || []);
   }
 
@@ -745,6 +807,196 @@
 
   function esc(s) {
     return (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  /* ── NUTRITION ── */
+  async function openNutrition() {
+    document.getElementById('nutri-overlay').classList.add('open');
+    document.body.style.overflow = 'hidden';
+    if (foodItems === null || foodLogs === null) {
+      document.getElementById('nutri-body').innerHTML = '<div class="empty">טוען...</div>';
+      const today = new Date().toISOString().split('T')[0];
+      const [fiRes, flRes] = await Promise.all([
+        foodItems === null ? sb.from('food_items').select('*').order('name') : Promise.resolve({ data: null }),
+        foodLogs  === null ? sb.from('food_logs').select('*').eq('client_email', currentEmail).eq('log_date', today).order('created_at') : Promise.resolve({ data: null })
+      ]);
+      if (fiRes.data !== null) foodItems = fiRes.data || [];
+      if (flRes.data !== null) foodLogs  = flRes.data || [];
+    }
+    renderNutriBody();
+  }
+
+  function closeNutrition() {
+    document.getElementById('nutri-overlay').classList.remove('open');
+    document.body.style.overflow = '';
+    hideFoodSugg();
+  }
+
+  function renderNutriBody() {
+    const body = document.getElementById('nutri-body');
+    const tabs = `
+      <div class="nutri-mode-tabs">
+        <button class="nutri-tab${nutriMode==='track'?' active':''}" onclick="setNutriMode('track')">📊 מעקב יומי</button>
+        <button class="nutri-tab${nutriMode==='plan'?' active':''}" onclick="setNutriMode('plan')">📋 תפריט מוצע</button>
+      </div>`;
+
+    if (nutriMode === 'plan') {
+      if (!nutritionPlanLocal.length) {
+        body.innerHTML = tabs + '<div class="empty">תפריט עדיין לא הוגדר — פנה למאמן 🥗</div>';
+        return;
+      }
+      const planHtml = nutritionPlanLocal.map(meal => {
+        const tot = (meal.items||[]).reduce((a,i) => ({ cal:a.cal+(+i.calories||0), p:a.p+(+i.protein||0), c:a.c+(+i.carbs||0), f:a.f+(+i.fat||0) }), {cal:0,p:0,c:0,f:0});
+        return `<div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:14px 16px;margin-bottom:12px;">
+          <div style="font-weight:900;font-size:0.95rem;margin-bottom:10px;color:var(--gold);">${esc(meal.meal)}</div>
+          ${(meal.items||[]).map(i=>`<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.04);font-size:0.85rem;">
+            <span>${esc(i.food)} <span style="color:var(--muted);font-size:0.78rem;">${i.quantity||''}</span></span>
+            <span style="color:var(--muted);font-size:0.75rem;">${i.calories?i.calories+' קק"ל':''} ${i.protein?'· P'+i.protein+'g':''}</span>
+          </div>`).join('')}
+          <div style="margin-top:8px;font-size:0.75rem;color:#666;display:flex;gap:12px;flex-wrap:wrap;">
+            <span>סה"כ: <strong style="color:var(--white)">${Math.round(tot.cal)}</strong> קק"ל</span>
+            <span>חלבון: <strong style="color:var(--white)">${Math.round(tot.p)}g</strong></span>
+            <span>פחמימה: <strong style="color:var(--white)">${Math.round(tot.c)}g</strong></span>
+            <span>שומן: <strong style="color:var(--white)">${Math.round(tot.f)}g</strong></span>
+          </div>
+        </div>`;
+      }).join('');
+      body.innerHTML = tabs + planHtml;
+      return;
+    }
+
+    // Track mode
+    const tgt = clientData || {};
+    const tot = (foodLogs||[]).reduce((a,l)=>({ cal:a.cal+(l.calories||0), p:a.p+(l.protein||0), c:a.c+(l.carbs||0), f:a.f+(l.fat||0) }), {cal:0,p:0,c:0,f:0});
+
+    const macroBar = (label, val, target, color) => {
+      const pct = target ? Math.min(100, Math.round(val/target*100)) : 0;
+      const unit = label==='קלוריות' ? 'קק"ל' : 'g';
+      const display = target
+        ? `<span style="color:${color}">${Math.round(val)}</span> / ${target} ${unit} <span style="color:#555;font-size:0.72rem;">(${pct}%)</span>`
+        : `<span style="color:${color}">${Math.round(val)}</span> ${unit}`;
+      return `<div class="macro-item">
+        <div class="macro-row"><span class="macro-name">${label}</span><span class="macro-vals">${display}</span></div>
+        <div class="macro-track"><div class="macro-fill" style="width:${pct}%;background:${color};"></div></div>
+      </div>`;
+    };
+
+    const grouped = {};
+    MEAL_TYPES.forEach(m => grouped[m] = []);
+    (foodLogs||[]).forEach(l => { const mt = MEAL_TYPES.includes(l.meal_type)?l.meal_type:'בוקר'; grouped[mt].push(l); });
+
+    const today = new Date().toLocaleDateString('he-IL',{day:'2-digit',month:'2-digit',year:'numeric'});
+    const logHtml = MEAL_TYPES.filter(m=>grouped[m].length).map(m=>`
+      <div class="meal-section">
+        <div class="meal-section-title">${m}</div>
+        ${grouped[m].map(l=>`
+          <div class="food-log-item">
+            <div class="food-log-info">
+              <div class="food-log-name">${esc(l.food_name)} <span style="color:var(--muted);font-size:0.78rem;">${l.grams}g</span></div>
+              <div class="food-log-macros">${Math.round(l.calories)} קק"ל · P${Math.round(l.protein)}g · C${Math.round(l.carbs)}g · F${Math.round(l.fat)}g</div>
+            </div>
+            <button class="btn-del-food" onclick="deleteFoodLog('${l.id}')">✕</button>
+          </div>`).join('')}
+      </div>`).join('');
+
+    body.innerHTML = tabs +
+      `<div style="font-size:0.78rem;color:var(--muted);margin-bottom:12px;">📅 ${today}</div>
+      <div class="macro-bars">
+        ${macroBar('קלוריות', tot.cal, tgt.target_calories, '#FF6B00')}
+        ${macroBar('חלבון',   tot.p,   tgt.target_protein,  '#4ade80')}
+        ${macroBar('פחמימה', tot.c,   tgt.target_carbs,    '#60a5fa')}
+        ${macroBar('שומן',   tot.f,   tgt.target_fat,      '#facc15')}
+      </div>
+      <div class="meal-type-tabs">${MEAL_TYPES.map(m=>`<button class="mt-tab${m===nutriMeal?' active':''}" onclick="setNutriMeal('${m}')">${m}</button>`).join('')}</div>
+      <div class="food-add-wrap" id="food-add-wrap">
+        <div class="food-input-row">
+          <input class="food-inp" id="food-inp" type="text" placeholder="חפש מאכל..." autocomplete="off"
+            oninput="onFoodInput(this.value)" onblur="setTimeout(hideFoodSugg,180)"/>
+          <input class="food-grams" id="food-grams" type="number" min="1" placeholder="גרם" oninput="updateFoodPreview()"/>
+          <button class="btn-add-food" onclick="addFoodLog()">הוסף</button>
+        </div>
+        <div class="food-preview" id="food-preview"></div>
+      </div>
+      ${logHtml || '<div style="color:#444;font-size:0.85rem;text-align:center;padding:20px 0;">לא נרשם אוכל היום עדיין 🍽️</div>'}`;
+  }
+
+  function setNutriMode(m) { nutriMode=m; renderNutriBody(); }
+  function setNutriMeal(m)  { nutriMeal=m; renderNutriBody(); }
+
+  function onFoodInput(val) {
+    hideFoodSugg();
+    selectedFood = null;
+    document.getElementById('food-preview').textContent = '';
+    const q = val.trim();
+    if (!q || !foodItems) return;
+    const matches = foodItems.filter(f => f.name.includes(q)).slice(0, 8);
+    if (!matches.length) return;
+    const wrap = document.getElementById('food-add-wrap');
+    const drop = document.createElement('div');
+    drop.id = 'food-sugg';
+    drop.className = 'food-sugg';
+    matches.forEach(f => {
+      const item = document.createElement('div');
+      item.className = 'food-sugg-item';
+      item.innerHTML = `<span>${esc(f.name)}</span><span class="food-sugg-macros">ל-100g: ${f.calories}קק"ל · P${f.protein}g · C${f.carbs}g · F${f.fat}g</span>`;
+      item.onmousedown = () => {
+        document.getElementById('food-inp').value = f.name;
+        selectedFood = f;
+        hideFoodSugg();
+        document.getElementById('food-grams').focus();
+        updateFoodPreview();
+      };
+      drop.appendChild(item);
+    });
+    wrap.appendChild(drop);
+  }
+
+  function hideFoodSugg() { const d=document.getElementById('food-sugg'); if(d) d.remove(); }
+
+  function updateFoodPreview() {
+    const el = document.getElementById('food-preview');
+    if (!el || !selectedFood) return;
+    const g = parseFloat(document.getElementById('food-grams')?.value) || 100;
+    const r = g / 100;
+    const f = selectedFood;
+    el.textContent = `← ${Math.round(f.calories*r)} קק"ל · P${Math.round(f.protein*r)}g · C${Math.round(f.carbs*r)}g · F${Math.round(f.fat*r)}g`;
+  }
+
+  async function addFoodLog() {
+    const nameEl  = document.getElementById('food-inp');
+    const gramsEl = document.getElementById('food-grams');
+    const name = nameEl?.value.trim();
+    const grams = parseFloat(gramsEl?.value);
+    if (!name || !grams || grams <= 0) return;
+
+    let cal=0, prot=0, carb=0, fat=0;
+    if (selectedFood && selectedFood.name === name) {
+      const r = grams/100;
+      cal  = Math.round(selectedFood.calories*r*10)/10;
+      prot = Math.round(selectedFood.protein *r*10)/10;
+      carb = Math.round(selectedFood.carbs   *r*10)/10;
+      fat  = Math.round(selectedFood.fat     *r*10)/10;
+    }
+
+    const btn = document.querySelector('.btn-add-food');
+    if (btn) { btn.disabled=true; btn.textContent='מוסיף...'; }
+    const today = new Date().toISOString().split('T')[0];
+    const { data, error } = await sb.from('food_logs').insert({
+      client_email: currentEmail, log_date: today,
+      food_name: name, grams, calories: cal, protein: prot, carbs: carb, fat, meal_type: nutriMeal
+    }).select().single();
+    if (btn) { btn.disabled=false; btn.textContent='הוסף'; }
+    if (error) return;
+    foodLogs.push(data);
+    selectedFood = null;
+    renderNutriBody();
+  }
+
+  async function deleteFoodLog(id) {
+    const { error } = await sb.from('food_logs').delete().eq('id', id);
+    if (error) return;
+    foodLogs = foodLogs.filter(l => l.id !== id);
+    renderNutriBody();
   }
 
   /* ── RECORDS ── */

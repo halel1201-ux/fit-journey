@@ -196,6 +196,7 @@
   <div style="display:flex;gap:8px;align-items:center;">
     <button class="btn-sm btn-outline" id="btn-ex-view" onclick="toggleExView()" style="border-color:rgba(255,215,0,0.35);color:#FFD700;">💪 תרגילים</button>
     <button class="btn-sm btn-outline" id="btn-rc-view" onclick="toggleRecipeView()" style="border-color:rgba(255,215,0,0.35);color:#FFD700;">🍳 מתכונים</button>
+    <button class="btn-sm btn-outline" id="btn-fi-view" onclick="toggleFoodView()" style="border-color:rgba(74,222,128,0.35);color:#4ade80;">🥦 מזון</button>
     <button class="btn-sm btn-outline" onclick="openRecords()" style="border-color:rgba(255,215,0,0.35);color:#FFD700;">🏆 שיאים</button>
     <button class="btn-sm btn-outline" onclick="logout()">יציאה</button>
   </div>
@@ -292,6 +293,28 @@
     <div class="modal-actions">
       <button class="btn-sm btn-outline" onclick="closeRcModal()">ביטול</button>
       <button class="btn-sm btn-orange" id="rc-save-btn" onclick="saveRecipe()">שמור</button>
+    </div>
+  </div>
+</div>
+
+<!-- FOOD ITEM MODAL -->
+<div class="modal-bg" id="fi-modal">
+  <div class="modal" style="max-width:460px;">
+    <h3><span id="fi-modal-title">הוסף</span> <span>מאכל</span></h3>
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <div class="f-group"><label>שם המאכל</label><input id="fi-name" placeholder="חזה עוף מבושל"/></div>
+      <div style="font-size:0.75rem;color:var(--muted);margin-top:-6px;">ערכים לכל 100 גרם</div>
+      <div class="form-grid">
+        <div class="f-group"><label>קלוריות</label><input id="fi-cal"  type="number" placeholder="165"/></div>
+        <div class="f-group"><label>חלבון (g)</label><input id="fi-prot" type="number" placeholder="31"/></div>
+        <div class="f-group"><label>פחמימה (g)</label><input id="fi-carb" type="number" placeholder="0"/></div>
+        <div class="f-group"><label>שומן (g)</label><input id="fi-fat"  type="number" placeholder="3.6"/></div>
+      </div>
+    </div>
+    <div id="fi-err" style="margin-top:12px;font-size:0.82rem;color:#ff7070;display:none;"></div>
+    <div class="modal-actions">
+      <button class="btn-sm btn-outline" onclick="closeFiModal()">ביטול</button>
+      <button class="btn-sm btn-orange" id="fi-save-btn" onclick="saveFoodItem()">שמור</button>
     </div>
   </div>
 </div>
@@ -436,6 +459,15 @@
             <option ${client.plan_type==='ליווי 3 חודשים'?'selected':''}>ליווי 3 חודשים</option>
             <option ${client.plan_type==='ליווי חצי שנה'?'selected':''}>ליווי חצי שנה</option>
           </select>
+        </div>
+        <div style="margin-bottom:16px;">
+          <div style="font-size:0.78rem;font-weight:700;color:var(--muted);margin-bottom:8px;">יעדי מאקרו יומיים</div>
+          <div class="form-grid" style="grid-template-columns:1fr 1fr 1fr 1fr;">
+            <div class="f-group"><label>קלוריות</label><input id="e-cal" type="number" value="${client.target_calories||''}" placeholder="2000"/></div>
+            <div class="f-group"><label>חלבון (g)</label><input id="e-prot" type="number" value="${client.target_protein||''}" placeholder="150"/></div>
+            <div class="f-group"><label>פחמימה (g)</label><input id="e-carb" type="number" value="${client.target_carbs||''}" placeholder="250"/></div>
+            <div class="f-group"><label>שומן (g)</label><input id="e-fat" type="number" value="${client.target_fat||''}" placeholder="60"/></div>
+          </div>
         </div>
         <div style="display:flex;gap:10px;align-items:center;">
           <button class="btn-sm btn-orange" onclick="saveProfile()">שמור פרטים</button>
@@ -635,8 +667,13 @@
     const start = document.getElementById('e-start').value;
     const end   = document.getElementById('e-end').value;
     const plan  = document.getElementById('e-plan').value;
+    const cal   = parseInt(document.getElementById('e-cal').value)  || null;
+    const prot  = parseInt(document.getElementById('e-prot').value) || null;
+    const carb  = parseInt(document.getElementById('e-carb').value) || null;
+    const fat   = parseInt(document.getElementById('e-fat').value)  || null;
     const { error } = await sb.from('clients')
-      .update({ name, coaching_start: start, coaching_end: end, plan_type: plan })
+      .update({ name, coaching_start: start, coaching_end: end, plan_type: plan,
+                target_calories: cal, target_protein: prot, target_carbs: carb, target_fat: fat })
       .eq('email', activeEmail);
     if (error) { toast('שגיאה בשמירה', 'err'); return; }
     await loadClients();
@@ -1108,6 +1145,128 @@
     await loadExercises();
     renderExTable();
     toast('תרגיל נמחק', 'ok');
+  }
+
+  /* ── FOOD ITEMS ── */
+  let allFoodItems = [];
+  let editingFiId  = null;
+  let foodItemsMode = false;
+
+  async function toggleFoodView() {
+    foodItemsMode = !foodItemsMode;
+    if (foodItemsMode) { exercisesMode = false; recipesMode = false; }
+    const btn   = document.getElementById('btn-fi-view');
+    const exBtn = document.getElementById('btn-ex-view');
+    const rcBtn = document.getElementById('btn-rc-view');
+    exBtn.textContent='💪 תרגילים'; exBtn.style.color='#FFD700'; exBtn.style.borderColor='rgba(255,215,0,0.35)';
+    rcBtn.textContent='🍳 מתכונים'; rcBtn.style.color='#FFD700'; rcBtn.style.borderColor='rgba(255,215,0,0.35)';
+    if (foodItemsMode) {
+      btn.textContent='← לקוחות'; btn.style.color='var(--muted)'; btn.style.borderColor='rgba(255,255,255,0.2)';
+      activeEmail = null;
+      await loadFoodItems();
+      renderFoodItemsMain();
+    } else {
+      btn.textContent='🥦 מזון'; btn.style.color='#4ade80'; btn.style.borderColor='rgba(74,222,128,0.35)';
+      renderSidebar();
+      document.getElementById('main-area').innerHTML='<div class="no-select">← בחר לקוח מהרשימה</div>';
+    }
+  }
+
+  async function loadFoodItems() {
+    const { data } = await sb.from('food_items').select('*').order('name');
+    allFoodItems = data || [];
+  }
+
+  function renderFoodItemsMain() {
+    document.getElementById('main-area').innerHTML = `
+      <div class="sec-card">
+        <div class="sec-card-title">🥦 מאגר מזון
+          <button class="btn-sm btn-orange" onclick="openAddFiModal()">+ הוסף מאכל</button>
+        </div>
+        <div style="font-size:0.75rem;color:var(--muted);margin-bottom:14px;">ערכים לכל 100 גרם. המתאמנים מחפשים מאכלים מהמאגר הזה.</div>
+        <div id="fi-table-wrap"></div>
+      </div>`;
+    renderFiTable();
+  }
+
+  function renderFiTable() {
+    const el = document.getElementById('fi-table-wrap');
+    if (!el) return;
+    if (!allFoodItems.length) { el.innerHTML='<div style="color:#444;font-size:0.85rem;padding:8px 0;">אין מאכלים עדיין — הוסף את הראשון</div>'; return; }
+    el.innerHTML = `
+      <div style="display:grid;grid-template-columns:1fr auto auto auto auto auto;gap:6px;padding:6px 10px;font-size:0.72rem;font-weight:700;color:var(--muted);">
+        <span>שם</span><span style="text-align:center;">קל׳</span><span style="text-align:center;">חלבון</span><span style="text-align:center;">פחמימה</span><span style="text-align:center;">שומן</span><span></span>
+      </div>
+      ${allFoodItems.map(f=>`
+        <div style="display:grid;grid-template-columns:1fr auto auto auto auto auto;gap:6px;align-items:center;padding:8px 10px;background:rgba(255,255,255,0.03);border-radius:8px;margin-bottom:3px;font-size:0.85rem;">
+          <span style="font-weight:600;">${esc(f.name)}</span>
+          <span style="text-align:center;color:var(--orange);min-width:48px;">${f.calories}</span>
+          <span style="text-align:center;color:#4ade80;min-width:44px;">${f.protein}g</span>
+          <span style="text-align:center;color:#60a5fa;min-width:44px;">${f.carbs}g</span>
+          <span style="text-align:center;color:#facc15;min-width:44px;">${f.fat}g</span>
+          <div style="display:flex;gap:4px;">
+            <button class="btn-sm btn-outline" style="padding:3px 8px;font-size:0.72rem;" onclick="openEditFiModal('${f.id}')">ערוך</button>
+            <button class="btn-sm btn-red" onclick="deleteFoodItem('${f.id}')">מחק</button>
+          </div>
+        </div>`).join('')}`;
+  }
+
+  function openAddFiModal() {
+    editingFiId = null;
+    document.getElementById('fi-modal-title').textContent = 'הוסף';
+    ['fi-name','fi-cal','fi-prot','fi-carb','fi-fat'].forEach(id => document.getElementById(id).value='');
+    document.getElementById('fi-err').style.display='none';
+    document.getElementById('fi-modal').classList.add('open');
+  }
+
+  function openEditFiModal(id) {
+    const f = allFoodItems.find(x => String(x.id)===String(id));
+    if (!f) return;
+    editingFiId = id;
+    document.getElementById('fi-modal-title').textContent='ערוך';
+    document.getElementById('fi-name').value = f.name || '';
+    document.getElementById('fi-cal').value  = f.calories || '';
+    document.getElementById('fi-prot').value = f.protein  || '';
+    document.getElementById('fi-carb').value = f.carbs    || '';
+    document.getElementById('fi-fat').value  = f.fat      || '';
+    document.getElementById('fi-err').style.display='none';
+    document.getElementById('fi-modal').classList.add('open');
+  }
+
+  function closeFiModal() { document.getElementById('fi-modal').classList.remove('open'); }
+
+  async function saveFoodItem() {
+    const name = document.getElementById('fi-name').value.trim();
+    const errEl = document.getElementById('fi-err');
+    const btn   = document.getElementById('fi-save-btn');
+    errEl.style.display='none';
+    if (!name) { errEl.textContent='יש להזין שם מאכל'; errEl.style.display='block'; return; }
+    const payload = {
+      name,
+      calories: parseFloat(document.getElementById('fi-cal').value)  || 0,
+      protein:  parseFloat(document.getElementById('fi-prot').value) || 0,
+      carbs:    parseFloat(document.getElementById('fi-carb').value) || 0,
+      fat:      parseFloat(document.getElementById('fi-fat').value)  || 0,
+    };
+    btn.disabled=true; btn.textContent='שומר...';
+    let error;
+    if (editingFiId) { ({ error } = await sb.from('food_items').update(payload).eq('id', editingFiId)); }
+    else             { ({ error } = await sb.from('food_items').insert(payload)); }
+    btn.disabled=false; btn.textContent='שמור';
+    if (error) { errEl.textContent=error.message; errEl.style.display='block'; return; }
+    closeFiModal();
+    await loadFoodItems();
+    renderFiTable();
+    toast(editingFiId ? 'מאכל עודכן ✓' : 'מאכל נוסף ✓', 'ok');
+  }
+
+  async function deleteFoodItem(id) {
+    if (!confirm('למחוק מאכל זה?')) return;
+    const { error } = await sb.from('food_items').delete().eq('id', id);
+    if (error) { toast('שגיאה במחיקה','err'); return; }
+    await loadFoodItems();
+    renderFiTable();
+    toast('מאכל נמחק','ok');
   }
 
   /* ── RECORDS ── */
