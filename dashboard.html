@@ -135,6 +135,44 @@
     .lib-sub { font-size: 0.82rem; color: var(--muted); margin-top: 2px; }
     .lib-arrow { color: var(--orange); font-size: 1.1rem; font-weight: 900; }
 
+    /* RECORDS OVERLAY */
+    .records-overlay { position: fixed; inset: 0; z-index: 300; background: var(--black); display: none; flex-direction: column; overflow: hidden; }
+    .records-overlay.open { display: flex; }
+    .rec-hdr {
+      flex-shrink: 0; height: 62px; padding: 0 18px;
+      background: rgba(9,9,9,0.97); backdrop-filter: blur(14px);
+      border-bottom: 1px solid rgba(255,215,0,0.2);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .rec-hdr-title { font-size: 1.1rem; font-weight: 900; background: linear-gradient(135deg,#FFD700,#FF6B00); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+    .btn-close-rec { background: rgba(255,255,255,0.07); border: none; color: var(--muted); width: 34px; height: 34px; border-radius: 50%; cursor: pointer; font-size: 1rem; }
+    .rec-body { flex: 1; overflow-y: auto; padding: 20px 16px 40px; }
+    .rec-mode-tabs { display: flex; gap: 8px; margin-bottom: 20px; }
+    .rec-tab { padding: 8px 18px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.04); color: var(--muted); font-family:'Heebo',sans-serif; font-size:0.85rem; font-weight:700; cursor:pointer; transition:all 0.2s; }
+    .rec-tab.active { background: rgba(255,215,0,0.12); border-color: var(--gold); color: var(--gold); }
+    .muscle-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+    .m-tab { padding: 5px 12px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.08); background: transparent; color: #555; font-family:'Heebo',sans-serif; font-size:0.75rem; font-weight:700; cursor:pointer; transition:all 0.2s; }
+    .m-tab.active { background: rgba(255,107,0,0.12); border-color: var(--orange); color: var(--orange); }
+    .ex-select { width:100%; padding:12px 14px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12); border-radius:10px; color:var(--white); font-family:'Heebo',sans-serif; font-size:0.95rem; outline:none; cursor:pointer; margin-bottom:20px; }
+    .ex-select:focus { border-color: var(--orange); }
+    .podium { display:flex; flex-direction:column; gap:10px; margin-bottom:20px; }
+    .podium-row { display:flex; align-items:center; gap:14px; padding:14px 16px; border-radius:14px; border:1px solid rgba(255,255,255,0.06); background:rgba(255,255,255,0.03); }
+    .podium-row.rank-1 { border-color:rgba(255,215,0,0.45); background:rgba(255,215,0,0.06); }
+    .podium-row.rank-2 { border-color:rgba(192,192,192,0.3); background:rgba(192,192,192,0.04); }
+    .podium-row.rank-3 { border-color:rgba(205,127,50,0.3); background:rgba(205,127,50,0.04); }
+    .podium-medal { font-size:1.6rem; flex-shrink:0; width:32px; text-align:center; }
+    .podium-info { flex:1; min-width:0; }
+    .podium-name { font-size:0.95rem; font-weight:900; margin-bottom:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .podium-stats { font-size:0.78rem; color:var(--muted); }
+    .podium-orm { font-size:0.9rem; font-weight:700; color:var(--gold); white-space:nowrap; }
+    .my-rec-box { padding:13px 16px; border-radius:12px; border:1px solid rgba(255,107,0,0.2); background:rgba(255,107,0,0.05); font-size:0.85rem; color:var(--muted); margin-top:4px; }
+    .my-rec-box strong { color:var(--orange); }
+    .steps-row { display:flex; gap:10px; margin-bottom:24px; }
+    .steps-input { flex:1; padding:12px 14px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12); border-radius:10px; color:var(--white); font-family:'Heebo',sans-serif; font-size:0.95rem; outline:none; }
+    .steps-input:focus { border-color: var(--orange); }
+    .btn-save-steps { padding:12px 20px; background:var(--orange); border:none; border-radius:10px; color:#fff; font-family:'Heebo',sans-serif; font-size:0.9rem; font-weight:700; cursor:pointer; white-space:nowrap; }
+    .no-records { text-align:center; padding:40px 20px; color:#444; font-size:0.9rem; }
+
     /* EMPTY */
     .empty { text-align: center; padding: 40px 20px; color: #444; font-size: 0.9rem; }
 
@@ -255,6 +293,16 @@
     </div>
   </div>
 
+  <!-- Records -->
+  <div class="lib-banner" onclick="openRecords()" style="cursor:pointer;">
+    <div class="lib-icon">🏆</div>
+    <div class="lib-text">
+      <div class="lib-title">שיאי נבחרת</div>
+      <div class="lib-sub">דירוג מתאמנים לפי שיאי כוח וצעדים יומיים</div>
+    </div>
+    <div class="lib-arrow">←</div>
+  </div>
+
   <!-- Exercise Library -->
   <a href="exercises.html" class="lib-banner">
     <div class="lib-icon">🏋️</div>
@@ -286,6 +334,15 @@
 
 </div>
 
+
+<!-- RECORDS OVERLAY -->
+<div class="records-overlay" id="records-overlay">
+  <div class="rec-hdr">
+    <div class="rec-hdr-title">🏆 שיאי נבחרת</div>
+    <button class="btn-close-rec" onclick="closeRecords()">✕</button>
+  </div>
+  <div class="rec-body" id="rec-body"></div>
+</div>
 
 <!-- WORKOUT SESSION -->
 <div class="session-overlay" id="workout-session">
@@ -688,6 +745,176 @@
 
   function esc(s) {
     return (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  /* ── RECORDS ── */
+  const RECORD_EXERCISES = {
+    'חזה':        ['לחיצת חזה במשקולות','לחיצת חזה במוט חופשי','לחיצת חזה בסמית','לחיצת חזה בשיפוע חיובי במוט חופשי','לחיצת חזה בשיפוע חיובי בסמית','לחיצת חזה בשיפוע חיובי במשקולות'],
+    'רגליים':     ['סקוואט חופשי','סקוואט בסמית','דדליפט קונבנציונלי','דדליפט רומני','היפ טראסט'],
+    'גב':         ['פולי עליון לגב','חתירה במוט חופשי','חתירה בסמית'],
+    'יד קדמית':   ['יד קדמית במוט','יד קדמית בדאמבלים'],
+    'יד אחורית':  ['לחיצה צרה במוט','לחיצה צרה בסמית'],
+    'כתפיים':     ['לחיצת כתפיים במוט חופשי','לחיצת כתפיים בסמית','לחיצת כתפיים בדאמבלים'],
+  };
+  const MEDALS = ['🥇','🥈','🥉'];
+
+  let recMode     = 'strength';
+  let recMuscle   = 'חזה';
+  let recExercise = 'לחיצת חזה במוט חופשי';
+  let recLogs     = null;
+  let recClients  = {};
+  let recSteps    = [];
+
+  function calc1RM(w, r) {
+    w = parseFloat(w); r = parseInt(r);
+    if (!w || !r || r <= 0) return 0;
+    return Math.round(w * (1 + r / 30) * 10) / 10;
+  }
+
+  async function openRecords() {
+    document.getElementById('records-overlay').classList.add('open');
+    document.body.style.overflow = 'hidden';
+    if (recLogs !== null) { renderRecBody(); return; }
+    document.getElementById('rec-body').innerHTML = '<div class="empty">טוען נתונים...</div>';
+    const today = new Date().toISOString().split('T')[0];
+    const [{ data: logs }, { data: clients }, { data: steps }] = await Promise.all([
+      sb.from('workout_logs').select('client_email,log_date,exercises'),
+      sb.from('clients').select('email,name'),
+      sb.from('steps_logs').select('client_email,steps').eq('log_date', today)
+    ]);
+    recLogs   = logs || [];
+    recSteps  = steps || [];
+    (clients || []).forEach(c => { recClients[c.email] = c.name || c.email.split('@')[0]; });
+    renderRecBody();
+  }
+
+  function closeRecords() {
+    document.getElementById('records-overlay').classList.remove('open');
+    document.body.style.overflow = '';
+  }
+
+  function renderRecBody() {
+    const body = document.getElementById('rec-body');
+    const modeTabs = `
+      <div class="rec-mode-tabs">
+        <button class="rec-tab${recMode==='strength'?' active':''}" onclick="setRecMode('strength')">💪 שיאי כוח</button>
+        <button class="rec-tab${recMode==='steps'?' active':''}" onclick="setRecMode('steps')">🚶 צעדים יומיים</button>
+      </div>`;
+
+    if (recMode === 'steps') {
+      const today = new Date().toLocaleDateString('he-IL',{day:'2-digit',month:'2-digit',year:'numeric'});
+      const myS   = recSteps.find(s => s.client_email === currentEmail);
+      const top3  = [...recSteps].sort((a,b) => b.steps - a.steps).slice(0,3);
+      body.innerHTML = modeTabs + `
+        <div style="font-size:0.8rem;color:var(--muted);margin-bottom:14px;">📅 היום — ${today}</div>
+        <div class="steps-row">
+          <input class="steps-input" type="number" id="steps-inp" min="0" placeholder="כמה צעדים עשית היום?"
+            value="${myS ? myS.steps : ''}"/>
+          <button class="btn-save-steps" onclick="logSteps()">שמור</button>
+        </div>
+        ${top3.length ? `<div class="podium">${top3.map((s,i)=>`
+          <div class="podium-row rank-${i+1}">
+            <div class="podium-medal">${MEDALS[i]}</div>
+            <div class="podium-info"><div class="podium-name">${esc(recClients[s.client_email]||s.client_email.split('@')[0])}</div></div>
+            <div class="podium-orm">${Number(s.steps).toLocaleString()} צעדים</div>
+          </div>`).join('')}</div>`
+        : '<div class="no-records">אף מתאמן לא רשם צעדים היום עדיין 🚶</div>'}
+        ${myS ? `<div class="my-rec-box">👤 הצעדים שלי היום: <strong>${Number(myS.steps).toLocaleString()}</strong></div>` : ''}`;
+      return;
+    }
+
+    const board   = buildExBoard(recExercise);
+    const myRec   = getMyRec(recExercise);
+    body.innerHTML = modeTabs + `
+      <div class="muscle-tabs">
+        ${Object.keys(RECORD_EXERCISES).map(m =>
+          `<button class="m-tab${m===recMuscle?' active':''}" onclick="setRecMuscle('${m}')">${m}</button>`
+        ).join('')}
+      </div>
+      <select class="ex-select" onchange="setRecEx(this.value)">
+        ${(RECORD_EXERCISES[recMuscle]||[]).map(ex =>
+          `<option value="${ex}"${ex===recExercise?' selected':''}>${ex}</option>`
+        ).join('')}
+      </select>
+      ${board.length ? `<div class="podium">${board.map((e,i)=>`
+        <div class="podium-row rank-${i+1}">
+          <div class="podium-medal">${MEDALS[i]}</div>
+          <div class="podium-info">
+            <div class="podium-name">${esc(e.name)}</div>
+            <div class="podium-stats">${e.weight} ק"ג × ${e.reps} חזרות · ${e.date}</div>
+          </div>
+          <div class="podium-orm">1RM: ${e.orm}</div>
+        </div>`).join('')}</div>`
+      : '<div class="no-records">אין תוצאות עדיין לתרגיל זה 💪</div>'}
+      ${myRec ? `<div class="my-rec-box">👤 השיא שלי: <strong>${myRec.weight} ק"ג × ${myRec.reps} חזרות</strong> — 1RM: <strong>${myRec.orm} ק"ג</strong>${myRec.rank ? ` · מקום <strong>#${myRec.rank}</strong>` : ''}</div>` : ''}`;
+  }
+
+  function buildExBoard(exName) {
+    const best = {};
+    recLogs.forEach(log => {
+      (log.exercises||[]).forEach(ex => {
+        if (ex.name !== exName) return;
+        (ex.sets||[]).forEach(set => {
+          const orm = calc1RM(set.weight, set.reps);
+          if (!orm) return;
+          const cur = best[log.client_email];
+          if (!cur || orm > cur.orm || (orm===cur.orm && parseFloat(set.weight)>cur.weight) || (orm===cur.orm && parseFloat(set.weight)===cur.weight && log.log_date>cur.date)) {
+            best[log.client_email] = { name: recClients[log.client_email]||log.client_email.split('@')[0], weight: parseFloat(set.weight), reps: parseInt(set.reps), orm, date: log.log_date };
+          }
+        });
+      });
+    });
+    return Object.values(best).sort((a,b)=>b.orm-a.orm||b.weight-a.weight||b.date.localeCompare(a.date)).slice(0,3);
+  }
+
+  function getMyRec(exName) {
+    let best = null;
+    recLogs.filter(l=>l.client_email===currentEmail).forEach(log => {
+      (log.exercises||[]).forEach(ex => {
+        if (ex.name !== exName) return;
+        (ex.sets||[]).forEach(set => {
+          const orm = calc1RM(set.weight, set.reps);
+          if (!orm) return;
+          if (!best || orm>best.orm || (orm===best.orm && parseFloat(set.weight)>best.weight))
+            best = { weight: parseFloat(set.weight), reps: parseInt(set.reps), orm, date: log.log_date };
+        });
+      });
+    });
+    if (!best) return null;
+    const allBest = {};
+    recLogs.forEach(log => {
+      (log.exercises||[]).forEach(ex => {
+        if (ex.name!==exName) return;
+        (ex.sets||[]).forEach(set => {
+          const orm = calc1RM(set.weight,set.reps);
+          if (!orm) return;
+          if (!allBest[log.client_email] || orm>allBest[log.client_email]) allBest[log.client_email]=orm;
+        });
+      });
+    });
+    const rank = Object.values(allBest).filter(v=>v>best.orm).length + 1;
+    return { ...best, rank };
+  }
+
+  function setRecMode(m)  { recMode=m; renderRecBody(); }
+  function setRecMuscle(m){ recMuscle=m; recExercise=RECORD_EXERCISES[m][0]; renderRecBody(); }
+  function setRecEx(ex)   { recExercise=ex; renderRecBody(); }
+
+  async function logSteps() {
+    const val = parseInt(document.getElementById('steps-inp').value);
+    if (!val || val < 0) return;
+    const today = new Date().toISOString().split('T')[0];
+    const btn = document.querySelector('.btn-save-steps');
+    btn.disabled = true; btn.textContent = 'שומר...';
+    const { error } = await sb.from('steps_logs').upsert(
+      { client_email: currentEmail, steps: val, log_date: today },
+      { onConflict: 'client_email,log_date' }
+    );
+    btn.disabled = false; btn.textContent = 'שמור';
+    if (error) return;
+    const idx = recSteps.findIndex(s=>s.client_email===currentEmail);
+    if (idx>=0) recSteps[idx].steps=val; else recSteps.push({client_email:currentEmail,steps:val});
+    renderRecBody();
   }
 
   init();
