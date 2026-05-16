@@ -418,6 +418,10 @@
     setTimeout(() => document.getElementById('loader').style.display = 'none', 300);
     document.getElementById('main').style.display = 'block';
 
+    // load recipes for everyone regardless of client status
+    const { data: recipesAll } = await sb.from('recipes').select('*').order('category').order('name');
+    renderRecipes(recipesAll || []);
+
     if (!client) {
       document.getElementById('client-name').textContent = email.split('@')[0];
       document.getElementById('timer-card').innerHTML = '<div style="color:#555;padding:20px;">ממתין לאישור מאמן — צור קשר עם הלאל להפעלת האזור האישי שלך.</div>';
@@ -444,18 +448,16 @@
     document.getElementById('plan-badge').textContent = client.plan_type || 'ליווי אישי';
 
     // Plans + history
-    const [{ data: tr }, { data: nu }, { data: logs }, { data: recipes }] = await Promise.all([
+    const [{ data: tr }, { data: nu }, { data: logs }] = await Promise.all([
       sb.from('training_plans').select('plan').eq('client_email', email).single(),
       sb.from('nutrition_plans').select('plan').eq('client_email', email).single(),
-      sb.from('workout_logs').select('*').eq('client_email', email).order('log_date', { ascending: false }).order('created_at', { ascending: false }).limit(30),
-      sb.from('recipes').select('*').order('category').order('name')
+      sb.from('workout_logs').select('*').eq('client_email', email).order('log_date', { ascending: false }).order('created_at', { ascending: false }).limit(30)
     ]);
 
     trainingPlanLocal = tr?.plan || [];
     renderTraining(trainingPlanLocal);
     renderNutrition(nu?.plan || []);
     renderHistory(logs || []);
-    renderRecipes(recipes || []);
   }
 
   function fmt(d) {
