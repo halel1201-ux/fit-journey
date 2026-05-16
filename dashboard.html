@@ -325,6 +325,38 @@
     .btn-ai-send { padding:10px 18px; background:var(--orange); border:none; border-radius:10px; color:#fff; font-family:'Heebo',sans-serif; font-size:0.88rem; font-weight:700; cursor:pointer; }
     .btn-ai-rec { display:inline-flex; align-items:center; gap:6px; padding:9px 18px; background:rgba(255,107,0,0.08); border:1px solid rgba(255,107,0,0.3); border-radius:10px; color:var(--orange); font-family:'Heebo',sans-serif; font-size:0.85rem; font-weight:700; cursor:pointer; transition:background 0.2s; margin-bottom:18px; }
     .btn-ai-rec:hover { background:rgba(255,107,0,0.18); }
+
+    /* WEIGHT ROW */
+    .weight-row { display:flex; align-items:center; justify-content:space-between; background:var(--card); border:1px solid var(--border); border-radius:12px; padding:14px 18px; margin-bottom:20px; }
+    .weight-info .wlbl { font-size:0.72rem; font-weight:700; color:var(--muted); margin-bottom:2px; }
+    .weight-info .wval { font-size:1rem; font-weight:900; color:var(--white); }
+    .weight-info .wval span { font-size:0.78rem; color:var(--muted); font-weight:400; }
+    .btn-weight { padding:9px 18px; background:linear-gradient(135deg,var(--orange),#FF8C00); border:none; border-radius:8px; color:var(--white); font-family:'Heebo',sans-serif; font-size:0.85rem; font-weight:700; cursor:pointer; transition:opacity 0.2s; white-space:nowrap; }
+    .btn-weight:hover { opacity:0.88; }
+
+    /* WATER CARD */
+    .water-card { background:rgba(30,100,220,0.05); border:1px solid rgba(96,165,250,0.22); border-radius:14px; padding:18px 20px; margin-bottom:24px; }
+    .water-track { height:9px; background:rgba(255,255,255,0.07); border-radius:5px; overflow:hidden; margin:10px 0 14px; }
+    .water-fill { height:100%; background:linear-gradient(90deg,#3b82f6,#60a5fa); border-radius:5px; transition:width 0.4s ease; }
+    .water-btn-row { display:flex; gap:8px; }
+    .water-btn { flex:1; padding:11px 6px; background:rgba(59,130,246,0.07); border:1px solid rgba(59,130,246,0.22); border-radius:10px; color:var(--white); font-family:'Heebo',sans-serif; font-size:0.82rem; font-weight:700; cursor:pointer; text-align:center; transition:background 0.2s; line-height:1.5; }
+    .water-btn span { font-size:0.68rem; color:#60a5fa; font-weight:400; display:block; }
+    .water-btn:hover { background:rgba(59,130,246,0.18); }
+    .water-btn:active { transform:scale(0.97); }
+
+    /* MANUAL FOOD ENTRY */
+    .manual-food-toggle { display:inline-flex; align-items:center; gap:5px; background:none; border:none; color:#666; font-family:'Heebo',sans-serif; font-size:0.78rem; font-weight:700; cursor:pointer; padding:5px 0; transition:color 0.2s; margin-top:4px; }
+    .manual-food-toggle:hover { color:var(--orange); }
+    .manual-form-wrap { background:rgba(255,107,0,0.04); border:1px solid rgba(255,107,0,0.2); border-radius:12px; padding:14px; margin-top:8px; margin-bottom:4px; }
+    .manual-row-lbl { font-size:0.7rem; font-weight:700; color:var(--muted); margin-bottom:6px; }
+    .manual-inputs-row { display:grid; grid-template-columns:2fr 1fr 1fr 1fr 1fr; gap:7px; margin-bottom:10px; }
+    @media (max-width:500px) { .manual-inputs-row { grid-template-columns:1fr 1fr; } }
+    .manual-inp { padding:9px 10px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:8px; color:var(--white); font-family:'Heebo',sans-serif; font-size:0.82rem; outline:none; width:100%; }
+    .manual-inp:focus { border-color:var(--orange); }
+    .manual-inp::placeholder { color:#444; font-size:0.74rem; }
+    .btn-manual-add { width:100%; padding:10px; background:var(--orange); border:none; border-radius:8px; color:var(--white); font-family:'Heebo',sans-serif; font-size:0.88rem; font-weight:700; cursor:pointer; transition:opacity 0.2s; }
+    .btn-manual-add:hover { opacity:0.88; }
+    .btn-manual-add:disabled { opacity:0.5; cursor:not-allowed; }
   </style>
 </head>
 <body>
@@ -351,6 +383,32 @@
       <h2 id="timer-label">ימים נותרו לליווי</h2>
       <p id="timer-dates">—</p>
       <span class="plan-badge" id="plan-badge"></span>
+    </div>
+  </div>
+
+  <!-- Weight + Water -->
+  <div class="weight-row" id="weight-row">
+    <div class="weight-info">
+      <div class="wlbl">משקל עדכני</div>
+      <div class="wval"><span id="weight-display">—</span> <span>ק"ג</span></div>
+    </div>
+    <button class="btn-weight" onclick="updateWeight()">⚖️ עדכן משקל</button>
+  </div>
+
+  <div class="water-card" id="water-card">
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+      <div style="font-size:1rem;font-weight:900;">💧 מעקב שתייה</div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span id="water-amount" style="font-size:0.88rem;color:#60a5fa;font-weight:700;">0 מ"ל</span>
+        <button onclick="undoLastWater()" title="בטל הוספה אחרונה" style="background:none;border:none;color:#555;cursor:pointer;font-size:0.8rem;padding:2px 4px;border-radius:4px;transition:color 0.2s;" onmouseover="this.style.color='#ff7070'" onmouseout="this.style.color='#555'">↩</button>
+      </div>
+    </div>
+    <div id="water-target-label" style="font-size:0.73rem;color:var(--muted);margin-top:2px;"></div>
+    <div class="water-track"><div class="water-fill" id="water-fill" style="width:0%"></div></div>
+    <div class="water-btn-row">
+      <button class="water-btn" onclick="addWater(150)">כוס<span>150 מ"ל</span></button>
+      <button class="water-btn" onclick="addWater(500)">בקבוק קטן<span>500 מ"ל</span></button>
+      <button class="water-btn" onclick="addWater(1500)">בקבוק גדול<span>1.5 ל׳</span></button>
     </div>
   </div>
 
@@ -468,6 +526,9 @@
   let nutriMeal           = 'בוקר';
   let selectedFood        = null;
   const MEAL_TYPES        = ['בוקר','ביניים','צהריים','ערב','אחרי אימון'];
+  let waterLogs           = [];
+  let waterTarget         = 2500;
+  let manualFoodOpen      = false;
 
   async function init() {
     let { data: { session } } = await sb.auth.getSession();
@@ -538,6 +599,8 @@
     nutritionPlanLocal = nu?.plan || [];
     renderTraining(trainingPlanLocal);
     renderHistory(logs || []);
+    renderWeightRow();
+    await loadWaterData();
   }
 
   function fmt(d) {
@@ -1018,7 +1081,7 @@ ${foodList}
 
     // Track mode
     const tgt = clientData || {};
-    const tot = (foodLogs||[]).reduce((a,l)=>({ cal:a.cal+(l.calories||0), p:a.p+(l.protein||0), c:a.c+(l.carbs||0), f:a.f+(l.fat||0) }), {cal:0,p:0,c:0,f:0});
+    const tot = (foodLogs||[]).filter(l=>l.meal_type!=='מים').reduce((a,l)=>({ cal:a.cal+(l.calories||0), p:a.p+(l.protein||0), c:a.c+(l.carbs||0), f:a.f+(l.fat||0) }), {cal:0,p:0,c:0,f:0});
 
     const macroBar = (label, val, target, color) => {
       const pct = target ? Math.min(100, Math.round(val/target*100)) : 0;
@@ -1034,7 +1097,7 @@ ${foodList}
 
     const grouped = {};
     MEAL_TYPES.forEach(m => grouped[m] = []);
-    (foodLogs||[]).forEach(l => { const mt = MEAL_TYPES.includes(l.meal_type)?l.meal_type:'בוקר'; grouped[mt].push(l); });
+    (foodLogs||[]).forEach(l => { if (l.meal_type==='מים') return; const mt = MEAL_TYPES.includes(l.meal_type)?l.meal_type:'בוקר'; grouped[mt].push(l); });
 
     const today = new Date().toLocaleDateString('he-IL',{day:'2-digit',month:'2-digit',year:'numeric'});
     const logHtml = MEAL_TYPES.filter(m=>grouped[m].length).map(m=>`
@@ -1070,6 +1133,18 @@ ${foodList}
         </div>
         <div class="food-preview" id="food-preview"></div>
       </div>
+      <button class="manual-food-toggle" onclick="toggleManualFood()">${manualFoodOpen ? '▲ סגור' : '+ הוסף ידנית (ללא מאגר)'}</button>
+      ${manualFoodOpen ? `<div class="manual-form-wrap">
+        <div class="manual-row-lbl">ערכים ישירים (לא לפי 100 גרם):</div>
+        <div class="manual-inputs-row">
+          <input class="manual-inp" id="mf-name" placeholder="שם המאכל" type="text"/>
+          <input class="manual-inp" id="mf-cal"  placeholder="קלוריות"  type="number" min="0"/>
+          <input class="manual-inp" id="mf-prot" placeholder="חלבון g"  type="number" min="0"/>
+          <input class="manual-inp" id="mf-carb" placeholder="פחמימה g" type="number" min="0"/>
+          <input class="manual-inp" id="mf-fat"  placeholder="שומן g"   type="number" min="0"/>
+        </div>
+        <button class="btn-manual-add" id="btn-manual-add" onclick="addManualFood()">הכנס מאכל</button>
+      </div>` : ''}
       ${logHtml || '<div style="color:#444;font-size:0.85rem;text-align:center;padding:20px 0;">לא נרשם אוכל היום עדיין 🍽️</div>'}`;
   }
 
@@ -1320,6 +1395,98 @@ ${foodList}
     const idx = recSteps.findIndex(s=>s.client_email===currentEmail);
     if (idx>=0) recSteps[idx].steps=val; else recSteps.push({client_email:currentEmail,steps:val});
     renderRecBody();
+  }
+
+  /* ── WEIGHT ── */
+  function renderWeightRow() {
+    const el = document.getElementById('weight-display');
+    if (!el) return;
+    el.textContent = clientData?.current_weight ? clientData.current_weight : '—';
+  }
+
+  async function updateWeight() {
+    const current = clientData?.current_weight;
+    const val = prompt(current ? `משקל נוכחי: ${current} ק"ג\nהזן משקל חדש (ק"ג):` : 'הזן את המשקל הנוכחי שלך (ק"ג):');
+    if (val === null) return;
+    const kg = parseFloat(val.replace(',', '.'));
+    if (!kg || kg < 20 || kg > 500) { alert('משקל לא תקין'); return; }
+    const { error } = await sb.from('clients').update({ current_weight: kg }).eq('email', currentEmail);
+    if (error) { alert('שגיאה בשמירה'); return; }
+    if (clientData) clientData.current_weight = kg;
+    renderWeightRow();
+  }
+
+  /* ── WATER ── */
+  async function loadWaterData() {
+    const today = new Date().toISOString().split('T')[0];
+    const { data } = await sb.from('food_logs')
+      .select('*').eq('client_email', currentEmail).eq('log_date', today).eq('meal_type', 'מים');
+    waterLogs = data || [];
+    if (clientData?.target_water) waterTarget = Math.round(clientData.target_water * 1000);
+    renderWaterCard();
+  }
+
+  function renderWaterCard() {
+    const total = waterLogs.reduce((s, l) => s + (l.grams || 0), 0);
+    const pct = waterTarget ? Math.min(100, Math.round(total / waterTarget * 100)) : 0;
+    const amtEl  = document.getElementById('water-amount');
+    const fillEl = document.getElementById('water-fill');
+    const lblEl  = document.getElementById('water-target-label');
+    const fmt = ml => ml >= 1000 ? (ml / 1000).toFixed(1) + ' ל׳' : ml + ' מ"ל';
+    if (amtEl)  amtEl.textContent  = fmt(total);
+    if (fillEl) fillEl.style.width = pct + '%';
+    if (fillEl) fillEl.style.background = pct >= 100 ? 'linear-gradient(90deg,#22c55e,#4ade80)' : 'linear-gradient(90deg,#3b82f6,#60a5fa)';
+    if (lblEl)  lblEl.textContent  = waterTarget ? `יעד: ${fmt(waterTarget)} · ${pct}%` : 'יעד שתייה לא הוגדר';
+  }
+
+  async function addWater(ml) {
+    const today = new Date().toISOString().split('T')[0];
+    const { data, error } = await sb.from('food_logs').insert({
+      client_email: currentEmail, log_date: today,
+      food_name: '💧 מים', grams: ml,
+      calories: 0, protein: 0, carbs: 0, fat: 0, meal_type: 'מים'
+    }).select().single();
+    if (error) return;
+    waterLogs.push(data);
+    if (foodLogs) foodLogs.push(data);
+    renderWaterCard();
+  }
+
+  async function undoLastWater() {
+    if (!waterLogs.length) return;
+    const last = waterLogs[waterLogs.length - 1];
+    const { error } = await sb.from('food_logs').delete().eq('id', last.id);
+    if (error) return;
+    waterLogs.pop();
+    if (foodLogs) foodLogs = foodLogs.filter(l => l.id !== last.id);
+    renderWaterCard();
+  }
+
+  /* ── MANUAL FOOD ── */
+  function toggleManualFood() {
+    manualFoodOpen = !manualFoodOpen;
+    renderNutriBody();
+  }
+
+  async function addManualFood() {
+    const name = document.getElementById('mf-name')?.value.trim();
+    const cal  = parseFloat(document.getElementById('mf-cal')?.value)  || 0;
+    const prot = parseFloat(document.getElementById('mf-prot')?.value) || 0;
+    const carb = parseFloat(document.getElementById('mf-carb')?.value) || 0;
+    const fat  = parseFloat(document.getElementById('mf-fat')?.value)  || 0;
+    if (!name) { document.getElementById('mf-name')?.focus(); return; }
+    const btn = document.getElementById('btn-manual-add');
+    if (btn) { btn.disabled = true; btn.textContent = 'מוסיף...'; }
+    const today = new Date().toISOString().split('T')[0];
+    const { data, error } = await sb.from('food_logs').insert({
+      client_email: currentEmail, log_date: today,
+      food_name: name, grams: 0, calories: cal, protein: prot, carbs: carb, fat, meal_type: nutriMeal
+    }).select().single();
+    if (btn) { btn.disabled = false; btn.textContent = 'הכנס מאכל'; }
+    if (error) return;
+    foodLogs.push(data);
+    manualFoodOpen = false;
+    renderNutriBody();
   }
 
   init();
