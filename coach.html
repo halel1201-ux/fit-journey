@@ -131,9 +131,9 @@
 <div id="loader"><div class="spin"></div></div>
 
 <div class="topnav">
-  <div style="display:flex;align-items:center;gap:10px;">
-    <img src="logo.png" style="height:42px;width:auto;" alt="Fit Journey"/>
-    <div class="topnav-sub" id="coach-sub">פאנל מאמן — <span id="coach-brand" style="color:var(--white);font-weight:700;"></span></div>
+  <div>
+    <div class="topnav-brand" id="coach-brand">HF Coach</div>
+    <div class="topnav-sub" id="coach-sub">פאנל מאמן</div>
   </div>
   <div style="display:flex;gap:8px;align-items:center;">
     <button class="btn-sm btn-outline" onclick="openRecords()" style="border-color:rgba(255,215,0,0.35);color:#FFD700;">🏆 שיאים</button>
@@ -297,7 +297,7 @@
     if (!coach) { window.location.href = 'login.html'; return; }
     coachEmail = session.user.email;
     coachName  = coach.name;
-    document.getElementById('coach-brand').textContent = coachName;
+    document.getElementById('coach-brand').textContent = `HF — ${coachName}`;
     const { data: clientRow } = await sb.from('clients').select('email').eq('email', coachEmail).single();
     if (clientRow) document.getElementById('btn-trainee-link').style.display = 'block';
     await Promise.all([loadClients(), loadExerciseLibrary(), loadFoodItems()]);
