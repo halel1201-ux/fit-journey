@@ -197,6 +197,7 @@
     <button class="btn-sm btn-outline" id="btn-ex-view" onclick="toggleExView()" style="border-color:rgba(255,215,0,0.35);color:#FFD700;">💪 תרגילים</button>
     <button class="btn-sm btn-outline" id="btn-rc-view" onclick="toggleRecipeView()" style="border-color:rgba(255,215,0,0.35);color:#FFD700;">🍳 מתכונים</button>
     <button class="btn-sm btn-outline" id="btn-fi-view" onclick="toggleFoodView()" style="border-color:rgba(74,222,128,0.35);color:#4ade80;">🥦 מזון</button>
+    <button class="btn-sm btn-outline" onclick="openCoachesView()" style="border-color:rgba(100,180,255,0.35);color:#64b4ff;">👥 מאמנים</button>
     <button class="btn-sm btn-outline" onclick="openRecords()" style="border-color:rgba(255,215,0,0.35);color:#FFD700;">🏆 שיאים</button>
     <button class="btn-sm btn-outline" onclick="logout()">יציאה</button>
   </div>
@@ -242,6 +243,22 @@
     <div class="modal-actions">
       <button class="btn-sm btn-outline" onclick="closeAddModal()">ביטול</button>
       <button class="btn-sm btn-orange" id="add-btn" onclick="addClient()">הוסף לקוח</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD COACH MODAL -->
+<div class="modal-bg" id="coach-modal">
+  <div class="modal" style="max-width:400px;">
+    <h3>הוסף <span>מאמן</span></h3>
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <div class="f-group"><label>שם מלא</label><input id="coach-name-inp" placeholder="ליאם כהן"/></div>
+      <div class="f-group"><label>אימייל</label><input id="coach-email-inp" type="email" placeholder="coach@email.com" style="direction:ltr;text-align:right;"/></div>
+    </div>
+    <div id="coach-err" style="margin-top:12px;font-size:0.82rem;color:#ff7070;display:none;"></div>
+    <div class="modal-actions">
+      <button class="btn-sm btn-outline" onclick="closeCoachModal()">ביטול</button>
+      <button class="btn-sm btn-orange" id="coach-add-btn" onclick="addCoach()">הוסף</button>
     </div>
   </div>
 </div>
@@ -381,9 +398,10 @@
   const ADMIN = 'halel1201@gmail.com';
   const sb = supabase.createClient(URL_, KEY);
 
-  let clients = [];
-  let activeEmail = null;
-  let trainingPlan = [];
+  let clients      = [];
+  let coachesList  = [];
+  let activeEmail  = null;
+  let trainingPlan  = [];
   let nutritionPlan = [];
   let exerciseLibrary = [];
 
@@ -504,8 +522,77 @@
     if (!session || session.user.email !== ADMIN) {
       window.location.href = 'login.html'; return;
     }
-    await Promise.all([loadClients(), loadExerciseLibrary(), loadFoodItems()]);
+    await Promise.all([loadClients(), loadCoaches(), loadExerciseLibrary(), loadFoodItems()]);
     document.getElementById('loader').style.display = 'none';
+  }
+
+  /* ── COACHES ── */
+  async function loadCoaches() {
+    const { data } = await sb.from('coaches').select('*').order('name');
+    coachesList = data || [];
+  }
+
+  function openCoachesView() {
+    activeEmail = null;
+    renderSidebar();
+    document.getElementById('main-area').innerHTML = `
+      <div class="sec-card">
+        <div class="sec-card-title">👥 ניהול מאמנים
+          <button class="btn-sm btn-orange" onclick="openAddCoachModal()">+ הוסף מאמן</button>
+        </div>
+        <div id="coaches-wrap"></div>
+      </div>`;
+    renderCoachesTable();
+  }
+
+  function renderCoachesTable() {
+    const el = document.getElementById('coaches-wrap');
+    if (!el) return;
+    if (!coachesList.length) { el.innerHTML = '<div style="color:#444;font-size:0.85rem;padding:8px 0;">אין מאמנים עדיין</div>'; return; }
+    el.innerHTML = coachesList.map(c => {
+      const count = clients.filter(cl => cl.coach_email === c.email).length;
+      return `<div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:rgba(255,255,255,0.03);border-radius:10px;margin-bottom:6px;">
+        <div style="flex:1;">
+          <div style="font-size:0.92rem;font-weight:700;">${esc(c.name)}</div>
+          <div style="font-size:0.78rem;color:var(--muted);margin-top:2px;">${c.email} · ${count} מתאמנים</div>
+        </div>
+        <button class="btn-sm btn-red" onclick="deleteCoach('${c.id}','${esc(c.name)}')">מחק</button>
+      </div>`;
+    }).join('');
+  }
+
+  let coachModalOpen = false;
+  function openAddCoachModal() {
+    document.getElementById('coach-modal').classList.add('open');
+    document.getElementById('coach-name-inp').value = '';
+    document.getElementById('coach-email-inp').value = '';
+    document.getElementById('coach-err').style.display = 'none';
+  }
+  function closeCoachModal() { document.getElementById('coach-modal').classList.remove('open'); }
+
+  async function addCoach() {
+    const name  = document.getElementById('coach-name-inp').value.trim();
+    const email = document.getElementById('coach-email-inp').value.trim();
+    const errEl = document.getElementById('coach-err');
+    const btn   = document.getElementById('coach-add-btn');
+    errEl.style.display = 'none';
+    if (!name || !email) { errEl.textContent = 'יש למלא שם ואימייל'; errEl.style.display = 'block'; return; }
+    btn.disabled = true; btn.textContent = 'מוסיף...';
+    const { error } = await sb.from('coaches').insert({ name, email });
+    btn.disabled = false; btn.textContent = 'הוסף';
+    if (error) { errEl.textContent = error.message; errEl.style.display = 'block'; return; }
+    closeCoachModal();
+    await loadCoaches();
+    renderCoachesTable();
+    toast(`${name} נוסף כמאמן ✓`, 'ok');
+  }
+
+  async function deleteCoach(id, name) {
+    if (!confirm(`למחוק את ${name}? המתאמנים שלו לא יימחקו.`)) return;
+    await sb.from('coaches').delete().eq('id', id);
+    await loadCoaches();
+    renderCoachesTable();
+    toast('מאמן נמחק', 'ok');
   }
 
   async function loadClients() {
@@ -539,15 +626,25 @@
   }
 
   function renderMain(client) {
+    const coachOpts = coachesList.map(c =>
+      `<option value="${c.email}" ${client.coach_email===c.email?'selected':''}>${esc(c.name)}</option>`
+    ).join('');
     document.getElementById('main-area').innerHTML = `
       <!-- Profile -->
       <div class="sec-card">
-        <div class="sec-card-title">פרטי לקוח <span>${client.name}</span></div>
+        <div class="sec-card-title">פרטי לקוח <span>${esc(client.name)}</span></div>
         <div class="form-grid" style="margin-bottom:14px;">
-          <div class="f-group"><label>שם</label><input id="e-name" value="${client.name}"/></div>
-          <div class="f-group"><label>אימייל</label><input id="e-email" value="${client.email}" style="direction:ltr;text-align:right;" readonly/></div>
-          <div class="f-group"><label>תחילת ליווי</label><input id="e-start" type="date" value="${client.coaching_start}"/></div>
-          <div class="f-group"><label>סיום ליווי</label><input id="e-end" type="date" value="${client.coaching_end}"/></div>
+          <div class="f-group"><label>שם</label><input id="e-name" value="${esc(client.name)}"/></div>
+          <div class="f-group"><label>אימייל</label><input id="e-email" value="${esc(client.email)}" style="direction:ltr;text-align:right;" readonly/></div>
+          <div class="f-group"><label>טלפון</label><input id="e-phone" value="${esc(client.phone||'')}" placeholder="050-0000000" type="tel" style="direction:ltr;text-align:right;"/></div>
+          <div class="f-group"><label>מאמן אחראי</label>
+            <select id="e-coach">
+              <option value="">— ללא מאמן —</option>
+              ${coachOpts}
+            </select>
+          </div>
+          <div class="f-group"><label>תחילת ליווי</label><input id="e-start" type="date" value="${client.coaching_start||''}"/></div>
+          <div class="f-group"><label>סיום ליווי</label><input id="e-end" type="date" value="${client.coaching_end||''}"/></div>
         </div>
         <div class="f-group" style="margin-bottom:16px;">
           <label>סוג מסלול</label>
@@ -568,7 +665,7 @@
         </div>
         <div style="display:flex;gap:10px;align-items:center;">
           <button class="btn-sm btn-orange" onclick="saveProfile()">שמור פרטים</button>
-          <button class="btn-sm btn-red" onclick="deleteClient('${client.email}')">מחק לקוח</button>
+          <button class="btn-sm btn-red" onclick="deleteClient('${esc(client.email)}')">מחק לקוח</button>
         </div>
       </div>
 
@@ -794,7 +891,9 @@
 
   /* ── PROFILE ── */
   async function saveProfile() {
-    const name  = document.getElementById('e-name').value.trim();
+    const name       = document.getElementById('e-name').value.trim();
+    const phone      = document.getElementById('e-phone').value.trim();
+    const coachEmail = document.getElementById('e-coach').value || null;
     const start = document.getElementById('e-start').value;
     const end   = document.getElementById('e-end').value;
     const plan  = document.getElementById('e-plan').value;
@@ -803,7 +902,7 @@
     const carb  = parseInt(document.getElementById('e-carb').value) || null;
     const fat   = parseInt(document.getElementById('e-fat').value)  || null;
     const { error } = await sb.from('clients')
-      .update({ name, coaching_start: start, coaching_end: end, plan_type: plan,
+      .update({ name, phone, coach_email: coachEmail, coaching_start: start, coaching_end: end, plan_type: plan,
                 target_calories: cal, target_protein: prot, target_carbs: carb, target_fat: fat })
       .eq('email', activeEmail);
     if (error) { toast('שגיאה בשמירה', 'err'); return; }

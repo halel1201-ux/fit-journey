@@ -98,8 +98,11 @@
     if (event === 'SIGNED_IN' && session) redirect(session.user.email);
   });
 
-  function redirect(email) {
-    window.location.href = email === ADMIN ? 'admin.html' : 'dashboard.html';
+  async function redirect(email) {
+    if (email === ADMIN) { window.location.href = 'admin.html'; return; }
+    const { data: coach } = await sb.from('coaches').select('email').eq('email', email).single();
+    if (coach) { window.location.href = 'coach.html'; return; }
+    window.location.href = 'dashboard.html';
   }
 
   async function sendLink() {

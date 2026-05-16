@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%230a0a0a'/><text x='16' y='23' font-family='Arial Black,sans-serif' font-size='15' font-weight='900' fill='%23FF6B00' text-anchor='middle'>HF</text></svg>"/>
+  <title>פאנל מאמן — HF Coaching</title>
+  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;700;900&display=swap" rel="stylesheet"/>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --orange:#FF6B00; --gold:#FFD700; --black:#090909; --graphite:#111; --white:#fff; --muted:#888; --card:rgba(255,255,255,0.04); --border:rgba(255,107,0,0.25); }
+    body { font-family: 'Heebo', sans-serif; background: var(--black); color: var(--white); min-height: 100vh; }
+    ::-webkit-scrollbar { width: 5px; } ::-webkit-scrollbar-track { background: #0e0e0e; } ::-webkit-scrollbar-thumb { background: var(--orange); border-radius: 3px; }
+    .topnav { height: 58px; background: rgba(9,9,9,0.95); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(255,107,0,0.15); display: flex; align-items: center; justify-content: space-between; padding: 0 20px; position: sticky; top: 0; z-index: 100; }
+    .topnav-brand { font-size: 1.2rem; font-weight: 900; background: linear-gradient(135deg, var(--orange), var(--gold)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .topnav-sub { font-size: 0.75rem; color: var(--muted); }
+    .btn-sm { padding: 7px 16px; border-radius: 6px; font-family: 'Heebo', sans-serif; font-size: 0.82rem; font-weight: 700; cursor: pointer; transition: background 0.2s, opacity 0.2s; }
+    .btn-outline { background: transparent; border: 1px solid rgba(255,107,0,0.4); color: var(--orange); }
+    .btn-outline:hover { background: rgba(255,107,0,0.1); }
+    .btn-orange { background: linear-gradient(135deg, var(--orange), #FF8C00); border: none; color: var(--white); }
+    .btn-orange:hover { opacity: 0.88; }
+    .btn-orange:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-red { background: transparent; border: 1px solid rgba(255,60,60,0.35); color: #ff7070; font-size: 0.78rem; padding: 4px 10px; }
+    .btn-red:hover { background: rgba(255,60,60,0.1); }
+    .layout { display: flex; min-height: calc(100vh - 58px); }
+    .sidebar { width: 240px; flex-shrink: 0; background: rgba(255,255,255,0.02); border-left: 1px solid rgba(255,255,255,0.06); display: flex; flex-direction: column; }
+    .sidebar-head { padding: 16px 14px 12px; border-bottom: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: space-between; }
+    .sidebar-title { font-size: 0.78rem; font-weight: 700; color: var(--muted); letter-spacing: 1px; }
+    .client-list { flex: 1; overflow-y: auto; }
+    .client-item { padding: 12px 14px; cursor: pointer; border-bottom: 1px solid rgba(255,255,255,0.04); transition: background 0.15s; }
+    .client-item:hover { background: rgba(255,107,0,0.06); }
+    .client-item.active { background: rgba(255,107,0,0.1); border-right: 3px solid var(--orange); }
+    .client-item-name { font-size: 0.9rem; font-weight: 700; }
+    .client-item-email { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
+    .main { flex: 1; overflow-y: auto; padding: 24px 28px 60px; }
+    .no-select { display: flex; align-items: center; justify-content: center; height: 300px; color: #333; font-size: 1rem; }
+    .sec-card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 22px 22px; margin-bottom: 24px; }
+    .sec-card-title { font-size: 1rem; font-weight: 900; color: var(--white); margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; }
+    .sec-card-title span { color: var(--orange); }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .form-grid.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+    .form-grid.cols-1 { grid-template-columns: 1fr; }
+    @media (max-width: 600px) { .form-grid, .form-grid.cols-3 { grid-template-columns: 1fr; } }
+    .f-group { display: flex; flex-direction: column; gap: 5px; }
+    .f-group label { font-size: 0.77rem; font-weight: 700; color: var(--muted); }
+    .f-group input, .f-group select { padding: 9px 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 7px; color: var(--white); font-family: 'Heebo', sans-serif; font-size: 0.88rem; outline: none; transition: border-color 0.2s; }
+    .f-group input:focus, .f-group select:focus { border-color: var(--orange); }
+    .f-group select option { background: #1a1a1a; }
+    .day-block { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); border-radius: 10px; padding: 14px 16px; margin-bottom: 10px; }
+    .day-block-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+    .day-block-head input { flex: 1; padding: 7px 10px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; color: var(--white); font-family: 'Heebo', sans-serif; font-size: 0.88rem; outline: none; }
+    .day-block-head input:focus { border-color: var(--orange); }
+    .muscle-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 12px; }
+    .muscle-pill { padding: 5px 12px; border-radius: 20px; font-family: 'Heebo', sans-serif; font-size: 0.78rem; font-weight: 700; cursor: pointer; white-space: nowrap; border: 1px solid rgba(255,255,255,0.12); background: transparent; color: var(--muted); transition: all 0.15s; }
+    .muscle-pill:hover { border-color: rgba(255,107,0,0.4); color: var(--white); }
+    .muscle-pill.muscle-active { background: rgba(255,107,0,0.15); border-color: var(--orange); color: var(--orange); }
+    .ex-row { display: grid; grid-template-columns: 2fr 1fr 3fr auto; gap: 8px; align-items: center; margin-bottom: 7px; }
+    .ex-row input { padding: 7px 10px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 6px; color: var(--white); font-family: 'Heebo', sans-serif; font-size: 0.82rem; outline: none; }
+    .ex-row input:focus { border-color: rgba(255,107,0,0.5); }
+    .ex-row input::placeholder { color: #444; }
+    .add-link { display: inline-flex; align-items: center; gap: 5px; font-size: 0.8rem; font-weight: 700; color: var(--orange); background: none; border: none; cursor: pointer; padding: 4px 0; transition: opacity 0.2s; font-family: 'Heebo', sans-serif; }
+    .add-link:hover { opacity: 0.7; }
+    .meal-block { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); border-radius: 10px; padding: 14px 16px; margin-bottom: 10px; }
+    .meal-block-head { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+    .meal-block-head input { flex: 1; padding: 7px 10px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; color: var(--white); font-family: 'Heebo', sans-serif; font-size: 0.88rem; outline: none; }
+    .meal-block-head input:focus { border-color: var(--orange); }
+    .item-row { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 1fr 1fr auto; gap: 6px; align-items: center; margin-bottom: 6px; }
+    .item-row input { padding: 6px 8px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 6px; color: var(--white); font-family: 'Heebo', sans-serif; font-size: 0.8rem; outline: none; text-align: center; }
+    .item-row input:first-child { text-align: right; }
+    .item-row input:focus { border-color: rgba(255,107,0,0.5); }
+    .item-row input::placeholder { color: #444; font-size: 0.72rem; }
+    .nutri-header { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 1fr 1fr auto; gap: 6px; margin-bottom: 6px; }
+    .nutri-header span { font-size: 0.7rem; font-weight: 700; color: var(--muted); text-align: center; padding: 0 2px; }
+    .nutri-header span:first-child { text-align: right; }
+    .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); padding: 10px 22px; border-radius: 8px; font-size: 0.88rem; font-weight: 700; z-index: 999; transition: opacity 0.3s; opacity: 0; pointer-events: none; }
+    .toast.ok  { background: rgba(60,200,60,0.15); border: 1px solid rgba(60,200,60,0.4); color: #70dd70; }
+    .toast.err { background: rgba(255,60,60,0.15); border: 1px solid rgba(255,60,60,0.4); color: #ff7070; }
+    .toast.show { opacity: 1; }
+    #loader { position: fixed; inset: 0; background: var(--black); display: flex; align-items: center; justify-content: center; z-index: 999; }
+    .spin { width: 36px; height: 36px; border: 3px solid rgba(255,107,0,0.2); border-top-color: var(--orange); border-radius: 50%; animation: sp 0.7s linear infinite; }
+    @keyframes sp { to { transform: rotate(360deg); } }
+    /* CLIENT CARD */
+    .client-card-badge { display:inline-flex;align-items:center;gap:6px;padding:6px 14px;background:rgba(255,107,0,0.08);border:1px solid rgba(255,107,0,0.2);border-radius:20px;font-size:0.82rem;color:var(--orange);cursor:pointer;transition:background 0.2s; }
+    .client-card-badge:hover { background:rgba(255,107,0,0.16); }
+    .client-card-modal { position:fixed;inset:0;z-index:300;background:rgba(0,0,0,0.75);backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;padding:20px; }
+    .client-card-modal.open { display:flex; }
+    .client-card-inner { background:#161616;border:1px solid rgba(255,107,0,0.3);border-radius:18px;padding:28px;width:100%;max-width:360px;box-shadow:0 0 60px rgba(255,107,0,0.15); }
+    .client-card-avatar { width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,var(--orange),#FF8C00);display:flex;align-items:center;justify-content:center;font-size:1.6rem;font-weight:900;color:#fff;margin-bottom:16px; }
+    .client-card-name { font-size:1.2rem;font-weight:900;margin-bottom:4px; }
+    .client-card-row { display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.06);font-size:0.88rem; }
+    .client-card-row:last-of-type { border-bottom:none; }
+    .client-card-label { color:var(--muted);min-width:70px; }
+    .client-card-val { color:var(--white);font-weight:600; }
+    .client-card-val a { color:var(--orange);text-decoration:none; }
+    .client-card-val a:hover { text-decoration:underline; }
+    /* RECORDS */
+    .records-overlay { position: fixed; inset: 0; z-index: 400; background: var(--black); display: none; flex-direction: column; overflow: hidden; }
+    .records-overlay.open { display: flex; }
+    .rec-hdr { flex-shrink: 0; height: 62px; padding: 0 18px; background: rgba(9,9,9,0.97); backdrop-filter: blur(14px); border-bottom: 1px solid rgba(255,215,0,0.2); display: flex; align-items: center; justify-content: space-between; }
+    .rec-hdr-title { font-size: 1.1rem; font-weight: 900; background: linear-gradient(135deg,#FFD700,#FF6B00); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+    .btn-close-rec { background: rgba(255,255,255,0.07); border: none; color: var(--muted); width: 34px; height: 34px; border-radius: 50%; cursor: pointer; font-size: 1rem; }
+    .rec-body { flex: 1; overflow-y: auto; padding: 20px 16px 40px; max-width: 700px; margin: 0 auto; width: 100%; }
+    .rec-mode-tabs { display: flex; gap: 8px; margin-bottom: 20px; }
+    .rec-tab { padding: 8px 18px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.04); color: var(--muted); font-family:'Heebo',sans-serif; font-size:0.85rem; font-weight:700; cursor:pointer; transition:all 0.2s; }
+    .rec-tab.active { background: rgba(255,215,0,0.12); border-color: var(--gold); color: var(--gold); }
+    .muscle-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+    .m-tab { padding: 5px 12px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.08); background: transparent; color: #555; font-family:'Heebo',sans-serif; font-size:0.75rem; font-weight:700; cursor:pointer; transition:all 0.2s; }
+    .m-tab.active { background: rgba(255,107,0,0.12); border-color: var(--orange); color: var(--orange); }
+    .ex-select { width:100%; padding:12px 14px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12); border-radius:10px; color:var(--white); font-family:'Heebo',sans-serif; font-size:0.95rem; outline:none; cursor:pointer; margin-bottom:20px; }
+    .podium { display:flex; flex-direction:column; gap:10px; margin-bottom:20px; }
+    .podium-row { display:flex; align-items:center; gap:14px; padding:14px 16px; border-radius:14px; border:1px solid rgba(255,255,255,0.06); background:rgba(255,255,255,0.03); }
+    .podium-row.rank-1 { border-color:rgba(255,215,0,0.45); background:rgba(255,215,0,0.06); }
+    .podium-row.rank-2 { border-color:rgba(192,192,192,0.3); background:rgba(192,192,192,0.04); }
+    .podium-row.rank-3 { border-color:rgba(205,127,50,0.3); background:rgba(205,127,50,0.04); }
+    .podium-medal { font-size:1.6rem; flex-shrink:0; width:32px; text-align:center; }
+    .podium-info { flex:1; min-width:0; }
+    .podium-name { font-size:0.95rem; font-weight:900; margin-bottom:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .podium-stats { font-size:0.78rem; color:var(--muted); }
+    .podium-orm { font-size:0.9rem; font-weight:700; color:var(--gold); white-space:nowrap; }
+    .my-rec-box { padding:13px 16px; border-radius:12px; border:1px solid rgba(255,107,0,0.2); background:rgba(255,107,0,0.05); font-size:0.85rem; color:var(--muted); margin-top:4px; }
+    .my-rec-box strong { color:var(--orange); }
+    .steps-row { display:flex; gap:10px; margin-bottom:24px; }
+    .steps-input { flex:1; padding:12px 14px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12); border-radius:10px; color:var(--white); font-family:'Heebo',sans-serif; font-size:0.95rem; outline:none; }
+    .btn-save-steps { padding:12px 20px; background:var(--orange); border:none; border-radius:10px; color:#fff; font-family:'Heebo',sans-serif; font-size:0.9rem; font-weight:700; cursor:pointer; white-space:nowrap; }
+    .no-records { text-align:center; padding:40px 20px; color:#444; font-size:0.9rem; }
+  </style>
+</head>
+<body>
+
+<div id="loader"><div class="spin"></div></div>
+
+<div class="topnav">
+  <div>
+    <div class="topnav-brand" id="coach-brand">HF Coach</div>
+    <div class="topnav-sub" id="coach-sub">פאנל מאמן</div>
+  </div>
+  <div style="display:flex;gap:8px;align-items:center;">
+    <button class="btn-sm btn-outline" onclick="openRecords()" style="border-color:rgba(255,215,0,0.35);color:#FFD700;">🏆 שיאים</button>
+    <button class="btn-sm btn-outline" onclick="logout()">יציאה</button>
+  </div>
+</div>
+
+<div class="layout">
+  <div class="sidebar">
+    <div class="sidebar-head">
+      <span class="sidebar-title">המתאמנים שלי</span>
+    </div>
+    <div class="client-list" id="client-list"></div>
+  </div>
+  <div class="main" id="main-area">
+    <div class="no-select">← בחר מתאמן מהרשימה</div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- CLIENT CARD MODAL -->
+<div class="client-card-modal" id="client-card-modal">
+  <div class="client-card-inner">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px;">
+      <div>
+        <div class="client-card-avatar" id="cc-avatar">?</div>
+        <div class="client-card-name" id="cc-name"></div>
+      </div>
+      <button onclick="closeClientCard()" style="background:rgba(255,255,255,0.07);border:none;color:#888;width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:1rem;">✕</button>
+    </div>
+    <div class="client-card-row">
+      <span class="client-card-label">מייל</span>
+      <span class="client-card-val" id="cc-email"></span>
+    </div>
+    <div class="client-card-row">
+      <span class="client-card-label">טלפון</span>
+      <span class="client-card-val" id="cc-phone"></span>
+    </div>
+    <div class="client-card-row">
+      <span class="client-card-label">מסלול</span>
+      <span class="client-card-val" id="cc-plan"></span>
+    </div>
+    <div class="client-card-row">
+      <span class="client-card-label">ליווי עד</span>
+      <span class="client-card-val" id="cc-end"></span>
+    </div>
+    <div style="margin-top:18px;display:flex;gap:10px;">
+      <a id="cc-wa" href="#" target="_blank" style="flex:1;text-align:center;padding:10px;background:rgba(37,211,102,0.1);border:1px solid rgba(37,211,102,0.3);border-radius:10px;color:#25d366;font-size:0.85rem;font-weight:700;text-decoration:none;">WhatsApp</a>
+      <a id="cc-mail" href="#" style="flex:1;text-align:center;padding:10px;background:rgba(255,107,0,0.1);border:1px solid rgba(255,107,0,0.3);border-radius:10px;color:var(--orange);font-size:0.85rem;font-weight:700;text-decoration:none;">שלח מייל</a>
+    </div>
+  </div>
+</div>
+
+<!-- RECORDS OVERLAY -->
+<div class="records-overlay" id="records-overlay">
+  <div class="rec-hdr">
+    <div class="rec-hdr-title">🏆 שיאי הנבחרת שלי</div>
+    <button class="btn-close-rec" onclick="closeRecords()">✕</button>
+  </div>
+  <div class="rec-body" id="rec-body"></div>
+</div>
+
+<script>
+  const URL_ = 'https://luwknflmhvcxgifzxgrk.supabase.co';
+  const KEY  = 'sb_publishable_k3M7SfBeiBGs3rTKewBzWQ_7RHRskB9';
+  const sb   = supabase.createClient(URL_, KEY);
+
+  let coachEmail = null;
+  let coachName  = null;
+  let clients    = [];
+  let activeEmail = null;
+  let trainingPlan  = [];
+  let nutritionPlan = [];
+  let exerciseLibrary = [];
+  let allFoodItems = [];
+
+  /* ── UNIT MEASURES ── */
+  const FOOD_UNITS_RAW = [
+    ['קוטג׳','כף שטוחה',15],['קוטג׳','כף גדושה',25],['קוטג׳','כפית',8],['קוטג׳','קופסה',250],
+    ['גבינה לבנה','כף שטוחה',15],['גבינה לבנה','כף גדושה',25],['גבינה לבנה','כפית',8],['גבינה לבנה','קופסה',250],
+    ['לאבנה','כף',20],['לאבנה','כפית',7],['יוגורט יווני','גביע',200],['יוגורט יווני','כף',15],
+    ['גבינה צהובה','פרוסה ארוזה',28],['גבינת עמק','פרוסה',28],['גבינת מוצרלה','פרוסה',25],
+    ['גבינת פטה','קובייה',30],['פרמזן מגורד','כף',5],['חלב','כוס',240],['חלב','כף',15],
+    ['חזה עוף','פרוסת פסטרמה דקה',15],['חזה עוף','שניצל בינוני',150],['חזה עוף','חתיכה ממוצעת',200],
+    ['פרגית','חתיכה',120],['ירך עוף','יחידה',150],['שוק עוף','יחידה',120],['כנף עוף','יחידה',35],
+    ['חזה הודו','פרוסה',20],['פסטרמה הודו','פרוסה',15],['בקר טחון','קציצה קטנה',100],['בקר טחון','המבורגר',150],
+    ['אנטריקוט','סטייק',300],['סינטה','סטייק',250],['פילה בקר','סטייק',220],['שייטל','סטייק',250],
+    ['אסאדו','חתיכה',350],['כבד עוף','יחידה',20],['לבבות עוף','יחידה',10],
+    ['סלמון','פילה',250],['טונה טרייה','סטייק',220],['אמנון','פילה',180],
+    ['דניס','דג שלם',400],['לברק','דג שלם',450],['מקרל','דג שלם',300],['סרדינים','יחידה',25],
+    ['ביצה','יחידה L',60],['חלבון ביצה','חלבון אחד',33],
+    ['אורז מבושל','כף',15],['אורז מבושל','כוס',160],['פסטה מבושלת','כף',15],['פסטה מבושלת','כוס',140],
+    ['קינואה מבושלת','כף',15],['קינואה מבושלת','כוס',185],['בורגול מבושל','כף',15],['בורגול מבושל','כוס',180],
+    ['שיבולת שועל','כף',10],['שיבולת שועל','כוס',80],
+    ['תפוח אדמה','קטן',100],['תפוח אדמה','בינוני',180],['בטטה','קטנה',130],['בטטה','בינונית',250],
+    ['לחם','פרוסה',30],['פיתה','יחידה',80],['פיתה כוסמין','יחידה',75],['בננה','יחידה בינונית',120],['תמר מג׳הול','יחידה',24],
+    ['טחינה','כף',15],['טחינה','כפית',5],['חמאת בוטנים','כף',15],['חמאת בוטנים','כפית',5],
+    ['שמן זית','כף',10],['שמן זית','כפית',5],['אבוקדו','חצי אבוקדו',100],
+    ['שקדים','יחידה',1.2],['אגוז מלך','יחידה',5],['קשיו','יחידה',1.5],['פיסטוק','יחידה',0.6],
+  ];
+  const FOOD_UNITS_MAP = {};
+  for (const [food, unit, grams] of FOOD_UNITS_RAW) {
+    if (!FOOD_UNITS_MAP[food]) FOOD_UNITS_MAP[food] = [];
+    FOOD_UNITS_MAP[food].push({ name: unit, grams });
+  }
+  const GENERIC_UNITS = [
+    { name:'גרם',grams:1 },{ name:'כף',grams:15 },{ name:'כפית',grams:5 },
+    { name:'כוס',grams:240 },{ name:'יחידה',grams:100 },{ name:'פרוסה',grams:30 },{ name:'חצי',grams:50 },
+  ];
+  function getUnitsForFood(foodName) {
+    const specific = FOOD_UNITS_MAP[foodName] || [];
+    if (!specific.length) return GENERIC_UNITS;
+    return specific.some(u => u.name === 'גרם') ? specific : [{ name:'גרם',grams:1 }, ...specific];
+  }
+  function toggleItemExpand(mi, ii) {
+    const item = nutritionPlan[mi].items[ii];
+    item._exp = !item._exp;
+    if (!item._unit) item._unit = 'גרם';
+    if (item._qty == null) item._qty = parseFloat(item.quantity) || 100;
+    renderNutritionEditor();
+  }
+  function setItemUnit(mi, ii, unitName) {
+    const item = nutritionPlan[mi].items[ii];
+    item._unit = unitName; item._qty = unitName === 'גרם' ? 100 : 1;
+    recalcItemMacros(mi, ii); renderNutritionEditor();
+  }
+  function setItemQty(mi, ii, qty) {
+    nutritionPlan[mi].items[ii]._qty = qty;
+    recalcItemMacros(mi, ii); renderNutritionEditor();
+  }
+  function recalcItemMacros(mi, ii) {
+    const item = nutritionPlan[mi].items[ii];
+    const food = allFoodItems.find(f => f.name === item.food);
+    if (!food) return;
+    const units = getUnitsForFood(item.food);
+    const unit  = units.find(u => u.name === item._unit) || { grams: 1 };
+    const grams = (item._qty || 1) * unit.grams;
+    const r = grams / 100;
+    item.calories = Math.round(food.calories * r * 10) / 10;
+    item.protein  = Math.round(food.protein  * r * 10) / 10;
+    item.carbs    = Math.round(food.carbs    * r * 10) / 10;
+    item.fat      = Math.round(food.fat      * r * 10) / 10;
+    item.quantity = item._unit === 'גרם' ? `${Math.round(grams)} גרם` : `${item._qty} ${item._unit} (${Math.round(grams)}g)`;
+  }
+
+  /* ── INIT ── */
+  async function init() {
+    let { data: { session } } = await sb.auth.getSession();
+    if (!session) {
+      await new Promise(resolve => {
+        const { data: { subscription } } = sb.auth.onAuthStateChange((event, s) => {
+          if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') { session = s; subscription.unsubscribe(); resolve(); }
+        });
+        setTimeout(resolve, 3000);
+      });
+    }
+    if (!session) { window.location.href = 'login.html'; return; }
+    const { data: coach } = await sb.from('coaches').select('*').eq('email', session.user.email).single();
+    if (!coach) { window.location.href = 'login.html'; return; }
+    coachEmail = session.user.email;
+    coachName  = coach.name;
+    document.getElementById('coach-brand').textContent = `HF — ${coachName}`;
+    await Promise.all([loadClients(), loadExerciseLibrary(), loadFoodItems()]);
+    document.getElementById('loader').style.display = 'none';
+  }
+
+  async function loadClients() {
+    const { data } = await sb.from('clients').select('*').eq('coach_email', coachEmail).order('created_at');
+    clients = data || [];
+    renderSidebar();
+  }
+
+  function renderSidebar() {
+    const el = document.getElementById('client-list');
+    if (!clients.length) { el.innerHTML = '<div style="padding:16px;color:#444;font-size:0.82rem;text-align:center;">אין מתאמנים עדיין</div>'; return; }
+    el.innerHTML = clients.map(c => `
+      <div class="client-item ${c.email === activeEmail ? 'active' : ''}" onclick="selectClient('${c.email}')">
+        <div class="client-item-name">${esc(c.name)}</div>
+        <div class="client-item-email">${c.email}</div>
+      </div>`).join('');
+  }
+
+  async function selectClient(email) {
+    activeEmail = email;
+    renderSidebar();
+    const client = clients.find(c => c.email === email);
+    const [{ data: tr }, { data: nu }] = await Promise.all([
+      sb.from('training_plans').select('plan').eq('client_email', email).single(),
+      sb.from('nutrition_plans').select('plan').eq('client_email', email).single()
+    ]);
+    trainingPlan  = tr?.plan || [];
+    nutritionPlan = nu?.plan || [];
+    renderMain(client);
+  }
+
+  function renderMain(client) {
+    const phone = client.phone || '';
+    const endDate = client.coaching_end ? new Date(client.coaching_end + 'T12:00:00').toLocaleDateString('he-IL') : '—';
+    document.getElementById('main-area').innerHTML = `
+      <div class="sec-card">
+        <div class="sec-card-title">פרטי מתאמן <span>${esc(client.name)}</span></div>
+        <div style="margin-bottom:16px;">
+          <button class="client-card-badge" onclick="openClientCard('${esc(client.email)}')">
+            👤 כרטיס קשר — ${esc(client.name)}
+          </button>
+        </div>
+        <div class="form-grid" style="margin-bottom:14px;">
+          <div class="f-group"><label>שם</label><input id="e-name" value="${esc(client.name)}"/></div>
+          <div class="f-group"><label>טלפון</label><input id="e-phone" value="${esc(phone)}" placeholder="050-0000000" type="tel" style="direction:ltr;text-align:right;"/></div>
+          <div class="f-group"><label>תחילת ליווי</label><input id="e-start" type="date" value="${client.coaching_start || ''}"/></div>
+          <div class="f-group"><label>סיום ליווי</label><input id="e-end" type="date" value="${client.coaching_end || ''}"/></div>
+        </div>
+        <div style="margin-bottom:16px;">
+          <div style="font-size:0.78rem;font-weight:700;color:var(--muted);margin-bottom:8px;">יעדי מאקרו יומיים</div>
+          <div class="form-grid" style="grid-template-columns:1fr 1fr 1fr 1fr;">
+            <div class="f-group"><label>קלוריות</label><input id="e-cal" type="number" value="${client.target_calories||''}" placeholder="2000"/></div>
+            <div class="f-group"><label>חלבון (g)</label><input id="e-prot" type="number" value="${client.target_protein||''}" placeholder="150"/></div>
+            <div class="f-group"><label>פחמימה (g)</label><input id="e-carb" type="number" value="${client.target_carbs||''}" placeholder="250"/></div>
+            <div class="f-group"><label>שומן (g)</label><input id="e-fat" type="number" value="${client.target_fat||''}" placeholder="60"/></div>
+          </div>
+        </div>
+        <button class="btn-sm btn-orange" onclick="saveProfile()">שמור פרטים</button>
+      </div>
+
+      <div class="sec-card">
+        <div class="sec-card-title">🏋️ תוכנית אימונים
+          <button class="btn-sm btn-orange" onclick="addDay()">+ הוסף יום</button>
+        </div>
+        <div id="training-editor"></div>
+        <button class="btn-sm btn-orange" style="margin-top:14px;" onclick="saveTraining()">שמור תוכנית</button>
+      </div>
+
+      <div class="sec-card">
+        <div class="sec-card-title">🥗 תפריט תזונה
+          <button class="btn-sm btn-orange" onclick="addMeal()">+ הוסף ארוחה</button>
+        </div>
+        <div id="nutrition-editor"></div>
+        <button class="btn-sm btn-orange" style="margin-top:14px;" onclick="saveNutrition()">שמור תפריט</button>
+      </div>
+
+      <div class="sec-card">
+        <div class="sec-card-title">📊 יומן אימונים</div>
+        <div id="client-logs-wrap"><div style="color:#444;font-size:0.85rem;">טוען...</div></div>
+      </div>
+    `;
+    renderTrainingEditor();
+    renderNutritionEditor();
+    loadClientLogs(client.email);
+  }
+
+  /* ── CLIENT CARD ── */
+  function openClientCard(email) {
+    const c = clients.find(x => x.email === email);
+    if (!c) return;
+    const initials = (c.name || '?').split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase();
+    document.getElementById('cc-avatar').textContent = initials;
+    document.getElementById('cc-name').textContent   = c.name;
+    document.getElementById('cc-email').innerHTML    = `<a href="mailto:${c.email}">${c.email}</a>`;
+    const phone = c.phone || '';
+    document.getElementById('cc-phone').innerHTML    = phone ? `<a href="tel:${phone}">${phone}</a>` : '—';
+    const end = c.coaching_end ? new Date(c.coaching_end+'T12:00:00').toLocaleDateString('he-IL') : '—';
+    document.getElementById('cc-plan').textContent   = c.plan_type || '—';
+    document.getElementById('cc-end').textContent    = end;
+    const waNum = phone.replace(/\D/g,'');
+    document.getElementById('cc-wa').href   = waNum ? `https://wa.me/972${waNum.replace(/^0/,'')}` : '#';
+    document.getElementById('cc-mail').href = `mailto:${c.email}`;
+    document.getElementById('client-card-modal').classList.add('open');
+  }
+  function closeClientCard() { document.getElementById('client-card-modal').classList.remove('open'); }
+
+  /* ── SAVE PROFILE ── */
+  async function saveProfile() {
+    const name  = document.getElementById('e-name').value.trim();
+    const phone = document.getElementById('e-phone').value.trim();
+    const start = document.getElementById('e-start').value;
+    const end   = document.getElementById('e-end').value;
+    const cal   = parseInt(document.getElementById('e-cal').value)  || null;
+    const prot  = parseInt(document.getElementById('e-prot').value) || null;
+    const carb  = parseInt(document.getElementById('e-carb').value) || null;
+    const fat   = parseInt(document.getElementById('e-fat').value)  || null;
+    const { error } = await sb.from('clients')
+      .update({ name, phone, coaching_start: start, coaching_end: end,
+                target_calories: cal, target_protein: prot, target_carbs: carb, target_fat: fat })
+      .eq('email', activeEmail);
+    if (error) { toast('שגיאה בשמירה', 'err'); return; }
+    await loadClients();
+    toast('פרטים נשמרו ✓', 'ok');
+  }
+
+  /* ── UTILS ── */
+  function esc(s) { return (s||'').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+  function toast(msg, type='ok') {
+    const el = document.getElementById('toast');
+    el.textContent = msg; el.className = 'toast '+type+' show';
+    setTimeout(() => el.classList.remove('show'), 2500);
+  }
+  async function logout() { await sb.auth.signOut(); window.location.href = 'login.html'; }
+
+  /* ── TRAINING EDITOR ── */
+  const MUSCLES = ['חזה','גב','כתפיים','יד קדמית','יד אחורית','אמות','4 ראשי','המסטרינג','ישבן','עגל','ליבה'];
+  function renderTrainingEditor() {
+    const el = document.getElementById('training-editor');
+    if (!el) return;
+    if (!trainingPlan.length) { el.innerHTML='<div style="color:#444;font-size:0.85rem;padding:8px 0;">אין ימים עדיין — לחץ + הוסף יום</div>'; return; }
+    el.innerHTML = trainingPlan.map((day, di) => `
+      <div class="day-block">
+        <div class="day-block-head">
+          <input value="${esc(day.day)}" oninput="trainingPlan[${di}].day=this.value" placeholder="שם יום (יום א׳ — חזה)"/>
+          <button class="btn-sm btn-red" onclick="removeDay(${di})">הסר</button>
+        </div>
+        <div class="muscle-row">
+          ${MUSCLES.map(m=>`<button class="muscle-pill${(day.muscles||[]).includes(m)?' muscle-active':''}" onclick="toggleMuscle(${di},'${m}',this)">${m}</button>`).join('')}
+        </div>
+        ${(day.exercises||[]).map((ex,ei)=>`
+          <div class="ex-row" id="ex-${di}-${ei}">
+            <input value="${esc(ex.name)}" oninput="trainingPlan[${di}].exercises[${ei}].name=this.value;showExSugg(this,${di},${ei})" onblur="setTimeout(hideExSugg,150)" autocomplete="off" placeholder="שם תרגיל"/>
+            <input value="${esc(ex.sets_reps||'')}" oninput="trainingPlan[${di}].exercises[${ei}].sets_reps=this.value" placeholder="3×12"/>
+            <input value="${esc(ex.notes||'')}" oninput="trainingPlan[${di}].exercises[${ei}].notes=this.value" placeholder="הערות"/>
+            <button class="btn-sm btn-red" onclick="removeExercise(${di},${ei})">✕</button>
+          </div>`).join('')}
+        <button class="add-link" onclick="addExercise(${di})">+ הוסף תרגיל</button>
+      </div>`).join('');
+  }
+  function addDay() { trainingPlan.push({day:'',muscles:[],exercises:[]}); renderTrainingEditor(); }
+  function removeDay(i) { trainingPlan.splice(i,1); renderTrainingEditor(); }
+  function toggleMuscle(di,m,btn) {
+    const arr = trainingPlan[di].muscles||[];
+    const idx = arr.indexOf(m);
+    if (idx===-1) arr.push(m); else arr.splice(idx,1);
+    trainingPlan[di].muscles=arr;
+    btn.classList.toggle('muscle-active');
+  }
+  function addExercise(di) { trainingPlan[di].exercises.push({name:'',sets_reps:'',notes:''}); renderTrainingEditor(); }
+  function removeExercise(di,ei) { trainingPlan[di].exercises.splice(ei,1); renderTrainingEditor(); }
+  async function saveTraining() {
+    const { error } = await sb.from('training_plans').upsert({client_email:activeEmail,plan:trainingPlan,updated_at:new Date().toISOString()},{onConflict:'client_email'});
+    error ? toast('שגיאה בשמירה','err') : toast('תוכנית נשמרה ✓','ok');
+  }
+
+  /* ── NUTRITION EDITOR ── */
+  function renderNutritionEditor() {
+    const el = document.getElementById('nutrition-editor');
+    if (!el) return;
+    if (!nutritionPlan.length) { el.innerHTML='<div style="color:#444;font-size:0.85rem;padding:8px 0;">אין ארוחות עדיין — לחץ + הוסף ארוחה</div>'; return; }
+    el.innerHTML = nutritionPlan.map((meal,mi)=>`
+      <div class="meal-block">
+        <div class="meal-block-head">
+          <input value="${esc(meal.meal)}" oninput="nutritionPlan[${mi}].meal=this.value" placeholder="שם ארוחה"/>
+          <button class="btn-sm btn-red" onclick="removeMeal(${mi})">הסר ארוחה</button>
+        </div>
+        <div class="nutri-header"><span>מזון</span><span>כמות</span><span>קל׳</span><span>חלבון</span><span>פחמימה</span><span>שומן</span><span></span></div>
+        <div>${(meal.items||[]).map((item,ii)=>itemRow(mi,ii,item)).join('')}</div>
+        <button class="add-link" onclick="addItem(${mi})">+ הוסף מזון</button>
+      </div>`).join('');
+  }
+  function itemRow(mi, ii, item) {
+    const exp=item._exp||false, unitName=item._unit||'גרם', qty=item._qty!=null?item._qty:(unitName==='גרם'?100:1);
+    const units=getUnitsForFood(item.food), selUnit=units.find(u=>u.name===unitName)||units[0];
+    const totalG=selUnit?Math.round(qty*selUnit.grams*10)/10:qty;
+    const unitPicker=exp?`
+      <div style="background:rgba(255,107,0,0.06);border:1px solid rgba(255,107,0,0.2);border-radius:8px;padding:8px 12px;margin-top:4px;">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <span style="font-size:0.8rem;color:var(--muted);">מידה:</span>
+          <select onchange="setItemUnit(${mi},${ii},this.value)" style="padding:5px 8px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.14);border-radius:6px;color:#fff;font-family:'Heebo',sans-serif;font-size:0.82rem;outline:none;cursor:pointer;max-width:200px;">
+            ${units.map(u=>`<option value="${esc(u.name)}" ${u.name===unitName?'selected':''}>${esc(u.name)}${u.grams!==1?' ('+u.grams+'g)':''}</option>`).join('')}
+          </select>
+          <span style="font-size:0.8rem;color:var(--muted);">×</span>
+          <input type="number" min="0.1" step="0.1" value="${qty}" style="width:72px;padding:5px 8px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.14);border-radius:6px;color:#fff;font-family:'Heebo',sans-serif;font-size:0.82rem;text-align:center;outline:none;" oninput="setItemQty(${mi},${ii},+this.value)"/>
+          <span style="font-size:0.82rem;color:var(--orange);font-weight:700;">= ${totalG}g</span>
+        </div>
+      </div>`:'' ;
+    return `<div style="margin-bottom:6px;">
+      <div class="item-row" id="item-${mi}-${ii}">
+        <div style="display:flex;align-items:center;gap:3px;min-width:0;">
+          <input value="${esc(item.food)}" oninput="nutritionPlan[${mi}].items[${ii}].food=this.value;showFoodSuggCoach(this,${mi},${ii})" onblur="setTimeout(hideFoodSuggCoach,160)" autocomplete="off" placeholder="מזון" style="flex:1;min-width:0;padding:6px 8px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:6px;color:#fff;font-family:'Heebo',sans-serif;font-size:0.8rem;outline:none;"/>
+          <button onclick="toggleItemExpand(${mi},${ii})" style="padding:3px 7px;background:${exp?'rgba(255,107,0,0.2)':'rgba(255,255,255,0.04)'};border:1px solid ${exp?'rgba(255,107,0,0.45)':'rgba(255,255,255,0.1)'};border-radius:5px;color:${exp?'var(--orange)':'#666'};cursor:pointer;font-size:0.65rem;flex-shrink:0;">${exp?'▲':'▼'}</button>
+        </div>
+        <input value="${esc(item.quantity)}" oninput="nutritionPlan[${mi}].items[${ii}].quantity=this.value" placeholder="כמות"/>
+        <input value="${item.calories||''}" oninput="nutritionPlan[${mi}].items[${ii}].calories=+this.value" placeholder="קל׳" type="number"/>
+        <input value="${item.protein||''}"  oninput="nutritionPlan[${mi}].items[${ii}].protein=+this.value"  placeholder="P"   type="number"/>
+        <input value="${item.carbs||''}"    oninput="nutritionPlan[${mi}].items[${ii}].carbs=+this.value"    placeholder="C"   type="number"/>
+        <input value="${item.fat||''}"      oninput="nutritionPlan[${mi}].items[${ii}].fat=+this.value"      placeholder="F"   type="number"/>
+        <button class="btn-sm btn-red" onclick="removeItem(${mi},${ii})">✕</button>
+      </div>
+      ${unitPicker}
+    </div>`;
+  }
+  function addMeal()       { nutritionPlan.push({meal:'',items:[]}); renderNutritionEditor(); }
+  function removeMeal(i)   { nutritionPlan.splice(i,1); renderNutritionEditor(); }
+  function addItem(mi)     { nutritionPlan[mi].items.push({food:'',quantity:'',calories:0,protein:0,carbs:0,fat:0}); renderNutritionEditor(); }
+  function removeItem(mi,ii) { nutritionPlan[mi].items.splice(ii,1); renderNutritionEditor(); }
+  async function saveNutrition() {
+    const { error } = await sb.from('nutrition_plans').upsert({client_email:activeEmail,plan:nutritionPlan,updated_at:new Date().toISOString()},{onConflict:'client_email'});
+    error ? toast('שגיאה בשמירה','err') : toast('תפריט נשמר ✓','ok');
+  }
+
+  /* ── EXERCISE AUTOCOMPLETE ── */
+  async function loadExerciseLibrary() {
+    const { data } = await sb.from('exercises').select('id,name,muscle_group,sub_muscle_group').order('name');
+    exerciseLibrary = data || [];
+  }
+  async function loadFoodItems() {
+    const { data } = await sb.from('food_items').select('*').order('name');
+    allFoodItems = data || [];
+  }
+  function showExSugg(input, di, ei) {
+    hideExSugg();
+    trainingPlan[di].exercises[ei].name = input.value;
+    const q = input.value.trim().toLowerCase();
+    if (!q) return;
+    const matches = exerciseLibrary.filter(e => e.name.toLowerCase().includes(q)).slice(0,8);
+    if (!matches.length) return;
+    const rect = input.getBoundingClientRect();
+    const drop = document.createElement('div');
+    drop.id = 'ex-sugg-drop';
+    drop.style.cssText=`position:fixed;top:${rect.bottom+2}px;right:${window.innerWidth-rect.right}px;width:${rect.width}px;background:#1e1e1e;border:1px solid rgba(255,107,0,0.4);border-radius:8px;z-index:500;overflow:hidden;box-shadow:0 6px 20px rgba(0,0,0,0.6);`;
+    matches.forEach(ex => {
+      const item = document.createElement('div');
+      item.style.cssText='padding:9px 12px;cursor:pointer;font-size:0.85rem;border-bottom:1px solid rgba(255,255,255,0.05);display:flex;justify-content:space-between;align-items:center;';
+      const lbl = ex.sub_muscle_group?`${ex.muscle_group} › ${ex.sub_muscle_group}`:ex.muscle_group;
+      item.innerHTML=`<span>${hlMatch(ex.name,q)}</span><span style="font-size:0.72rem;color:var(--muted);">${lbl}</span>`;
+      item.onmousedown=()=>{ trainingPlan[di].exercises[ei].name=ex.name; input.value=ex.name; hideExSugg(); };
+      item.onmouseover=()=>item.style.background='rgba(255,107,0,0.1)';
+      item.onmouseout=()=>item.style.background='';
+      drop.appendChild(item);
+    });
+    document.body.appendChild(drop);
+  }
+  function hideExSugg() { const d=document.getElementById('ex-sugg-drop'); if(d) d.remove(); }
+  function hlMatch(name,q) {
+    const idx=name.toLowerCase().indexOf(q);
+    if(idx===-1) return esc(name);
+    return esc(name.slice(0,idx))+`<span style="color:var(--orange);font-weight:700;">${esc(name.slice(idx,idx+q.length))}</span>`+esc(name.slice(idx+q.length));
+  }
+  function showFoodSuggCoach(input, mi, ii) {
+    hideFoodSuggCoach();
+    const q = input.value.trim();
+    if(!q || !allFoodItems.length) return;
+    const matches = allFoodItems.filter(f=>f.name.includes(q)).slice(0,8);
+    if(!matches.length) return;
+    const rect=input.getBoundingClientRect();
+    const drop=document.createElement('div');
+    drop.id='food-sugg-coach';
+    drop.style.cssText=`position:fixed;top:${rect.bottom+2}px;right:${window.innerWidth-rect.right}px;min-width:${rect.width+180}px;background:#1e1e1e;border:1px solid rgba(255,107,0,0.4);border-radius:8px;z-index:600;overflow:hidden;box-shadow:0 6px 24px rgba(0,0,0,0.7);`;
+    matches.forEach(f=>{
+      const item=document.createElement('div');
+      item.style.cssText='padding:9px 12px;cursor:pointer;font-size:0.85rem;border-bottom:1px solid rgba(255,255,255,0.05);display:flex;justify-content:space-between;align-items:center;gap:12px;';
+      item.innerHTML=`<span style="font-weight:600;">${esc(f.name)}</span><span style="font-size:0.72rem;color:#888;white-space:nowrap;">${f.calories}קק"ל | P${f.protein}g C${f.carbs}g F${f.fat}g</span>`;
+      item.onmousedown=()=>{
+        nutritionPlan[mi].items[ii].food=f.name; nutritionPlan[mi].items[ii].calories=f.calories;
+        nutritionPlan[mi].items[ii].protein=f.protein; nutritionPlan[mi].items[ii].carbs=f.carbs;
+        nutritionPlan[mi].items[ii].fat=f.fat;
+        if(!nutritionPlan[mi].items[ii].quantity) nutritionPlan[mi].items[ii].quantity='100 גרם';
+        hideFoodSuggCoach(); renderNutritionEditor();
+      };
+      item.onmouseover=()=>item.style.background='rgba(255,107,0,0.1)';
+      item.onmouseout=()=>item.style.background='';
+      drop.appendChild(item);
+    });
+    document.body.appendChild(drop);
+  }
+  function hideFoodSuggCoach() { const d=document.getElementById('food-sugg-coach'); if(d) d.remove(); }
+
+  document.addEventListener('click', e => {
+    const d1=document.getElementById('ex-sugg-drop'); if(d1&&!d1.contains(e.target)) hideExSugg();
+    const d2=document.getElementById('food-sugg-coach'); if(d2&&!d2.contains(e.target)) hideFoodSuggCoach();
+  });
+
+  /* ── WORKOUT LOGS ── */
+  async function loadClientLogs(email) {
+    const el=document.getElementById('client-logs-wrap'); if(!el) return;
+    const { data } = await sb.from('workout_logs').select('*').eq('client_email',email).order('log_date',{ascending:false}).limit(30);
+    if(!el) return;
+    if(!(data||[]).length){ el.innerHTML='<div style="color:#444;font-size:0.85rem;">המתאמן עדיין לא תיעד אימונים</div>'; return; }
+    el.innerHTML=(data||[]).map(log=>{
+      const d=new Date(log.log_date+'T12:00:00');
+      const ds=d.toLocaleDateString('he-IL',{day:'2-digit',month:'2-digit',year:'numeric'});
+      return `<div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:10px;margin-bottom:6px;overflow:hidden;">
+        <div style="padding:10px 14px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='block'?'none':'block'">
+          <div><div style="font-size:0.88rem;font-weight:700;">${ds}</div><div style="font-size:0.78rem;color:var(--orange);margin-top:2px;">${esc(log.day_name)}</div></div>
+          <span style="color:var(--orange);font-size:0.75rem;">▼</span>
+        </div>
+        <div style="display:none;padding:0 14px 12px;">
+          ${(log.exercises||[]).map(ex=>`
+            <div style="padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.04);">
+              <div style="font-size:0.82rem;font-weight:700;color:var(--gold);margin-bottom:3px;">${esc(ex.name)}</div>
+              <div style="font-size:0.8rem;color:var(--muted);">${(ex.sets||[]).map((s,i)=>`סט ${i+1}: <span style="color:#fff">${s.weight||'—'} ק"ג × ${s.reps||'—'}</span>`).join(' &nbsp;|&nbsp; ')}</div>
+            </div>`).join('')}
+          ${log.notes?`<div style="margin-top:8px;font-size:0.8rem;color:var(--muted);">📝 ${esc(log.notes)}</div>`:''}
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  /* ── RECORDS ── */
+  const RECORD_EXERCISES = {
+    'חזה':['לחיצת חזה במשקולות','לחיצת חזה במוט חופשי','לחיצת חזה בסמית','לחיצת חזה בשיפוע חיובי במוט חופשי','לחיצת חזה בשיפוע חיובי בסמית','לחיצת חזה בשיפוע חיובי במשקולות'],
+    'רגליים':['סקוואט חופשי','סקוואט בסמית','דדליפט קונבנציונלי','דדליפט רומני','היפ טראסט'],
+    'גב':['פולי עליון לגב','חתירה במוט חופשי','חתירה בסמית'],
+    'יד קדמית':['יד קדמית במוט','יד קדמית בדאמבלים'],
+    'יד אחורית':['לחיצה צרה במוט','לחיצה צרה בסמית'],
+    'כתפיים':['לחיצת כתפיים במוט חופשי','לחיצת כתפיים בסמית','לחיצת כתפיים בדאמבלים'],
+  };
+  const MEDALS=['🥇','🥈','🥉'];
+  let recMode='strength', recMuscle='חזה', recExercise='לחיצת חזה במוט חופשי';
+  let recLogs=null, recClients={}, recSteps=[];
+
+  function calc1RM(w,r){ w=parseFloat(w);r=parseInt(r); if(!w||!r||r<=0) return 0; return Math.round(w*(1+r/30)*10)/10; }
+
+  async function openRecords() {
+    document.getElementById('records-overlay').classList.add('open');
+    document.body.style.overflow='hidden';
+    if(recLogs!==null){ renderRecBody(); return; }
+    document.getElementById('rec-body').innerHTML='<div style="text-align:center;padding:40px;color:#444;">טוען נתונים...</div>';
+    const clientEmails = clients.map(c=>c.email);
+    if(!clientEmails.length){ recLogs=[]; recSteps=[]; renderRecBody(); return; }
+    const today=new Date().toISOString().split('T')[0];
+    const [{ data: logs },{ data: steps }] = await Promise.all([
+      sb.from('workout_logs').select('client_email,log_date,exercises').in('client_email',clientEmails),
+      sb.from('steps_logs').select('client_email,steps').eq('log_date',today).in('client_email',clientEmails)
+    ]);
+    recLogs=logs||[]; recSteps=steps||[];
+    clients.forEach(c=>{ recClients[c.email]=c.name||c.email.split('@')[0]; });
+    renderRecBody();
+  }
+
+  function closeRecords() { document.getElementById('records-overlay').classList.remove('open'); document.body.style.overflow=''; }
+
+  function renderRecBody() {
+    const body=document.getElementById('rec-body');
+    const modeTabs=`<div class="rec-mode-tabs">
+      <button class="rec-tab${recMode==='strength'?' active':''}" onclick="setRecMode('strength')">💪 שיאי כוח</button>
+      <button class="rec-tab${recMode==='steps'?' active':''}" onclick="setRecMode('steps')">🚶 צעדים יומיים</button>
+    </div>`;
+    if(recMode==='steps'){
+      const today=new Date().toLocaleDateString('he-IL',{day:'2-digit',month:'2-digit',year:'numeric'});
+      const myS=recSteps.find(s=>s.client_email===coachEmail);
+      const top=[...recSteps].sort((a,b)=>b.steps-a.steps).slice(0,10);
+      body.innerHTML=modeTabs+`
+        <div style="font-size:0.8rem;color:var(--muted);margin-bottom:14px;">📅 היום — ${today}</div>
+        <div class="steps-row">
+          <input class="steps-input" type="number" id="steps-inp" min="0" placeholder="כמה צעדים עשית היום?" value="${myS?myS.steps:''}"/>
+          <button class="btn-save-steps" onclick="logSteps()">שמור</button>
+        </div>
+        ${top.length?`<div class="podium">${top.map((s,i)=>`
+          <div class="podium-row${i<3?' rank-'+(i+1):''}">
+            <div class="podium-medal">${i<3?MEDALS[i]:'#'+(i+1)}</div>
+            <div class="podium-info"><div class="podium-name">${esc(recClients[s.client_email]||s.client_email.split('@')[0])}</div></div>
+            <div class="podium-orm">${Number(s.steps).toLocaleString()} צעדים</div>
+          </div>`).join('')}</div>`:'<div class="no-records">אף מתאמן לא רשם צעדים היום עדיין 🚶</div>'}
+        ${myS?`<div class="my-rec-box">👤 הצעדים שלי היום: <strong>${Number(myS.steps).toLocaleString()}</strong></div>`:''}`;
+      return;
+    }
+    const board=buildExBoard(recExercise);
+    body.innerHTML=modeTabs+`
+      <div class="muscle-tabs">${Object.keys(RECORD_EXERCISES).map(m=>`<button class="m-tab${m===recMuscle?' active':''}" onclick="setRecMuscle('${m}')">${m}</button>`).join('')}</div>
+      <select class="ex-select" onchange="setRecEx(this.value)">${(RECORD_EXERCISES[recMuscle]||[]).map(ex=>`<option value="${ex}"${ex===recExercise?' selected':''}>${ex}</option>`).join('')}</select>
+      ${board.length?`<div class="podium">${board.map((e,i)=>`
+        <div class="podium-row rank-${i+1}">
+          <div class="podium-medal">${MEDALS[i]}</div>
+          <div class="podium-info"><div class="podium-name">${esc(e.name)}</div><div class="podium-stats">${e.weight} ק"ג × ${e.reps} חזרות · ${e.date}</div></div>
+          <div class="podium-orm">1RM: ${e.orm}</div>
+        </div>`).join('')}</div>`:'<div class="no-records">אין תוצאות עדיין לתרגיל זה 💪</div>'}`;
+  }
+
+  function buildExBoard(exName){
+    const best={};
+    recLogs.forEach(log=>{
+      (log.exercises||[]).forEach(ex=>{
+        if(ex.name!==exName) return;
+        (ex.sets||[]).forEach(set=>{
+          const orm=calc1RM(set.weight,set.reps); if(!orm) return;
+          const cur=best[log.client_email];
+          if(!cur||orm>cur.orm||(orm===cur.orm&&parseFloat(set.weight)>cur.weight)){
+            best[log.client_email]={name:recClients[log.client_email]||log.client_email.split('@')[0],weight:parseFloat(set.weight),reps:parseInt(set.reps),orm,date:log.log_date};
+          }
+        });
+      });
+    });
+    return Object.values(best).sort((a,b)=>b.orm-a.orm||b.weight-a.weight).slice(0,3);
+  }
+
+  function setRecMode(m)   { recMode=m; renderRecBody(); }
+  function setRecMuscle(m) { recMuscle=m; recExercise=RECORD_EXERCISES[m][0]; renderRecBody(); }
+  function setRecEx(ex)    { recExercise=ex; renderRecBody(); }
+
+  async function logSteps() {
+    const val=parseInt(document.getElementById('steps-inp').value);
+    if(!val||val<0) return;
+    const today=new Date().toISOString().split('T')[0];
+    const btn=document.querySelector('.btn-save-steps');
+    btn.disabled=true; btn.textContent='שומר...';
+    const { error } = await sb.from('steps_logs').upsert({client_email:coachEmail,steps:val,log_date:today},{onConflict:'client_email,log_date'});
+    btn.disabled=false; btn.textContent='שמור';
+    if(error){ toast('שגיאה בשמירה','err'); return; }
+    const idx=recSteps.findIndex(s=>s.client_email===coachEmail);
+    if(idx>=0) recSteps[idx].steps=val; else recSteps.push({client_email:coachEmail,steps:val});
+    renderRecBody();
+  }
+
+  init();
+</script>
+</body>
+</html>
