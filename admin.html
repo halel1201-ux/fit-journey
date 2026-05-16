@@ -545,20 +545,37 @@
     renderCoachesTable();
   }
 
+  const coachExpanded = {};
   function renderCoachesTable() {
     const el = document.getElementById('coaches-wrap');
     if (!el) return;
     if (!coachesList.length) { el.innerHTML = '<div style="color:#444;font-size:0.85rem;padding:8px 0;">אין מאמנים עדיין</div>'; return; }
     el.innerHTML = coachesList.map(c => {
-      const count = clients.filter(cl => cl.coach_email === c.email).length;
-      return `<div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:rgba(255,255,255,0.03);border-radius:10px;margin-bottom:6px;">
-        <div style="flex:1;">
-          <div style="font-size:0.92rem;font-weight:700;">${esc(c.name)}</div>
-          <div style="font-size:0.78rem;color:var(--muted);margin-top:2px;">${c.email} · ${count} מתאמנים</div>
+      const myClients = clients.filter(cl => cl.coach_email === c.email);
+      const count = myClients.length;
+      const open = coachExpanded[c.id];
+      const traineesHtml = open && count ? `<div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.06);">${
+        myClients.map(cl => `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;cursor:pointer;" onclick="selectClient('${cl.email}')">
+          <span style="font-size:0.82rem;font-weight:700;color:var(--white);">${esc(cl.name)}</span>
+          <span style="font-size:0.73rem;color:var(--muted);">${cl.email}</span>
+        </div>`).join('')
+      }</div>` : '';
+      return `<div style="background:rgba(255,255,255,0.03);border-radius:10px;margin-bottom:6px;overflow:hidden;">
+        <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;cursor:pointer;" onclick="toggleCoachExpand('${c.id}')">
+          <div style="flex:1;">
+            <div style="font-size:0.92rem;font-weight:700;">${esc(c.name)}</div>
+            <div style="font-size:0.78rem;color:var(--muted);margin-top:2px;">${c.email} · ${count} מתאמנים</div>
+          </div>
+          <span style="color:var(--orange);font-size:0.75rem;">${open ? '▲' : '▼'}</span>
+          <button class="btn-sm btn-red" onclick="event.stopPropagation();deleteCoach('${c.id}','${esc(c.name)}')">מחק</button>
         </div>
-        <button class="btn-sm btn-red" onclick="deleteCoach('${c.id}','${esc(c.name)}')">מחק</button>
+        ${traineesHtml ? `<div style="padding:0 14px 12px;">${traineesHtml}</div>` : ''}
       </div>`;
     }).join('');
+  }
+  function toggleCoachExpand(id) {
+    coachExpanded[id] = !coachExpanded[id];
+    renderCoachesTable();
   }
 
   let coachModalOpen = false;
@@ -604,12 +621,15 @@
   function renderSidebar() {
     const el = document.getElementById('client-list');
     if (!clients.length) { el.innerHTML = '<div style="padding:16px;color:#444;font-size:0.82rem;text-align:center;">אין לקוחות עדיין</div>'; return; }
-    el.innerHTML = clients.map(c => `
-      <div class="client-item ${c.email === activeEmail ? 'active' : ''}" onclick="selectClient('${c.email}')">
-        <div class="client-item-name">${c.name}</div>
+    el.innerHTML = clients.map(c => {
+      const coach = coachesList.find(co => co.email === c.coach_email);
+      const coachLabel = coach ? `<div style="font-size:0.7rem;color:var(--orange);margin-top:2px;">👤 ${esc(coach.name)}</div>` : '';
+      return `<div class="client-item ${c.email === activeEmail ? 'active' : ''}" onclick="selectClient('${c.email}')">
+        <div class="client-item-name">${esc(c.name)}</div>
         <div class="client-item-email">${c.email}</div>
-      </div>
-    `).join('');
+        ${coachLabel}
+      </div>`;
+    }).join('');
   }
 
   async function selectClient(email) {
