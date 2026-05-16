@@ -2445,26 +2445,10 @@
 
   };
 
+  const PLAN_MAP = { 'חודשי': 'monthly', '3 חודשים': '3months', 'חצי שנה': '6months' };
   function openPayment(planName) {
-    const p = plans[planName];
-    if (!p) return;
-
-    document.getElementById('modal-plan-name').textContent  = 'ליווי ' + planName;
-    document.getElementById('modal-plan-price').textContent = p.price;
-    document.getElementById('modal-plan-sub').textContent   = p.sub;
-
-    const ppUrl = 'https://www.paypal.com/cgi-bin/webscr?cmd=_xclick'
-      + '&business=' + encodeURIComponent(PAYPAL_EMAIL)
-      + '&amount=' + p.amount
-      + '&currency_code=ILS'
-      + '&item_name=' + encodeURIComponent('ליווי ' + planName + ' — HF Online Coaching');
-    document.getElementById('pay-paypal').href = ppUrl;
-
-    // משולם — כשתקבל קישור תשלח לי ואכניס כאן
-    // document.getElementById('pay-ms').href = 'https://meshulam.co.il/YOUR_LINK?sum=' + p.amount;
-
-    document.getElementById('payment-modal').classList.add('open');
-    document.body.style.overflow = 'hidden';
+    const key = PLAN_MAP[planName];
+    if (key) window.location.href = 'checkout.html?plan=' + key;
   }
 
   function closePayment() {

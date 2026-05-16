@@ -90,17 +90,7 @@
     }
     .f-group input:focus { border-color: var(--orange); }
     .f-group input::placeholder { color: #444; }
-
-    /* OTP */
-    .otp-grid { display: flex; gap: 8px; justify-content: center; margin-bottom: 20px; direction: ltr; }
-    .otp-grid input {
-      width: 46px; height: 58px; text-align: center;
-      font-size: 1.5rem; font-weight: 700;
-      background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 10px; color: var(--white); font-family: 'Heebo', sans-serif;
-      outline: none; transition: border-color 0.2s; caret-color: var(--orange);
-    }
-    .otp-grid input:focus { border-color: var(--orange); }
+    .f-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 
     /* BUTTONS */
     .btn-primary {
@@ -148,13 +138,48 @@
     .divider { display: flex; align-items: center; gap: 12px; margin: 16px 0; color: #444; font-size: 0.8rem; }
     .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: rgba(255,255,255,0.07); }
 
-    /* PAYPAL */
-    #paypal-button-container { min-height: 50px; }
-    .paypal-placeholder {
-      padding: 14px; border: 1px dashed rgba(255,107,0,0.25);
-      border-radius: 10px; text-align: center;
-      font-size: 0.82rem; color: #555;
+    /* DISCOUNT */
+    .discount-row { display: flex; gap: 8px; margin-bottom: 4px; }
+    .discount-row input {
+      flex: 1; padding: 11px 14px;
+      background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 8px; color: var(--white); font-family: 'Heebo', sans-serif;
+      font-size: 0.88rem; outline: none; transition: border-color 0.2s; letter-spacing: 1px;
     }
+    .discount-row input:focus { border-color: var(--orange); }
+    .discount-row input::placeholder { color: #444; letter-spacing: 0; }
+    .discount-row button {
+      padding: 11px 18px; background: rgba(255,107,0,0.1);
+      border: 1px solid rgba(255,107,0,0.3); color: var(--orange);
+      font-family: 'Heebo', sans-serif; font-size: 0.88rem; font-weight: 700;
+      border-radius: 8px; cursor: pointer; white-space: nowrap; transition: background 0.2s;
+    }
+    .discount-row button:hover { background: rgba(255,107,0,0.2); }
+    .discount-badge {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 9px 14px; border-radius: 8px; margin-bottom: 14px;
+      background: rgba(60,200,60,0.08); border: 1px solid rgba(60,200,60,0.25);
+      font-size: 0.84rem; font-weight: 700; color: #70dd70;
+    }
+    .btn-free {
+      width: 100%; padding: 14px; border-radius: 10px;
+      background: linear-gradient(135deg, #22c55e, #16a34a);
+      color: #fff; font-family: 'Heebo', sans-serif;
+      font-size: 1rem; font-weight: 700; border: none; cursor: pointer;
+      transition: opacity 0.2s; margin-bottom: 4px;
+    }
+    .btn-free:hover { opacity: 0.9; }
+
+    /* MESHULAM */
+    .meshulam-btn {
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+      width: 100%; padding: 15px; border-radius: 12px; border: none; cursor: pointer;
+      font-family: 'Heebo', sans-serif; font-size: 1rem; font-weight: 700;
+      background: linear-gradient(135deg, #1a1a2e, #16213e);
+      border: 1.5px solid rgba(255,255,255,0.15);
+      color: #fff; transition: all 0.2s;
+    }
+    .meshulam-btn:hover { border-color: rgba(255,107,0,0.5); box-shadow: 0 0 18px rgba(255,107,0,0.2); }
 
     /* INVOICE */
     .success-head { text-align: center; margin-bottom: 28px; }
@@ -229,7 +254,7 @@
 <!-- PROGRESS BAR -->
 <div class="progress-wrap">
   <div class="prog-step active" id="prog-1"><div class="prog-dot">1</div><div class="prog-label">מסלול</div></div>
-  <div class="prog-step"        id="prog-2"><div class="prog-dot">2</div><div class="prog-label">אימות</div></div>
+  <div class="prog-step"        id="prog-2"><div class="prog-dot">2</div><div class="prog-label">מייל</div></div>
   <div class="prog-step"        id="prog-3"><div class="prog-dot">3</div><div class="prog-label">תשלום</div></div>
   <div class="prog-step"        id="prog-4"><div class="prog-dot">✓</div><div class="prog-label">חשבונית</div></div>
 </div>
@@ -264,40 +289,34 @@
     <button class="btn-primary" onclick="step1Next()">המשך לאימות מייל ←</button>
   </div>
 
-  <!-- ── STEP 2: EMAIL + OTP ── -->
+  <!-- ── STEP 2: DETAILS ── -->
   <div class="step" id="step-2">
-    <div class="step-title">אימות <span>מייל</span></div>
-    <div class="step-sub">נשלח לך קוד חד-פעמי לכתובת המייל</div>
+    <div class="step-title">פרטי <span>הצטרפות</span></div>
+    <div class="step-sub">הפרטים יופיעו על הקבלה</div>
 
-    <!-- Email phase -->
-    <div id="email-phase">
+    <div class="f-row">
       <div class="f-group">
-        <label>כתובת אימייל</label>
-        <input type="email" id="checkout-email" placeholder="your@email.com"
-          style="direction:ltr;text-align:right;"
-          onkeydown="if(event.key==='Enter')sendOtp()"/>
+        <label>שם פרטי</label>
+        <input type="text" id="checkout-firstname" placeholder="ישראל" autocomplete="given-name"/>
       </div>
-      <div class="msg err" id="err-email"></div>
-      <button class="btn-primary" id="btn-send-otp" onclick="sendOtp()">שלח קוד אימות</button>
-    </div>
-
-    <!-- OTP phase -->
-    <div id="otp-phase" style="display:none;">
-      <p style="font-size:0.88rem;color:var(--muted);text-align:center;margin-bottom:20px;">
-        שלחנו קוד לכתובת <strong id="otp-email-lbl" style="color:var(--white);"></strong>
-      </p>
-      <div class="otp-grid">
-        <input type="tel" maxlength="1" id="otp0" oninput="otpIn(this,0)" onkeydown="otpBack(event,0)"/>
-        <input type="tel" maxlength="1" id="otp1" oninput="otpIn(this,1)" onkeydown="otpBack(event,1)"/>
-        <input type="tel" maxlength="1" id="otp2" oninput="otpIn(this,2)" onkeydown="otpBack(event,2)"/>
-        <input type="tel" maxlength="1" id="otp3" oninput="otpIn(this,3)" onkeydown="otpBack(event,3)"/>
-        <input type="tel" maxlength="1" id="otp4" oninput="otpIn(this,4)" onkeydown="otpBack(event,4)"/>
-        <input type="tel" maxlength="1" id="otp5" oninput="otpIn(this,5)" onkeydown="otpBack(event,5)"/>
+      <div class="f-group">
+        <label>שם משפחה</label>
+        <input type="text" id="checkout-lastname" placeholder="ישראלי" autocomplete="family-name"/>
       </div>
-      <div class="msg err" id="err-otp"></div>
-      <button class="btn-primary" id="btn-verify" onclick="verifyOtp()">אמת וקדם לתשלום</button>
-      <button class="btn-ghost" onclick="backToEmail()">שנה מייל</button>
     </div>
+    <div class="f-group">
+      <label>מספר טלפון</label>
+      <input type="tel" id="checkout-phone" placeholder="050-0000000"
+        style="direction:ltr;text-align:right;" autocomplete="tel"/>
+    </div>
+    <div class="f-group">
+      <label>כתובת אימייל</label>
+      <input type="email" id="checkout-email" placeholder="your@email.com"
+        style="direction:ltr;text-align:right;" autocomplete="email"
+        onkeydown="if(event.key==='Enter')step2Next()"/>
+    </div>
+    <div class="msg err" id="err-email"></div>
+    <button class="btn-primary" onclick="step2Next()">המשך לתשלום ←</button>
   </div>
 
   <!-- ── STEP 3: PAYMENT ── -->
@@ -310,11 +329,25 @@
       <span class="summary-price" id="sum-price">—</span>
     </div>
 
+    <div class="discount-row">
+      <input type="text" id="discount-input" placeholder="קוד הנחה (אופציונלי)" autocomplete="off" oninput="this.value=this.value.toUpperCase()" onkeydown="if(event.key==='Enter')applyDiscount()"/>
+      <button onclick="applyDiscount()">החל</button>
+    </div>
+    <div id="discount-msg" style="display:none;" class="discount-badge"></div>
+
     <div class="msg err" id="err-pay"></div>
 
-    <div id="paypal-button-container"></div>
+    <button class="btn-free" id="btn-free" style="display:none;" onclick="completeFree()">השלם הרשמה ללא תשלום ←</button>
 
-    <div class="divider">או</div>
+    <!-- ── MESHULAM — יש לאכלס את MESHULAM_URL בקונפיגורציה להפעלה ── -->
+    <div id="meshulam-container" style="display:none;">
+      <button class="meshulam-btn" onclick="payMeshulam()">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
+        תשלום בכרטיס אשראי
+      </button>
+    </div>
+
+    <div class="divider" id="divider-or">או</div>
 
     <a id="wa-btn" class="btn-whatsapp" target="_blank" rel="noopener">
       שלח הודעת תשלום בוואטסאפ
@@ -347,7 +380,15 @@
         <span class="inv-val" id="inv-date">—</span>
       </div>
       <div class="inv-row">
-        <span class="inv-label">לקוח</span>
+        <span class="inv-label">שם</span>
+        <span class="inv-val" id="inv-name">—</span>
+      </div>
+      <div class="inv-row">
+        <span class="inv-label">טלפון</span>
+        <span class="inv-val" id="inv-phone" style="direction:ltr;">—</span>
+      </div>
+      <div class="inv-row">
+        <span class="inv-label">מייל</span>
         <span class="inv-val" id="inv-email" style="direction:ltr;">—</span>
       </div>
       <div class="inv-row">
@@ -355,6 +396,10 @@
         <span class="inv-val" id="inv-plan">—</span>
       </div>
 
+      <div class="inv-row" id="inv-discount-row" style="display:none;">
+        <span class="inv-label">הנחה</span>
+        <span class="inv-val" id="inv-discount" style="color:rgba(0,0,0,0.6);">—</span>
+      </div>
       <div class="inv-total-row">
         <span class="inv-total-label">סה"כ שולם</span>
         <span class="inv-total-price" id="inv-total">—</span>
@@ -366,7 +411,8 @@
       </div>
     </div>
 
-    <button class="btn-primary" onclick="window.print()">הדפס / שמור כ-PDF</button>
+    <button class="btn-primary" onclick="window.location.href='dashboard.html'">כניסה לאזור האימונים ←</button>
+    <button class="btn-ghost" onclick="window.print()" style="margin-top:10px;">הדפס / שמור חשבונית כ-PDF</button>
     <a href="index.html" class="btn-ghost">← חזרה לאתר</a>
   </div>
 
@@ -374,13 +420,17 @@
 
 <script>
   // ── CONFIG ── החלף את הערכים האלה ──────────────────────────────────────
-  const PAYPAL_CLIENT_ID = 'YOUR_PAYPAL_CLIENT_ID'; // מזהה PayPal עסקי
-  const WHATSAPP_NUMBER  = '972586931163';
+  const WHATSAPP_NUMBER = '972586931163';
+  const MESHULAM_URL    = ''; // הכנס קישור משולם כאן להפעלת תשלום בכרטיס אשראי
   // ────────────────────────────────────────────────────────────────────────
 
   const SB_URL = 'https://luwknflmhvcxgifzxgrk.supabase.co';
   const SB_KEY = 'sb_publishable_k3M7SfBeiBGs3rTKewBzWQ_7RHRskB9';
   const sb = supabase.createClient(SB_URL, SB_KEY);
+
+  const DISCOUNT_CODES = {
+    'LIEM0812': 100
+  };
 
   const PLANS = {
     'monthly':  { name: 'ליווי חודשי',    price: 400,  display: '400 ₪' },
@@ -388,13 +438,23 @@
     '6months':  { name: 'ליווי חצי שנה',  price: 2000, display: '2,000 ₪' }
   };
 
-  let chosenPlan  = null;
-  let userEmail   = '';
-  let ppRendered  = false;
+  let chosenPlan      = null;
+  let userEmail       = '';
+  let userFirstName   = '';
+  let userLastName    = '';
+  let userPhone       = '';
+  let discountPercent = 0;
 
   window.addEventListener('load', () => {
     document.getElementById('loader').style.opacity = '0';
     setTimeout(() => document.getElementById('loader').style.display = 'none', 300);
+
+    const params = new URLSearchParams(window.location.search);
+    const planParam = params.get('plan');
+    if (planParam && PLANS[planParam]) {
+      selectPlan(planParam);
+      goStep(2);
+    }
   });
 
   /* ── STEP 1 ─────────────────────────────────────────────────────────── */
@@ -410,64 +470,60 @@
     goStep(2);
   }
 
-  /* ── STEP 2 — EMAIL ──────────────────────────────────────────────────── */
-  async function sendOtp() {
+  /* ── STEP 2 — DETAILS ───────────────────────────────────────────────── */
+  function step2Next() {
+    const first = document.getElementById('checkout-firstname').value.trim();
+    const last  = document.getElementById('checkout-lastname').value.trim();
+    const phone = document.getElementById('checkout-phone').value.trim();
     const email = document.getElementById('checkout-email').value.trim().toLowerCase();
     hideErr('err-email');
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      showErr('err-email', 'יש להזין כתובת מייל תקינה'); return;
-    }
-    const btn = document.getElementById('btn-send-otp');
-    btn.disabled = true; btn.textContent = 'שולח...';
-
-    const { error } = await sb.auth.signInWithOtp({ email, options: { shouldCreateUser: true } });
-
-    btn.disabled = false; btn.textContent = 'שלח קוד אימות';
-    if (error) { showErr('err-email', 'שגיאה בשליחה, נסה שוב'); return; }
-
-    userEmail = email;
-    document.getElementById('otp-email-lbl').textContent = email;
-    document.getElementById('email-phase').style.display = 'none';
-    document.getElementById('otp-phase').style.display   = 'block';
-    document.getElementById('otp0').focus();
-  }
-
-  /* ── STEP 2 — OTP INPUTS ─────────────────────────────────────────────── */
-  function otpIn(el, idx) {
-    el.value = el.value.replace(/\D/, '');
-    if (el.value && idx < 5) document.getElementById('otp' + (idx + 1)).focus();
-    if (getOtp().length === 6) verifyOtp();
-  }
-
-  function otpBack(e, idx) {
-    if (e.key === 'Backspace' && !document.getElementById('otp' + idx).value && idx > 0)
-      document.getElementById('otp' + (idx - 1)).focus();
-  }
-
-  function getOtp() {
-    return [0,1,2,3,4,5].map(i => document.getElementById('otp' + i).value).join('');
-  }
-
-  async function verifyOtp() {
-    const token = getOtp();
-    if (token.length < 6) { showErr('err-otp', 'יש להזין 6 ספרות'); return; }
-    hideErr('err-otp');
-    const btn = document.getElementById('btn-verify');
-    btn.disabled = true; btn.textContent = 'מאמת...';
-
-    const { error } = await sb.auth.verifyOtp({ email: userEmail, token, type: 'email' });
-    btn.disabled = false; btn.textContent = 'אמת וקדם לתשלום';
-    if (error) { showErr('err-otp', 'קוד שגוי או פג תוקף — נסה שוב'); return; }
-
+    if (!first)                                            { showErr('err-email', 'יש להזין שם פרטי'); return; }
+    if (!last)                                             { showErr('err-email', 'יש להזין שם משפחה'); return; }
+    if (!phone)                                            { showErr('err-email', 'יש להזין מספר טלפון'); return; }
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showErr('err-email', 'יש להזין כתובת מייל תקינה'); return; }
+    userFirstName = first;
+    userLastName  = last;
+    userPhone     = phone;
+    userEmail     = email;
     goStep(3);
     setupPayment();
   }
 
-  function backToEmail() {
-    document.getElementById('otp-phase').style.display   = 'none';
-    document.getElementById('email-phase').style.display = 'block';
-    [0,1,2,3,4,5].forEach(i => document.getElementById('otp' + i).value = '');
-    hideErr('err-otp');
+  /* ── DISCOUNT ──────────────────────────────────────────────────────── */
+  function applyDiscount() {
+    const code  = document.getElementById('discount-input').value.trim().toUpperCase();
+    const msgEl = document.getElementById('discount-msg');
+    const plan  = PLANS[chosenPlan];
+    if (!code) return;
+
+    const pct = DISCOUNT_CODES[code];
+    if (pct === undefined) {
+      msgEl.style.cssText = 'display:flex;background:rgba(255,60,60,0.08);border-color:rgba(255,60,60,0.25);color:#ff8080;';
+      msgEl.textContent = 'קוד הנחה לא תקין';
+      return;
+    }
+
+    discountPercent = pct;
+    const saved    = Math.round(plan.price * pct / 100);
+    const final    = plan.price - saved;
+
+    msgEl.style.cssText = 'display:flex;';
+    msgEl.className = 'discount-badge';
+    msgEl.innerHTML = `<span>קוד הוחל — ${pct}% הנחה</span><span>חיסכון של ${saved} ₪</span>`;
+    document.getElementById('discount-input').disabled = true;
+
+    document.getElementById('sum-price').textContent = final === 0 ? 'חינם' : final + ' ₪';
+
+    if (final === 0) {
+      document.getElementById('meshulam-container').style.display = 'none';
+      document.getElementById('divider-or').style.display         = 'none';
+      document.getElementById('wa-btn').style.display             = 'none';
+      document.getElementById('btn-free').style.display           = 'block';
+    }
+  }
+
+  function completeFree() {
+    onPaymentDone({ id: 'FREE-' + Date.now(), free: true });
   }
 
   /* ── STEP 3 — PAYMENT ───────────────────────────────────────────────── */
@@ -477,50 +533,50 @@
     document.getElementById('sum-price').textContent = plan.display;
 
     const msg = encodeURIComponent(
-      `שלום הלל, אני רוצה להצטרף למסלול "${plan.name}" (${plan.display})\nמייל: ${userEmail}`
+      `שלום הלל, אני רוצה להצטרף למסלול "${plan.name}" (${plan.display})\nשם: ${userFirstName} ${userLastName}\nטלפון: ${userPhone}\nמייל: ${userEmail}`
     );
     document.getElementById('wa-btn').href = `https://wa.me/${WHATSAPP_NUMBER}?text=${msg}`;
 
-    if (!ppRendered) initPayPal(plan.price);
+    if (MESHULAM_URL) {
+      document.getElementById('meshulam-container').style.display = 'block';
+    }
   }
 
-  function initPayPal(amount) {
-    if (PAYPAL_CLIENT_ID === 'YOUR_PAYPAL_CLIENT_ID') {
-      document.getElementById('paypal-button-container').innerHTML =
-        '<div class="paypal-placeholder">הגדר PAYPAL_CLIENT_ID בקוד להפעלת תשלום PayPal</div>';
-      return;
-    }
-    const s = document.createElement('script');
-    s.src = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_ID}&currency=ILS&locale=he_IL`;
-    s.onload = () => {
-      ppRendered = true;
-      paypal.Buttons({
-        style: { layout: 'vertical', color: 'gold', shape: 'rect', label: 'pay' },
-        createOrder: (data, actions) => actions.order.create({
-          purchase_units: [{ description: PLANS[chosenPlan].name, amount: { currency_code: 'ILS', value: String(amount) } }]
-        }),
-        onApprove: (data, actions) => actions.order.capture().then(onPaymentDone),
-        onError:   () => showErr('err-pay', 'שגיאה בתשלום — נסה שוב')
-      }).render('#paypal-button-container');
-    };
-    document.body.appendChild(s);
+  function payMeshulam() {
+    if (!MESHULAM_URL) return;
+    const plan  = PLANS[chosenPlan];
+    const final = Math.round(plan.price * (1 - discountPercent / 100));
+    const url   = MESHULAM_URL + (MESHULAM_URL.includes('?') ? '&' : '?')
+                + 'sum=' + final
+                + '&description=' + encodeURIComponent(plan.name)
+                + '&email=' + encodeURIComponent(userEmail);
+    window.open(url, '_blank');
   }
 
   /* ── STEP 4 — INVOICE ───────────────────────────────────────────────── */
   function onPaymentDone(details) {
-    const plan = PLANS[chosenPlan];
-    const now  = new Date();
-    const num  = 'HF-' + now.getFullYear().toString().slice(2) +
+    const plan  = PLANS[chosenPlan];
+    const now   = new Date();
+    const num   = 'HF-' + now.getFullYear().toString().slice(2) +
       String(now.getMonth() + 1).padStart(2, '0') +
       String(now.getDate()).padStart(2, '0') + '-' +
       String(Math.floor(Math.random() * 9000) + 1000);
     const dateStr = now.toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    const saved   = Math.round(plan.price * discountPercent / 100);
+    const final   = plan.price - saved;
 
     document.getElementById('inv-num').textContent   = num;
     document.getElementById('inv-date').textContent  = dateStr;
+    document.getElementById('inv-name').textContent  = userFirstName + ' ' + userLastName;
+    document.getElementById('inv-phone').textContent = userPhone;
     document.getElementById('inv-email').textContent = userEmail;
     document.getElementById('inv-plan').textContent  = plan.name;
-    document.getElementById('inv-total').textContent = plan.display;
+    document.getElementById('inv-total').textContent = final === 0 ? 'ללא תשלום' : final + ' ₪';
+
+    if (discountPercent > 0) {
+      document.getElementById('inv-discount-row').style.display = 'flex';
+      document.getElementById('inv-discount').textContent = `− ${saved} ₪ (${discountPercent}%)`;
+    }
 
     goStep(4);
   }
