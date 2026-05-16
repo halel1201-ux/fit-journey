@@ -368,8 +368,9 @@
     <div class="nav-hf">HF</div>
     <div class="nav-greeting">שלום, <span id="client-name">—</span></div>
   </div>
-  <div style="display:flex;gap:8px;">
+  <div style="display:flex;gap:8px;align-items:center;">
     <a id="btn-admin-link" href="admin.html" style="display:none;padding:7px 18px;background:linear-gradient(135deg,var(--orange),#FF8C00);border-radius:6px;color:#fff;font-family:'Heebo',sans-serif;font-size:0.85rem;font-weight:700;text-decoration:none;">פאנל ניהול</a>
+    <a id="btn-coach-link" href="coach.html" style="display:none;padding:7px 18px;background:transparent;border:1px solid rgba(255,107,0,0.4);border-radius:6px;color:var(--orange);font-family:'Heebo',sans-serif;font-size:0.85rem;font-weight:700;text-decoration:none;">החלף מצב — מאמן</a>
     <button class="btn-logout" onclick="logout()">יציאה</button>
   </div>
 </nav>
@@ -554,6 +555,11 @@
 
     if (email === 'halel1201@gmail.com') {
       document.getElementById('btn-admin-link').style.display = 'block';
+    }
+
+    const { data: coachRow } = await sb.from('coaches').select('email').eq('email', email).single();
+    if (coachRow) {
+      document.getElementById('btn-coach-link').style.display = 'block';
     }
 
     const { data: client } = await sb.from('clients').select('*').eq('email', email).single();
