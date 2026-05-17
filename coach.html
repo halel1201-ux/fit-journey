@@ -124,6 +124,31 @@
     .steps-input { flex:1; padding:12px 14px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12); border-radius:10px; color:var(--white); font-family:'Heebo',sans-serif; font-size:0.95rem; outline:none; }
     .btn-save-steps { padding:12px 20px; background:var(--orange); border:none; border-radius:10px; color:#fff; font-family:'Heebo',sans-serif; font-size:0.9rem; font-weight:700; cursor:pointer; white-space:nowrap; }
     .no-records { text-align:center; padding:40px 20px; color:#444; font-size:0.9rem; }
+
+    .btn-mob-menu { display:none; align-items:center; gap:5px; background:rgba(255,107,0,0.1); border:1px solid rgba(255,107,0,0.3); border-radius:6px; color:var(--orange); padding:7px 12px; font-family:'Heebo',sans-serif; font-size:0.82rem; font-weight:700; cursor:pointer; }
+    .sidebar-bd { display:none; position:fixed; inset:0; top:58px; background:rgba(0,0,0,0.65); z-index:140; }
+    .sidebar-bd.open { display:block; }
+
+    @media (max-width: 768px) {
+      .layout { display:block; }
+      .sidebar { position:fixed; right:0; top:58px; height:calc(100vh - 58px); width:280px; z-index:150; transform:translateX(110%); transition:transform 0.3s ease; box-shadow:-6px 0 24px rgba(0,0,0,0.6); }
+      .sidebar.mob-open { transform:translateX(0); }
+      .main { padding:16px 14px 60px; width:100%; }
+      .btn-mob-menu { display:flex; }
+      .topnav { padding:0 12px; }
+      .topnav-sub { display:none; }
+      .btn-sm { padding:6px 10px; font-size:0.75rem; }
+      #btn-trainee-link { display:none !important; }
+      .form-grid { grid-template-columns:1fr 1fr; }
+      .ex-row { grid-template-columns:1fr 1fr; }
+      .item-row { grid-template-columns:1fr 1fr 1fr; }
+      .nutri-header { grid-template-columns:1fr 1fr 1fr; }
+      .nutri-header span:nth-child(n+4) { display:none; }
+      .sec-card { padding:16px 14px; }
+    }
+    @media (max-width: 480px) {
+      .form-grid, .form-grid.cols-3 { grid-template-columns:1fr; }
+    }
   </style>
 </head>
 <body>
@@ -136,14 +161,17 @@
     <div class="topnav-sub" id="coach-sub">פאנל מאמן</div>
   </div>
   <div style="display:flex;gap:8px;align-items:center;">
+    <button class="btn-mob-menu" onclick="toggleMobileSidebar()">☰ מתאמנים</button>
     <button class="btn-sm btn-outline" onclick="openRecords()" style="border-color:rgba(255,215,0,0.35);color:#FFD700;">🏆 שיאים</button>
     <a id="btn-trainee-link" href="dashboard.html" style="display:none;" class="btn-sm btn-outline">החלף מצב — מתאמן</a>
     <button class="btn-sm btn-outline" onclick="logout()">יציאה</button>
   </div>
 </div>
 
+<div class="sidebar-bd" onclick="toggleMobileSidebar()"></div>
+
 <div class="layout">
-  <div class="sidebar">
+  <div class="sidebar" id="sidebar">
     <div class="sidebar-head">
       <span class="sidebar-title">המתאמנים שלי</span>
     </div>
@@ -323,6 +351,7 @@
   async function selectClient(email) {
     activeEmail = email;
     renderSidebar();
+    closeMobileSidebar();
     const client = clients.find(c => c.email === email);
     const [{ data: tr }, { data: nu }] = await Promise.all([
       sb.from('training_plans').select('plan').eq('client_email', email).single(),
@@ -441,6 +470,15 @@
     if (error) { toast('שגיאה בשמירה', 'err'); return; }
     await loadClients();
     toast('פרטים נשמרו ✓', 'ok');
+  }
+
+  function toggleMobileSidebar() {
+    document.getElementById('sidebar').classList.toggle('mob-open');
+    document.querySelector('.sidebar-bd').classList.toggle('open');
+  }
+  function closeMobileSidebar() {
+    document.getElementById('sidebar').classList.remove('mob-open');
+    document.querySelector('.sidebar-bd').classList.remove('open');
   }
 
   /* ── UTILS ── */
