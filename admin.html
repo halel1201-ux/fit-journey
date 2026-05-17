@@ -423,8 +423,12 @@
 <script>
   const URL_ = 'https://luwknflmhvcxgifzxgrk.supabase.co';
   const KEY  = 'sb_publishable_k3M7SfBeiBGs3rTKewBzWQ_7RHRskB9';
+  // Service role key — replace with your actual key from Supabase > Settings > API > "secret key (default)"
+  // ⚠️ Keep admin.html private — this key bypasses all security rules
+  const SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx1d2tuZmxtaHZjeGdpZnp4Z3JrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODg1MDIxNSwiZXhwIjoyMDk0NDI2MjE1fQ.8M2WqqUUM5VJD53LXKYCoF_KPD6bbCiOI0h9Xv49AfA';
   const ADMIN = 'halel1201@gmail.com';
   const sb = supabase.createClient(URL_, KEY);
+  const sbAdmin = supabase.createClient(URL_, SERVICE_KEY);
 
   let clients      = [];
   let coachesList  = [];
@@ -725,8 +729,9 @@
             </div>
           </div>
         </div>
-        <div style="display:flex;gap:10px;align-items:center;">
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
           <button class="btn-sm btn-orange" onclick="saveProfile()">שמור פרטים</button>
+          <button class="btn-sm btn-outline" onclick="setClientPassword()" style="border-color:rgba(255,215,0,0.35);color:#FFD700;" title="הגדר סיסמה = מספר הטלפון (ספרות בלבד)">🔑 הגדר סיסמה</button>
           <button class="btn-sm btn-red" onclick="deleteClient('${esc(client.email)}')">מחק לקוח</button>
         </div>
       </div>
@@ -973,6 +978,28 @@
     if (error) { toast('שגיאה בשמירה', 'err'); return; }
     await loadClients();
     toast('פרטים נשמרו ✓', 'ok');
+  }
+
+  async function setClientPassword() {
+    const phone = document.getElementById('e-phone').value.trim();
+    const email = activeEmail;
+    if (!phone) { toast('יש להזין מספר טלפון קודם', 'err'); return; }
+    const password = phone.replace(/\D/g, '');
+    if (password.length < 6) { toast('מספר טלפון קצר מדי (מינימום 6 ספרות)', 'err'); return; }
+    if (SERVICE_KEY === 'YOUR_SERVICE_ROLE_KEY_HERE') { toast('יש להכניס SERVICE_KEY בקוד קודם', 'err'); return; }
+
+    const { data: { users }, error: listErr } = await sbAdmin.auth.admin.listUsers({ perPage: 1000 });
+    if (listErr) { toast('שגיאה: ' + listErr.message, 'err'); return; }
+
+    const user = users.find(u => u.email === email);
+    if (user) {
+      const { error } = await sbAdmin.auth.admin.updateUserById(user.id, { password });
+      if (error) { toast('שגיאה בעדכון סיסמה: ' + error.message, 'err'); return; }
+    } else {
+      const { error } = await sbAdmin.auth.admin.createUser({ email, password, email_confirm: true });
+      if (error) { toast('שגיאה ביצירת משתמש: ' + error.message, 'err'); return; }
+    }
+    toast(`✓ סיסמה הוגדרה: ${password}`, 'ok');
   }
 
   async function deleteClient(email) {
