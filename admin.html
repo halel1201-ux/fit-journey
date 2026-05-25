@@ -1,0 +1,2969 @@
+﻿<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%230a0a0a'/><rect x='1.5' y='1.5' width='29' height='29' rx='6.5' fill='none' stroke='%23FF6B00' stroke-width='1' stroke-opacity='0.5'/><text x='16' y='22' font-family='Arial Black,sans-serif' font-size='13' font-weight='900' fill='%23FF6B00' text-anchor='middle'>FJ</text></svg>"/>
+  <title>פאנל ניהול — HF Coaching</title>
+  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;700;900&display=swap" rel="stylesheet"/>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --orange:#FF6B00; --gold:#FFD700; --black:#090909; --graphite:#111; --white:#fff; --muted:#888; --card:rgba(255,255,255,0.04); --border:rgba(255,107,0,0.25); }
+    body { font-family: 'Heebo', sans-serif; background: var(--black); color: var(--white); min-height: 100vh; }
+    ::-webkit-scrollbar { width: 5px; } ::-webkit-scrollbar-track { background: #0e0e0e; } ::-webkit-scrollbar-thumb { background: var(--orange); border-radius: 3px; }
+
+    /* TOP NAV */
+    .topnav {
+      height: 58px; background: rgba(9,9,9,0.95); backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(255,107,0,0.15);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 20px; position: sticky; top: 0; z-index: 100;
+    }
+    .topnav-brand { font-size: 1.2rem; font-weight: 900; background: linear-gradient(135deg, var(--orange), var(--gold)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .topnav-sub { font-size: 0.75rem; color: var(--muted); }
+    .btn-sm {
+      padding: 7px 16px; border-radius: 6px; font-family: 'Heebo', sans-serif;
+      font-size: 0.82rem; font-weight: 700; cursor: pointer; transition: background 0.2s, opacity 0.2s;
+    }
+    .btn-outline { background: transparent; border: 1px solid rgba(255,107,0,0.4); color: var(--orange); }
+    .btn-outline:hover { background: rgba(255,107,0,0.1); }
+    .btn-orange { background: linear-gradient(135deg, var(--orange), #FF8C00); border: none; color: var(--white); }
+    .btn-orange:hover { opacity: 0.88; }
+    .btn-orange:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-red { background: transparent; border: 1px solid rgba(255,60,60,0.35); color: #ff7070; font-size: 0.78rem; padding: 4px 10px; }
+    .btn-red:hover { background: rgba(255,60,60,0.1); }
+
+    /* LAYOUT */
+    .layout { display: flex; min-height: calc(100vh - 58px); }
+
+    /* SIDEBAR */
+    .sidebar {
+      width: 240px; flex-shrink: 0;
+      background: rgba(255,255,255,0.02); border-left: 1px solid rgba(255,255,255,0.06);
+      display: flex; flex-direction: column;
+    }
+    .sidebar-head {
+      padding: 16px 14px 12px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .sidebar-title { font-size: 0.78rem; font-weight: 700; color: var(--muted); letter-spacing: 1px; }
+    .client-list { flex: 1; overflow-y: auto; }
+    .client-item {
+      padding: 12px 14px; cursor: pointer; border-bottom: 1px solid rgba(255,255,255,0.04);
+      transition: background 0.15s;
+    }
+    .client-item:hover { background: rgba(255,107,0,0.06); }
+    .client-item.active { background: rgba(255,107,0,0.1); border-right: 3px solid var(--orange); }
+    .client-item-name { font-size: 0.9rem; font-weight: 700; }
+    .client-item-email { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
+
+    /* MAIN */
+    .main { flex: 1; overflow-y: auto; padding: 24px 28px 60px; }
+    .no-select { display: flex; align-items: center; justify-content: center; height: 300px; color: #333; font-size: 1rem; }
+
+    /* SECTION CARD */
+    .sec-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 14px; padding: 22px 22px; margin-bottom: 24px;
+    }
+    .sec-card-title {
+      font-size: 1rem; font-weight: 900; color: var(--white);
+      margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between;
+    }
+    .sec-card-title span { color: var(--orange); }
+
+    /* FORM GRID */
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .form-grid.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+    .form-grid.cols-1 { grid-template-columns: 1fr; }
+    @media (max-width: 600px) { .form-grid, .form-grid.cols-3 { grid-template-columns: 1fr; } }
+    .f-group { display: flex; flex-direction: column; gap: 5px; }
+    .f-group label { font-size: 0.77rem; font-weight: 700; color: var(--muted); }
+    .f-group input, .f-group select {
+      padding: 9px 12px; background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1); border-radius: 7px;
+      color: var(--white); font-family: 'Heebo', sans-serif; font-size: 0.88rem;
+      outline: none; transition: border-color 0.2s;
+    }
+    .f-group input:focus, .f-group select:focus { border-color: var(--orange); }
+    .f-group select option { background: #1a1a1a; }
+
+    /* TRAINING EDITOR */
+    .day-block { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); border-radius: 10px; padding: 14px 16px; margin-bottom: 10px; }
+    .day-block-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+    .day-block-head input { flex: 1; padding: 7px 10px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; color: var(--white); font-family: 'Heebo', sans-serif; font-size: 0.88rem; outline: none; }
+    .day-block-head input:focus { border-color: var(--orange); }
+    .muscle-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 12px; }
+    .muscle-pill { padding: 5px 12px; border-radius: 20px; font-family: 'Heebo', sans-serif; font-size: 0.78rem; font-weight: 700; cursor: pointer; white-space: nowrap; border: 1px solid rgba(255,255,255,0.12); background: transparent; color: var(--muted); transition: all 0.15s; }
+    .muscle-pill:hover { border-color: rgba(255,107,0,0.4); color: var(--white); }
+    .muscle-pill.muscle-active { background: rgba(255,107,0,0.15); border-color: var(--orange); color: var(--orange); }
+    .ex-row { display: grid; grid-template-columns: 2fr 1fr 3fr auto; gap: 8px; align-items: center; margin-bottom: 7px; }
+    .ex-row input { padding: 7px 10px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 6px; color: var(--white); font-family: 'Heebo', sans-serif; font-size: 0.82rem; outline: none; }
+    .ex-row input:focus { border-color: rgba(255,107,0,0.5); }
+    .ex-row input::placeholder { color: #444; }
+    @media (max-width: 640px) { .ex-row { grid-template-columns: 1fr 1fr; } }
+    .add-link {
+      display: inline-flex; align-items: center; gap: 5px;
+      font-size: 0.8rem; font-weight: 700; color: var(--orange);
+      background: none; border: none; cursor: pointer; padding: 4px 0;
+      transition: opacity 0.2s; font-family: 'Heebo', sans-serif;
+    }
+    .add-link:hover { opacity: 0.7; }
+
+    /* NUTRITION EDITOR */
+    .meal-block { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); border-radius: 10px; padding: 14px 16px; margin-bottom: 10px; }
+    .meal-block-head { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+    .meal-block-head input { flex: 1; padding: 7px 10px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; color: var(--white); font-family: 'Heebo', sans-serif; font-size: 0.88rem; outline: none; }
+    .meal-block-head input:focus { border-color: var(--orange); }
+    .item-row { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 1fr 1fr auto; gap: 6px; align-items: center; margin-bottom: 6px; }
+    .item-row input { padding: 6px 8px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 6px; color: var(--white); font-family: 'Heebo', sans-serif; font-size: 0.8rem; outline: none; text-align: center; }
+    .item-row input:first-child { text-align: right; }
+    .item-row input:focus { border-color: rgba(255,107,0,0.5); }
+    .item-row input::placeholder { color: #444; font-size: 0.72rem; }
+    @media (max-width: 640px) { .item-row { grid-template-columns: 1fr 1fr 1fr; } }
+    .nutri-header { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 1fr 1fr auto; gap: 6px; margin-bottom: 6px; }
+    .nutri-header span { font-size: 0.7rem; font-weight: 700; color: var(--muted); text-align: center; padding: 0 2px; }
+    .nutri-header span:first-child { text-align: right; }
+
+    /* MODAL */
+    .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(6px); z-index: 200; display: none; align-items: center; justify-content: center; padding: 20px; }
+    .modal-bg.open { display: flex; }
+    .modal { background: #151515; border: 1px solid rgba(255,107,0,0.35); border-radius: 16px; padding: 28px; width: 100%; max-width: 440px; box-shadow: 0 0 60px rgba(255,107,0,0.15); }
+    .modal h3 { font-size: 1.1rem; font-weight: 900; margin-bottom: 20px; }
+    .modal h3 span { color: var(--orange); }
+    .modal-actions { display: flex; gap: 10px; margin-top: 20px; justify-content: flex-end; }
+
+    /* TOAST */
+    .toast {
+      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+      padding: 10px 22px; border-radius: 8px; font-size: 0.88rem; font-weight: 700;
+      z-index: 999; transition: opacity 0.3s; opacity: 0; pointer-events: none;
+    }
+    .toast.ok  { background: rgba(60,200,60,0.15); border: 1px solid rgba(60,200,60,0.4); color: #70dd70; }
+    .toast.err { background: rgba(255,60,60,0.15); border: 1px solid rgba(255,60,60,0.4); color: #ff7070; }
+    .toast.show { opacity: 1; }
+
+    /* LOADER */
+    #loader { position: fixed; inset: 0; background: var(--black); display: flex; align-items: center; justify-content: center; z-index: 999; }
+    .spin { width: 36px; height: 36px; border: 3px solid rgba(255,107,0,0.2); border-top-color: var(--orange); border-radius: 50%; animation: sp 0.7s linear infinite; }
+    @keyframes sp { to { transform: rotate(360deg); } }
+
+    /* RECORDS OVERLAY */
+    .records-overlay { position: fixed; inset: 0; z-index: 400; background: var(--black); display: none; flex-direction: column; overflow: hidden; }
+    .records-overlay.open { display: flex; }
+    .rec-hdr { flex-shrink: 0; height: 62px; padding: 0 18px; background: rgba(9,9,9,0.97); backdrop-filter: blur(14px); border-bottom: 1px solid rgba(255,215,0,0.2); display: flex; align-items: center; justify-content: space-between; }
+    .rec-hdr-title { font-size: 1.1rem; font-weight: 900; background: linear-gradient(135deg,#FFD700,#FF6B00); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+    .btn-close-rec { background: rgba(255,255,255,0.07); border: none; color: var(--muted); width: 34px; height: 34px; border-radius: 50%; cursor: pointer; font-size: 1rem; }
+    .rec-body { flex: 1; overflow-y: auto; padding: 20px 16px 40px; max-width: 700px; margin: 0 auto; width: 100%; }
+    .rec-mode-tabs { display: flex; gap: 8px; margin-bottom: 20px; }
+    .rec-tab { padding: 8px 18px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.04); color: var(--muted); font-family:'Heebo',sans-serif; font-size:0.85rem; font-weight:700; cursor:pointer; transition:all 0.2s; }
+    .rec-tab.active { background: rgba(255,215,0,0.12); border-color: var(--gold); color: var(--gold); }
+    .muscle-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+    .m-tab { padding: 5px 12px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.08); background: transparent; color: #555; font-family:'Heebo',sans-serif; font-size:0.75rem; font-weight:700; cursor:pointer; transition:all 0.2s; }
+    .m-tab.active { background: rgba(255,107,0,0.12); border-color: var(--orange); color: var(--orange); }
+    .ex-select { width:100%; padding:12px 14px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12); border-radius:10px; color:var(--white); font-family:'Heebo',sans-serif; font-size:0.95rem; outline:none; cursor:pointer; margin-bottom:20px; }
+    .ex-select:focus { border-color: var(--orange); }
+    .podium { display:flex; flex-direction:column; gap:10px; margin-bottom:20px; }
+    .podium-row { display:flex; align-items:center; gap:14px; padding:14px 16px; border-radius:14px; border:1px solid rgba(255,255,255,0.06); background:rgba(255,255,255,0.03); }
+    .podium-row.rank-1 { border-color:rgba(255,215,0,0.45); background:rgba(255,215,0,0.06); }
+    .podium-row.rank-2 { border-color:rgba(192,192,192,0.3); background:rgba(192,192,192,0.04); }
+    .podium-row.rank-3 { border-color:rgba(205,127,50,0.3); background:rgba(205,127,50,0.04); }
+    .podium-medal { font-size:1.6rem; flex-shrink:0; width:32px; text-align:center; }
+    .podium-info { flex:1; min-width:0; }
+    .podium-name { font-size:0.95rem; font-weight:900; margin-bottom:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .podium-stats { font-size:0.78rem; color:var(--muted); }
+    .podium-orm { font-size:0.9rem; font-weight:700; color:var(--gold); white-space:nowrap; }
+    .my-rec-box { padding:13px 16px; border-radius:12px; border:1px solid rgba(255,107,0,0.2); background:rgba(255,107,0,0.05); font-size:0.85rem; color:var(--muted); margin-top:4px; }
+    .my-rec-box strong { color:var(--orange); }
+    .steps-row { display:flex; gap:10px; margin-bottom:24px; }
+    .steps-input { flex:1; padding:12px 14px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12); border-radius:10px; color:var(--white); font-family:'Heebo',sans-serif; font-size:0.95rem; outline:none; }
+    .steps-input:focus { border-color: var(--orange); }
+    .btn-save-steps { padding:12px 20px; background:var(--orange); border:none; border-radius:10px; color:#fff; font-family:'Heebo',sans-serif; font-size:0.9rem; font-weight:700; cursor:pointer; white-space:nowrap; }
+    .no-records { text-align:center; padding:40px 20px; color:#444; font-size:0.9rem; }
+    .lib-tabs { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:14px; }
+    .lib-tab { padding:6px 14px; border-radius:18px; font-family:'Heebo',sans-serif; font-size:0.8rem; font-weight:700; cursor:pointer; white-space:nowrap; border:1px solid rgba(255,107,0,0.25); background:transparent; color:var(--muted); transition:all 0.2s; }
+    .lib-tab:hover { color:var(--white); border-color:rgba(255,107,0,0.5); }
+    .lib-tab.active { background:linear-gradient(135deg,var(--orange),#FF8C00); border-color:transparent; color:var(--white); }
+    .sets-coach-wrap { margin:8px 0; }
+    .sets-coach-head { display:grid; grid-template-columns:28px 72px 1fr 22px; gap:6px; padding:3px 8px; font-size:0.68rem; font-weight:700; color:var(--muted); }
+    .sets-coach-row { display:grid; grid-template-columns:28px 72px 1fr 22px; gap:6px; align-items:center; padding:4px 8px; background:rgba(255,255,255,0.02); border-radius:6px; margin-bottom:3px; }
+    .sets-coach-row input { background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); border-radius:5px; color:#fff; font-family:'Heebo',sans-serif; font-size:0.82rem; padding:4px 6px; outline:none; width:100%; text-align:center; }
+    .sets-coach-row input:focus { border-color:var(--orange); }
+    .sets-coach-range { display:flex; align-items:center; gap:4px; }
+    .sets-coach-range input { width:44px !important; }
+    .sets-coach-range span { color:var(--muted); font-size:0.75rem; white-space:nowrap; }
+    .btn-add-set { font-size:0.75rem; color:var(--orange); background:none; border:1px dashed rgba(255,107,0,0.3); border-radius:6px; padding:4px 12px; cursor:pointer; margin-top:4px; font-family:'Heebo',sans-serif; }
+    .btn-add-set:hover { background:rgba(255,107,0,0.08); }
+    .ai-box { background:rgba(255,215,0,0.04); border:1px solid rgba(255,215,0,0.2); border-radius:10px; padding:14px 16px; margin-bottom:18px; }
+    .ai-box-title { font-size:0.82rem; font-weight:700; color:var(--gold); margin-bottom:10px; }
+    .ai-textarea { width:100%; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.1); border-radius:8px; color:var(--white); font-family:'Heebo',sans-serif; font-size:0.88rem; padding:10px 12px; resize:vertical; min-height:72px; outline:none; transition:border-color 0.2s; line-height:1.6; }
+    .ai-textarea:focus { border-color:var(--gold); }
+    .ai-status { font-size:0.78rem; color:var(--muted); margin-right:10px; }
+    .meal-alts { margin-top:12px; padding:10px 14px; background:rgba(60,180,255,0.04); border:1px solid rgba(60,180,255,0.18); border-radius:8px; }
+    .meal-alts-row { display:flex; align-items:flex-start; gap:8px; margin-bottom:5px; flex-wrap:wrap; font-size:0.77rem; }
+    .meal-alts-row:last-child { margin-bottom:0; }
+    .alt-label { font-weight:700; color:#60b4ff; flex-shrink:0; min-width:60px; }
+    .alt-pill { display:inline-block; padding:2px 9px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:10px; color:#ccc; margin:2px; }
+
+    .btn-mob-menu { display:none; align-items:center; gap:5px; background:rgba(255,107,0,0.1); border:1px solid rgba(255,107,0,0.3); border-radius:6px; color:var(--orange); padding:7px 10px; font-family:'Heebo',sans-serif; font-size:0.78rem; font-weight:700; cursor:pointer; white-space:nowrap; }
+    .sidebar-bd { display:none; position:fixed; inset:0; top:58px; background:rgba(0,0,0,0.65); z-index:140; }
+    .sidebar-bd.open { display:block; }
+
+    @media (max-width: 768px) {
+      .layout { display:block; }
+      .sidebar { position:fixed; right:0; top:58px; height:calc(100vh - 58px); width:280px; z-index:150; transform:translateX(110%); transition:transform 0.3s ease; box-shadow:-6px 0 24px rgba(0,0,0,0.6); }
+      .sidebar.mob-open { transform:translateX(0); }
+      .main { padding:16px 14px 60px; width:100%; }
+      .btn-mob-menu { display:flex; }
+      .topnav { padding:0 10px; flex-wrap:wrap; height:auto; min-height:58px; }
+      .topnav-sub { display:none; }
+      .topnav-brand { font-size:1rem; }
+      .btn-sm { padding:5px 7px; font-size:0.7rem; }
+      .sec-card { padding:16px 12px; }
+      .form-grid { grid-template-columns:1fr 1fr; }
+      .ex-row { grid-template-columns:1fr 1fr; }
+      .item-row { grid-template-columns:1fr 1fr 1fr; }
+      .nutri-header { grid-template-columns:1fr 1fr 1fr; }
+      .nutri-header span:nth-child(n+4) { display:none; }
+    }
+    @media (max-width: 480px) {
+      .form-grid, .form-grid.cols-3 { grid-template-columns:1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<div id="loader"><div class="spin"></div></div>
+
+<div class="topnav">
+  <div>
+    <div class="topnav-brand">FJ Admin</div>
+    <div class="topnav-sub">פאנל ניהול לקוחות</div>
+  </div>
+  <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+    <button class="btn-mob-menu" onclick="toggleMobileSidebar()">☰ לקוחות</button>
+    <button class="btn-sm btn-outline" id="btn-ex-view" onclick="toggleExView()" style="border-color:rgba(255,215,0,0.35);color:#FFD700;">💪 תרגילים</button>
+    <button class="btn-sm btn-outline" id="btn-rc-view" onclick="toggleRecipeView()" style="border-color:rgba(255,215,0,0.35);color:#FFD700;">🍳 מתכונים</button>
+    <button class="btn-sm btn-outline" id="btn-fi-view" onclick="toggleFoodView()" style="border-color:rgba(74,222,128,0.35);color:#4ade80;">🥦 מזון</button>
+    <button class="btn-sm btn-outline" onclick="openCoachesView()" style="border-color:rgba(100,180,255,0.35);color:#64b4ff;">👥 מאמנים</button>
+    <button class="btn-sm btn-outline" onclick="openRecords()" style="border-color:rgba(255,215,0,0.35);color:#FFD700;">🏆 שיאים</button>
+    <a href="coach.html" class="btn-sm btn-outline" style="text-decoration:none;border-color:rgba(255,107,0,0.4);color:var(--orange);">🎓 מאמן</a>
+    <a href="dashboard.html" class="btn-sm btn-outline" style="text-decoration:none;border-color:rgba(255,255,255,0.2);color:var(--white);">👤 מתאמן</a>
+    <button class="btn-sm btn-outline" onclick="logout()">יציאה</button>
+  </div>
+</div>
+
+<div class="sidebar-bd" onclick="toggleMobileSidebar()"></div>
+
+<div class="layout">
+  <!-- SIDEBAR -->
+  <div class="sidebar" id="sidebar">
+    <div class="sidebar-head">
+      <span class="sidebar-title">לקוחות</span>
+      <button class="btn-sm btn-orange" onclick="openAddModal()">+ הוסף</button>
+    </div>
+    <div class="client-list" id="client-list"></div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main" id="main-area">
+    <div class="no-select">← בחר לקוח מהרשימה</div>
+  </div>
+</div>
+
+<!-- ADD CLIENT MODAL -->
+<div class="modal-bg" id="add-modal">
+  <div class="modal">
+    <h3>הוסף <span>לקוח חדש</span></h3>
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <div class="f-group"><label>שם מלא</label><input id="new-name" placeholder="ישראל ישראלי"/></div>
+      <div class="f-group"><label>אימייל</label><input id="new-email" type="email" placeholder="client@email.com" style="direction:ltr;text-align:right;"/></div>
+      <div class="form-grid">
+        <div class="f-group"><label>תחילת ליווי</label><input id="new-start" type="date"/></div>
+        <div class="f-group"><label>סיום ליווי</label><input id="new-end" type="date"/></div>
+      </div>
+      <div class="f-group">
+        <label>סוג מסלול</label>
+        <select id="new-plan">
+          <option value="ליווי חודשי">ליווי חודשי</option>
+          <option value="ליווי 3 חודשים">ליווי 3 חודשים</option>
+          <option value="ליווי חצי שנה">ליווי חצי שנה</option>
+        </select>
+      </div>
+    </div>
+    <div id="add-err" style="margin-top:12px;font-size:0.82rem;color:#ff7070;display:none;"></div>
+    <div class="modal-actions">
+      <button class="btn-sm btn-outline" onclick="closeAddModal()">ביטול</button>
+      <button class="btn-sm btn-orange" id="add-btn" onclick="addClient()">הוסף לקוח</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD COACH MODAL -->
+<div class="modal-bg" id="coach-modal">
+  <div class="modal" style="max-width:400px;">
+    <h3>הוסף <span>מאמן</span></h3>
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <div class="f-group"><label>שם מלא</label><input id="coach-name-inp" placeholder="ליאם כהן"/></div>
+      <div class="f-group"><label>אימייל</label><input id="coach-email-inp" type="email" placeholder="coach@email.com" style="direction:ltr;text-align:right;"/></div>
+      <div class="f-group">
+        <label>דרגה</label>
+        <select id="coach-role-inp">
+          <option value="regular">מאמן רגיל</option>
+          <option value="senior">מאמן בכיר</option>
+          <option value="admin">אדמין</option>
+        </select>
+      </div>
+    </div>
+    <div id="coach-err" style="margin-top:12px;font-size:0.82rem;color:#ff7070;display:none;"></div>
+    <div class="modal-actions">
+      <button class="btn-sm btn-outline" onclick="closeCoachModal()">ביטול</button>
+      <button class="btn-sm btn-orange" id="coach-add-btn" onclick="addCoach()">הוסף</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+
+<!-- RECORDS OVERLAY -->
+<div class="records-overlay" id="records-overlay">
+  <div class="rec-hdr">
+    <div class="rec-hdr-title">🏆 שיאי נבחרת</div>
+    <button class="btn-close-rec" onclick="closeRecords()">✕</button>
+  </div>
+  <div class="rec-body" id="rec-body"></div>
+</div>
+
+<!-- RECIPE MODAL -->
+<div class="modal-bg" id="recipe-modal">
+  <div class="modal" style="max-width:520px;">
+    <h3><span id="recipe-modal-title">הוסף</span> <span>מתכון</span></h3>
+    <div style="display:flex;flex-direction:column;gap:12px;max-height:60vh;overflow-y:auto;padding-left:4px;">
+      <div class="f-group"><label>שם מתכון</label><input id="rc-name" placeholder="שייק חלבון ושוקולד"/></div>
+      <div class="f-group">
+        <label>קטגוריה</label>
+        <select id="rc-cat">
+          <option>ארוחת בוקר</option><option>ארוחת צהריים</option>
+          <option>ארוחת ערב</option><option>חטיף</option>
+          <option>שייק</option><option>כללי</option>
+        </select>
+      </div>
+      <div class="form-grid">
+        <div class="f-group"><label>זמן הכנה (דקות)</label><input id="rc-time" type="number" placeholder="10"/></div>
+        <div class="f-group"><label>קלוריות</label><input id="rc-cal" type="number" placeholder="450"/></div>
+      </div>
+      <div class="form-grid">
+        <div class="f-group"><label>חלבון (g)</label><input id="rc-prot" type="number" placeholder="35"/></div>
+        <div class="f-group"><label>פחמימות (g)</label><input id="rc-carb" type="number" placeholder="40"/></div>
+        <div class="f-group"><label>שומן (g)</label><input id="rc-fat" type="number" placeholder="12"/></div>
+      </div>
+      <div class="f-group">
+        <label>מרכיבים (שורה לכל מרכיב)</label>
+        <textarea id="rc-ingredients" rows="5" placeholder="200ml חלב&#10;1 מנה אבקת חלבון&#10;1 כפית קקאו" style="width:100%;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:10px;color:#fff;font-family:'Heebo',sans-serif;font-size:0.9rem;padding:12px 14px;resize:vertical;outline:none;transition:border-color 0.2s;" onfocus="this.style.borderColor='var(--orange)'" onblur="this.style.borderColor='rgba(255,255,255,0.1)'"></textarea>
+      </div>
+      <div class="f-group">
+        <label>הוראות הכנה</label>
+        <textarea id="rc-instructions" rows="4" placeholder="שים הכל בבלנדר, ערבב 30 שניות..." style="width:100%;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:10px;color:#fff;font-family:'Heebo',sans-serif;font-size:0.9rem;padding:12px 14px;resize:vertical;outline:none;transition:border-color 0.2s;" onfocus="this.style.borderColor='var(--orange)'" onblur="this.style.borderColor='rgba(255,255,255,0.1)'"></textarea>
+      </div>
+    </div>
+    <div id="rc-err" style="margin-top:12px;font-size:0.82rem;color:#ff7070;display:none;"></div>
+    <div class="modal-actions">
+      <button class="btn-sm btn-outline" onclick="closeRcModal()">ביטול</button>
+      <button class="btn-sm btn-orange" id="rc-save-btn" onclick="saveRecipe()">שמור</button>
+    </div>
+  </div>
+</div>
+
+<!-- FOOD ITEM MODAL -->
+<div class="modal-bg" id="fi-modal">
+  <div class="modal" style="max-width:460px;">
+    <h3><span id="fi-modal-title">הוסף</span> <span>מאכל</span></h3>
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <div class="f-group"><label>שם המאכל</label><input id="fi-name" placeholder="חזה עוף מבושל"/></div>
+      <div class="f-group">
+        <label>קטגוריה</label>
+        <select id="fi-cat" style="width:100%;padding:9px 12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:#fff;font-family:'Heebo',sans-serif;font-size:0.9rem;outline:none;cursor:pointer;">
+          <option value="בשרי">🥩 בשרי</option>
+          <option value="חלבי">🧀 חלבי</option>
+          <option value="פרווה">🥚 פרווה</option>
+          <option value="מקור חלבון">💪 מקור חלבון</option>
+          <option value="מקור פחמימה">🍞 מקור פחמימה</option>
+          <option value="מקור שומן">🥑 מקור שומן</option>
+          <option value="ירקות">🥦 ירקות</option>
+          <option value="פירות">🍎 פירות</option>
+          <option value="ג'אנק פוד">🍔 ג'אנק פוד</option>
+          <option value="כללי">כללי</option>
+        </select>
+      </div>
+      <div style="font-size:0.75rem;color:var(--muted);margin-top:-6px;">ערכים לכל 100 גרם</div>
+      <div class="form-grid">
+        <div class="f-group"><label>קלוריות</label><input id="fi-cal"  type="number" placeholder="165"/></div>
+        <div class="f-group"><label>חלבון (g)</label><input id="fi-prot" type="number" placeholder="31"/></div>
+        <div class="f-group"><label>פחמימה (g)</label><input id="fi-carb" type="number" placeholder="0"/></div>
+        <div class="f-group"><label>שומן (g)</label><input id="fi-fat"  type="number" placeholder="3.6"/></div>
+      </div>
+    </div>
+    <div id="fi-err" style="margin-top:12px;font-size:0.82rem;color:#ff7070;display:none;"></div>
+    <div class="modal-actions">
+      <button class="btn-sm btn-outline" onclick="closeFiModal()">ביטול</button>
+      <button class="btn-sm btn-orange" id="fi-save-btn" onclick="saveFoodItem()">שמור</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD / EDIT EXERCISE MODAL -->
+<div class="modal-bg" id="ex-modal">
+  <div class="modal" style="max-width:540px;max-height:88vh;overflow-y:auto;">
+    <h3><span id="ex-modal-title">הוסף תרגיל</span></h3>
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <div class="f-group"><label>שם תרגיל</label><input id="ex-name" placeholder="לחיצת חזה בשיפוע חיובי"/></div>
+      <div class="form-grid">
+        <div class="f-group">
+          <label>קבוצת שריר ראשית</label>
+          <select id="ex-muscle" onchange="updateSubMuscles()">
+            <option>חזה</option><option>גב</option><option>כתפיים</option>
+            <option>יד קדמית</option><option>יד אחורית</option><option>אמות</option>
+            <option>4 ראשי</option><option>המסטרינג</option><option>ישבן</option>
+            <option>עגל</option><option>ליבה</option>
+          </select>
+        </div>
+        <div class="f-group"><label>תת-קבוצה</label><select id="ex-sub-muscle"></select></div>
+      </div>
+      <div class="f-group">
+        <label>שרירים משניים (אופציונלי)</label>
+        <div id="ex-secondary-wrap" style="display:flex;flex-wrap:wrap;gap:5px;padding-top:4px;"></div>
+      </div>
+      <div class="form-grid">
+        <div class="f-group">
+          <label>ציוד</label>
+          <select id="ex-equipment">
+            <option value="">— לא צוין —</option>
+            <option>משקל גוף</option><option>בר / מוט</option><option>משקולות</option>
+            <option>כבל</option><option>מכונה</option><option>סמיט</option>
+            <option>TRX / רצועות</option><option>קטלבל</option>
+          </select>
+        </div>
+        <div class="f-group">
+          <label>רמת קושי</label>
+          <select id="ex-difficulty">
+            <option value="כל הרמות">כל הרמות</option>
+            <option value="מתחיל">מתחיל</option>
+            <option value="ביניים">ביניים</option>
+            <option value="מתקדם">מתקדם</option>
+          </select>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;padding:4px 0;">
+        <input type="checkbox" id="ex-compound" style="width:18px;height:18px;accent-color:var(--orange);cursor:pointer;"/>
+        <label for="ex-compound" style="font-size:0.85rem;font-weight:700;color:var(--white);cursor:pointer;">תרגיל מורכב (compound) — מופיע בשיאי הנבחרת</label>
+      </div>
+      <div class="f-group"><label>קישור סרטון YouTube (אופציונלי)</label><input id="ex-video" placeholder="https://youtube.com/watch?v=..." style="direction:ltr;text-align:right;"/></div>
+      <div class="f-group">
+        <label>תיאור / טכניקה (אופציונלי)</label>
+        <textarea id="ex-desc" placeholder="הסבר על התרגיל..." style="padding:9px 12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:7px;color:#fff;font-family:'Heebo',sans-serif;font-size:0.88rem;outline:none;resize:vertical;min-height:80px;transition:border-color 0.2s;" onfocus="this.style.borderColor='var(--orange)'" onblur="this.style.borderColor='rgba(255,255,255,0.1)'"></textarea>
+      </div>
+    </div>
+    <div id="ex-err" style="margin-top:12px;font-size:0.82rem;color:#ff7070;display:none;"></div>
+    <div class="modal-actions">
+      <button class="btn-sm btn-outline" onclick="closeExModal()">ביטול</button>
+      <button class="btn-sm btn-orange" id="ex-save-btn" onclick="saveExercise()">שמור</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const URL_ = 'https://luwknflmhvcxgifzxgrk.supabase.co';
+  const KEY  = 'sb_publishable_k3M7SfBeiBGs3rTKewBzWQ_7RHRskB9';
+  // Service role key — replace with your actual key from Supabase > Settings > API > "secret key (default)"
+  // ⚠️ Keep admin.html private — this key bypasses all security rules
+  const SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx1d2tuZmxtaHZjeGdpZnp4Z3JrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODg1MDIxNSwiZXhwIjoyMDk0NDI2MjE1fQ.8M2WqqUUM5VJD53LXKYCoF_KPD6bbCiOI0h9Xv49AfA';
+  const CLAUDE_KEY = atob('c2stYW50LWFwaTAzLVRFbWJWYk9YUHlTV2o1RVRnd2tCNmkwLWRWLUE2aUlSbzhCVE0xckJGaGxqUzE4V2hOOWdoOEhtVkgtOVYxUXlMSm01NE5QOTZGNTVBNF9GUS15NHlBLTViQXRnZ0FB');
+  const ADMIN = 'halel1201@gmail.com';
+  const sb = supabase.createClient(URL_, KEY);
+  const sbAdmin = supabase.createClient(URL_, SERVICE_KEY);
+
+  let clients      = [];
+  let coachesList  = [];
+  let activeEmail  = null;
+  let coachNotifsCache = {};
+  let coachStatsCache  = {};
+  let addClientForCoach = null;
+  let trainingPlan  = [];
+  let nutritionPlan = [];
+  let dayClipboard  = null;
+  let mealClipboard = null;
+  let exerciseLibrary = [];
+
+  /* ── UNIT MEASURES DATA ── */
+  const FOOD_UNITS_RAW = [
+    // חלב וגבינות
+    ['קוטג׳','כף שטוחה',15],['קוטג׳','כף גדושה',25],['קוטג׳','כפית',8],['קוטג׳','קופסה',250],
+    ['גבינה לבנה','כף שטוחה',15],['גבינה לבנה','כף גדושה',25],['גבינה לבנה','כפית',8],['גבינה לבנה','קופסה',250],
+    ['לאבנה','כף',20],['לאבנה','כפית',7],
+    ['יוגורט יווני','גביע',200],['יוגורט יווני','כף',15],
+    ['גבינה צהובה','פרוסה ארוזה',28],['גבינת עמק','פרוסה',28],
+    ['גבינת מוצרלה','פרוסה',25],['גבינת פטה','קובייה',30],
+    ['פרמזן מגורד','כף',5],
+    ['חלב','כוס',240],['חלב','כף',15],
+    // בשר / עוף / דגים
+    ['חזה עוף','פרוסת פסטרמה דקה',15],['חזה עוף','שניצל בינוני',150],['חזה עוף','חתיכה ממוצעת',200],
+    ['פרגית','חתיכה',120],
+    ['ירך עוף','יחידה',150],['שוק עוף','יחידה',120],['כנף עוף','יחידה',35],
+    ['חזה הודו','פרוסה',20],['פסטרמה הודו','פרוסה',15],
+    ['בקר טחון','קציצה קטנה',100],['בקר טחון','המבורגר',150],
+    ['אנטריקוט','סטייק',300],['סינטה','סטייק',250],['פילה בקר','סטייק',220],
+    ['שייטל','סטייק',250],['אסאדו','חתיכה',350],
+    ['כבד עוף','יחידה',20],['לבבות עוף','יחידה',10],
+    ['סלמון','פילה',250],['טונה טרייה','סטייק',220],
+    ['אמנון','פילה',180],['דניס','דג שלם',400],['לברק','דג שלם',450],
+    ['מקרל','דג שלם',300],['סרדינים','יחידה',25],
+    ['ביצה','יחידה L',60],['חלבון ביצה','חלבון אחד',33],
+    // פחמימות
+    ['אורז מבושל','כף',15],['אורז מבושל','כוס',160],
+    ['פסטה מבושלת','כף',15],['פסטה מבושלת','כוס',140],
+    ['קינואה מבושלת','כף',15],['קינואה מבושלת','כוס',185],
+    ['בורגול מבושל','כף',15],['בורגול מבושל','כוס',180],
+    ['שיבולת שועל','כף',10],['שיבולת שועל','כוס',80],
+    ['תפוח אדמה','קטן',100],['תפוח אדמה','בינוני',180],
+    ['בטטה','קטנה',130],['בטטה','בינונית',250],
+    ['לחם','פרוסה',30],['פיתה','יחידה',80],['פיתה כוסמין','יחידה',75],
+    ['בננה','יחידה בינונית',120],['תמר מג׳הול','יחידה',24],
+    // שומנים
+    ['טחינה','כף',15],['טחינה','כפית',5],
+    ['חמאת בוטנים','כף',15],['חמאת בוטנים','כפית',5],
+    ['שמן זית','כף',10],['שמן זית','כפית',5],
+    ['אבוקדו','חצי אבוקדו',100],
+    ['שקדים','יחידה',1.2],['אגוז מלך','יחידה',5],['קשיו','יחידה',1.5],['פיסטוק','יחידה',0.6],
+  ];
+  const FOOD_UNITS_MAP = {};
+  for (const [food, unit, grams] of FOOD_UNITS_RAW) {
+    if (!FOOD_UNITS_MAP[food]) FOOD_UNITS_MAP[food] = [];
+    FOOD_UNITS_MAP[food].push({ name: unit, grams });
+  }
+  const GENERIC_UNITS = [
+    { name: 'גרם', grams: 1 },
+    { name: 'כף', grams: 15 },
+    { name: 'כפית', grams: 5 },
+    { name: 'כוס', grams: 240 },
+    { name: 'יחידה', grams: 100 },
+    { name: 'פרוסה', grams: 30 },
+    { name: 'חצי', grams: 50 },
+  ];
+  function getUnitsForFood(foodName) {
+    const specific = FOOD_UNITS_MAP[foodName] || [];
+    if (!specific.length) return GENERIC_UNITS;
+    const hasGram = specific.some(u => u.name === 'גרם');
+    return hasGram ? specific : [{ name: 'גרם', grams: 1 }, ...specific];
+  }
+
+  function toggleItemExpand(mi, ii) {
+    const item = nutritionPlan[mi].items[ii];
+    item._exp = !item._exp;
+    if (!item._unit) item._unit = 'גרם';
+    if (item._qty == null) item._qty = parseFloat(item.quantity) || 100;
+    renderNutritionEditor();
+  }
+  function setItemUnit(mi, ii, unitName) {
+    const item = nutritionPlan[mi].items[ii];
+    item._unit = unitName;
+    item._qty = unitName === 'גרם' ? 100 : 1;
+    recalcItemMacros(mi, ii);
+    renderNutritionEditor();
+  }
+  function setItemQty(mi, ii, qty) {
+    nutritionPlan[mi].items[ii]._qty = qty;
+    recalcItemMacros(mi, ii);
+    renderNutritionEditor();
+  }
+  function onQuantityInput(mi, ii, val) {
+    const item = nutritionPlan[mi].items[ii];
+    item.quantity = val;
+    const m = String(val).match(/([\d.]+)/);
+    if (!m) return;
+    const num = parseFloat(m[1]);
+    if (!num) return;
+    item._unit = item._unit || 'גרם';
+    item._qty  = num;
+    recalcItemMacros(mi, ii);
+    const rowEl = document.getElementById(`item-${mi}-${ii}`);
+    if (!rowEl) return;
+    rowEl.querySelectorAll('input[type=number]').forEach(inp => {
+      if      (inp.placeholder === "קל׳") inp.value = item.calories || '';
+      else if (inp.placeholder === 'P')   inp.value = item.protein  || '';
+      else if (inp.placeholder === 'C')   inp.value = item.carbs    || '';
+      else if (inp.placeholder === 'F')   inp.value = item.fat      || '';
+    });
+  }
+  function recalcItemMacros(mi, ii) {
+    const item = nutritionPlan[mi].items[ii];
+    const food = allFoodItems.find(f => f.name === item.food);
+    if (!food) return;
+    const units = getUnitsForFood(item.food);
+    const unit = units.find(u => u.name === item._unit) || { grams: 1 };
+    const grams = (item._qty || 1) * unit.grams;
+    const r = grams / 100;
+    item.calories = Math.round(food.calories * r * 10) / 10;
+    item.protein  = Math.round(food.protein  * r * 10) / 10;
+    item.carbs    = Math.round(food.carbs    * r * 10) / 10;
+    item.fat      = Math.round(food.fat      * r * 10) / 10;
+    item.quantity = item._unit === 'גרם'
+      ? `${Math.round(grams)} גרם`
+      : `${item._qty} ${item._unit} (${Math.round(grams)}g)`;
+  }
+
+  async function init() {
+    let { data: { session } } = await sb.auth.getSession();
+
+    if (!session) {
+      await new Promise(resolve => {
+        const { data: { subscription } } = sb.auth.onAuthStateChange((event, s) => {
+          if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
+            session = s;
+            subscription.unsubscribe();
+            resolve();
+          }
+        });
+        setTimeout(resolve, 3000);
+      });
+    }
+
+    if (!session || session.user.email !== ADMIN) {
+      window.location.href = 'login.html'; return;
+    }
+    await Promise.all([loadClients(), loadCoaches(), loadExerciseLibrary(), loadFoodItems()]);
+    document.getElementById('loader').style.display = 'none';
+  }
+
+  /* ── COACHES ── */
+  async function loadCoaches() {
+    const { data } = await sb.from('coaches').select('*').order('name');
+    coachesList = data || [];
+    const pendingCount = coachesList.filter(c => c.role === 'pending').length;
+    const btn = document.querySelector('[onclick="openCoachesView()"]');
+    if (btn) btn.innerHTML = pendingCount > 0
+      ? `👥 מאמנים <span style="display:inline-block;background:#FF6B00;color:#fff;border-radius:10px;font-size:0.68rem;font-weight:900;padding:1px 6px;margin-right:4px;">${pendingCount}</span>`
+      : '👥 מאמנים';
+  }
+
+  function openCoachesView() {
+    activeEmail = null;
+    renderSidebar();
+    document.getElementById('main-area').innerHTML = `
+      <div id="pending-wrap"></div>
+      <div class="sec-card">
+        <div class="sec-card-title">👥 ניהול מאמנים
+          <button class="btn-sm btn-orange" onclick="openAddCoachModal()">+ הוסף מאמן</button>
+        </div>
+        <div id="coaches-wrap"></div>
+      </div>`;
+    renderCoachesTable();
+  }
+
+  function renderPendingCoaches() {
+    const el = document.getElementById('pending-wrap');
+    if (!el) return;
+    const pending = coachesList.filter(c => c.role === 'pending');
+    if (!pending.length) { el.innerHTML = ''; return; }
+    el.innerHTML = `
+      <div style="background:rgba(255,215,0,0.06);border:1px solid rgba(255,215,0,0.3);border-radius:14px;padding:18px 20px;margin-bottom:20px;">
+        <div style="font-size:0.88rem;font-weight:900;color:#FFD700;margin-bottom:14px;">⏳ ממתינים לאישור (${pending.length})</div>
+        ${pending.map(c => `
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 14px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,215,0,0.15);border-radius:10px;margin-bottom:8px;flex-wrap:wrap;">
+            <div>
+              <div style="font-size:0.92rem;font-weight:900;">${esc(c.name)}</div>
+              <div style="font-size:0.75rem;color:var(--muted);margin-top:2px;">${esc(c.email)}${c.phone ? ' · ' + esc(c.phone) : ''}</div>
+            </div>
+            <div style="display:flex;gap:8px;flex-shrink:0;">
+              <button class="btn-sm btn-orange" onclick="approveCoach('${c.id}')">✓ אשר</button>
+              <button class="btn-sm btn-red" onclick="rejectCoach('${c.id}','${esc(c.name)}')">✕ דחה</button>
+            </div>
+          </div>`).join('')}
+      </div>`;
+  }
+
+  async function approveCoach(id) {
+    const { error } = await sb.from('coaches').update({ role: 'senior' }).eq('id', id);
+    if (error) { toast('שגיאה באישור', 'err'); return; }
+    const c = coachesList.find(x => x.id === id);
+    if (c) c.role = 'regular';
+    toast('המאמן אושר ✓', 'ok');
+    renderPendingCoaches();
+    renderCoachesTable();
+  }
+
+  async function rejectCoach(id, name) {
+    if (!confirm(`למחוק את ${name} לגמרי מהמערכת?`)) return;
+    await sb.from('coaches').delete().eq('id', id);
+    coachesList = coachesList.filter(c => c.id !== id);
+    toast('נמחק', 'ok');
+    renderPendingCoaches();
+    renderCoachesTable();
+  }
+
+  const coachExpanded = {};
+  const ROLE_LABEL = {regular:'מאמן',senior:'בכיר',admin:'אדמין'};
+  const ROLE_BG    = {regular:'rgba(255,255,255,0.07)',senior:'rgba(255,215,0,0.14)',admin:'rgba(255,107,0,0.16)'};
+  const ROLE_CLR   = {regular:'#888',senior:'#FFD700',admin:'#FF6B00'};
+
+  function renderCoachesTable() {
+    renderPendingCoaches();
+    const el = document.getElementById('coaches-wrap');
+    if (!el) return;
+    if (!coachesList.length) { el.innerHTML = '<div style="color:#444;font-size:0.85rem;padding:8px 0;">אין מאמנים עדיין</div>'; return; }
+    el.innerHTML = coachesList.map(c => {
+      const myClients = clients.filter(cl => cl.coach_email === c.email);
+      const count = myClients.length;
+      const open = coachExpanded[c.id];
+      const r = c.role || 'regular';
+      const pendingBadge = r === 'pending' ? `<span style="font-size:0.63rem;font-weight:700;padding:2px 8px;border-radius:8px;background:rgba(255,215,0,0.15);color:#FFD700;margin-right:4px;">⏳ ממתין</span>` : '';
+      const roleBadge = `${pendingBadge}<span style="font-size:0.63rem;font-weight:700;padding:2px 8px;border-radius:8px;background:${ROLE_BG[r]||ROLE_BG.regular};color:${ROLE_CLR[r]||ROLE_CLR.regular};margin-right:6px;">${ROLE_LABEL[r]||r}</span>`;
+
+      let expandedHtml = '';
+      if (open) {
+        // Role + actions bar
+        const roleSelect = `<select style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:6px;color:#fff;font-family:'Heebo',sans-serif;font-size:0.78rem;padding:4px 8px;outline:none;cursor:pointer;" onchange="changeCoachRole('${c.id}',this.value)">
+          <option value="regular" ${r==='regular'?'selected':''}>מאמן רגיל</option>
+          <option value="senior"  ${r==='senior'?'selected':''}>מאמן בכיר</option>
+          <option value="admin"   ${r==='admin'?'selected':''}>אדמין</option>
+        </select>`;
+
+        // Clients list
+        const traineesHtml = count ? myClients.map(cl =>
+          `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;cursor:pointer;" onclick="selectClient('${cl.email}')">
+            <span style="font-size:0.82rem;font-weight:700;color:var(--white);">${esc(cl.name)}</span>
+            <span style="font-size:0.73rem;color:var(--muted);">${cl.email}</span>
+          </div>`).join('') : '<div style="font-size:0.8rem;color:#555;">אין מתאמנים</div>';
+
+        // Notifications section
+        const notifs = coachNotifsCache[c.email];
+        let notifsHtml;
+        if (!notifs) {
+          notifsHtml = '<div style="font-size:0.8rem;color:#555;">טוען...</div>';
+        } else if (!notifs.length) {
+          notifsHtml = '<div style="font-size:0.8rem;color:#555;">אין התראות</div>';
+        } else {
+          notifsHtml = notifs.slice(0, 5).map(n => {
+            const d = n.data || {};
+            const prsText = d.prs && d.prs.length ? `<span style="color:var(--gold);"> · 🏆 ${d.prs.map(p => esc(p.exercise)).join(', ')}</span>` : '';
+            const dateStr = new Date(n.created_at).toLocaleString('he-IL', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+            return `<div style="padding:7px 10px;border-radius:8px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,107,0,${n.read?'0.1':'0.3'});margin-bottom:5px;${n.read?'':'background:rgba(255,107,0,0.04);'}">
+              <div style="font-size:0.8rem;font-weight:700;">${esc(n.client_name||n.client_email.split('@')[0])}</div>
+              <div style="font-size:0.73rem;color:var(--muted);">🏋️ ${esc(d.day_name||'אימון')} · ${d.duration_min||0} דק׳${prsText}</div>
+              <div style="font-size:0.68rem;color:#555;margin-top:2px;">${dateStr}</div>
+            </div>`;
+          }).join('');
+        }
+
+        // License section (senior only)
+        let licenseHtml = '';
+        if (r === 'senior') {
+          const ls = c.license_start || '';
+          const le = c.license_end   || '';
+          const today = new Date().toISOString().split('T')[0];
+          const expired = le && le < today;
+          const daysLeft = le ? Math.ceil((new Date(le + 'T23:59:59') - new Date()) / 864e5) : null;
+          const statusClr = expired ? '#ff7070' : (daysLeft !== null && daysLeft <= 7 ? '#FFD700' : '#70dd70');
+          const statusTxt = expired ? '⚠️ פג תוקף' : (daysLeft !== null ? `✓ עוד ${daysLeft} ימים` : 'לא הוגדר');
+          licenseHtml = `
+          <div style="padding:8px 14px 10px;border-top:1px solid rgba(255,215,0,0.1);background:rgba(255,215,0,0.02);">
+            <div style="font-size:0.72rem;font-weight:700;color:#FFD700;letter-spacing:1px;margin-bottom:8px;">רישיון מאמן בכיר <span style="color:${statusClr};margin-right:8px;">${statusTxt}</span></div>
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+              <div style="display:flex;flex-direction:column;gap:3px;">
+                <label style="font-size:0.67rem;color:var(--muted);">תחילת רישיון</label>
+                <input type="date" id="lic-start-${c.id}" value="${ls}" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:6px;color:#fff;font-family:'Heebo',sans-serif;font-size:0.78rem;padding:4px 8px;outline:none;"/>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:3px;">
+                <label style="font-size:0.67rem;color:var(--muted);">סיום רישיון</label>
+                <input type="date" id="lic-end-${c.id}" value="${le}" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:6px;color:#fff;font-family:'Heebo',sans-serif;font-size:0.78rem;padding:4px 8px;outline:none;"/>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:3px;">
+                <label style="font-size:0.67rem;color:transparent;">.</label>
+                <div style="display:flex;gap:5px;">
+                  <button class="btn-sm btn-orange" style="font-size:0.72rem;padding:4px 10px;" onclick="event.stopPropagation();setCoachLicense('${c.id}',1)">+חודש</button>
+                  <button class="btn-sm btn-orange" style="font-size:0.72rem;padding:4px 10px;" onclick="event.stopPropagation();setCoachLicense('${c.id}',3)">+3 חודשים</button>
+                  <button class="btn-sm btn-orange" style="font-size:0.72rem;padding:4px 10px;" onclick="event.stopPropagation();setCoachLicense('${c.id}',6)">+6 חודשים</button>
+                  <button class="btn-sm btn-outline" style="font-size:0.72rem;padding:4px 10px;" onclick="event.stopPropagation();saveCoachLicense('${c.id}')">שמור</button>
+                </div>
+              </div>
+            </div>
+          </div>`;
+        }
+
+        const pendingApproveHtml = r === 'pending' ? `
+        <div style="padding:10px 14px;border-top:1px solid rgba(255,215,0,0.2);background:rgba(255,215,0,0.04);">
+          <div style="font-size:0.72rem;color:#FFD700;font-weight:700;margin-bottom:8px;">⏳ ממתין לאישור תשלום</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+            <span style="font-size:0.72rem;color:var(--muted);">אשר ופעל רישיון:</span>
+            <button class="btn-sm btn-orange" style="font-size:0.72rem;padding:4px 10px;" onclick="event.stopPropagation();approveCoach('${c.id}',1)">חודש</button>
+            <button class="btn-sm btn-orange" style="font-size:0.72rem;padding:4px 10px;" onclick="event.stopPropagation();approveCoach('${c.id}',3)">3 חודשים</button>
+            <button class="btn-sm btn-orange" style="font-size:0.72rem;padding:4px 10px;" onclick="event.stopPropagation();approveCoach('${c.id}',6)">6 חודשים</button>
+          </div>
+        </div>` : '';
+
+        // Stats section
+        const stats = coachStatsCache[c.email];
+        let statsHtml = '<div style="font-size:0.72rem;color:#555;padding:8px 14px;">טוען נתונים...</div>';
+        if (stats) {
+          const paid   = stats.sales.filter(s => s.status === 'paid');
+          const leads  = stats.sales.filter(s => s.status === 'lead');
+          const revenue = paid.reduce((s, l) => s + (l.plan_price || 0), 0);
+          // Configured plans
+          const coach = coachesList.find(x => x.id === c.id);
+          const plans = coach?.plans || {};
+          const plansConfigured = [1,3,6].filter(m => (plans[`plan_${m}`]||{}).price > 0);
+          const planLabels = {1:'חודש',3:'3 חודשים',6:'6 חודשים'};
+          const plansPreview = plansConfigured.length
+            ? plansConfigured.map(m => {
+                const p = plans[`plan_${m}`];
+                return `<span style="background:rgba(255,107,0,0.1);border:1px solid rgba(255,107,0,0.25);border-radius:6px;padding:2px 8px;font-size:0.7rem;color:var(--orange);margin-left:4px;">${planLabels[m]}: ${p.price} ₪${p.featured?' ⭐':''}</span>`;
+              }).join('')
+            : '<span style="font-size:0.72rem;color:#555;">לא הוגדרו מסלולים</span>';
+
+          statsHtml = `
+          <div style="padding:10px 14px;border-top:1px solid rgba(255,255,255,0.05);background:rgba(255,255,255,0.01);">
+            <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:10px;">
+              <div style="text-align:center;padding:8px 4px;background:rgba(255,107,0,0.06);border-radius:8px;">
+                <div style="font-size:1.1rem;font-weight:900;color:var(--orange);">${count}</div>
+                <div style="font-size:0.62rem;color:var(--muted);">מתאמנים</div>
+              </div>
+              <div style="text-align:center;padding:8px 4px;background:rgba(255,215,0,0.06);border-radius:8px;">
+                <div style="font-size:1.1rem;font-weight:900;color:var(--gold);">${revenue.toLocaleString()} ₪</div>
+                <div style="font-size:0.62rem;color:var(--muted);">הכנסות</div>
+              </div>
+              <div style="text-align:center;padding:8px 4px;background:rgba(60,200,60,0.06);border-radius:8px;">
+                <div style="font-size:1.1rem;font-weight:900;color:#70dd70;">${paid.length}</div>
+                <div style="font-size:0.62rem;color:var(--muted);">עסקאות</div>
+              </div>
+              <div style="text-align:center;padding:8px 4px;background:rgba(100,150,255,0.06);border-radius:8px;">
+                <div style="font-size:1.1rem;font-weight:900;color:#88aaff;">${stats.trPlans}</div>
+                <div style="font-size:0.62rem;color:var(--muted);">תוכניות אימון</div>
+              </div>
+              <div style="text-align:center;padding:8px 4px;background:rgba(100,200,150,0.06);border-radius:8px;">
+                <div style="font-size:1.1rem;font-weight:900;color:#70ddaa;">${stats.nuPlans}</div>
+                <div style="font-size:0.62rem;color:var(--muted);">תפריטי תזונה</div>
+              </div>
+            </div>
+            <div style="font-size:0.7rem;color:var(--muted);margin-bottom:4px;">מסלולי ליווי:</div>
+            <div style="margin-bottom:6px;">${plansPreview}</div>
+            ${leads.length ? `<div style="font-size:0.7rem;color:#FFD700;">⏳ ${leads.length} ליד${leads.length>1?'ים':''} ממתינים לסגירה</div>` : ''}
+          </div>`;
+        }
+
+        expandedHtml = `
+        ${pendingApproveHtml}
+        ${statsHtml}
+        <div style="padding:8px 14px 10px;border-top:1px solid rgba(255,255,255,0.05);display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+          <div style="font-size:0.72rem;color:var(--muted);font-weight:700;">דרגה:</div>
+          ${roleSelect}
+          <button class="btn-sm btn-orange" style="font-size:0.73rem;padding:4px 12px;" onclick="event.stopPropagation();openAddModal('${esc(c.email)}')">+ הוסף מתאמן</button>
+        </div>
+        ${licenseHtml}
+        <div style="padding:0 14px 14px;display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+          <div>
+            <div style="font-size:0.72rem;font-weight:700;color:var(--orange);letter-spacing:1px;margin-bottom:8px;">מתאמנים (${count})</div>
+            ${traineesHtml}
+          </div>
+          <div>
+            <div style="font-size:0.72rem;font-weight:700;color:var(--orange);letter-spacing:1px;margin-bottom:8px;">התראות אחרונות</div>
+            ${notifsHtml}
+          </div>
+        </div>`;
+      }
+
+      return `<div style="background:rgba(255,255,255,0.03);border-radius:10px;margin-bottom:6px;overflow:hidden;">
+        <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;cursor:pointer;" onclick="toggleCoachExpand('${c.id}','${esc(c.email)}')">
+          <div style="flex:1;">
+            <div style="font-size:0.92rem;font-weight:700;">${esc(c.name)} ${roleBadge}</div>
+            <div style="font-size:0.78rem;color:var(--muted);margin-top:2px;">${c.email} · ${count} מתאמנים</div>
+          </div>
+          <span style="color:var(--orange);font-size:0.75rem;">${open ? '▲' : '▼'}</span>
+          <button class="btn-sm btn-red" onclick="event.stopPropagation();deleteCoach('${c.id}','${esc(c.name)}')">מחק</button>
+        </div>
+        ${expandedHtml}
+      </div>`;
+    }).join('');
+  }
+
+  async function toggleCoachExpand(id, email) {
+    coachExpanded[id] = !coachExpanded[id];
+    renderCoachesTable();
+    if (coachExpanded[id]) {
+      const needNotifs = !coachNotifsCache[email];
+      const needStats  = !coachStatsCache[email];
+      const queries = [];
+      if (needNotifs) queries.push(sb.from('coach_notifications').select('*').eq('coach_email', email).order('created_at', { ascending: false }).limit(5));
+      else queries.push(Promise.resolve({ data: null }));
+      if (needStats) {
+        const coachClientEmails = clients.filter(cl => cl.coach_email === email).map(cl => cl.email);
+        queries.push(sb.from('coach_sales').select('*').eq('coach_email', email).order('created_at', { ascending: false }));
+        if (coachClientEmails.length) {
+          queries.push(sb.from('training_plans').select('client_email').in('client_email', coachClientEmails));
+          queries.push(sb.from('nutrition_plans').select('client_email').in('client_email', coachClientEmails));
+        } else {
+          queries.push(Promise.resolve({ data: [] }));
+          queries.push(Promise.resolve({ data: [] }));
+        }
+      }
+      const results = await Promise.all(queries);
+      if (needNotifs && results[0].data) coachNotifsCache[email] = results[0].data;
+      else if (needNotifs) coachNotifsCache[email] = [];
+      if (needStats) {
+        coachStatsCache[email] = {
+          sales:   results[1].data || [],
+          trPlans: (results[2].data || []).length,
+          nuPlans: (results[3].data || []).length
+        };
+      }
+      renderCoachesTable();
+    }
+  }
+
+  let coachModalOpen = false;
+  function openAddCoachModal() {
+    document.getElementById('coach-modal').classList.add('open');
+    document.getElementById('coach-name-inp').value = '';
+    document.getElementById('coach-email-inp').value = '';
+    document.getElementById('coach-role-inp').value = 'regular';
+    document.getElementById('coach-err').style.display = 'none';
+  }
+  function closeCoachModal() { document.getElementById('coach-modal').classList.remove('open'); }
+
+  async function addCoach() {
+    const name  = document.getElementById('coach-name-inp').value.trim();
+    const email = document.getElementById('coach-email-inp').value.trim();
+    const role  = document.getElementById('coach-role-inp').value;
+    const errEl = document.getElementById('coach-err');
+    const btn   = document.getElementById('coach-add-btn');
+    errEl.style.display = 'none';
+    if (!name || !email) { errEl.textContent = 'יש למלא שם ואימייל'; errEl.style.display = 'block'; return; }
+    btn.disabled = true; btn.textContent = 'מוסיף...';
+    const { error } = await sb.from('coaches').insert({ name, email, role });
+    btn.disabled = false; btn.textContent = 'הוסף';
+    if (error) { errEl.textContent = error.message; errEl.style.display = 'block'; return; }
+    closeCoachModal();
+    await loadCoaches();
+    renderCoachesTable();
+    toast(`${name} נוסף כמאמן ✓`, 'ok');
+  }
+
+  async function deleteCoach(id, name) {
+    if (!confirm(`למחוק את ${name}? המתאמנים שלו לא יימחקו.`)) return;
+    await sb.from('coaches').delete().eq('id', id);
+    await loadCoaches();
+    renderCoachesTable();
+    toast('מאמן נמחק', 'ok');
+  }
+
+  async function changeCoachRole(id, role) {
+    const { error } = await sbAdmin.from('coaches').update({ role }).eq('id', id);
+    if (error) { toast('שגיאה בעדכון דרגה', 'err'); return; }
+    const c = coachesList.find(c => c.id === id);
+    if (c) c.role = role;
+    renderCoachesTable();
+    toast('דרגה עודכנה ✓', 'ok');
+  }
+
+  async function approveCoach(id, months) {
+    const today = new Date().toISOString().split('T')[0];
+    const endDate = new Date();
+    endDate.setMonth(endDate.getMonth() + months);
+    const licEnd = endDate.toISOString().split('T')[0];
+    const { error } = await sbAdmin.from('coaches').update({
+      role: 'senior', license_start: today, license_end: licEnd
+    }).eq('id', id);
+    if (error) { toast('שגיאה באישור', 'err'); return; }
+    const c = coachesList.find(c => c.id === id);
+    if (c) { c.role = 'senior'; c.license_start = today; c.license_end = licEnd; }
+    renderCoachesTable();
+    toast(`✓ אושר! גישה פעילה עד ${licEnd}`, 'ok');
+  }
+
+  function setCoachLicense(id, months) {
+    const endInput = document.getElementById(`lic-end-${id}`);
+    const startInput = document.getElementById(`lic-start-${id}`);
+    if (!endInput) return;
+    const base = (endInput.value && endInput.value >= new Date().toISOString().split('T')[0])
+      ? new Date(endInput.value) : new Date();
+    base.setMonth(base.getMonth() + months);
+    const newEnd = base.toISOString().split('T')[0];
+    endInput.value = newEnd;
+    if (startInput && !startInput.value) startInput.value = new Date().toISOString().split('T')[0];
+  }
+
+  async function saveCoachLicense(id) {
+    const startVal = document.getElementById(`lic-start-${id}`)?.value || null;
+    const endVal   = document.getElementById(`lic-end-${id}`)?.value || null;
+    const { error } = await sbAdmin.from('coaches').update({ license_start: startVal, license_end: endVal }).eq('id', id);
+    if (error) { toast('שגיאה בשמירת רישיון', 'err'); return; }
+    const c = coachesList.find(c => c.id === id);
+    if (c) { c.license_start = startVal; c.license_end = endVal; }
+    renderCoachesTable();
+    toast('רישיון עודכן ✓', 'ok');
+  }
+
+  async function loadClients() {
+    const { data } = await sb.from('clients').select('*').order('created_at');
+    clients = data || [];
+    renderSidebar();
+  }
+
+  function renderSidebar() {
+    const el = document.getElementById('client-list');
+    if (!clients.length) { el.innerHTML = '<div style="padding:16px;color:#444;font-size:0.82rem;text-align:center;">אין לקוחות עדיין</div>'; return; }
+    el.innerHTML = clients.map(c => {
+      const coach = coachesList.find(co => co.email === c.coach_email);
+      const coachLabel = coach ? `<div style="font-size:0.7rem;color:var(--orange);margin-top:2px;">👤 ${esc(coach.name)}</div>` : '';
+      return `<div class="client-item ${c.email === activeEmail ? 'active' : ''}" onclick="selectClient('${c.email}')">
+        <div class="client-item-name">${esc(c.name)}</div>
+        <div class="client-item-email">${c.email}</div>
+        ${coachLabel}
+      </div>`;
+    }).join('');
+  }
+
+  async function selectClient(email) {
+    activeEmail = email;
+    renderSidebar();
+    closeMobileSidebar();
+    const client = clients.find(c => c.email === email);
+    const [{ data: tr }, { data: nu }] = await Promise.all([
+      sb.from('training_plans').select('plan').eq('client_email', email).single(),
+      sb.from('nutrition_plans').select('plan').eq('client_email', email).single()
+    ]);
+    trainingPlan  = tr?.plan  || [];
+    nutritionPlan = nu?.plan  || [];
+    renderMain(client);
+  }
+
+  function renderMain(client) {
+    const coachOpts = coachesList.map(c =>
+      `<option value="${c.email}" ${client.coach_email===c.email?'selected':''}>${esc(c.name)}</option>`
+    ).join('');
+    document.getElementById('main-area').innerHTML = `
+      <!-- Profile -->
+      <div class="sec-card">
+        <div class="sec-card-title">פרטי לקוח <span>${esc(client.name)}</span></div>
+        <div class="form-grid" style="margin-bottom:14px;">
+          <div class="f-group"><label>שם</label><input id="e-name" value="${esc(client.name)}"/></div>
+          <div class="f-group"><label>אימייל</label><input id="e-email" value="${esc(client.email)}" style="direction:ltr;text-align:right;" readonly/></div>
+          <div class="f-group"><label>טלפון</label><input id="e-phone" value="${esc(client.phone||'')}" placeholder="050-0000000" type="tel" style="direction:ltr;text-align:right;"/></div>
+          <div class="f-group"><label>מאמן אחראי</label>
+            <select id="e-coach">
+              <option value="">— ללא מאמן —</option>
+              ${coachOpts}
+            </select>
+          </div>
+          <div class="f-group"><label>תחילת ליווי</label><input id="e-start" type="date" value="${client.coaching_start||''}"/></div>
+          <div class="f-group"><label>סיום ליווי</label><input id="e-end" type="date" value="${client.coaching_end||''}"/></div>
+        </div>
+        <div class="f-group" style="margin-bottom:16px;">
+          <label>סוג מסלול</label>
+          <select id="e-plan">
+            <option ${client.plan_type==='ליווי חודשי'?'selected':''}>ליווי חודשי</option>
+            <option ${client.plan_type==='ליווי 3 חודשים'?'selected':''}>ליווי 3 חודשים</option>
+            <option ${client.plan_type==='ליווי חצי שנה'?'selected':''}>ליווי חצי שנה</option>
+          </select>
+        </div>
+        <div style="margin-bottom:16px;">
+          <div style="font-size:0.78rem;font-weight:700;color:var(--muted);margin-bottom:8px;">יעדי מאקרו יומיים</div>
+          <div class="form-grid" style="grid-template-columns:1fr 1fr 1fr 1fr;">
+            <div class="f-group"><label>קלוריות</label><input id="e-cal" type="number" value="${client.target_calories||''}" placeholder="2000"/></div>
+            <div class="f-group"><label>חלבון (g)</label><input id="e-prot" type="number" value="${client.target_protein||''}" placeholder="150"/></div>
+            <div class="f-group"><label>פחמימה (g)</label><input id="e-carb" type="number" value="${client.target_carbs||''}" placeholder="250"/></div>
+            <div class="f-group"><label>שומן (g)</label><input id="e-fat" type="number" value="${client.target_fat||''}" placeholder="60"/></div>
+          </div>
+        </div>
+        <div style="margin-bottom:16px;">
+          <div style="font-size:0.78rem;font-weight:700;color:var(--muted);margin-bottom:8px;">שתייה ומשקל</div>
+          <div class="form-grid">
+            <div class="f-group">
+              <label>יעד שתייה יומי (ליטרים)</label>
+              <input id="e-water" type="number" step="0.1" min="0.5" max="6" value="${client.target_water||''}" placeholder="2.5"/>
+            </div>
+            <div class="f-group">
+              <label>משקל עדכני (ק"ג)</label>
+              <input id="e-weight" type="number" step="0.1" min="20" max="400" value="${client.current_weight||''}" placeholder="—"/>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+          <button class="btn-sm btn-orange" onclick="saveProfile()">שמור פרטים</button>
+          <button class="btn-sm btn-outline" onclick="setClientPassword()" style="border-color:rgba(255,215,0,0.35);color:#FFD700;" title="הגדר סיסמה = מספר הטלפון (ספרות בלבד)">🔑 הגדר סיסמה</button>
+          <button class="btn-sm btn-red" onclick="deleteClient('${esc(client.email)}')">מחק לקוח</button>
+        </div>
+      </div>
+
+      <!-- Training -->
+      <div class="sec-card">
+        <div class="sec-card-title">🏋️ תוכנית אימונים
+          <div style="display:flex;gap:8px;">
+            <button class="btn-sm btn-outline" id="btn-paste-day" onclick="pasteDay()" style="display:none;border-color:rgba(255,215,0,0.4);color:#FFD700;">📋 הדבק יום</button>
+            <button class="btn-sm btn-orange" onclick="addDay()">+ הוסף יום</button>
+          </div>
+        </div>
+        <div class="ai-box" style="margin-bottom:10px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+            <div class="ai-box-title" style="margin-bottom:0;">⚙️ תבנית ברירת מחדל</div>
+            <button class="btn-sm btn-outline" style="font-size:0.72rem;padding:3px 10px;" onclick="saveDefaultTemplate()">שמור תבנית</button>
+          </div>
+          <textarea class="ai-textarea" id="default-template" style="min-height:56px;font-size:0.82rem;" placeholder="הגדר מבנה ברירת מחדל — יוחל כשהבקשה כללית&#10;דוגמה: 4 ימים PUSH/PULL/LEGS/UPPER | PUSH: חזה עליון + כתפיים + טריצפס | PULL: גב + ביצפס | LEGS: קוואדס + המסטרינג + שוקיים | UPPER: חזה + גב + כתפיים"></textarea>
+          <div style="font-size:0.72rem;color:#555;margin-top:5px;">אם הבקשה מפורטת — התבנית תיבלם. אם כללית ("4 ימים מסה") — AI ילך לפי התבנית.</div>
+        </div>
+        <div class="ai-box">
+          <div class="ai-box-title">✨ בנה תוכנית עם AI</div>
+          <textarea class="ai-textarea" id="ai-prompt" placeholder="תאר את התוכנית: ימי אימון, מטרה, ציוד, רמה, מוקד שרירים...&#10;דוגמה: 4 ימי אימון PUSH/PULL/LEGS/UPPER, חדר כושר מלא, מטרת מסה, רמת ביניים"></textarea>
+          <div style="display:flex;align-items:center;margin-top:10px;">
+            <button class="btn-sm btn-orange" id="ai-gen-btn" onclick="generatePlanWithAI()">✨ צור תוכנית</button>
+            <span class="ai-status" id="ai-status"></span>
+          </div>
+        </div>
+        <div id="training-editor"></div>
+        <button class="btn-sm btn-orange" style="margin-top:14px;" onclick="saveTraining()">שמור תוכנית</button>
+      </div>
+
+      <!-- Nutrition -->
+      <div class="sec-card">
+        <div class="sec-card-title">🥗 תפריט תזונה
+          <div style="display:flex;gap:6px;align-items:center;">
+            <button class="btn-sm btn-orange" onclick="addMeal()">+ הוסף ארוחה</button>
+            <button class="btn-sm btn-outline" id="btn-paste-meal" style="display:none;" onclick="pasteMeal()">📋 הדבק</button>
+          </div>
+        </div>
+        <div id="nutrition-editor"></div>
+        <div class="ai-box" style="margin-top:14px;">
+          <div class="ai-box-title">✨ בניית תפריט עם AI</div>
+          <textarea class="ai-textarea" id="nutri-ai-prompt" placeholder='תאר את המטרה: לדוגמה "בניית מסה לגבר 3 ארוחות ביום" — הבינה תבנה תפריט מלא עם חלופות למקורות חלבון, פחמימה ושומן בכל ארוחה'></textarea>
+          <div style="display:flex;align-items:center;gap:10px;margin-top:8px;">
+            <button class="btn-sm btn-orange" id="nutri-ai-btn" onclick="generateNutritionWithAI()">✨ בנה תפריט</button>
+            <span class="ai-status" id="nutri-ai-status"></span>
+          </div>
+        </div>
+        <button class="btn-sm btn-orange" style="margin-top:14px;" onclick="saveNutrition()">שמור תפריט</button>
+      </div>
+
+      <!-- Workout Logs -->
+      <div class="sec-card">
+        <div class="sec-card-title">📊 יומן אימונים</div>
+        <div id="client-logs-wrap"><div style="color:#444;font-size:0.85rem;">טוען...</div></div>
+      </div>
+    `;
+    renderTrainingEditor();
+    renderNutritionEditor();
+    loadDefaultTemplate();
+    loadClientLogs(client.email);
+  }
+
+  const MUSCLE_HIERARCHY = {
+    'חזה':        ['חזה עליון','חזה אמצעי','חזה תחתון','חזה פנימי'],
+    'גב':         ['רוחב גב','גב עליון','טרפזים','גב תחתון','זוקפי גב'],
+    'כתפיים':    ['כתף קדמית','כתף צידית','כתף אחורית'],
+    'יד קדמית':  ['ראש ארוך','ראש קצר','ברכיאליס'],
+    'יד אחורית': ['ראש ארוך','ראש לטרלי','ראש מדיאלי'],
+    'אמות':      ['כופפי אמה','פושטי אמה','כוח אחיזה'],
+    '4 ראשי':    ['קוואדס חיצוני','קוואדס פנימי','קוואדס אמצעי'],
+    'המסטרינג':  ['חלק פנימי','חלק חיצוני'],
+    'ישבן':      ['גלוטס מקסימוס','גלוטס מדיוס'],
+    'עגל':       ['תאומים','סולאוס','טיביאליס'],
+    'ליבה':      ['בטן עליונה','בטן תחתונה','אלכסונים','עומק ליבה']
+  };
+  const MUSCLES_ADMIN = ['חזה','גב','כתפיים','יד קדמית','יד אחורית','אמות','4 ראשי','המסטרינג','ישבן','עגל','ליבה'];
+  let exSecondaryMuscles = [];
+
+  /* ── TRAINING EDITOR ── */
+  function renderTrainingEditor() {
+    const el = document.getElementById('training-editor');
+    if (!el) return;
+    if (!trainingPlan.length) { el.innerHTML = '<div style="color:#444;font-size:0.85rem;padding:8px 0;">אין ימים עדיין — לחץ + הוסף יום</div>'; return; }
+    el.innerHTML = trainingPlan.map((day, di) => {
+      const activeMuscles = day.muscles || [];
+      return `
+      <div class="day-block">
+        <div class="day-block-head">
+          <input value="${esc(day.name || day.day || '')}" oninput="trainingPlan[${di}].name=this.value" placeholder="שם האימון (אימון A, יום חזה + כתפיים...)"/>
+          <button class="btn-sm btn-outline" onclick="copyDay(${di})" style="border-color:rgba(255,215,0,0.35);color:#FFD700;padding:5px 10px;">📋 העתק</button>
+          <button class="btn-sm btn-red" onclick="removeDay(${di})">הסר יום</button>
+        </div>
+        <div class="muscle-row">
+          <span style="font-size:0.72rem;font-weight:700;color:var(--muted);white-space:nowrap;">שרירים:</span>
+          ${MUSCLES_ADMIN.map(m => `<button class="muscle-pill${activeMuscles.includes(m) ? ' muscle-active' : ''}" onclick="toggleMuscle(${di},'${m}',this)">${m}</button>`).join('')}
+        </div>
+        <div id="ex-wrap-${di}">
+          ${(day.exercises || []).map((ex, ei) => exRow(di, ei, ex)).join('')}
+        </div>
+        <button class="add-link" onclick="addExercise(${di})">+ הוסף תרגיל</button>
+      </div>`;
+    }).join('');
+    if (dayClipboard) {
+      const btn = document.getElementById('btn-paste-day');
+      if (btn) { btn.style.display = 'block'; btn.textContent = `📋 הדבק — ${esc(dayClipboard.name || dayClipboard.day || 'יום')}`; }
+    }
+  }
+
+  function toggleMuscle(di, muscle, btn) {
+    if (!trainingPlan[di].muscles) trainingPlan[di].muscles = [];
+    const idx = trainingPlan[di].muscles.indexOf(muscle);
+    if (idx === -1) { trainingPlan[di].muscles.push(muscle); btn.classList.add('muscle-active'); }
+    else { trainingPlan[di].muscles.splice(idx, 1); btn.classList.remove('muscle-active'); }
+  }
+
+  function exRow(di, ei, ex) {
+    if (!Array.isArray(ex.sets)) ex.sets = parseSetsToArray(ex.sets);
+    const sets = ex.sets;
+    const total = trainingPlan[di].exercises.length;
+    const restOpts = [30,45,60,75,90,105,120,150,180,240,300];
+    const curRest = ex.rest_time || 90;
+    const restHtml = restOpts.map(s => {
+      const lbl = s < 60 ? s + ' שנ׳' : (s % 60 === 0 ? (s/60) + ' דק׳' : Math.floor(s/60) + ':' + (s%60).toString().padStart(2,'0') + ' דק׳');
+      return `<option value="${s}" ${curRest === s ? 'selected' : ''}>${lbl}</option>`;
+    }).join('');
+    return `<div style="margin-bottom:10px;background:rgba(255,255,255,0.02);border-radius:8px;padding:10px 12px;">
+      <div class="ex-row" style="margin-bottom:7px;">
+        <input value="${esc(ex.name)}" oninput="trainingPlan[${di}].exercises[${ei}].name=this.value;showExSugg(this,${di},${ei})" onblur="setTimeout(hideExSugg,160)" autocomplete="off" placeholder="שם תרגיל" style="flex:2;"/>
+        <input value="${esc(ex.video_url||'')}" oninput="trainingPlan[${di}].exercises[${ei}].video_url=this.value" placeholder="קישור לסרטון" style="direction:ltr;text-align:right;flex:1;"/>
+        <div style="display:flex;flex-direction:column;gap:2px;">
+          <button onclick="moveExercise(${di},${ei},-1)" ${ei===0?'disabled':''} style="padding:2px 6px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:4px;color:${ei===0?'#444':'#ccc'};cursor:${ei===0?'default':'pointer'};font-size:0.65rem;line-height:1;">▲</button>
+          <button onclick="moveExercise(${di},${ei},1)"  ${ei===total-1?'disabled':''} style="padding:2px 6px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:4px;color:${ei===total-1?'#444':'#ccc'};cursor:${ei===total-1?'default':'pointer'};font-size:0.65rem;line-height:1;">▼</button>
+        </div>
+        <button class="btn-sm btn-red" onclick="removeExercise(${di},${ei})">✕</button>
+      </div>
+      <div class="sets-coach-wrap">
+        <div class="sets-coach-head"><span>סט</span><span style="text-align:center;">ק"ג מומלץ</span><span>טווח חזרות</span><span></span></div>
+        ${sets.map((s, si) => `
+          <div class="sets-coach-row">
+            <span style="font-size:0.8rem;font-weight:700;color:var(--muted);text-align:center;">${si+1}</span>
+            <input type="number" step="0.5" min="0" value="${s.recommended_kg||0}" oninput="updateCoachSet(${di},${ei},${si},'recommended_kg',this.value)" placeholder="0"/>
+            <div class="sets-coach-range">
+              <input type="number" min="1" value="${s.reps_min||8}" oninput="updateCoachSet(${di},${ei},${si},'reps_min',this.value)"/>
+              <span>עד</span>
+              <input type="number" min="1" value="${s.reps_max||12}" oninput="updateCoachSet(${di},${ei},${si},'reps_max',this.value)"/>
+            </div>
+            <button onclick="removeCoachSet(${di},${ei},${si})" style="background:none;border:none;color:#555;cursor:pointer;font-size:0.9rem;padding:0;line-height:1;">✕</button>
+          </div>`).join('')}
+        <button class="btn-add-set" onclick="addCoachSet(${di},${ei})">+ הוסף סט</button>
+      </div>
+      <div style="display:flex;gap:16px;margin-top:10px;flex-wrap:wrap;">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+          <div class="toggle-wrap" onclick="trainingPlan[${di}].exercises[${ei}].rir_enabled=!trainingPlan[${di}].exercises[${ei}].rir_enabled;this.classList.toggle('on',trainingPlan[${di}].exercises[${ei}].rir_enabled);" style="${ex.rir_enabled?'background:var(--orange);':'background:#333;'} width:36px;height:20px;border-radius:10px;position:relative;transition:background 0.2s;cursor:pointer;">
+            <div style="position:absolute;top:3px;${ex.rir_enabled?'right:3px':'left:3px'};width:14px;height:14px;border-radius:50%;background:#fff;transition:all 0.2s;"></div>
+          </div>
+          <div>
+            <div style="font-size:0.8rem;font-weight:700;color:var(--white);">הפעל RIR</div>
+            <div style="font-size:0.7rem;color:var(--muted);">תיעוד יעד' חזרות שנשארו ברזרבה (0-5) לכל סט</div>
+          </div>
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+          <div onclick="trainingPlan[${di}].exercises[${ei}].progressive_overload=!trainingPlan[${di}].exercises[${ei}].progressive_overload;this.style.background=trainingPlan[${di}].exercises[${ei}].progressive_overload?'var(--orange)':'#333';" style="${ex.progressive_overload?'background:var(--orange);':'background:#333;'} width:36px;height:20px;border-radius:10px;position:relative;transition:background 0.2s;cursor:pointer;">
+            <div style="position:absolute;top:3px;${ex.progressive_overload?'right:3px':'left:3px'};width:14px;height:14px;border-radius:50%;background:#fff;transition:all 0.2s;"></div>
+          </div>
+          <div>
+            <div style="font-size:0.8rem;font-weight:700;color:var(--white);">הפעל Progressive Overload</div>
+            <div style="font-size:0.7rem;color:var(--muted);">הצעה אוטומטית של משקלים וחזרות לאימון הבא לפי שיטת Double Progression: כשמגיעים בכל הסטים, מוסיפים משקל ומאפסים לתחתית הטווח.</div>
+          </div>
+        </label>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;margin-top:8px;margin-bottom:7px;">
+        <span style="font-size:0.75rem;font-weight:700;color:var(--muted);white-space:nowrap;">⏱ מנוחה בין סטים:</span>
+        <select onchange="trainingPlan[${di}].exercises[${ei}].rest_time=+this.value" style="padding:6px 10px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:6px;color:#fff;font-family:'Heebo',sans-serif;font-size:0.82rem;outline:none;cursor:pointer;">${restHtml}</select>
+      </div>
+      <textarea oninput="trainingPlan[${di}].exercises[${ei}].description=this.value" placeholder="טיפ / תיאור טכני לתרגיל (יוצג למתאמן בזמן האימון)..." style="width:100%;padding:7px 10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:6px;color:#fff;font-family:'Heebo',sans-serif;font-size:0.8rem;outline:none;resize:vertical;min-height:46px;direction:rtl;" onfocus="this.style.borderColor='rgba(255,107,0,0.4)'" onblur="this.style.borderColor='rgba(255,255,255,0.08)'">${esc(ex.description||'')}</textarea>
+    </div>`;
+  }
+
+  function copyDay(di) {
+    dayClipboard = JSON.parse(JSON.stringify(trainingPlan[di]));
+    const btn = document.getElementById('btn-paste-day');
+    if (btn) { btn.style.display = 'block'; btn.textContent = `📋 הדבק — ${esc(dayClipboard.name || dayClipboard.day || 'יום')}`; }
+    toast(`יום הועתק ✓`, 'ok');
+  }
+
+  function pasteDay() {
+    if (!dayClipboard) return;
+    const copy = JSON.parse(JSON.stringify(dayClipboard));
+    copy.name = (copy.name || copy.day || '') + ' (עותק)';
+    copy.day  = copy.name;
+    trainingPlan.push(copy);
+    renderTrainingEditor();
+    toast('יום הודבק ✓', 'ok');
+  }
+
+  function copyMeal(mi) {
+    mealClipboard = JSON.parse(JSON.stringify(nutritionPlan[mi]));
+    const btn = document.getElementById('btn-paste-meal');
+    if (btn) { btn.style.display = 'inline-block'; btn.textContent = `📋 הדבק — ${esc(mealClipboard.meal || 'ארוחה')}`; }
+    toast('ארוחה הועתקה ✓', 'ok');
+  }
+
+  function pasteMeal() {
+    if (!mealClipboard) return;
+    const copy = JSON.parse(JSON.stringify(mealClipboard));
+    copy.meal = (copy.meal || '') + ' (עותק)';
+    nutritionPlan.push(copy);
+    renderNutritionEditor();
+    toast('ארוחה הודבקה ✓', 'ok');
+  }
+
+  function addDay() {
+    trainingPlan.push({ name: '', muscles: [], exercises: [] });
+    renderTrainingEditor();
+  }
+  function removeDay(i) {
+    trainingPlan.splice(i, 1);
+    renderTrainingEditor();
+  }
+  function parseSetsToArray(spec) {
+    if (Array.isArray(spec)) return spec;
+    const s = String(spec || '').trim();
+    let m = s.match(/^(\d+)[x×X]([\d\/]+)/);
+    if (m) {
+      const count = Math.min(parseInt(m[1]), 10);
+      const parts = m[2].split('/');
+      return Array.from({length: count}, (_, i) => {
+        const r = parseInt(parts[i] || parts[parts.length-1]) || 10;
+        return { reps_min: r, reps_max: r, recommended_kg: 0 };
+      });
+    }
+    m = s.match(/^(\d+)[x×X](\d+)-(\d+)/);
+    if (m) return Array.from({length: parseInt(m[1])}, () => ({ reps_min: parseInt(m[2]), reps_max: parseInt(m[3]), recommended_kg: 0 }));
+    m = s.match(/^(\d+)$/);
+    if (m) return Array.from({length: Math.min(parseInt(m[1]),10)}, () => ({ reps_min: 8, reps_max: 12, recommended_kg: 0 }));
+    return [{reps_min:10,reps_max:15,recommended_kg:0},{reps_min:8,reps_max:12,recommended_kg:0},{reps_min:8,reps_max:12,recommended_kg:0},{reps_min:8,reps_max:12,recommended_kg:0}];
+  }
+
+  function updateCoachSet(di, ei, si, field, val) {
+    if (!Array.isArray(trainingPlan[di].exercises[ei].sets))
+      trainingPlan[di].exercises[ei].sets = parseSetsToArray(trainingPlan[di].exercises[ei].sets);
+    trainingPlan[di].exercises[ei].sets[si][field] = +val;
+  }
+
+  function addCoachSet(di, ei) {
+    if (!Array.isArray(trainingPlan[di].exercises[ei].sets))
+      trainingPlan[di].exercises[ei].sets = parseSetsToArray(trainingPlan[di].exercises[ei].sets);
+    const arr = trainingPlan[di].exercises[ei].sets;
+    const last = arr[arr.length-1] || {reps_min:8,reps_max:12,recommended_kg:0};
+    arr.push({...last});
+    renderTrainingEditor();
+  }
+
+  function removeCoachSet(di, ei, si) {
+    trainingPlan[di].exercises[ei].sets.splice(si, 1);
+    renderTrainingEditor();
+  }
+
+  function addExercise(di) {
+    trainingPlan[di].exercises.push({
+      name: '', sets: [{reps_min:10,reps_max:15,recommended_kg:0},{reps_min:8,reps_max:12,recommended_kg:0},{reps_min:8,reps_max:12,recommended_kg:0},{reps_min:8,reps_max:12,recommended_kg:0}],
+      video_url: '', description: '', rest_time: 90, rir_enabled: false, progressive_overload: false
+    });
+    renderTrainingEditor();
+  }
+  function moveExercise(di, ei, dir) {
+    const arr = trainingPlan[di].exercises;
+    const to = ei + dir;
+    if (to < 0 || to >= arr.length) return;
+    [arr[ei], arr[to]] = [arr[to], arr[ei]];
+    renderTrainingEditor();
+  }
+  function removeExercise(di, ei) {
+    trainingPlan[di].exercises.splice(ei, 1);
+    renderTrainingEditor();
+  }
+
+  const DEFAULT_TMPL_KEY = 'hf_default_training_template';
+
+  function saveDefaultTemplate() {
+    const t = document.getElementById('default-template')?.value.trim() || '';
+    localStorage.setItem(DEFAULT_TMPL_KEY, t);
+    const btn = event.target;
+    btn.textContent = '✓ נשמר';
+    setTimeout(() => btn.textContent = 'שמור תבנית', 1500);
+  }
+
+  function loadDefaultTemplate() {
+    const saved = localStorage.getItem(DEFAULT_TMPL_KEY) || '';
+    const el = document.getElementById('default-template');
+    if (el && saved) el.value = saved;
+    return saved;
+  }
+
+  function hasCustomStructure(prompt) {
+    // בקשה נחשבת מפורטת אם מציינת חלוקת ימים ספציפית
+    return /PUSH|PULL|UPPER|LOWER|יום א|יום ב|יום ג|יום ד|PPL|A\/B/i.test(prompt) && prompt.length > 80;
+  }
+
+  async function generatePlanWithAI() {
+    const prompt = document.getElementById('ai-prompt').value.trim();
+    const statusEl = document.getElementById('ai-status');
+    const btn = document.getElementById('ai-gen-btn');
+    if (!prompt) { statusEl.style.color = '#ff7070'; statusEl.textContent = 'יש לתאר את התוכנית קודם'; return; }
+    btn.disabled = true; btn.textContent = '⏳ בונה...';
+    statusEl.style.color = 'var(--muted)'; statusEl.textContent = 'Claude חושב...';
+    try {
+      const defaultTmpl = loadDefaultTemplate();
+      const useDefault  = defaultTmpl && !hasCustomStructure(prompt);
+      const templateSection = useDefault
+        ? `\n\n## תבנית ברירת מחדל — חובה לפעול לפיה:\n${defaultTmpl}`
+        : '';
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type':'application/json','x-api-key':CLAUDE_KEY,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-6',
+          max_tokens: 4096,
+          messages: [{ role: 'user', content:
+`אתה TRAINER AI — מערכת בניית תוכניות אימון מקצועית של HF Coaching.
+המערכת מבוססת על שיטת HF הייחודית. עליך לפעול לפיה בלבד — לא לפי שיטות כושר גנריות.
+
+## בקשת המאמן:
+"${prompt}"${templateSection}
+
+## ═══ חוקי ברזל — חובה לעמוד בכולם ═══
+
+### 1. טכניקות — אילו קיימות ומתי להשתמש
+המערכת מכירה רק את הטכניקות הבאות:
+- פירמידה (5×20/15/12/10/8) — תרגילים מורכבים בלבד
+- Rest Pause — תרגילים מורכבים יציבים בלבד (סמית, מכונות, לחיצות, RDL)
+- 6 איטי 6 מהיר — תרגילים מורכבים בלבד
+- Isomix — תרגילים מבודדים במכונה/כבל בלבד
+- Isomix Advanced — תרגילים מבודדים במכונה/כבל בלבד
+- IsoBurst — תרגילים מבודדים במכונה/כבל בלבד
+- Drop Set — תרגילים מבודדים בלבד
+
+### 2. חוקי שימוש בטכניקות
+- Isomix / Isomix Advanced / IsoBurst — מבודדים בלבד! אסור בתרגיל מורכב!
+- לא יותר מ-2 טכניקות מתקדמות בכל אימון (לא בכל תרגיל)
+- טכניקה רק בסטים העובדים — לא בסט חימום
+- תרגילים מורכבים כבדים (סקוואט, דדליפט) — ראשונים באימון לפני כל עייפות
+
+### 3. תרגיל מורכב vs. מבודד
+מורכב — מערב כמה מפרקים: לחיצות, סקוואט, דדליפט, חתירה, מתח, פולי עליון, היפ טראסט, לחיצה צרה
+מבודד — שריר אחד: כפיפת מרפקים, פשיטת מרפקים, פרפר, הרחקות, פייס פול, כפיפת ברך, פשיטת ברך, קרוסאובר, הרחקת כתף
+
+### 4. פירמידה 5×20/15/12/10/8 — תרגיל מורכב
+כל סט — משקל עולה, חזרות יורדות:
+- סט 1 (20) = חימום מפרקים, קל, לא לכשל
+- סט 2 (15) = התחלת עומס
+- סט 3 (12) = אזור היפרטרופיה מרכזי
+- סט 4 (10) = כבד, עומס מכני גבוה
+- סט 5 (8) = הכי כבד, RIR 1-2
+רוב הסטים RIR 1-2. רק הסט האחרון לפעמים עד כשל.
+
+### 5. מבנה Rest Pause (תרגיל מורכב יציב)
+עובדים עד כמעט כשל → 10-15 שניות מנוחה → עוד חזרות → אפשר חזרה נוספת.
+
+### 6. מבנה 6 איטי 6 מהיר (תרגיל מורכב)
+6 חזרות איטיות (TUT, שליטה, Stretch) + ישר 6 חזרות מהירות (פאמפ, סיבים מהירים).
+
+### 7. מבנה Isomix (מבודד, מכונה/כבל)
+כל חזרה = תנועה מלאה + עצירה 3-5 שניות בכיווץ המקסימלי.
+
+### 8. מבנה Isomix Advanced (מבודד, מכונה/כבל)
+5 חזרות Hold 5 שניות → 5 חזרות Hold 10 שניות → 5 חזרות Hold 15 שניות.
+
+### 9. מבנה IsoBurst (מבודד, מכונה/כבל — הכי מתקדם)
+חוק: משך Hold = מספר חזרות שבוצעו.
+סט 1: 15 שניות עבודה + Hold.
+סט 2: 60 שניות ÷ 4 חלקים של 15 שניות, Hold אחרי כל חלק.
+סט 3: 30 שניות ÷ 2 חלקים, Drop אחרי כל חלק.
+סט 4: 45 שניות ÷ 3 חלקים, Drop אחרי כל חלק.
+
+### 10. Drop Set (מבודד)
+הורדת משקל ללא מנוחה: 8 / 8 / 8 (הורדה 20% בכל שלב).
+
+### 11. נפח לפי גודל שריר
+שרירים גדולים (גב, חזה, רגליים) — עד 20-25 סטים.
+שרירים קטנים (ידיים, כתפיים) — עד 12-16 סטים.
+
+### 12. סדר חובה באימון
+1. תרגיל מורכב כבד ראשון (סקוואט / דדליפט / לחיצה)
+2. תרגיל מורכב שני
+3. מכונות / מבודדים
+4. פאמפ + טכניקות
+
+### 13. שדה notes — חובה לקרוא
+מלא notes רק אם המאמן ציין במפורש טכניקה ליד התרגיל (לדוגמה: "6 איטי 6 מהיר", "Rest Pause", "Isomix", "Drop Set", "איטי בירידה").
+אם המאמן לא כתב דבר מעבר לשם ולסטים — השאר notes ריק לחלוטין "".
+
+## ═══ מאגר תרגילים מורשה (שמות מדויקים בלבד) ═══
+
+### חזה
+מורכבים: לחיצת חזה במוט, לחיצת חזה בשיפוע חיובי, לחיצת חזה בסמית׳ משין, לחיצת חזה במכונת האמר, מקבילים לחזה, לחיצת חזה במכונה
+מבודדים (מכונה/כבל): פרפר חזה במכונה, קרוס כבלים לחזה, קרוס כבלים בשיפוע חיובי, פרפר חזה בכבלים
+
+### גב
+משיכה (מורכב): פולי עליון רחב, מתח, פולי עליון באחיזה ניטרלית, פולאובר בכבל לידיים ישרות
+חתירה (מורכב): חתירה במוט, חתירת T, חתירה בפולי תחתון, חתירה עם תמיכה לחזה, חתירה עם דאמבל, חתירה במכונת האמר
+גב תחתון: היפראקסטנשן, ראק פול | טרפזים: שרגס, שרגס בסמית׳, שרגס עם דאמבלים
+
+### כתפיים
+לחיצות (מורכב): לחיצת כתפיים, לחיצת כתפיים בסמית׳, לחיצת כתפיים במכונה, ארנולד פרס
+צידית (מבודד — כבל/מכונה): הרחקת כתפיים עם דאמבלים, הרחקת כתף בכבל, הרחקת כתף במכונה
+קדמית: הרמה קדמית
+אחורית (מבודד — מכונה/כבל): פרפר הפוך במכונה, פרפר אחורי בכבלים, פייס פול
+
+### יד קדמית
+ביצפס (מבודד): כפיפת מרפקים במוט, כפיפת מרפקים עם דאמבלים, כפיפת מרפקים במכשיר כומר, כפיפת מרפקים בכבל, בייזיאן קרל, ספיידר קרל
+פטישים: כפיפת פטישים, פטישים עם חבל, פטישים באחיזה צידית
+מורכב: מתח באחיזה צרה
+
+### יד אחורית
+מורכבים: לחיצת חזה באחיזה צרה, מקבילים ליד אחורית
+מבודדים (כבל/מכונה): פשיטת מרפקים עם חבל, פשיטת מרפקים עם מוט, פשיטת מרפקים מעל הראש בכבל, סקאל קראשר, פשיטת מרפקים יד יד
+
+### 4 ראשי
+חובה (מורכב): סקוואט חופשי, סקוואט בסמית׳, פרונט סקוואט, לחיצת רגליים
+מבודד (כבל/מכונה): פשיטת ברכיים
+אופציונלי: האק סקוואט, בולגרי, מכרעים בהליכה
+
+### המסטרינג
+מורכב (חובה ראשון): דדליפט רומני, היפ טראסט, GHR
+מבודד (מכונה): כפיפת ברכיים בשכיבה, כפיפת ברכיים בישיבה
+
+### מקרבים (מכונה/כבל): מכונת מקרבים, קירוב רגל בכבל
+### שוקיים: תאומים בעמידה, תאומים בישיבה, תאומים בלג פרס
+### ליבה: כפיפות בטן, כפיפות בטן בכבל, הרמת רגליים במתח, פלאנק, גלגל בטן
+
+## ═══ חוקי חלוקה לפי ימים ═══
+PUSH: 3 חזה (מורכב ראשון + מכונה + מבודד) + 2 כתפיים (לחיצה + צידית) + 2 יד אחורית (מורכב + מבודד)
+PULL: 3 גב (משיכה + חתירה + נוסף) + 1 כתף אחורית + 1 יד קדמית + 1 פטישים
+LEGS: סקוואט/דדליפט (מורכב ראשון) + לחיצת רגליים + פשיטת ברכיים + 2 המסטרינג (מורכב חובה+מבודד) + 1 מקרבים
+UPPER: 2 חזה + 2 גב (משיכה+חתירה) + 2 כתפיים (לחיצה+צידית) + 1 יד קדמית + 2 יד אחורית
+Bro Split: 6-8 תרגילים לשריר, דגש על מבודדים, ניתן 2 טכניקות
+
+## ═══ פורמט תשובה ═══
+החזר אך ורק JSON תקני ללא markdown ללא הסבר:
+[{"day":"יום א׳ — PUSH","muscles":["חזה","כתפיים","יד אחורית"],"exercises":[{"name":"לחיצת חזה במוט","sets_reps":"5×20/15/12/10/8","notes":""},{"name":"פרפר חזה במכונה","sets_reps":"4×12-20","notes":""}]}]` }]
+        })
+      });
+      if (!res.ok) { const e = await res.json(); throw new Error(e.error?.message || `HTTP ${res.status}`); }
+      const data = await res.json();
+      const text = data.content[0].text.trim();
+      const match = text.match(/\[[\s\S]*\]/);
+      if (!match) throw new Error('תשובה לא תקינה מה-AI');
+      const plan = JSON.parse(match[0]);
+      if (!Array.isArray(plan) || !plan.length) throw new Error('תוכנית ריקה');
+      trainingPlan = plan.map(day => ({
+        ...day,
+        name: day.name || day.day || '',
+        exercises: (day.exercises || []).map(ex => ({
+          name:        ex.name        || '',
+          sets:        parseSetsToArray(ex.sets || ex.sets_reps),
+          description: ex.description || ex.notes     || '',
+          video_url:   ex.video_url   || '',
+          rest_time:   ex.rest_time   || 90,
+        }))
+      }));
+      renderTrainingEditor();
+      statusEl.style.color = '#70dd70';
+      statusEl.textContent = `✓ ${plan.length} ימי אימון נבנו — בדוק ושמור`;
+    } catch(e) {
+      statusEl.style.color = '#ff7070';
+      statusEl.textContent = 'שגיאה: ' + e.message;
+    }
+    btn.disabled = false; btn.textContent = '✨ צור תוכנית';
+  }
+
+  async function saveTraining() {
+    const { error } = await sb.from('training_plans')
+      .upsert({ client_email: activeEmail, plan: trainingPlan, updated_at: new Date().toISOString() }, { onConflict: 'client_email' });
+    error ? toast('שגיאה בשמירה', 'err') : toast('תוכנית נשמרה ✓', 'ok');
+  }
+
+  async function generateNutritionWithAI() {
+    const prompt   = document.getElementById('nutri-ai-prompt').value.trim();
+    const statusEl = document.getElementById('nutri-ai-status');
+    const btn      = document.getElementById('nutri-ai-btn');
+    if (!prompt) { statusEl.style.color='#ff7070'; statusEl.textContent='יש לתאר את המטרה קודם'; return; }
+    const clientWeight = parseFloat(document.getElementById('e-weight').value) || null;
+    const targetCal    = parseInt(document.getElementById('e-cal').value)    || null;
+    const targetProt   = parseInt(document.getElementById('e-prot').value)   || null;
+    const targetCarb   = parseInt(document.getElementById('e-carb').value)   || null;
+    const targetFat    = parseInt(document.getElementById('e-fat').value)    || null;
+    const weightLine = clientWeight ? `משקל המתאמן: ${clientWeight} ק"ג` : '';
+    const macrosLine = (targetCal||targetProt||targetCarb||targetFat)
+      ? `יעדי מאקרו: ${targetCal||'—'} קל׳ | חלבון ${targetProt||'—'}ג׳ | פחמימה ${targetCarb||'—'}ג׳ | שומן ${targetFat||'—'}ג׳` : '';
+    btn.disabled = true; btn.textContent = '⏳ בונה...';
+    statusEl.style.color = 'var(--muted)'; statusEl.textContent = 'Claude בונה תפריט...';
+    try {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type':'application/json','x-api-key':CLAUDE_KEY,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-6',
+          max_tokens: 4096,
+          messages: [{ role: 'user', content:
+`אתה NUTRITION AI — מערכת בניית תפריטי תזונה מקצועית של HF Coaching.
+
+## בקשה:
+"${prompt}"
+${weightLine ? '\n' + weightLine : ''}
+${macrosLine ? '\n' + macrosLine : ''}
+
+## חוקי קשיח:
+1. ארוחת בוקר — פרווה או חלבית בלבד (אסור לשלב בשר/עוף/דג)
+2. לא לשלב מוצרי חלב עם בשר/עוף/דג באותה ארוחה (כשרות)
+3. בכל ארוחה — לפחות 3 אפשרויות שוות ערך קלורי לכל מקור מאקרו:
+   protein_options: 3+ אפשרויות לחלבון (שמות המזון בלבד)
+   carbs_options: 3+ אפשרויות לפחמימה (שמות המזון בלבד)
+   fat_options: 3+ אפשרויות לשומן (שמות המזון בלבד)
+4. הכמויות והערכים המדויקים בהתאם למשקל הגוף ולמטרה
+5. השתמש במזונות מהמאגר בלבד
+
+## מאגר מזון (שם | גרם | קל' | P | C | F):
+חזה עוף מבושל|100|165|31|0|3.6
+פילה עוף|100|110|23|0|1.5
+שוק עוף|100|209|26|0|11
+טונה בקופסה|85|100|22|0|0.5
+סלמון|100|208|20|0|13
+בקר טחון רזה 5%|100|137|21|0|6
+פילה בקר|100|158|26|0|6
+ביצה שלמה|60|85|7.5|0.5|6
+חלבון ביצה|33|17|3.5|0.2|0
+גבינה לבנה 5%|100|73|11|3|1.5
+גבינה לבנה 9%|100|95|10|3|4
+קוטג' 3%|100|73|11|3|1.5
+יוגורט יווני 0%|150|90|15|6|0
+יוגורט יווני 2%|150|110|13|6|3
+גבינה צהובה 28%|28|90|6|0.5|7
+אבקת חלבון ויי|30|120|24|3|2
+טופו|100|76|8|2|4
+אורז לבן מבושל|100|130|2.7|28|0.3
+אורז חום מבושל|100|112|2.6|24|0.9
+פסטה מבושלת|100|131|5|25|1.1
+קינואה מבושלת|100|120|4.4|21|1.9
+לחם שיפון|30|75|3|15|0.8
+לחם מלא|30|75|3|14|1
+פיתה מלאה|60|160|6|32|1.5
+תפוח אדמה מבושל|100|93|2|21|0.1
+בטטה מבושלת|100|90|2|21|0.1
+שיבולת שועל|40|148|5|26|2.8
+שמן זית|15|134|0|0|15
+אבוקדו|100|160|2|9|15
+טחינה גולמית|20|122|3.5|3.5|11
+אגוזי מלך|28|185|4|4|18
+שקדים|28|163|6|6|14
+בוטנים|28|166|7|6|14
+חמאת בוטנים טבעית|32|188|8|6|16
+ברוקולי|100|34|2.8|7|0.4
+תרד|100|23|2.9|3.6|0.4
+מלפפון|100|16|0.7|3.6|0.1
+עגבניה|100|18|0.9|3.9|0.2
+חסה|100|15|1.4|2.9|0.2
+פלפל אדום|100|31|1|6|0.3
+
+## פורמט — החזר JSON בלבד ללא markdown:
+[{"meal":"ארוחת בוקר","items":[{"food":"שיבולת שועל","quantity":"80 גרם","calories":296,"protein":10,"carbs":52,"fat":5.6}],"protein_options":["יוגורט יווני 0%","גבינה לבנה 5%","חלבון ביצה"],"carbs_options":["שיבולת שועל","לחם מלא","פיתה מלאה"],"fat_options":["שקדים","אבוקדו","טחינה גולמית"]}]` }]
+        })
+      });
+      if (!res.ok) { const e = await res.json(); throw new Error(e.error?.message || `HTTP ${res.status}`); }
+      const data = await res.json();
+      const text = data.content[0].text.trim();
+      const match = text.match(/\[[\s\S]*\]/);
+      if (!match) throw new Error('תשובה לא תקינה מה-AI');
+      const plan = JSON.parse(match[0]);
+      if (!Array.isArray(plan) || !plan.length) throw new Error('תפריט ריק');
+      nutritionPlan = plan;
+      renderNutritionEditor();
+      statusEl.style.color = '#70dd70';
+      statusEl.textContent = `✓ ${plan.length} ארוחות נבנו — בדוק ושמור`;
+    } catch(e) {
+      statusEl.style.color = '#ff7070';
+      statusEl.textContent = 'שגיאה: ' + e.message;
+    }
+    btn.disabled = false; btn.textContent = '✨ בנה תפריט';
+  }
+
+  /* ── NUTRITION EDITOR ── */
+  function renderNutritionEditor() {
+    const el = document.getElementById('nutrition-editor');
+    if (!el) return;
+    if (!nutritionPlan.length) { el.innerHTML = '<div style="color:#444;font-size:0.85rem;padding:8px 0;">אין ארוחות עדיין — לחץ + הוסף ארוחה</div>'; return; }
+
+    const totCal  = Math.round(nutritionPlan.reduce((s,m)=>s+(m.items||[]).reduce((a,i)=>a+(i.calories||0),0),0));
+    const totProt = Math.round(nutritionPlan.reduce((s,m)=>s+(m.items||[]).reduce((a,i)=>a+(i.protein||0),0),0));
+    const totCarb = Math.round(nutritionPlan.reduce((s,m)=>s+(m.items||[]).reduce((a,i)=>a+(i.carbs||0),0),0));
+    const totFat  = Math.round(nutritionPlan.reduce((s,m)=>s+(m.items||[]).reduce((a,i)=>a+(i.fat||0),0),0));
+    const tgCal   = parseInt(document.getElementById('e-cal')?.value)  || 0;
+    const tgProt  = parseInt(document.getElementById('e-prot')?.value) || 0;
+    const tgCarb  = parseInt(document.getElementById('e-carb')?.value) || 0;
+    const tgFat   = parseInt(document.getElementById('e-fat')?.value)  || 0;
+    const pct = (v,t) => t ? Math.min(100, Math.round(v/t*100)) : (v>0?100:0);
+    const bar = (label, val, tg, color) => `
+      <div style="margin-bottom:9px;">
+        <div style="display:flex;justify-content:space-between;font-size:0.75rem;margin-bottom:4px;">
+          <span style="font-weight:700;color:${color};">${label}</span>
+          <span style="color:#ccc;">${val}${label==='קלוריות'?'':' ג׳'}${tg ? ` <span style="color:#555;">/ ${tg}</span>` : ''}</span>
+        </div>
+        <div style="height:6px;background:rgba(255,255,255,0.07);border-radius:3px;overflow:hidden;">
+          <div style="height:100%;width:${pct(val,tg)}%;background:${color};border-radius:3px;transition:width 0.3s;"></div>
+        </div>
+      </div>`;
+
+    const macroBar = `
+      <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:14px 16px;margin-bottom:16px;">
+        ${bar('קלוריות', totCal, tgCal, 'var(--orange)')}
+        ${bar('חלבון',   totProt, tgProt, '#4ade80')}
+        ${bar('פחמימה',  totCarb, tgCarb, '#60a5fa')}
+        ${bar('שומן',    totFat,  tgFat,  '#facc15')}
+      </div>`;
+
+    el.innerHTML = macroBar + nutritionPlan.map((meal, mi) => `
+      <div class="meal-block">
+        <div class="meal-block-head">
+          <input value="${esc(meal.meal)}" oninput="nutritionPlan[${mi}].meal=this.value" placeholder="שם ארוחה (ארוחת בוקר)"/>
+          <div style="display:flex;gap:5px;">
+            <button class="btn-sm btn-outline" style="padding:4px 9px;font-size:0.75rem;" onclick="copyMeal(${mi})">📋 העתק</button>
+            <button class="btn-sm btn-red" onclick="removeMeal(${mi})">הסר ארוחה</button>
+          </div>
+        </div>
+        <div class="nutri-header">
+          <span>מזון</span><span>כמות</span><span>קל׳</span><span>חלבון</span><span>פחמימה</span><span>שומן</span><span></span>
+        </div>
+        <div id="items-wrap-${mi}">
+          ${(meal.items || []).map((item, ii) => itemRow(mi, ii, item)).join('')}
+        </div>
+        <button class="add-link" onclick="addItem(${mi})">+ הוסף מזון</button>
+        ${(meal.protein_options && meal.protein_options.length) || (meal.carbs_options && meal.carbs_options.length) || (meal.fat_options && meal.fat_options.length) ? `
+        <div class="meal-alts">
+          <div style="font-size:0.78rem;font-weight:700;color:#60b4ff;margin-bottom:8px;">חלופות לארוחה זו:</div>
+          ${meal.protein_options && meal.protein_options.length ? `<div class="meal-alts-row"><span class="alt-label">חלבון:</span><span>${meal.protein_options.map(o=>`<span class="alt-pill">${esc(o)}</span>`).join('')}</span></div>` : ''}
+          ${meal.carbs_options && meal.carbs_options.length ? `<div class="meal-alts-row"><span class="alt-label">פחמימה:</span><span>${meal.carbs_options.map(o=>`<span class="alt-pill">${esc(o)}</span>`).join('')}</span></div>` : ''}
+          ${meal.fat_options && meal.fat_options.length ? `<div class="meal-alts-row"><span class="alt-label">שומן:</span><span>${meal.fat_options.map(o=>`<span class="alt-pill">${esc(o)}</span>`).join('')}</span></div>` : ''}
+        </div>` : ''}
+      </div>
+    `).join('');
+  }
+
+  function itemRow(mi, ii, item) {
+    const exp      = item._exp || false;
+    const unitName = item._unit || 'גרם';
+    const qty      = item._qty != null ? item._qty : (unitName === 'גרם' ? 100 : 1);
+    const units    = getUnitsForFood(item.food);
+    const selUnit  = units.find(u => u.name === unitName) || units[0];
+    const totalG   = selUnit ? Math.round(qty * selUnit.grams * 10) / 10 : qty;
+    const altOpen  = item._altOpen || false;
+    const alts     = item.alternatives || [];
+
+    const unitPicker = exp ? `
+      <div style="background:rgba(255,107,0,0.06);border:1px solid rgba(255,107,0,0.2);border-radius:8px;padding:8px 12px;margin-top:4px;">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <span style="font-size:0.8rem;color:var(--muted);flex-shrink:0;">מידה:</span>
+          <select onchange="setItemUnit(${mi},${ii},this.value)"
+            style="padding:5px 8px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.14);border-radius:6px;color:#fff;font-family:'Heebo',sans-serif;font-size:0.82rem;outline:none;cursor:pointer;max-width:200px;">
+            ${units.map(u => `<option value="${esc(u.name)}" ${u.name===unitName?'selected':''}>${esc(u.name)}${u.grams!==1?' ('+u.grams+'g)':''}</option>`).join('')}
+          </select>
+          <span style="font-size:0.8rem;color:var(--muted);">×</span>
+          <input type="number" min="0.1" step="0.1" value="${qty}"
+            style="width:72px;padding:5px 8px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.14);border-radius:6px;color:#fff;font-family:'Heebo',sans-serif;font-size:0.82rem;text-align:center;outline:none;"
+            oninput="setItemQty(${mi},${ii},+this.value)"/>
+          <span style="font-size:0.82rem;color:var(--orange);font-weight:700;">= ${totalG}g</span>
+        </div>
+      </div>` : '';
+
+    const altPanel = altOpen ? `
+      <div style="background:rgba(96,180,255,0.04);border:1px solid rgba(96,180,255,0.2);border-radius:8px;padding:10px 12px;margin-top:5px;">
+        <div style="font-size:0.75rem;color:#60b4ff;font-weight:700;margin-bottom:8px;">🔄 חלופות לפריט זה:</div>
+        ${alts.length ? alts.map((a,ai) => {
+          const _af=allFoodItems.find(f=>f.id===a.food_id||f.name===a.name);
+          const _eqG=(_af&&_af.calories&&item.calories)?Math.round(item.calories/_af.calories*100):null;
+          return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;padding:4px 8px;background:rgba(255,255,255,0.03);border-radius:6px;">
+            <span style="font-size:0.82rem;flex:1;color:#ccc;">${esc(a.name)}</span>
+            ${_eqG?`<span style="font-size:0.75rem;color:var(--orange);font-weight:700;">${_eqG}g</span>`:'<span style="font-size:0.72rem;color:#555;">?g</span>'}
+            <button onmousedown="removeAlt(${mi},${ii},${ai})" style="padding:1px 6px;background:rgba(255,70,70,0.1);border:1px solid rgba(255,70,70,0.3);border-radius:4px;color:#ff7070;cursor:pointer;font-size:0.7rem;">✕</button>
+          </div>`;
+        }).join('') : '<div style="color:#555;font-size:0.78rem;margin-bottom:8px;">אין חלופות עדיין — חפש מאכל מהמאגר</div>'}
+        <div style="position:relative;margin-top:6px;">
+          <input type="text" id="alt-inp-${mi}-${ii}" placeholder="הוסף חלופה — חפש מאכל..." autocomplete="off"
+            style="width:100%;padding:7px 10px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:6px;color:#fff;font-family:'Heebo',sans-serif;font-size:0.8rem;outline:none;"
+            oninput="showAltSuggAdmin(this,${mi},${ii})"
+            onblur="setTimeout(hideAltSuggAdmin,160)"/>
+          <div id="alt-sugg-${mi}-${ii}" style="display:none;position:absolute;top:calc(100% + 2px);right:0;left:0;background:#1e1e1e;border:1px solid rgba(96,180,255,0.3);border-radius:8px;z-index:700;overflow:hidden;box-shadow:0 6px 20px rgba(0,0,0,0.7);max-height:220px;overflow-y:auto;"></div>
+        </div>
+      </div>` : '';
+
+    return `<div style="margin-bottom:6px;">
+      <div class="item-row" id="item-${mi}-${ii}">
+        <div style="display:flex;align-items:center;gap:3px;min-width:0;">
+          <input value="${esc(item.food)}"
+            oninput="nutritionPlan[${mi}].items[${ii}].food=this.value;showFoodSuggAdmin(this,${mi},${ii})"
+            onblur="setTimeout(hideFoodSuggAdmin,160)"
+            autocomplete="off" placeholder="מזון"
+            style="flex:1;min-width:0;padding:6px 8px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:6px;color:#fff;font-family:'Heebo',sans-serif;font-size:0.8rem;outline:none;"/>
+          <button onclick="toggleItemExpand(${mi},${ii})" title="בחר מידה"
+            style="padding:3px 7px;background:${exp?'rgba(255,107,0,0.2)':'rgba(255,255,255,0.04)'};border:1px solid ${exp?'rgba(255,107,0,0.45)':'rgba(255,255,255,0.1)'};border-radius:5px;color:${exp?'var(--orange)':'#666'};cursor:pointer;font-size:0.65rem;flex-shrink:0;">${exp?'▲':'▼'}</button>
+        </div>
+        <input value="${esc(item.quantity)}" oninput="onQuantityInput(${mi},${ii},this.value)" placeholder="כמות"/>
+        <input value="${item.calories||''}" oninput="nutritionPlan[${mi}].items[${ii}].calories=+this.value" placeholder="קל׳" type="number"/>
+        <input value="${item.protein||''}"  oninput="nutritionPlan[${mi}].items[${ii}].protein=+this.value"  placeholder="P"   type="number"/>
+        <input value="${item.carbs||''}"    oninput="nutritionPlan[${mi}].items[${ii}].carbs=+this.value"    placeholder="C"   type="number"/>
+        <input value="${item.fat||''}"      oninput="nutritionPlan[${mi}].items[${ii}].fat=+this.value"      placeholder="F"   type="number"/>
+        <button onclick="toggleItemAlt(${mi},${ii})" style="padding:3px 7px;background:${altOpen||alts.length?'rgba(96,180,255,0.12)':'rgba(255,255,255,0.04)'};border:1px solid ${altOpen||alts.length?'rgba(96,180,255,0.4)':'rgba(255,255,255,0.1)'};border-radius:5px;color:${altOpen||alts.length?'#60b4ff':'#555'};cursor:pointer;font-size:0.65rem;flex-shrink:0;" title="הוסף חלופות">🔄${alts.length?' '+alts.length:''}</button>
+        <button class="btn-sm btn-red" onclick="removeItem(${mi},${ii})">✕</button>
+      </div>
+      ${unitPicker}${altPanel}
+    </div>`;
+  }
+
+  function addMeal() {
+    nutritionPlan.push({ meal: '', items: [] });
+    renderNutritionEditor();
+  }
+  function removeMeal(i) {
+    nutritionPlan.splice(i, 1);
+    renderNutritionEditor();
+  }
+  function addItem(mi) {
+    nutritionPlan[mi].items.push({ food: '', quantity: '', calories: 0, protein: 0, carbs: 0, fat: 0 });
+    renderNutritionEditor();
+  }
+  function removeItem(mi, ii) {
+    nutritionPlan[mi].items.splice(ii, 1);
+    renderNutritionEditor();
+  }
+
+  async function saveNutrition() {
+    const { error } = await sb.from('nutrition_plans')
+      .upsert({ client_email: activeEmail, plan: nutritionPlan, updated_at: new Date().toISOString() }, { onConflict: 'client_email' });
+    error ? toast('שגיאה בשמירה', 'err') : toast('תפריט נשמר ✓', 'ok');
+  }
+
+  /* ── PROFILE ── */
+  async function saveProfile() {
+    const name       = document.getElementById('e-name').value.trim();
+    const phone      = document.getElementById('e-phone').value.trim();
+    const coachEmail = document.getElementById('e-coach').value || null;
+    const start = document.getElementById('e-start').value;
+    const end   = document.getElementById('e-end').value;
+    const plan  = document.getElementById('e-plan').value;
+    const cal    = parseInt(document.getElementById('e-cal').value)    || null;
+    const prot   = parseInt(document.getElementById('e-prot').value)   || null;
+    const carb   = parseInt(document.getElementById('e-carb').value)   || null;
+    const fat    = parseInt(document.getElementById('e-fat').value)    || null;
+    const water  = parseFloat(document.getElementById('e-water').value)  || null;
+    const weight = parseFloat(document.getElementById('e-weight').value) || null;
+    const { error } = await sb.from('clients')
+      .update({ name, phone, coach_email: coachEmail, coaching_start: start, coaching_end: end, plan_type: plan,
+                target_calories: cal, target_protein: prot, target_carbs: carb, target_fat: fat,
+                target_water: water, current_weight: weight })
+      .eq('email', activeEmail);
+    if (error) { toast('שגיאה בשמירה', 'err'); return; }
+    await loadClients();
+    toast('פרטים נשמרו ✓', 'ok');
+  }
+
+  async function setClientPassword() {
+    const phone = document.getElementById('e-phone').value.trim();
+    const email = activeEmail;
+    if (!phone) { toast('יש להזין מספר טלפון קודם', 'err'); return; }
+    const password = phone.replace(/\D/g, '');
+    if (password.length < 6) { toast('מספר טלפון קצר מדי (מינימום 6 ספרות)', 'err'); return; }
+    if (SERVICE_KEY === 'YOUR_SERVICE_ROLE_KEY_HERE') { toast('יש להכניס SERVICE_KEY בקוד קודם', 'err'); return; }
+
+    const { data: { users }, error: listErr } = await sbAdmin.auth.admin.listUsers({ perPage: 1000 });
+    if (listErr) { toast('שגיאה: ' + listErr.message, 'err'); return; }
+
+    const user = users.find(u => u.email === email);
+    if (user) {
+      const { error } = await sbAdmin.auth.admin.updateUserById(user.id, { password });
+      if (error) { toast('שגיאה בעדכון סיסמה: ' + error.message, 'err'); return; }
+    } else {
+      const { error } = await sbAdmin.auth.admin.createUser({ email, password, email_confirm: true });
+      if (error) { toast('שגיאה ביצירת משתמש: ' + error.message, 'err'); return; }
+    }
+    toast(`✓ סיסמה הוגדרה: ${password}`, 'ok');
+  }
+
+  async function deleteClient(email) {
+    if (!confirm(`למחוק את ${email}? לא ניתן לשחזר.`)) return;
+    await sb.from('clients').delete().eq('email', email);
+    activeEmail = null;
+    document.getElementById('main-area').innerHTML = '<div class="no-select">← בחר לקוח מהרשימה</div>';
+    await loadClients();
+    toast('לקוח נמחק', 'ok');
+  }
+
+  /* ── ADD CLIENT MODAL ── */
+  function openAddModal(coachEmail = null) {
+    addClientForCoach = coachEmail || null;
+    const titleEl = document.querySelector('#add-modal h3');
+    if (titleEl) {
+      const coachObj = coachEmail ? coachesList.find(c => c.email === coachEmail) : null;
+      titleEl.innerHTML = coachObj
+        ? `הוסף מתאמן ל<span>${esc(coachObj.name)}</span>`
+        : 'הוסף <span>לקוח חדש</span>';
+    }
+    document.getElementById('add-modal').classList.add('open');
+  }
+  function closeAddModal() {
+    document.getElementById('add-modal').classList.remove('open');
+    document.getElementById('add-err').style.display = 'none';
+    addClientForCoach = null;
+  }
+
+  async function addClient() {
+    const name  = document.getElementById('new-name').value.trim();
+    const email = document.getElementById('new-email').value.trim();
+    const start = document.getElementById('new-start').value;
+    const end   = document.getElementById('new-end').value;
+    const plan  = document.getElementById('new-plan').value;
+    const errEl = document.getElementById('add-err');
+    const btn   = document.getElementById('add-btn');
+    errEl.style.display = 'none';
+    if (!name || !email || !start || !end) { errEl.textContent = 'יש למלא את כל השדות'; errEl.style.display = 'block'; return; }
+    btn.disabled = true; btn.textContent = 'מוסיף...';
+
+    // Insert client record — הלקוח מתחבר דרך Magic Link בלבד
+    const insertData = { email, name, coaching_start: start, coaching_end: end, plan_type: plan };
+    if (addClientForCoach) insertData.coach_email = addClientForCoach;
+    const { error: insErr } = await sb.from('clients').insert(insertData);
+    btn.disabled = false; btn.textContent = 'הוסף לקוח';
+    if (insErr) { errEl.textContent = insErr.message; errEl.style.display = 'block'; return; }
+
+    const wasForCoach = !!addClientForCoach;
+    closeAddModal();
+    await loadClients();
+    if (wasForCoach) renderCoachesTable();
+    toast(`${name} נוסף בהצלחה ✓`, 'ok');
+  }
+
+  /* ── UTILS ── */
+  function toggleMobileSidebar() {
+    document.getElementById('sidebar').classList.toggle('mob-open');
+    document.querySelector('.sidebar-bd').classList.toggle('open');
+  }
+  function closeMobileSidebar() {
+    document.getElementById('sidebar').classList.remove('mob-open');
+    document.querySelector('.sidebar-bd').classList.remove('open');
+  }
+
+  function esc(s) { return (s || '').replace(/"/g, '&quot;').replace(/</g, '&lt;'); }
+
+  function toast(msg, type = 'ok') {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.className = 'toast ' + type + ' show';
+    setTimeout(() => el.classList.remove('show'), 2500);
+  }
+
+  async function logout() {
+    await sb.auth.signOut();
+    window.location.href = 'login.html';
+  }
+
+  /* ── CLIENT WORKOUT LOGS ── */
+  async function loadClientLogs(email) {
+    const el = document.getElementById('client-logs-wrap');
+    if (!el) return;
+    const { data } = await sb.from('workout_logs').select('*')
+      .eq('client_email', email)
+      .order('log_date', { ascending: false })
+      .order('created_at', { ascending: false })
+      .limit(30);
+    renderClientLogs(data || []);
+  }
+
+  function renderClientLogs(logs) {
+    const el = document.getElementById('client-logs-wrap');
+    if (!el) return;
+    if (!logs.length) {
+      el.innerHTML = '<div style="color:#444;font-size:0.85rem;">הלקוח עדיין לא תיעד אימונים</div>';
+      return;
+    }
+    el.innerHTML = logs.map((log, li) => {
+      const d = new Date(log.log_date + 'T12:00:00');
+      const dateStr = d.toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit', year: 'numeric' });
+      return `
+        <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:10px;margin-bottom:6px;overflow:hidden;">
+          <div style="padding:10px 14px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='block'?'none':'block'">
+            <div>
+              <div style="font-size:0.88rem;font-weight:700;">${dateStr}</div>
+              <div style="font-size:0.78rem;color:var(--orange);margin-top:2px;">${esc(log.day_name)}</div>
+            </div>
+            <span style="color:var(--orange);font-size:0.75rem;">▼</span>
+          </div>
+          <div style="display:none;padding:0 14px 12px;">
+            ${(log.exercises || []).map(ex => `
+              <div style="padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.04);">
+                <div style="font-size:0.82rem;font-weight:700;color:var(--gold);margin-bottom:3px;">${esc(ex.name)}</div>
+                <div style="font-size:0.8rem;color:var(--muted);">
+                  ${(ex.sets || []).map((s, i) => `סט ${i+1}: <span style="color:#fff">${s.weight||'—'} ק"ג × ${s.reps||'—'}</span>`).join(' &nbsp;|&nbsp; ')}
+                </div>
+              </div>
+            `).join('')}
+            ${log.notes ? `<div style="margin-top:8px;font-size:0.8rem;color:var(--muted);">📝 ${esc(log.notes)}</div>` : ''}
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  /* ── EXERCISE LIBRARY (autocomplete) ── */
+  async function loadExerciseLibrary() {
+    const { data } = await sb.from('exercises').select('id,name,muscle_group,sub_muscle_group,compound').order('name');
+    exerciseLibrary = data || [];
+  }
+
+  function updateSubMuscles(selectedSub) {
+    const muscle = document.getElementById('ex-muscle').value;
+    const subs = MUSCLE_HIERARCHY[muscle] || [];
+    const select = document.getElementById('ex-sub-muscle');
+    select.innerHTML = `<option value="">— כללי —</option>` +
+      subs.map(s => `<option value="${s}"${s === selectedSub ? ' selected' : ''}>${s}</option>`).join('');
+  }
+
+  function renderSecondaryPills(selected) {
+    exSecondaryMuscles = [...(selected || [])];
+    const wrap = document.getElementById('ex-secondary-wrap');
+    if (!wrap) return;
+    wrap.innerHTML = Object.keys(MUSCLE_HIERARCHY).map(m => {
+      const active = exSecondaryMuscles.includes(m);
+      return `<button type="button" class="muscle-pill${active ? ' muscle-active' : ''}" onclick="toggleSecondary('${m}',this)" style="font-size:0.72rem;padding:3px 9px;">${m}</button>`;
+    }).join('');
+  }
+
+  function toggleSecondary(muscle, btn) {
+    const idx = exSecondaryMuscles.indexOf(muscle);
+    if (idx === -1) { exSecondaryMuscles.push(muscle); btn.classList.add('muscle-active'); }
+    else { exSecondaryMuscles.splice(idx, 1); btn.classList.remove('muscle-active'); }
+  }
+
+  function showExSugg(input, di, ei) {
+    hideExSugg();
+    trainingPlan[di].exercises[ei].name = input.value;
+    const q = input.value.trim().toLowerCase();
+    if (!q) return;
+    const matches = exerciseLibrary.filter(e => e.name.toLowerCase().includes(q)).slice(0, 8);
+    if (!matches.length) return;
+
+    const rect = input.getBoundingClientRect();
+    const drop = document.createElement('div');
+    drop.id = 'ex-sugg-drop';
+    drop.style.cssText = `position:fixed;top:${rect.bottom + 2}px;right:${window.innerWidth - rect.right}px;
+      width:${rect.width}px;background:#1e1e1e;border:1px solid rgba(255,107,0,0.4);
+      border-radius:8px;z-index:500;overflow:hidden;box-shadow:0 6px 20px rgba(0,0,0,0.6);`;
+
+    matches.forEach(ex => {
+      const item = document.createElement('div');
+      item.style.cssText = 'padding:9px 12px;cursor:pointer;font-size:0.85rem;border-bottom:1px solid rgba(255,255,255,0.05);display:flex;justify-content:space-between;align-items:center;';
+      const label = ex.sub_muscle_group ? `${ex.muscle_group} › ${ex.sub_muscle_group}` : ex.muscle_group;
+      item.innerHTML = `<span>${hlMatch(ex.name, q)}</span><span style="font-size:0.72rem;color:var(--muted);">${label}</span>`;
+      item.onmousedown = () => {
+        trainingPlan[di].exercises[ei].name = ex.name;
+        input.value = ex.name;
+        hideExSugg();
+      };
+      item.onmouseover = () => item.style.background = 'rgba(255,107,0,0.1)';
+      item.onmouseout  = () => item.style.background = '';
+      drop.appendChild(item);
+    });
+
+    document.body.appendChild(drop);
+  }
+
+  function hideExSugg() {
+    const d = document.getElementById('ex-sugg-drop');
+    if (d) d.remove();
+  }
+
+  function hlMatch(name, q) {
+    const idx = name.toLowerCase().indexOf(q);
+    if (idx === -1) return esc(name);
+    return esc(name.slice(0, idx)) +
+      `<span style="color:var(--orange);font-weight:700;">${esc(name.slice(idx, idx + q.length))}</span>` +
+      esc(name.slice(idx + q.length));
+  }
+
+  document.addEventListener('click', e => {
+    const drop = document.getElementById('ex-sugg-drop');
+    if (drop && !drop.contains(e.target)) hideExSugg();
+    const fdrop = document.getElementById('food-sugg-admin');
+    if (fdrop && !fdrop.contains(e.target)) hideFoodSuggAdmin();
+    if (!e.target.closest('[id^="alt-sugg-"]') && !e.target.closest('[id^="alt-inp-"]')) hideAltSuggAdmin();
+  });
+
+  /* ── FOOD AUTOCOMPLETE (nutrition editor) ── */
+  function showFoodSuggAdmin(input, mi, ii) {
+    hideFoodSuggAdmin();
+    const q = input.value.trim();
+    if (!q || !allFoodItems.length) return;
+    const matches = allFoodItems.filter(f => f.name.includes(q)).slice(0, 8);
+    if (!matches.length) return;
+
+    const rect = input.getBoundingClientRect();
+    const drop = document.createElement('div');
+    drop.id = 'food-sugg-admin';
+    drop.style.cssText = `position:fixed;top:${rect.bottom+2}px;right:${window.innerWidth-rect.right}px;
+      min-width:${rect.width+180}px;background:#1e1e1e;border:1px solid rgba(255,107,0,0.4);
+      border-radius:8px;z-index:600;overflow:hidden;box-shadow:0 6px 24px rgba(0,0,0,0.7);`;
+
+    matches.forEach(f => {
+      const item = document.createElement('div');
+      item.style.cssText = 'padding:9px 12px;cursor:pointer;font-size:0.85rem;border-bottom:1px solid rgba(255,255,255,0.05);display:flex;justify-content:space-between;align-items:center;gap:12px;';
+      item.innerHTML = `<span style="font-weight:600;">${esc(f.name)}</span>
+        <span style="font-size:0.72rem;color:#888;white-space:nowrap;">${f.calories}קק"ל | P${f.protein}g C${f.carbs}g F${f.fat}g</span>`;
+      item.onmousedown = () => {
+        nutritionPlan[mi].items[ii].food     = f.name;
+        nutritionPlan[mi].items[ii].calories = f.calories;
+        nutritionPlan[mi].items[ii].protein  = f.protein;
+        nutritionPlan[mi].items[ii].carbs    = f.carbs;
+        nutritionPlan[mi].items[ii].fat      = f.fat;
+        if (!nutritionPlan[mi].items[ii].quantity) nutritionPlan[mi].items[ii].quantity = '100 גרם';
+        hideFoodSuggAdmin();
+        renderNutritionEditor();
+      };
+      item.onmouseover = () => item.style.background = 'rgba(255,107,0,0.1)';
+      item.onmouseout  = () => item.style.background = '';
+      drop.appendChild(item);
+    });
+    document.body.appendChild(drop);
+  }
+
+  function hideFoodSuggAdmin() {
+    const d = document.getElementById('food-sugg-admin');
+    if (d) d.remove();
+  }
+
+  function toggleItemAlt(mi, ii) {
+    const item = nutritionPlan[mi].items[ii];
+    item._altOpen = !item._altOpen;
+    renderNutritionEditor();
+  }
+  function addAlt(mi, ii, foodId, foodName) {
+    const item = nutritionPlan[mi].items[ii];
+    if (!item.alternatives) item.alternatives = [];
+    if (!item.alternatives.some(a => a.name === foodName))
+      item.alternatives.push({ food_id: foodId, name: foodName });
+    hideAltSuggAdmin();
+    renderNutritionEditor();
+  }
+  function removeAlt(mi, ii, ai) {
+    nutritionPlan[mi].items[ii].alternatives.splice(ai, 1);
+    renderNutritionEditor();
+  }
+  function showAltSuggAdmin(input, mi, ii) {
+    hideAltSuggAdmin();
+    const q = input.value.trim();
+    if (!q || !allFoodItems.length) return;
+    const matches = allFoodItems.filter(f => f.name.includes(q)).slice(0, 7);
+    const drop = document.getElementById(`alt-sugg-${mi}-${ii}`);
+    if (!drop || !matches.length) return;
+    drop.innerHTML = '';
+    drop.style.display = 'block';
+    matches.forEach(f => {
+      const el = document.createElement('div');
+      el.style.cssText = 'padding:8px 12px;cursor:pointer;font-size:0.82rem;border-bottom:1px solid rgba(255,255,255,0.04);color:#fff;';
+      el.innerHTML = `<span style="font-weight:700;">${esc(f.name)}</span> <span style="color:#888;font-size:0.75rem;">${f.calories} קל׳/100g</span>`;
+      el.onmouseover = () => el.style.background = 'rgba(96,180,255,0.1)';
+      el.onmouseout  = () => el.style.background = '';
+      el.onmousedown = () => addAlt(mi, ii, f.id, f.name);
+      drop.appendChild(el);
+    });
+  }
+  function hideAltSuggAdmin() {
+    document.querySelectorAll('[id^="alt-sugg-"]').forEach(el => { el.style.display='none'; el.innerHTML=''; });
+  }
+
+  /* ── EXERCISES MANAGEMENT ── */
+  let allAdminExercises = [];
+  let editingExId  = null;
+  let exercisesMode = false;
+  let activeExTab = 'הכל';
+  const EX_MUSCLES = ['חזה','גב','כתפיים','יד אחורית','יד קדמית','אמות','4 ראשי','המסטרינג','ישבן','עגל','ליבה'];
+
+  /* ── RECIPES ── */
+  let allAdminRecipes = [];
+  let editingRcId  = null;
+  let recipesMode  = false;
+
+  async function toggleRecipeView() {
+    recipesMode = !recipesMode;
+    if (recipesMode) exercisesMode = false;
+    const btn   = document.getElementById('btn-rc-view');
+    const exBtn = document.getElementById('btn-ex-view');
+    exBtn.textContent = '💪 תרגילים'; exBtn.style.color = '#FFD700'; exBtn.style.borderColor = 'rgba(255,215,0,0.35)';
+    if (recipesMode) {
+      btn.textContent = '← לקוחות';
+      btn.style.color = 'var(--muted)';
+      btn.style.borderColor = 'rgba(255,255,255,0.2)';
+      activeEmail = null;
+      await loadAdminRecipes();
+      renderRecipesMain();
+    } else {
+      btn.textContent = '🍳 מתכונים';
+      btn.style.color = '#FFD700';
+      btn.style.borderColor = 'rgba(255,215,0,0.35)';
+      renderSidebar();
+      document.getElementById('main-area').innerHTML = '<div class="no-select">← בחר לקוח מהרשימה</div>';
+    }
+  }
+
+  async function loadAdminRecipes() {
+    const { data } = await sb.from('recipes').select('*').order('category').order('name');
+    allAdminRecipes = data || [];
+  }
+
+  function renderRecipesMain() {
+    document.getElementById('main-area').innerHTML = `
+      <div class="sec-card">
+        <div class="sec-card-title">🍳 ספר מתכונים
+          <button class="btn-sm btn-orange" onclick="openAddRcModal()">+ הוסף מתכון</button>
+        </div>
+        <div id="rc-table-wrap"></div>
+      </div>`;
+    renderRcTable();
+  }
+
+  function renderRcTable() {
+    const el = document.getElementById('rc-table-wrap');
+    if (!el) return;
+    if (!allAdminRecipes.length) { el.innerHTML = '<div style="color:#444;font-size:0.85rem;padding:8px 0;">אין מתכונים עדיין</div>'; return; }
+    const cats = {};
+    allAdminRecipes.forEach(r => { if (!cats[r.category]) cats[r.category] = []; cats[r.category].push(r); });
+    el.innerHTML = Object.entries(cats).map(([cat, list]) => `
+      <div style="margin-bottom:20px;">
+        <div style="font-size:0.78rem;font-weight:900;color:var(--orange);letter-spacing:1px;margin-bottom:8px;padding-bottom:5px;border-bottom:1px solid rgba(255,107,0,0.15);">${cat}</div>
+        ${list.map(r => `
+          <div style="display:flex;align-items:center;gap:12px;padding:8px 10px;background:rgba(255,255,255,0.03);border-radius:8px;margin-bottom:4px;">
+            <span style="font-size:0.88rem;font-weight:600;flex:1;">${esc(r.name)}</span>
+            <span style="font-size:0.75rem;color:var(--muted);">${r.calories ? r.calories + ' קק"ל' : ''}</span>
+            <button class="btn-sm btn-outline" style="padding:4px 10px;font-size:0.75rem;" onclick="openEditRcModal('${r.id}')">ערוך</button>
+            <button class="btn-sm btn-red" onclick="deleteRecipe('${r.id}')">מחק</button>
+          </div>`).join('')}
+      </div>`).join('');
+  }
+
+  function openAddRcModal() {
+    editingRcId = null;
+    document.getElementById('recipe-modal-title').textContent = 'הוסף';
+    ['rc-name','rc-time','rc-cal','rc-prot','rc-carb','rc-fat','rc-ingredients','rc-instructions'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('rc-cat').value = 'ארוחת בוקר';
+    document.getElementById('rc-err').style.display = 'none';
+    document.getElementById('recipe-modal').classList.add('open');
+  }
+
+  function openEditRcModal(id) {
+    const r = allAdminRecipes.find(x => String(x.id) === String(id));
+    if (!r) return;
+    editingRcId = id;
+    document.getElementById('recipe-modal-title').textContent = 'ערוך';
+    document.getElementById('rc-name').value         = r.name || '';
+    document.getElementById('rc-cat').value          = r.category || 'ארוחת בוקר';
+    document.getElementById('rc-time').value         = r.prep_time || '';
+    document.getElementById('rc-cal').value          = r.calories || '';
+    document.getElementById('rc-prot').value         = r.protein || '';
+    document.getElementById('rc-carb').value         = r.carbs || '';
+    document.getElementById('rc-fat').value          = r.fat || '';
+    document.getElementById('rc-ingredients').value  = Array.isArray(r.ingredients) ? r.ingredients.join('\n') : '';
+    document.getElementById('rc-instructions').value = r.instructions || '';
+    document.getElementById('rc-err').style.display  = 'none';
+    document.getElementById('recipe-modal').classList.add('open');
+  }
+
+  function closeRcModal() { document.getElementById('recipe-modal').classList.remove('open'); }
+
+  async function saveRecipe() {
+    const name  = document.getElementById('rc-name').value.trim();
+    const errEl = document.getElementById('rc-err');
+    const btn   = document.getElementById('rc-save-btn');
+    errEl.style.display = 'none';
+    if (!name) { errEl.textContent = 'יש להזין שם מתכון'; errEl.style.display = 'block'; return; }
+    const ings = document.getElementById('rc-ingredients').value.split('\n').map(s => s.trim()).filter(Boolean);
+    const payload = {
+      name,
+      category:     document.getElementById('rc-cat').value,
+      prep_time:    parseInt(document.getElementById('rc-time').value)  || null,
+      calories:     parseInt(document.getElementById('rc-cal').value)   || null,
+      protein:      parseInt(document.getElementById('rc-prot').value)  || null,
+      carbs:        parseInt(document.getElementById('rc-carb').value)  || null,
+      fat:          parseInt(document.getElementById('rc-fat').value)   || null,
+      ingredients:  ings.length ? ings : null,
+      instructions: document.getElementById('rc-instructions').value.trim() || null,
+    };
+    btn.disabled = true; btn.textContent = 'שומר...';
+    let error;
+    if (editingRcId) {
+      ({ error } = await sb.from('recipes').update(payload).eq('id', editingRcId));
+    } else {
+      ({ error } = await sb.from('recipes').insert(payload));
+    }
+    btn.disabled = false; btn.textContent = 'שמור';
+    if (error) { errEl.textContent = error.message; errEl.style.display = 'block'; return; }
+    closeRcModal();
+    await loadAdminRecipes();
+    renderRcTable();
+    toast(editingRcId ? 'מתכון עודכן ✓' : 'מתכון נוסף ✓', 'ok');
+  }
+
+  async function deleteRecipe(id) {
+    if (!confirm('למחוק מתכון זה?')) return;
+    const { error } = await sb.from('recipes').delete().eq('id', id);
+    if (error) { toast('שגיאה במחיקה', 'err'); return; }
+    await loadAdminRecipes();
+    renderRcTable();
+    toast('מתכון נמחק', 'ok');
+  }
+
+  async function toggleExView() {
+    exercisesMode = !exercisesMode;
+    if (exercisesMode) recipesMode = false;
+    const btn   = document.getElementById('btn-ex-view');
+    const rcBtn = document.getElementById('btn-rc-view');
+    rcBtn.textContent = '🍳 מתכונים'; rcBtn.style.color = '#FFD700'; rcBtn.style.borderColor = 'rgba(255,215,0,0.35)';
+    if (exercisesMode) {
+      btn.textContent = '← לקוחות';
+      btn.style.color = 'var(--muted)';
+      btn.style.borderColor = 'rgba(255,255,255,0.2)';
+      activeEmail = null;
+      await loadExercises();
+      renderExercisesMain();
+    } else {
+      btn.textContent = '💪 תרגילים';
+      btn.style.color = '#FFD700';
+      btn.style.borderColor = 'rgba(255,215,0,0.35)';
+      renderSidebar();
+      document.getElementById('main-area').innerHTML = '<div class="no-select">← בחר לקוח מהרשימה</div>';
+    }
+  }
+
+  async function loadExercises() {
+    const { data } = await sb.from('exercises').select('*').order('muscle_group').order('name');
+    allAdminExercises = data || [];
+  }
+
+  function renderExercisesMain() {
+    const tabs = ['הכל', ...EX_MUSCLES];
+    document.getElementById('main-area').innerHTML = `
+      <div class="sec-card">
+        <div class="sec-card-title">💪 מאגר תרגילים
+          <button class="btn-sm btn-orange" onclick="openAddExModal()">+ הוסף תרגיל</button>
+        </div>
+        <div class="ai-box">
+          <div class="ai-box-title">✨ הוסף תרגילים עם AI</div>
+          <textarea class="ai-textarea" id="ai-ex-prompt" placeholder="תאר אילו תרגילים להוסיף...&#10;דוגמה: הוסף את כל תרגילי החזה המורכבים והמבודדים, או: הוסף 5 תרגילי כתפיים מגוונים"></textarea>
+          <div style="display:flex;align-items:center;margin-top:10px;">
+            <button class="btn-sm btn-orange" id="ai-ex-btn" onclick="addExercisesWithAI()">✨ הוסף למאגר</button>
+            <span class="ai-status" id="ai-ex-status"></span>
+          </div>
+        </div>
+        <div class="lib-tabs" id="ex-tabs">
+          ${tabs.map(t=>`<button class="lib-tab${t===activeExTab?' active':''}" onclick="setExTab('${t}')">${t}</button>`).join('')}
+        </div>
+        <div id="ex-table-wrap"></div>
+      </div>
+    `;
+    renderExTable();
+  }
+
+  function setExTab(tab) {
+    activeExTab = tab;
+    document.querySelectorAll('#ex-tabs .lib-tab').forEach(b => b.classList.toggle('active', b.textContent === tab));
+    renderExTable();
+  }
+
+  async function addExercisesWithAI() {
+    const prompt = document.getElementById('ai-ex-prompt').value.trim();
+    const statusEl = document.getElementById('ai-ex-status');
+    const btn = document.getElementById('ai-ex-btn');
+    if (!prompt) { statusEl.style.color='#ff7070'; statusEl.textContent='יש לתאר מה להוסיף'; return; }
+    btn.disabled = true; btn.textContent = '⏳ עובד...';
+    statusEl.style.color = 'var(--muted)'; statusEl.textContent = '';
+
+    // זיהוי פקודת איפוס
+    const isReset = /אפס|מחק הכל|נקה הכל|רשימה חדשה|התחל מחדש|clear|reset/i.test(prompt);
+    try {
+      if (isReset) {
+        statusEl.textContent = 'מוחק את כל התרגילים...';
+        const { error: delErr } = await sb.from('exercises').delete().not('id', 'is', null);
+        if (delErr) throw new Error(delErr.message);
+        allAdminExercises = [];
+        renderExTable();
+        statusEl.style.color = '#70dd70';
+        statusEl.textContent = '✓ המאגר אופס בהצלחה';
+        btn.disabled = false; btn.textContent = '✨ הוסף למאגר';
+        return;
+      }
+
+      statusEl.textContent = 'Claude בונה רשימה...';
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type':'application/json','x-api-key':CLAUDE_KEY,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-6',
+          max_tokens: 4096,
+          messages: [{ role: 'user', content:
+`החזר JSON array בלבד. אל תוסיף שום טקסט מחוץ ל-[...].
+
+⚠️ חוק ראשון: הוסף אך ורק תרגילים שקשורים ישירות לבקשה. אסור להוסיף תרגילים אחרים.
+בקשה: "${prompt}"
+
+ערכים חוקיים בלבד:
+muscle_group: חזה | גב | כתפיים | יד קדמית | יד אחורית | אמות | 4 ראשי | המסטרינג | ישבן | עגל | ליבה
+equipment: משקל גוף | בר / מוט | משקולות | כבל | מכונה | סמיט | TRX / רצועות | קטלבל
+difficulty: מתחיל | ביניים | מתקדם | כל הרמות
+
+[{"name":"שם בעברית","muscle_group":"חזה","sub_muscle_group":"חזה עליון","equipment":"בר / מוט","difficulty":"ביניים"}]` }]
+        })
+      });
+      if (!res.ok) { const e = await res.json(); throw new Error(e.error?.message || `HTTP ${res.status}`); }
+      const data = await res.json();
+      const raw = data.content[0].text.trim().replace(/```json\s*/gi,'').replace(/```/g,'').trim();
+      const match = raw.match(/\[[\s\S]*\]/);
+      if (!match) throw new Error('המודל לא החזיר JSON תקין — נסה שוב');
+      const parsed = JSON.parse(match[0]);
+      const VALID_MG = ['חזה','גב','כתפיים','יד קדמית','יד אחורית','אמות','4 ראשי','המסטרינג','ישבן','עגל','ליבה'];
+      const VALID_EQ = ['משקל גוף','בר / מוט','משקולות','כבל','מכונה','סמיט','TRX / רצועות','קטלבל'];
+      const VALID_DI = ['מתחיל','ביניים','מתקדם','כל הרמות'];
+      const exercises = parsed.filter(e => e.name && typeof e.name === 'string').map(e => ({
+        name: String(e.name).trim(),
+        muscle_group: VALID_MG.includes(e.muscle_group) ? e.muscle_group : VALID_MG.find(g => String(e.muscle_group||'').includes(g)) || 'ליבה',
+        sub_muscle_group: String(e.sub_muscle_group || '').trim(),
+        equipment: VALID_EQ.includes(e.equipment) ? e.equipment : 'מכונה',
+        difficulty: VALID_DI.includes(e.difficulty) ? e.difficulty : 'ביניים',
+      }));
+      if (!exercises.length) throw new Error('רשימה ריקה');
+
+      const { error } = await sb.from('exercises').insert(exercises);
+      if (error) throw new Error(error.message);
+
+      await loadExercises();
+      renderExTable();
+      statusEl.style.color = '#70dd70';
+      statusEl.textContent = `✓ ${exercises.length} תרגילים נוספו`;
+    } catch(e) {
+      statusEl.style.color = '#ff7070';
+      statusEl.textContent = 'שגיאה: ' + e.message;
+    }
+    btn.disabled = false; btn.textContent = '✨ הוסף למאגר';
+  }
+
+  function renderExTable() {
+    const el = document.getElementById('ex-table-wrap');
+    if (!el) return;
+    const filtered = activeExTab === 'הכל'
+      ? allAdminExercises
+      : allAdminExercises.filter(ex => ex.muscle_group === activeExTab);
+    if (!filtered.length) {
+      el.innerHTML = '<div style="color:#444;font-size:0.85rem;padding:8px 0;">אין תרגילים עדיין</div>';
+      return;
+    }
+    const groups = {};
+    filtered.forEach(ex => {
+      if (!groups[ex.muscle_group]) groups[ex.muscle_group] = [];
+      groups[ex.muscle_group].push(ex);
+    });
+    el.innerHTML = Object.entries(groups).map(([muscle, exes]) => `
+      <div style="margin-bottom:20px;">
+        <div style="font-size:0.78rem;font-weight:900;color:var(--orange);letter-spacing:1px;margin-bottom:8px;padding-bottom:5px;border-bottom:1px solid rgba(255,107,0,0.15);">${muscle} <span style="color:#555;font-weight:400;">(${exes.length})</span></div>
+        ${exes.map(ex => `
+          <div style="display:flex;align-items:center;gap:12px;padding:8px 10px;background:rgba(255,255,255,0.03);border-radius:8px;margin-bottom:4px;">
+            <span style="font-size:0.88rem;font-weight:600;flex:1;">${esc(ex.name)}</span>
+            <span style="font-size:0.75rem;color:#aaa;">${esc(ex.sub_muscle_group||'')}</span>
+            <span style="font-size:0.75rem;${ex.video_url ? 'color:#4ade80' : 'color:#555'};">${ex.video_url ? '▶ סרטון' : '—'}</span>
+            <button class="btn-sm btn-outline" style="padding:4px 10px;font-size:0.75rem;" onclick="openEditExModal('${ex.id}')">ערוך</button>
+            <button class="btn-sm btn-red" onclick="deleteExercise('${ex.id}')">מחק</button>
+          </div>
+        `).join('')}
+      </div>
+    `).join('');
+  }
+
+  function openAddExModal() {
+    editingExId = null;
+    document.getElementById('ex-modal-title').textContent = 'הוסף תרגיל';
+    document.getElementById('ex-name').value       = '';
+    document.getElementById('ex-muscle').value     = 'חזה';
+    document.getElementById('ex-video').value      = '';
+    document.getElementById('ex-desc').value       = '';
+    document.getElementById('ex-equipment').value  = '';
+    document.getElementById('ex-difficulty').value = 'כל הרמות';
+    document.getElementById('ex-compound').checked = false;
+    document.getElementById('ex-err').style.display = 'none';
+    updateSubMuscles();
+    renderSecondaryPills([]);
+    document.getElementById('ex-modal').classList.add('open');
+  }
+
+  function openEditExModal(id) {
+    const ex = allAdminExercises.find(e => String(e.id) === String(id));
+    if (!ex) return;
+    editingExId = id;
+    document.getElementById('ex-modal-title').textContent = 'ערוך תרגיל';
+    document.getElementById('ex-name').value       = ex.name || '';
+    document.getElementById('ex-muscle').value     = ex.muscle_group || 'חזה';
+    document.getElementById('ex-video').value      = ex.video_url || '';
+    document.getElementById('ex-desc').value       = ex.description || '';
+    document.getElementById('ex-equipment').value  = ex.equipment || '';
+    document.getElementById('ex-difficulty').value = ex.difficulty || 'כל הרמות';
+    document.getElementById('ex-compound').checked = !!ex.compound;
+    document.getElementById('ex-err').style.display = 'none';
+    updateSubMuscles(ex.sub_muscle_group || '');
+    renderSecondaryPills(ex.secondary_muscles || []);
+    document.getElementById('ex-modal').classList.add('open');
+  }
+
+  function closeExModal() {
+    document.getElementById('ex-modal').classList.remove('open');
+  }
+
+  async function saveExercise() {
+    const name       = document.getElementById('ex-name').value.trim();
+    const muscle     = document.getElementById('ex-muscle').value;
+    const subMuscle  = document.getElementById('ex-sub-muscle').value;
+    const video      = document.getElementById('ex-video').value.trim();
+    const desc       = document.getElementById('ex-desc').value.trim();
+    const equipment  = document.getElementById('ex-equipment').value;
+    const difficulty = document.getElementById('ex-difficulty').value;
+    const compound   = document.getElementById('ex-compound').checked;
+    const errEl = document.getElementById('ex-err');
+    const btn   = document.getElementById('ex-save-btn');
+    errEl.style.display = 'none';
+    if (!name) { errEl.textContent = 'יש להזין שם תרגיל'; errEl.style.display = 'block'; return; }
+    btn.disabled = true; btn.textContent = 'שומר...';
+
+    const payload = {
+      name,
+      muscle_group:      muscle,
+      sub_muscle_group:  subMuscle  || null,
+      secondary_muscles: exSecondaryMuscles.length ? exSecondaryMuscles : null,
+      equipment:         equipment  || null,
+      difficulty:        difficulty || null,
+      video_url:         video      || null,
+      description:       desc       || null,
+      compound:          compound
+    };
+
+    let error;
+    if (editingExId) {
+      ({ error } = await sb.from('exercises').update(payload).eq('id', editingExId));
+    } else {
+      ({ error } = await sb.from('exercises').insert(payload));
+    }
+
+    btn.disabled = false; btn.textContent = 'שמור';
+    if (error) { errEl.textContent = error.message; errEl.style.display = 'block'; return; }
+    closeExModal();
+    await loadExercises();
+    renderExTable();
+    toast(editingExId ? 'תרגיל עודכן ✓' : 'תרגיל נוסף ✓', 'ok');
+  }
+
+  async function deleteExercise(id) {
+    if (!confirm('למחוק תרגיל זה?')) return;
+    const { error } = await sb.from('exercises').delete().eq('id', id);
+    if (error) { toast('שגיאה במחיקה', 'err'); return; }
+    await loadExercises();
+    renderExTable();
+    toast('תרגיל נמחק', 'ok');
+  }
+
+  /* ── FOOD ITEMS ── */
+  let allFoodItems = [];
+  let editingFiId  = null;
+  let foodItemsMode = false;
+  let activeFiTab = 'הכל';
+  const FI_CATS = ['בשרי','חלבי','פרווה','מקור חלבון','מקור פחמימה','מקור שומן','ירקות','פירות','ג\'אנק פוד','כללי'];
+  const FI_ICONS = {'בשרי':'🥩','חלבי':'🧀','פרווה':'🥚','מקור חלבון':'💪','מקור פחמימה':'🍞','מקור שומן':'🥑','ירקות':'🥦','פירות':'🍎','ג\'אנק פוד':'🍔','כללי':'📦'};
+
+  async function toggleFoodView() {
+    foodItemsMode = !foodItemsMode;
+    if (foodItemsMode) { exercisesMode = false; recipesMode = false; }
+    const btn   = document.getElementById('btn-fi-view');
+    const exBtn = document.getElementById('btn-ex-view');
+    const rcBtn = document.getElementById('btn-rc-view');
+    exBtn.textContent='💪 תרגילים'; exBtn.style.color='#FFD700'; exBtn.style.borderColor='rgba(255,215,0,0.35)';
+    rcBtn.textContent='🍳 מתכונים'; rcBtn.style.color='#FFD700'; rcBtn.style.borderColor='rgba(255,215,0,0.35)';
+    if (foodItemsMode) {
+      btn.textContent='← לקוחות'; btn.style.color='var(--muted)'; btn.style.borderColor='rgba(255,255,255,0.2)';
+      activeEmail = null;
+      await loadFoodItems();
+      renderFoodItemsMain();
+    } else {
+      btn.textContent='🥦 מזון'; btn.style.color='#4ade80'; btn.style.borderColor='rgba(74,222,128,0.35)';
+      renderSidebar();
+      document.getElementById('main-area').innerHTML='<div class="no-select">← בחר לקוח מהרשימה</div>';
+    }
+  }
+
+  async function loadFoodItems() {
+    const { data } = await sb.from('food_items').select('*').order('name');
+    allFoodItems = data || [];
+  }
+
+  function renderFoodItemsMain() {
+    const presentCats = new Set(allFoodItems.map(f => f.category || 'כללי'));
+    const tabs = ['הכל', ...FI_CATS.filter(c => presentCats.has(c))];
+    document.getElementById('main-area').innerHTML = `
+      <div class="sec-card">
+        <div class="sec-card-title">🥦 מאגר מזון
+          <button class="btn-sm btn-orange" onclick="openAddFiModal()">+ הוסף מאכל</button>
+        </div>
+        <div style="font-size:0.75rem;color:var(--muted);margin-bottom:14px;">ערכים לכל 100 גרם. המתאמנים מחפשים מאכלים מהמאגר הזה.</div>
+        <div class="ai-box">
+          <div class="ai-box-title">✨ הוסף מאכלים עם AI</div>
+          <textarea class="ai-textarea" id="ai-fi-prompt" placeholder="תאר אילו מאכלים להוסיף...&#10;דוגמה: הוסף חלבונות מהחי נפוצים, או: הוסף פירות וירקות עם ערכים תזונתיים"></textarea>
+          <div style="display:flex;align-items:center;margin-top:10px;">
+            <button class="btn-sm btn-orange" id="ai-fi-btn" onclick="addFoodWithAI()">✨ הוסף למאגר</button>
+            <span class="ai-status" id="ai-fi-status"></span>
+          </div>
+        </div>
+        <div class="lib-tabs" id="fi-tabs">
+          ${tabs.map(t=>`<button class="lib-tab${t===activeFiTab?' active':''}" data-tab="${t.replace(/"/g,'&quot;')}" onclick="setFiTab(this.dataset.tab)">${t==='הכל'?t:(FI_ICONS[t]||'')+' '+t}</button>`).join('')}
+        </div>
+        <div id="fi-table-wrap"></div>
+      </div>`;
+    renderFiTable();
+  }
+
+  function setFiTab(tab) {
+    activeFiTab = tab;
+    document.querySelectorAll('#fi-tabs .lib-tab').forEach(b => {
+      const label = b.textContent.replace(/^[^\s]*\s/,'').trim();
+      b.classList.toggle('active', b.textContent.trim() === tab || label === tab);
+    });
+    renderFiTable();
+  }
+
+  function renderFiTable() {
+    const el = document.getElementById('fi-table-wrap');
+    if (!el) return;
+    const filtered = activeFiTab === 'הכל'
+      ? allFoodItems
+      : allFoodItems.filter(f => (f.category || 'כללי') === activeFiTab);
+    if (!filtered.length) { el.innerHTML='<div style="color:#444;font-size:0.85rem;padding:8px 0;">אין מאכלים בקטגוריה זו</div>'; return; }
+    const CAT_ORDER = FI_CATS;
+    const CAT_ICONS = FI_ICONS;
+    const groups = {};
+    filtered.forEach(f => { const c = f.category||'כללי'; if (!groups[c]) groups[c]=[]; groups[c].push(f); });
+    const sorted = [...CAT_ORDER.filter(c=>groups[c]), ...Object.keys(groups).filter(c=>!CAT_ORDER.includes(c))];
+    const hdr = `<div style="display:grid;grid-template-columns:1fr 52px 44px 44px 44px auto;gap:6px;padding:4px 10px;font-size:0.7rem;font-weight:700;color:var(--muted);"><span>שם</span><span style="text-align:center;">קל׳</span><span style="text-align:center;">P</span><span style="text-align:center;">C</span><span style="text-align:center;">F</span><span></span></div>`;
+    el.innerHTML = sorted.map(cat => `
+      <div style="margin-bottom:18px;">
+        <div style="font-size:0.78rem;font-weight:900;color:var(--orange);letter-spacing:0.5px;margin-bottom:6px;padding-bottom:5px;border-bottom:1px solid rgba(255,107,0,0.15);">${CAT_ICONS[cat]||'📦'} ${cat} <span style="color:#555;font-weight:400;">(${groups[cat].length})</span></div>
+        ${hdr}
+        ${groups[cat].map(f=>`
+          <div style="display:grid;grid-template-columns:1fr 52px 44px 44px 44px auto;gap:6px;align-items:center;padding:7px 10px;background:rgba(255,255,255,0.03);border-radius:7px;margin-bottom:3px;font-size:0.83rem;">
+            <span style="font-weight:600;">${esc(f.name)}</span>
+            <span style="text-align:center;color:var(--orange);">${f.calories}</span>
+            <span style="text-align:center;color:#4ade80;">${f.protein}g</span>
+            <span style="text-align:center;color:#60a5fa;">${f.carbs}g</span>
+            <span style="text-align:center;color:#facc15;">${f.fat}g</span>
+            <div style="display:flex;gap:4px;">
+              <button class="btn-sm btn-outline" style="padding:3px 8px;font-size:0.7rem;" onclick="openEditFiModal('${f.id}')">ערוך</button>
+              <button class="btn-sm btn-red" onclick="deleteFoodItem('${f.id}')">מחק</button>
+            </div>
+          </div>`).join('')}
+      </div>`).join('');
+  }
+
+  function openAddFiModal() {
+    editingFiId = null;
+    document.getElementById('fi-modal-title').textContent = 'הוסף';
+    ['fi-name','fi-cal','fi-prot','fi-carb','fi-fat'].forEach(id => document.getElementById(id).value='');
+    document.getElementById('fi-cat').value = 'כללי';
+    document.getElementById('fi-err').style.display='none';
+    document.getElementById('fi-modal').classList.add('open');
+  }
+
+  function openEditFiModal(id) {
+    const f = allFoodItems.find(x => String(x.id)===String(id));
+    if (!f) return;
+    editingFiId = id;
+    document.getElementById('fi-modal-title').textContent='ערוך';
+    document.getElementById('fi-name').value = f.name || '';
+    document.getElementById('fi-cat').value  = f.category || 'כללי';
+    document.getElementById('fi-cal').value  = f.calories || '';
+    document.getElementById('fi-prot').value = f.protein  || '';
+    document.getElementById('fi-carb').value = f.carbs    || '';
+    document.getElementById('fi-fat').value  = f.fat      || '';
+    document.getElementById('fi-err').style.display='none';
+    document.getElementById('fi-modal').classList.add('open');
+  }
+
+  function closeFiModal() { document.getElementById('fi-modal').classList.remove('open'); }
+
+  async function saveFoodItem() {
+    const name = document.getElementById('fi-name').value.trim();
+    const errEl = document.getElementById('fi-err');
+    const btn   = document.getElementById('fi-save-btn');
+    errEl.style.display='none';
+    if (!name) { errEl.textContent='יש להזין שם מאכל'; errEl.style.display='block'; return; }
+    const payload = {
+      name,
+      category: document.getElementById('fi-cat').value || 'כללי',
+      calories: parseFloat(document.getElementById('fi-cal').value)  || 0,
+      protein:  parseFloat(document.getElementById('fi-prot').value) || 0,
+      carbs:    parseFloat(document.getElementById('fi-carb').value) || 0,
+      fat:      parseFloat(document.getElementById('fi-fat').value)  || 0,
+    };
+    btn.disabled=true; btn.textContent='שומר...';
+    let error;
+    if (editingFiId) { ({ error } = await sb.from('food_items').update(payload).eq('id', editingFiId)); }
+    else             { ({ error } = await sb.from('food_items').insert(payload)); }
+    btn.disabled=false; btn.textContent='שמור';
+    if (error) { errEl.textContent=error.message; errEl.style.display='block'; return; }
+    closeFiModal();
+    await loadFoodItems();
+    renderFiTable();
+    toast(editingFiId ? 'מאכל עודכן ✓' : 'מאכל נוסף ✓', 'ok');
+  }
+
+  async function addFoodWithAI() {
+    const prompt = document.getElementById('ai-fi-prompt').value.trim();
+    const statusEl = document.getElementById('ai-fi-status');
+    const btn = document.getElementById('ai-fi-btn');
+    if (!prompt) { statusEl.style.color='#ff7070'; statusEl.textContent='יש לתאר מה להוסיף'; return; }
+    btn.disabled = true; btn.textContent = '⏳ עובד...';
+    statusEl.style.color = 'var(--muted)'; statusEl.textContent = '';
+
+    // זיהוי פקודת איפוס
+    const isReset = /אפס|מחק הכל|נקה הכל|רשימה חדשה|התחל מחדש|clear|reset/i.test(prompt);
+    try {
+      if (isReset) {
+        statusEl.textContent = 'מוחק את כל המאכלים...';
+        const { error: delErr } = await sb.from('food_items').delete().not('id', 'is', null);
+        if (delErr) throw new Error(delErr.message);
+        allFoodItems = [];
+        renderFiTable();
+        statusEl.style.color = '#70dd70';
+        statusEl.textContent = '✓ המאגר אופס בהצלחה';
+        btn.disabled = false; btn.textContent = '✨ הוסף למאגר';
+        return;
+      }
+
+      statusEl.textContent = 'Claude בונה רשימה...';
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type':'application/json','x-api-key':CLAUDE_KEY,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-6',
+          max_tokens: 4096,
+          messages: [{ role: 'user', content:
+`החזר JSON array בלבד. אל תוסיף שום טקסט מחוץ ל-[...].
+
+⚠️ חוק ראשון: הוסף אך ורק מאכלים שקשורים ישירות לבקשה. אסור להוסיף מאכלים אחרים.
+בקשה: "${prompt}"
+
+כל שדה חייב להיות מספר (לא מחרוזת), ערכים לכל 100 גרם, מדויקים תזונתית.
+שדה category חייב להיות אחד מ: בשרי, חלבי, פרווה, מקור חלבון, מקור פחמימה, מקור שומן, ירקות, פירות, ג'אנק פוד, כללי
+[{"name":"שם בעברית","calories":165,"protein":31,"carbs":0,"fat":3.6,"category":"מקור חלבון"}]` }]
+        })
+      });
+      if (!res.ok) { const e = await res.json(); throw new Error(e.error?.message || `HTTP ${res.status}`); }
+      const data = await res.json();
+      const raw = data.content[0].text.trim().replace(/```json\s*/gi,'').replace(/```/g,'').trim();
+      const match = raw.match(/\[[\s\S]*\]/);
+      if (!match) throw new Error('המודל לא החזיר JSON תקין — נסה שוב');
+      const parsed = JSON.parse(match[0]);
+      const VALID_CATS = ['בשרי','חלבי','פרווה','מקור חלבון','מקור פחמימה','מקור שומן','ירקות','פירות',"ג'אנק פוד",'כללי'];
+      const foods = parsed.filter(f => f.name && typeof f.name === 'string').map(f => ({
+        name:     String(f.name).trim(),
+        calories: parseFloat(f.calories) || 0,
+        protein:  parseFloat(f.protein)  || 0,
+        carbs:    parseFloat(f.carbs)    || 0,
+        fat:      parseFloat(f.fat)      || 0,
+        category: VALID_CATS.includes(f.category) ? f.category : 'כללי',
+      }));
+      if (!foods.length) throw new Error('רשימה ריקה');
+      const { error } = await sb.from('food_items').insert(foods);
+      if (error) throw new Error(error.message);
+      await loadFoodItems();
+      renderFiTable();
+      statusEl.style.color = '#70dd70';
+      statusEl.textContent = `✓ ${foods.length} מאכלים נוספו`;
+    } catch(e) {
+      statusEl.style.color = '#ff7070';
+      statusEl.textContent = 'שגיאה: ' + e.message;
+    }
+    btn.disabled = false; btn.textContent = '✨ הוסף למאגר';
+  }
+
+  async function deleteFoodItem(id) {
+    if (!confirm('למחוק מאכל זה?')) return;
+    const { error } = await sb.from('food_items').delete().eq('id', id);
+    if (error) { toast('שגיאה במחיקה','err'); return; }
+    await loadFoodItems();
+    renderFiTable();
+    toast('מאכל נמחק','ok');
+  }
+
+  /* ── RECORDS ── */
+  function buildRecordExercises() {
+    const map = {};
+    exerciseLibrary.filter(e => e.compound).forEach(e => {
+      const mg = e.muscle_group || 'אחר';
+      if (!map[mg]) map[mg] = [];
+      if (!map[mg].includes(e.name)) map[mg].push(e.name);
+    });
+    return map;
+  }
+
+  function normalizeExName(n) {
+    return (n || '').trim().toLowerCase()
+      .replace(/\s+מכונה$/,'').replace(/\s+מישן$/,'').replace(/\s+מאשין$/,'')
+      .replace(/\bמכונה\b/g,'').replace(/\bסמיט\b/g,'סמית').replace(/\bsmith\b/g,'סמית')
+      .replace(/\s+/g,' ').trim();
+  }
+  const MEDALS = ['🥇','🥈','🥉'];
+
+  let recMode     = 'strength';
+  let recMuscle   = null;
+  let recExercise = null;
+  let recLogs     = null;
+  let recClients  = {};
+  let recSteps    = [];
+
+  function calc1RM(w, r) {
+    w = parseFloat(w); r = parseInt(r);
+    if (!w || !r || r <= 0) return 0;
+    return Math.round(w * (1 + r / 30) * 10) / 10;
+  }
+
+  async function openRecords() {
+    document.getElementById('records-overlay').classList.add('open');
+    document.body.style.overflow = 'hidden';
+    if (recLogs !== null) { renderRecBody(); return; }
+    document.getElementById('rec-body').innerHTML = '<div style="text-align:center;padding:40px;color:#444;">טוען נתונים...</div>';
+    const today = new Date().toISOString().split('T')[0];
+    const [{ data: logs }, { data: cls }, { data: steps }] = await Promise.all([
+      sb.from('workout_logs').select('client_email,log_date,exercises'),
+      sb.from('clients').select('email,name'),
+      sb.from('steps_logs').select('client_email,steps').eq('log_date', today)
+    ]);
+    recLogs  = logs || [];
+    recSteps = steps || [];
+    (cls || []).forEach(c => { recClients[c.email] = c.name || c.email.split('@')[0]; });
+    // הוסף תרגילים שמופיעים ב-logs לספריה אם חסרים
+    const inLogs = new Set();
+    recLogs.forEach(log => { (log.exercises||[]).forEach(ex => { if(ex.name && (ex.sets||[]).some(s=>s.weight&&s.reps)) inLogs.add(ex.name); }); });
+    inLogs.forEach(name => {
+      if (!exerciseLibrary.find(e => e.name === name)) {
+        exerciseLibrary.push({ name, muscle_group: 'אחר', compound: true });
+      } else {
+        const e = exerciseLibrary.find(e2 => e2.name === name);
+        if (!e.compound) e.compound = true;
+      }
+    });
+    const rec = buildRecordExercises();
+    const muscles = Object.keys(rec);
+    if (muscles.length && !recMuscle) {
+      recMuscle   = muscles[0];
+      recExercise = rec[recMuscle][0] || null;
+    }
+    renderRecBody();
+  }
+
+  function closeRecords() {
+    document.getElementById('records-overlay').classList.remove('open');
+    document.body.style.overflow = '';
+  }
+
+  function renderRecBody() {
+    const body = document.getElementById('rec-body');
+    const modeTabs = `
+      <div class="rec-mode-tabs">
+        <button class="rec-tab${recMode==='strength'?' active':''}" onclick="setRecMode('strength')">💪 שיאי כוח</button>
+        <button class="rec-tab${recMode==='steps'?' active':''}" onclick="setRecMode('steps')">🚶 צעדים יומיים</button>
+      </div>`;
+
+    if (recMode === 'steps') {
+      const today = new Date().toLocaleDateString('he-IL',{day:'2-digit',month:'2-digit',year:'numeric'});
+      const myS   = recSteps.find(s => s.client_email === ADMIN);
+      const top   = [...recSteps].sort((a,b) => b.steps - a.steps).slice(0,10);
+      body.innerHTML = modeTabs + `
+        <div style="font-size:0.8rem;color:var(--muted);margin-bottom:14px;">📅 היום — ${today}</div>
+        <div class="steps-row">
+          <input class="steps-input" type="number" id="steps-inp" min="0" placeholder="כמה צעדים עשית היום?"
+            value="${myS ? myS.steps : ''}"/>
+          <button class="btn-save-steps" onclick="logSteps()">שמור</button>
+        </div>
+        ${top.length ? `<div class="podium">${top.map((s,i)=>`
+          <div class="podium-row${i<3?' rank-'+(i+1):''}">
+            <div class="podium-medal">${i<3?MEDALS[i]:'#'+(i+1)}</div>
+            <div class="podium-info"><div class="podium-name">${esc(recClients[s.client_email]||s.client_email.split('@')[0])}</div></div>
+            <div class="podium-orm">${Number(s.steps).toLocaleString()} צעדים</div>
+          </div>`).join('')}</div>`
+        : '<div class="no-records">אף מתאמן לא רשם צעדים היום עדיין 🚶</div>'}
+        ${myS ? `<div class="my-rec-box">👤 הצעדים שלי היום: <strong>${Number(myS.steps).toLocaleString()}</strong></div>` : ''}`;
+      return;
+    }
+
+    const rec = buildRecordExercises();
+    const muscles = Object.keys(rec);
+    if (!muscles.length) {
+      body.innerHTML = modeTabs + '<div class="no-records">אין תרגילים מורכבים במאגר — סמן תרגילים כ"מורכב" בניהול תרגילים</div>';
+      return;
+    }
+    if (!recMuscle || !rec[recMuscle]) { recMuscle = muscles[0]; recExercise = rec[recMuscle][0] || null; }
+    if (!recExercise || !(rec[recMuscle]||[]).includes(recExercise)) recExercise = (rec[recMuscle]||[])[0] || null;
+    const board = buildExBoard(recExercise);
+    body.innerHTML = modeTabs + `
+      <div class="muscle-tabs">
+        ${muscles.map(m =>
+          `<button class="m-tab${m===recMuscle?' active':''}" onclick="setRecMuscle('${m}')">${m}</button>`
+        ).join('')}
+      </div>
+      <select class="ex-select" onchange="setRecEx(this.value)">
+        ${(rec[recMuscle]||[]).map(ex =>
+          `<option value="${ex}"${ex===recExercise?' selected':''}>${ex}</option>`
+        ).join('')}
+      </select>
+      ${board.length ? `<div class="podium">${board.map((e,i)=>`
+        <div class="podium-row rank-${i+1}">
+          <div class="podium-medal">${MEDALS[i]}</div>
+          <div class="podium-info">
+            <div class="podium-name">${esc(e.name)}</div>
+            <div class="podium-stats">${e.weight} ק"ג × ${e.reps} חזרות · ${e.date}</div>
+          </div>
+          <div class="podium-orm">1RM: ${e.orm}</div>
+        </div>`).join('')}</div>`
+      : '<div class="no-records">אין תוצאות עדיין לתרגיל זה 💪</div>'}`;
+  }
+
+  function buildExBoard(exName) {
+    if (!exName) return [];
+    const normTarget = normalizeExName(exName);
+    const best = {};
+    recLogs.forEach(log => {
+      (log.exercises||[]).forEach(ex => {
+        if (normalizeExName(ex.name) !== normTarget) return;
+        (ex.sets||[]).forEach(set => {
+          const orm = calc1RM(set.weight, set.reps);
+          if (!orm) return;
+          const cur = best[log.client_email];
+          if (!cur || orm > cur.orm || (orm===cur.orm && parseFloat(set.weight)>cur.weight) || (orm===cur.orm && parseFloat(set.weight)===cur.weight && log.log_date>cur.date)) {
+            best[log.client_email] = { name: recClients[log.client_email]||log.client_email.split('@')[0], weight: parseFloat(set.weight), reps: parseInt(set.reps), orm, date: log.log_date };
+          }
+        });
+      });
+    });
+    return Object.values(best).sort((a,b)=>b.orm-a.orm||b.weight-a.weight||b.date.localeCompare(a.date)).slice(0,3);
+  }
+
+  function setRecMode(m)   { recMode=m; renderRecBody(); }
+  function setRecMuscle(m) { recMuscle=m; const rec=buildRecordExercises(); recExercise=(rec[m]||[])[0]||null; renderRecBody(); }
+  function setRecEx(ex)    { recExercise=ex; renderRecBody(); }
+
+  async function logSteps() {
+    const val = parseInt(document.getElementById('steps-inp').value);
+    if (!val || val < 0) return;
+    const today = new Date().toISOString().split('T')[0];
+    const btn = document.querySelector('.btn-save-steps');
+    btn.disabled = true; btn.textContent = 'שומר...';
+    const { error } = await sb.from('steps_logs').upsert(
+      { client_email: ADMIN, steps: val, log_date: today },
+      { onConflict: 'client_email,log_date' }
+    );
+    btn.disabled = false; btn.textContent = 'שמור';
+    if (error) { toast('שגיאה בשמירה', 'err'); return; }
+    const idx = recSteps.findIndex(s => s.client_email === ADMIN);
+    if (idx >= 0) recSteps[idx].steps = val; else recSteps.push({ client_email: ADMIN, steps: val });
+    renderRecBody();
+  }
+
+  init();
+
+</script>
+</body>
+</html>

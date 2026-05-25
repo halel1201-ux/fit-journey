@@ -1,0 +1,2702 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%230a0a0a'/><text x='16' y='23' font-family='Arial Black,sans-serif' font-size='15' font-weight='900' fill='%23FF6B00' text-anchor='middle'>HF</text></svg>"/>
+  <title>HF Online Coaching — ליווי אונליין שמביא תוצאות</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;700;900&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --black:    #090909;
+      --graphite: #111111;
+      --card-bg:  rgba(255,255,255,0.04);
+      --orange:   #FF6B00;
+      --orange2:  #FF8C00;
+      --gold:     #FFD700;
+      --gold2:    #FFC200;
+      --white:    #FFFFFF;
+      --muted:    #AAAAAA;
+      --border:   rgba(255,107,0,0.35);
+      --glow:     0 0 18px rgba(255,107,0,0.55);
+      --glow-lg:  0 0 40px rgba(255,107,0,0.45), 0 0 80px rgba(255,107,0,0.15);
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Heebo', sans-serif;
+      background: var(--black);
+      color: var(--white);
+      overflow-x: hidden;
+      direction: rtl;
+    }
+
+    /* ─── SCROLLBAR ─── */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: var(--black); }
+    ::-webkit-scrollbar-thumb { background: var(--orange); border-radius: 3px; }
+
+    /* ─── UTILITY ─── */
+    .container { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+    .section-title {
+      font-size: clamp(1.8rem, 4vw, 2.8rem);
+      font-weight: 900;
+      text-align: center;
+      margin-bottom: 16px;
+    }
+    .section-title span { color: var(--orange); }
+    .title-line {
+      display: block;
+      width: 80px;
+      height: 4px;
+      background: linear-gradient(90deg, var(--orange), var(--gold));
+      border-radius: 2px;
+      margin: 0 auto 60px;
+      box-shadow: var(--glow);
+    }
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 16px 36px;
+      background: linear-gradient(135deg, var(--orange), var(--orange2));
+      color: var(--white);
+      font-family: 'Heebo', sans-serif;
+      font-size: 1.05rem;
+      font-weight: 700;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      text-decoration: none;
+      box-shadow: var(--glow);
+      transition: transform 0.2s, box-shadow 0.2s;
+      animation: pulse-glow 2.5s ease-in-out infinite;
+    }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: var(--glow-lg); }
+    .btn-secondary {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 15px 34px;
+      background: transparent;
+      color: var(--orange);
+      font-family: 'Heebo', sans-serif;
+      font-size: 1.05rem;
+      font-weight: 700;
+      border: 2px solid var(--orange);
+      border-radius: 6px;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+    }
+    .btn-secondary:hover {
+      background: rgba(255,107,0,0.12);
+      box-shadow: var(--glow);
+    }
+
+    @keyframes pulse-glow {
+      0%, 100% { box-shadow: 0 0 18px rgba(255,107,0,0.55); }
+      50%       { box-shadow: 0 0 36px rgba(255,107,0,0.85), 0 0 60px rgba(255,140,0,0.3); }
+    }
+
+    /* ─── NAVBAR ─── */
+    #navbar {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 50;
+      background: rgba(9,9,9,0.88);
+      backdrop-filter: blur(14px);
+      border-bottom: 1px solid rgba(255,107,0,0.15);
+      transition: background 0.3s;
+    }
+    .nav-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 68px;
+    }
+    .nav-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+    }
+    .logo-img {
+      height: 52px;
+      width: auto;
+      display: block;
+      flex-shrink: 0;
+      filter: drop-shadow(0 0 8px rgba(255,107,0,0.6));
+      transition: filter 0.2s;
+    }
+    .nav-logo:hover .logo-img {
+      filter: drop-shadow(0 0 14px rgba(255,107,0,0.9));
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 32px;
+      list-style: none;
+    }
+    .nav-links a {
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 0.95rem;
+      font-weight: 500;
+      transition: color 0.2s;
+      cursor: pointer;
+      user-select: none;
+    }
+    .nav-links a:hover { color: var(--orange); }
+
+    .nav-cta { display: flex; align-items: center; gap: 12px; }
+
+    .hamburger {
+      display: none;
+      flex-direction: column;
+      gap: 5px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 4px;
+    }
+    .hamburger span {
+      display: block;
+      width: 26px;
+      height: 2px;
+      background: var(--white);
+      border-radius: 2px;
+      transition: 0.3s;
+    }
+
+    .mobile-menu {
+      display: none;
+      flex-direction: column;
+      gap: 0;
+      background: rgba(9,9,9,0.97);
+      border-top: 1px solid var(--border);
+      padding: 16px 24px 24px;
+    }
+    .mobile-menu a {
+      display: block;
+      padding: 14px 0;
+      color: var(--muted);
+      font-size: 1rem;
+      font-weight: 500;
+      text-decoration: none;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      cursor: pointer;
+      transition: color 0.2s;
+    }
+    .mobile-menu a:hover { color: var(--orange); }
+    .mobile-menu .btn-primary { margin-top: 16px; justify-content: center; }
+
+    @media (max-width: 768px) {
+      .nav-links, .nav-cta { display: none; }
+      .hamburger { display: flex; }
+    }
+
+    /* ─── HERO ─── */
+    #hero {
+      position: relative;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      overflow: hidden;
+      padding: 120px 24px 80px;
+    }
+    .hero-bg {
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 70% 50% at 50% 100%, rgba(255,107,0,0.22) 0%, transparent 70%),
+        radial-gradient(ellipse 40% 30% at 50% 85%, rgba(255,180,0,0.1) 0%, transparent 60%),
+        var(--black);
+    }
+    /* Spark particles */
+    .sparks {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      overflow: hidden;
+    }
+    .spark {
+      position: absolute;
+      width: 3px;
+      height: 3px;
+      border-radius: 50%;
+      background: var(--orange);
+      animation: float-spark linear infinite;
+      opacity: 0;
+    }
+    .spark:nth-child(1)  { left:10%; animation-duration:6s;  animation-delay:0s;   width:2px; height:2px; background:var(--gold); }
+    .spark:nth-child(2)  { left:20%; animation-duration:8s;  animation-delay:1s; }
+    .spark:nth-child(3)  { left:30%; animation-duration:5s;  animation-delay:2s;   background:var(--gold); }
+    .spark:nth-child(4)  { left:42%; animation-duration:7s;  animation-delay:0.5s; width:4px; height:4px; }
+    .spark:nth-child(5)  { left:55%; animation-duration:9s;  animation-delay:1.5s; background:var(--gold2); }
+    .spark:nth-child(6)  { left:65%; animation-duration:6s;  animation-delay:3s; }
+    .spark:nth-child(7)  { left:75%; animation-duration:8s;  animation-delay:0.8s; background:var(--gold); }
+    .spark:nth-child(8)  { left:85%; animation-duration:5s;  animation-delay:2.2s; width:2px; height:2px; }
+    .spark:nth-child(9)  { left:93%; animation-duration:7s;  animation-delay:1.1s; }
+    .spark:nth-child(10) { left:5%;  animation-duration:10s; animation-delay:0.3s; background:var(--gold2); }
+    .spark:nth-child(11) { left:48%; animation-duration:6.5s;animation-delay:2.8s; width:4px; height:4px; background:var(--gold); }
+    .spark:nth-child(12) { left:38%; animation-duration:7.5s;animation-delay:1.7s; }
+    @keyframes float-spark {
+      0%   { bottom: -10px; opacity: 0; transform: translateX(0) scale(1); }
+      10%  { opacity: 0.9; }
+      50%  { transform: translateX(20px) scale(1.2); }
+      80%  { opacity: 0.6; }
+      100% { bottom: 110%; opacity: 0; transform: translateX(-15px) scale(0.5); }
+    }
+
+    /* Horizontal glow line */
+    .hero-line {
+      position: absolute;
+      bottom: 0;
+      left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--orange), var(--gold), var(--orange), transparent);
+      box-shadow: 0 0 20px var(--orange);
+    }
+
+    .hero-content { position: relative; z-index: 2; max-width: 860px; }
+    .hero-tag {
+      display: inline-block;
+      padding: 6px 18px;
+      background: rgba(255,107,0,0.12);
+      border: 1px solid rgba(255,107,0,0.4);
+      border-radius: 30px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--orange);
+      letter-spacing: 1px;
+      margin-bottom: 28px;
+      text-transform: uppercase;
+    }
+    .hero-title {
+      font-size: clamp(2.4rem, 6vw, 4.2rem);
+      font-weight: 900;
+      line-height: 1.15;
+      margin-bottom: 24px;
+    }
+    .hero-title .highlight {
+      background: linear-gradient(135deg, var(--orange), var(--gold));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .hero-sub {
+      font-size: clamp(1rem, 2.5vw, 1.2rem);
+      color: var(--muted);
+      line-height: 1.7;
+      max-width: 680px;
+      margin: 0 auto 40px;
+      font-weight: 300;
+    }
+    .hero-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      justify-content: center;
+      margin-bottom: 56px;
+    }
+    .scroll-hint {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 0.8rem;
+      animation: bounce 2s ease-in-out infinite;
+    }
+    .scroll-hint svg { color: var(--orange); }
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50%       { transform: translateY(6px); }
+    }
+
+    /* ─── SECTION BASE ─── */
+    section { padding: 100px 0; }
+    section:nth-child(even) { background: var(--graphite); }
+
+    /* ─── RESULTS CAROUSEL ─── */
+    #results { background: var(--graphite); }
+    .carousel-wrapper { position: relative; }
+    .carousel-track-outer { overflow: hidden; }
+    .carousel-track {
+      display: flex;
+      gap: 24px;
+      direction: ltr;
+      justify-content: flex-start;
+      transition: transform 0.45s cubic-bezier(0.4,0,0.2,1);
+      will-change: transform;
+    }
+    .result-card {
+      flex: 0 0 min(640px, 100%);
+      min-width: 0;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 0;
+      overflow: hidden;
+      transition: box-shadow 0.3s, transform 0.3s;
+      cursor: default;
+      box-shadow: 0 0 30px rgba(255,107,0,0.2);
+    }
+    .result-card:hover {
+      box-shadow: var(--glow-lg);
+      transform: translateY(-4px);
+    }
+    .result-img-wrap {
+      width: 100%;
+      position: relative;
+      background: #111;
+    }
+    .result-img-wrap img {
+      width: 100%;
+      height: auto;
+      display: block;
+      border-radius: 0;
+    }
+    .result-img-placeholder {
+      width: 100%;
+      aspect-ratio: 16/9;
+      background: linear-gradient(145deg, #1a1a1a, #222);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      border-bottom: 1px dashed rgba(255,107,0,0.25);
+    }
+    .result-img-placeholder svg { width: 40px; height: 40px; color: rgba(255,107,0,0.25); }
+    .result-img-placeholder span { font-size: 0.8rem; color: #444; }
+    .card-info {
+      padding: 22px 24px 26px;
+    }
+    .card-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .card-name {
+      font-size: 1.4rem;
+      font-weight: 900;
+      color: var(--white);
+    }
+    .weight-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 16px;
+      background: linear-gradient(135deg, rgba(255,107,0,0.18), rgba(255,140,0,0.1));
+      border: 1px solid rgba(255,107,0,0.5);
+      border-radius: 30px;
+      font-size: 1rem;
+      font-weight: 900;
+      color: var(--orange);
+      box-shadow: 0 0 10px rgba(255,107,0,0.2);
+    }
+    .card-divider {
+      height: 1px;
+      background: rgba(255,107,0,0.12);
+      margin: 12px 0;
+    }
+    .card-desc {
+      font-size: 0.95rem;
+      color: #ccc;
+      line-height: 1.7;
+    }
+    .card-quote {
+      display: block;
+      margin-top: 10px;
+      font-size: 0.88rem;
+      color: var(--gold);
+      font-weight: 500;
+      font-style: italic;
+    }
+    .carousel-nav {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      margin-top: 36px;
+    }
+    .carousel-btn {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      border: 2px solid var(--orange);
+      background: transparent;
+      color: var(--orange);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background 0.2s, box-shadow 0.2s;
+    }
+    .carousel-btn:hover {
+      background: rgba(255,107,0,0.15);
+      box-shadow: var(--glow);
+    }
+    .carousel-dots {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 20px;
+    }
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #333;
+      cursor: pointer;
+      transition: background 0.2s, width 0.3s;
+    }
+    .dot.active {
+      background: var(--orange);
+      width: 24px;
+      border-radius: 4px;
+    }
+
+    @media (max-width: 680px) {
+      .result-card { flex: 0 0 100%; }
+    }
+
+    /* Slideshow for multi-image cards */
+    .slideshow-wrap {
+      position: relative;
+      width: 100%;
+      background: #111;
+    }
+    .slide-img {
+      width: 100%;
+      height: auto;
+      display: block;
+      transition: opacity 0.5s ease;
+    }
+    .slide-dots {
+      position: absolute;
+      bottom: 8px;
+      left: 50%; transform: translateX(-50%);
+      display: flex;
+      gap: 6px;
+      z-index: 3;
+    }
+    .slide-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.35);
+      transition: background 0.3s, width 0.3s;
+    }
+    .slide-dot.active {
+      background: var(--orange);
+      width: 16px;
+      border-radius: 3px;
+    }
+
+    /* ─── ACHIEVEMENTS ─── */
+    #achievements { background: var(--black); }
+
+    .achievements-layout {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 48px;
+      align-items: start;
+    }
+
+    /* Trophy timeline */
+    .timeline { display: flex; flex-direction: column; gap: 12px; }
+    .year-block { }
+    .year-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 1.5rem;
+      font-weight: 900;
+      color: var(--gold);
+      margin-bottom: 10px;
+    }
+    .year-label::after {
+      content: '';
+      display: block;
+      flex: 1;
+      height: 2px;
+      background: linear-gradient(90deg, rgba(255,215,0,0.4), transparent);
+      min-width: 40px;
+    }
+    .achieve-item {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 14px 18px;
+      background: var(--card-bg);
+      border: 1px solid rgba(255,107,0,0.15);
+      border-right: 3px solid var(--orange);
+      border-radius: 8px;
+      margin-bottom: 8px;
+      transition: box-shadow 0.25s, transform 0.25s;
+      cursor: default;
+    }
+    .achieve-item:hover {
+      box-shadow: var(--glow);
+      transform: translateX(-4px);
+    }
+    .achieve-medal {
+      font-size: 1.6rem;
+      flex-shrink: 0;
+      line-height: 1;
+    }
+    .achieve-info { flex: 1; }
+    .achieve-comp {
+      font-size: 0.98rem;
+      font-weight: 700;
+      color: var(--white);
+      line-height: 1.3;
+    }
+    .achieve-place {
+      font-size: 0.82rem;
+      color: var(--orange);
+      font-weight: 600;
+      margin-top: 2px;
+    }
+    .achieve-org {
+      display: inline-block;
+      padding: 2px 8px;
+      background: rgba(255,215,0,0.08);
+      border: 1px solid rgba(255,215,0,0.25);
+      border-radius: 12px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: var(--gold2);
+      margin-top: 4px;
+    }
+
+    /* Competitor photos grid */
+    .comp-photos-title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--muted);
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .comp-photos-title::before {
+      content: '';
+      display: block;
+      width: 4px;
+      height: 18px;
+      background: var(--orange);
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
+    .comp-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+    .comp-photo {
+      position: relative;
+      border-radius: 10px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      background: #111;
+      aspect-ratio: 4/5;
+      transition: box-shadow 0.25s, transform 0.25s;
+    }
+    .comp-photo:hover {
+      box-shadow: var(--glow-lg);
+      transform: translateY(-3px);
+    }
+    .comp-photo img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      object-position: center center;
+      display: block;
+      background: #0e0e0e;
+    }
+    .comp-photo-placeholder {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      background: linear-gradient(145deg, #141414, #1e1e1e);
+    }
+    .comp-photo-placeholder svg {
+      width: 32px;
+      height: 32px;
+      color: rgba(255,107,0,0.2);
+    }
+    .comp-photo-placeholder span {
+      font-size: 0.72rem;
+      color: #333;
+      text-align: center;
+      padding: 0 8px;
+    }
+    .comp-photo-label {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      padding: 20px 10px 8px;
+      background: linear-gradient(0deg, rgba(0,0,0,0.75) 0%, transparent 100%);
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--white);
+      text-align: center;
+    }
+
+    /* Season summary card */
+    .season-summary-wrap {
+      margin-top: 48px;
+      display: flex;
+      justify-content: center;
+    }
+    .season-summary {
+      width: 100%;
+      max-width: 440px;
+      border-radius: 14px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      position: relative;
+      background: #0e0e0e;
+      box-shadow: 0 0 40px rgba(255,107,0,0.15);
+    }
+    .season-summary::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--orange), var(--gold), var(--orange));
+      z-index: 2;
+    }
+    .season-summary img {
+      width: 100%;
+      aspect-ratio: 3/4;
+      object-fit: contain;
+      object-position: center center;
+      display: block;
+      background: #0e0e0e;
+    }
+    .season-summary-placeholder {
+      width: 100%;
+      aspect-ratio: 3/4;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      background: linear-gradient(145deg, #141414, #1c1c1c);
+    }
+    .season-summary-placeholder svg { width: 40px; height: 40px; color: rgba(255,107,0,0.2); }
+    .season-summary-placeholder span { font-size: 0.8rem; color: #333; }
+    .season-caption {
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
+      background: rgba(255,107,0,0.04);
+      border-top: 1px solid rgba(255,107,0,0.12);
+    }
+    .season-caption-title {
+      font-size: 0.95rem;
+      font-weight: 900;
+      color: var(--white);
+    }
+    .season-caption-title span { color: var(--orange); }
+    .season-medals {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .season-medal-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 700;
+    }
+    .season-medal-tag.gold {
+      background: rgba(255,215,0,0.1);
+      border: 1px solid rgba(255,215,0,0.35);
+      color: var(--gold);
+    }
+    .season-medal-tag.trophy {
+      background: rgba(255,107,0,0.12);
+      border: 1px solid rgba(255,107,0,0.4);
+      color: var(--orange);
+    }
+
+    @media (max-width: 860px) {
+      .achievements-layout { grid-template-columns: 1fr; gap: 40px; }
+      .comp-grid { grid-template-columns: repeat(3, 1fr); }
+    }
+    @media (max-width: 500px) {
+      .comp-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    /* ─── WHO IS IT FOR ─── */
+    #who { background: var(--black); }
+    .who-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+    }
+    .who-card {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      padding: 20px 22px;
+      background: var(--card-bg);
+      border: 1px solid rgba(255,107,0,0.15);
+      border-right: 3px solid var(--orange);
+      border-radius: 8px;
+      transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
+      cursor: default;
+    }
+    .who-card:hover {
+      border-color: var(--orange);
+      box-shadow: var(--glow);
+      transform: translateX(-4px);
+    }
+    .check-icon {
+      width: 28px;
+      height: 28px;
+      flex-shrink: 0;
+      background: linear-gradient(135deg, var(--orange), var(--orange2));
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 2px;
+    }
+    .check-icon svg { width: 14px; height: 14px; color: var(--white); }
+    .who-card p { font-size: 0.97rem; font-weight: 500; line-height: 1.5; color: var(--white); }
+
+    @media (max-width: 640px) {
+      .who-grid { grid-template-columns: 1fr; }
+    }
+
+    /* ─── WHAT YOU GET ─── */
+    #features { background: var(--graphite); }
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+    .features-grid .feat-card:nth-child(4),
+    .features-grid .feat-card:nth-child(5) {
+      /* last row: center 2 cards in a 3-col grid */
+    }
+    .feat-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 28px 24px;
+      transition: box-shadow 0.3s, transform 0.3s;
+      cursor: default;
+    }
+    .feat-card:hover {
+      box-shadow: var(--glow-lg);
+      transform: translateY(-4px);
+    }
+    .feat-icon {
+      width: 52px;
+      height: 52px;
+      background: rgba(255,107,0,0.1);
+      border: 1px solid rgba(255,107,0,0.3);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 18px;
+    }
+    .feat-icon svg { width: 26px; height: 26px; color: var(--orange); }
+    .feat-title {
+      font-size: 1.05rem;
+      font-weight: 900;
+      color: var(--gold);
+      margin-bottom: 10px;
+    }
+    .feat-desc {
+      font-size: 0.9rem;
+      color: var(--muted);
+      line-height: 1.65;
+    }
+
+    @media (max-width: 900px) {
+      .features-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 580px) {
+      .features-grid { grid-template-columns: 1fr; }
+    }
+
+    /* ─── PRICING ─── */
+    #pricing { background: var(--black); }
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+      align-items: start;
+    }
+    .price-card {
+      background: var(--card-bg);
+      border: 1px solid rgba(255,107,0,0.2);
+      border-radius: 16px;
+      padding: 36px 28px;
+      transition: box-shadow 0.3s, transform 0.3s;
+      position: relative;
+      overflow: hidden;
+    }
+    .price-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--orange), var(--gold));
+    }
+    .price-card:hover { box-shadow: var(--glow); transform: translateY(-4px); }
+    .price-card.featured {
+      border-color: var(--orange);
+      box-shadow: var(--glow-lg);
+      transform: translateY(-12px);
+      background: rgba(255,107,0,0.06);
+    }
+    .price-card.featured::before { height: 4px; }
+    .price-card.featured:hover { transform: translateY(-16px); }
+    .price-badge {
+      display: inline-block;
+      padding: 4px 14px;
+      border-radius: 20px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      margin-bottom: 20px;
+      background: rgba(255,107,0,0.15);
+      border: 1px solid rgba(255,107,0,0.35);
+      color: var(--orange);
+    }
+    .price-badge.featured-badge {
+      background: linear-gradient(135deg, var(--orange), var(--orange2));
+      color: var(--white);
+      border: none;
+    }
+    .plan-name {
+      font-size: 1.3rem;
+      font-weight: 900;
+      color: var(--white);
+      margin-bottom: 8px;
+    }
+    .price-amount {
+      font-size: 3rem;
+      font-weight: 900;
+      color: var(--orange);
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+    .price-amount .currency {
+      font-size: 1.4rem;
+      vertical-align: super;
+      font-weight: 700;
+      margin-left: 4px;
+    }
+    .price-period {
+      font-size: 0.85rem;
+      color: var(--muted);
+      margin-bottom: 28px;
+    }
+    .price-divider {
+      height: 1px;
+      background: rgba(255,107,0,0.15);
+      margin-bottom: 24px;
+    }
+    .price-features {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 32px;
+    }
+    .price-features li {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      font-size: 0.9rem;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+    .price-features li svg {
+      width: 16px;
+      height: 16px;
+      flex-shrink: 0;
+      color: var(--orange);
+      margin-top: 3px;
+    }
+    .price-cta { width: 100%; text-align: center; justify-content: center; }
+
+    @media (max-width: 900px) {
+      .pricing-grid { grid-template-columns: repeat(2, 1fr); }
+      .price-card.featured { transform: translateY(0); }
+    }
+    @media (max-width: 600px) {
+      .pricing-grid { grid-template-columns: 1fr; max-width: 420px; margin: 0 auto; }
+    }
+
+    /* ─── TERMS ─── */
+    #terms { background: var(--graphite); }
+    .accordion { display: flex; flex-direction: column; gap: 8px; }
+    .acc-item {
+      background: var(--card-bg);
+      border: 1px solid rgba(255,107,0,0.15);
+      border-radius: 8px;
+      overflow: hidden;
+      transition: border-color 0.2s;
+    }
+    .acc-item.open { border-color: rgba(255,107,0,0.45); }
+    .acc-header {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 18px 22px;
+      background: none;
+      border: none;
+      color: var(--white);
+      font-family: 'Heebo', sans-serif;
+      font-size: 0.97rem;
+      font-weight: 700;
+      cursor: pointer;
+      text-align: right;
+      transition: color 0.2s;
+    }
+    .acc-header:hover { color: var(--orange); }
+    .acc-arrow {
+      width: 20px;
+      height: 20px;
+      flex-shrink: 0;
+      color: var(--orange);
+      transition: transform 0.3s;
+    }
+    .acc-item.open .acc-arrow { transform: rotate(180deg); }
+    .acc-body {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.35s ease, padding 0.35s;
+      padding: 0 22px;
+    }
+    .acc-item.open .acc-body {
+      max-height: 600px;
+      padding: 0 22px 20px;
+    }
+    .acc-body p {
+      font-size: 0.9rem;
+      color: var(--muted);
+      line-height: 1.75;
+    }
+    .acc-body ul {
+      margin-top: 10px;
+      padding-right: 20px;
+    }
+    .acc-body ul li {
+      font-size: 0.9rem;
+      color: var(--muted);
+      line-height: 1.75;
+    }
+
+    /* ─── CLOSING / CTA ─── */
+    #closing {
+      background:
+        radial-gradient(ellipse 80% 60% at 50% 100%, rgba(255,107,0,0.18) 0%, transparent 70%),
+        var(--black);
+      padding: 120px 0 60px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    #closing::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--orange), var(--gold), var(--orange), transparent);
+    }
+    .closing-quote {
+      font-size: clamp(1.3rem, 3.5vw, 2rem);
+      font-weight: 700;
+      line-height: 1.6;
+      color: var(--white);
+      max-width: 700px;
+      margin: 0 auto 48px;
+      font-style: italic;
+    }
+    .closing-quote span { color: var(--orange); }
+    .closing-quote strong { color: var(--gold); }
+
+    /* ─── FOOTER ─── */
+    footer {
+      background: #050505;
+      border-top: 1px solid rgba(255,107,0,0.1);
+      padding: 48px 24px 28px;
+      text-align: center;
+      font-size: 0.82rem;
+      color: #555;
+    }
+    .footer-contact {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 28px;
+      margin-bottom: 32px;
+    }
+    .footer-contact a {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 0.95rem;
+      font-weight: 500;
+      transition: color 0.2s;
+    }
+    .footer-contact a:hover { color: var(--orange); }
+    .footer-contact a svg { flex-shrink: 0; }
+    .footer-divider {
+      height: 1px;
+      background: rgba(255,107,0,0.08);
+      max-width: 500px;
+      margin: 0 auto 24px;
+    }
+    footer span { color: var(--orange); }
+
+    /* ─── PAYMENT MODAL ─── */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.82);
+      backdrop-filter: blur(6px);
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s;
+    }
+    .modal-overlay.open {
+      opacity: 1;
+      pointer-events: all;
+    }
+    .modal {
+      background: #111;
+      border: 1px solid rgba(255,107,0,0.35);
+      border-radius: 18px;
+      width: 100%;
+      max-width: 480px;
+      overflow: hidden;
+      transform: translateY(24px) scale(0.97);
+      transition: transform 0.25s cubic-bezier(0.4,0,0.2,1);
+      box-shadow: 0 0 60px rgba(255,107,0,0.2);
+    }
+    .modal-overlay.open .modal {
+      transform: translateY(0) scale(1);
+    }
+    .modal-header {
+      background: linear-gradient(135deg, rgba(255,107,0,0.12), rgba(255,140,0,0.06));
+      border-bottom: 1px solid rgba(255,107,0,0.2);
+      padding: 22px 24px 18px;
+      position: relative;
+    }
+    .modal-close {
+      position: absolute;
+      top: 14px;
+      left: 16px;
+      width: 32px; height: 32px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 50%;
+      color: var(--muted);
+      font-size: 1rem;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s;
+      line-height: 1;
+    }
+    .modal-close:hover { background: rgba(255,107,0,0.15); color: var(--white); }
+    .modal-plan-label {
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: var(--orange);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+    .modal-plan-name {
+      font-size: 1.3rem;
+      font-weight: 900;
+      color: var(--white);
+    }
+    .modal-plan-price {
+      font-size: 2rem;
+      font-weight: 900;
+      color: var(--orange);
+      margin-top: 2px;
+    }
+    .modal-plan-price small {
+      font-size: 0.85rem;
+      color: var(--muted);
+      font-weight: 400;
+      margin-right: 6px;
+    }
+    .modal-body { padding: 22px 24px 26px; }
+    .modal-section-title {
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: var(--muted);
+      margin-bottom: 12px;
+      letter-spacing: 0.5px;
+    }
+    .pay-options { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+    .pay-btn {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 14px 18px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 10px;
+      color: var(--white);
+      font-family: 'Heebo', sans-serif;
+      font-size: 0.97rem;
+      font-weight: 600;
+      text-decoration: none;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+      width: 100%;
+      text-align: right;
+    }
+    .pay-btn:hover {
+      border-color: rgba(255,107,0,0.5);
+      background: rgba(255,107,0,0.07);
+      box-shadow: 0 0 14px rgba(255,107,0,0.15);
+    }
+    .pay-btn .pay-icon {
+      width: 40px; height: 40px;
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      font-size: 1.3rem;
+    }
+    .pay-icon.cc  { background: rgba(99,102,241,0.15); border: 1px solid rgba(99,102,241,0.3); }
+    .pay-icon.pp  { background: rgba(0,112,240,0.12);  border: 1px solid rgba(0,112,240,0.3); }
+    .pay-icon.ms  { background: rgba(34,197,94,0.12);  border: 1px solid rgba(34,197,94,0.3); }
+    .pay-icon.tel { background: rgba(255,107,0,0.12);  border: 1px solid rgba(255,107,0,0.35); }
+    .pay-btn-text { flex: 1; }
+    .pay-btn-title { display: block; font-size: 0.97rem; font-weight: 700; }
+    .pay-btn-sub   { display: block; font-size: 0.75rem; color: var(--muted); margin-top: 1px; }
+    .pay-divider {
+      height: 1px;
+      background: rgba(255,255,255,0.06);
+      margin: 16px 0;
+    }
+    .modal-note {
+      font-size: 0.75rem;
+      color: #555;
+      text-align: center;
+      line-height: 1.6;
+    }
+
+    /* ─── REDUCED MOTION ─── */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+    }
+
+    /* ─── RECIPE BOOK ─── */
+    .recipe-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 200;
+      background: rgba(0,0,0,0.96);
+      backdrop-filter: blur(8px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s;
+      display: flex;
+      flex-direction: column;
+    }
+    .recipe-overlay.open { opacity: 1; pointer-events: all; }
+    .recipe-overlay-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 28px;
+      border-bottom: 1px solid rgba(255,107,0,0.2);
+      background: rgba(9,9,9,0.98);
+      flex-shrink: 0;
+    }
+    .recipe-overlay-title {
+      font-size: 1.35rem;
+      font-weight: 900;
+      color: var(--white);
+    }
+    .recipe-overlay-title span { color: var(--orange); }
+    .recipe-overlay-close {
+      width: 38px; height: 38px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 50%;
+      color: var(--muted);
+      font-size: 1.1rem;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.2s, color 0.2s;
+    }
+    .recipe-overlay-close:hover { background: rgba(255,107,0,0.15); color: var(--white); }
+    .recipe-grid-scroll {
+      flex: 1;
+      overflow-y: auto;
+      padding: 32px 28px;
+    }
+    .recipe-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 20px;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+    .recipe-card {
+      border-radius: 14px;
+      overflow: hidden;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,107,0,0.2);
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+    }
+    .recipe-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 0 24px rgba(255,107,0,0.35);
+      border-color: var(--orange);
+    }
+    .recipe-card-img-wrap {
+      position: relative;
+      width: 100%;
+      padding-top: 62%;
+      overflow: hidden;
+      background: #1a1a1a;
+    }
+    .recipe-card-img-wrap img {
+      position: absolute;
+      inset: 0;
+      width: 100%; height: 100%;
+      object-fit: cover;
+      transition: transform 0.3s;
+    }
+    .recipe-card:hover .recipe-card-img-wrap img { transform: scale(1.05); }
+    .recipe-img-placeholder {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #1a1a1a, #252525);
+      font-size: 3.2rem;
+    }
+    .recipe-card-body { padding: 14px 16px; }
+    .recipe-card-name {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--white);
+      margin-bottom: 4px;
+    }
+    .recipe-card-meta { font-size: 0.78rem; color: var(--orange); font-weight: 600; }
+
+    /* Recipe Detail */
+    .recipe-detail-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 300;
+      background: rgba(0,0,0,0.97);
+      overflow-y: auto;
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(28px);
+      transition: opacity 0.25s, transform 0.25s cubic-bezier(0.4,0,0.2,1);
+    }
+    .recipe-detail-overlay.open {
+      opacity: 1;
+      pointer-events: all;
+      transform: translateY(0);
+    }
+    .recipe-detail-inner {
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 28px 24px 70px;
+    }
+    .recipe-back-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: none;
+      border: none;
+      color: var(--orange);
+      font-family: 'Heebo', sans-serif;
+      font-size: 0.95rem;
+      font-weight: 700;
+      cursor: pointer;
+      padding: 0;
+      margin-bottom: 24px;
+      transition: opacity 0.2s;
+    }
+    .recipe-back-btn:hover { opacity: 0.7; }
+    .recipe-detail-img-wrap {
+      width: 100%;
+      border-radius: 16px;
+      overflow: hidden;
+      margin-bottom: 28px;
+      border: 1px solid rgba(255,107,0,0.25);
+      box-shadow: 0 0 40px rgba(255,107,0,0.15);
+      background: #1a1a1a;
+    }
+    .recipe-detail-img-wrap img {
+      width: 100%;
+      max-height: 420px;
+      object-fit: cover;
+      display: block;
+    }
+    .recipe-detail-img-placeholder {
+      width: 100%;
+      height: 280px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 6rem;
+    }
+    .recipe-detail-name {
+      font-size: clamp(1.6rem, 4vw, 2.2rem);
+      font-weight: 900;
+      color: var(--white);
+      margin-bottom: 12px;
+    }
+    .recipe-detail-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+    .recipe-tag {
+      padding: 4px 12px;
+      background: rgba(255,107,0,0.1);
+      border: 1px solid rgba(255,107,0,0.3);
+      border-radius: 20px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: var(--orange);
+    }
+    .recipe-detail-desc {
+      color: var(--muted);
+      font-size: 0.97rem;
+      line-height: 1.75;
+      margin-bottom: 32px;
+    }
+    .recipe-section-title {
+      font-size: 1.05rem;
+      font-weight: 900;
+      color: var(--gold);
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .recipe-section-title::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: rgba(255,215,0,0.18);
+    }
+    .recipe-ingredients {
+      list-style: none;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(185px, 1fr));
+      gap: 8px;
+      margin-bottom: 32px;
+    }
+    .recipe-ingredients li {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 8px;
+      font-size: 0.9rem;
+      color: var(--white);
+    }
+    .recipe-ingredients li::before {
+      content: '';
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--orange);
+      flex-shrink: 0;
+    }
+    .recipe-steps {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .recipe-steps li {
+      display: flex;
+      gap: 16px;
+      padding: 16px 18px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 10px;
+      font-size: 0.93rem;
+      color: var(--white);
+      line-height: 1.65;
+      align-items: flex-start;
+    }
+    .step-num {
+      width: 28px; height: 28px;
+      min-width: 28px;
+      background: linear-gradient(135deg, var(--orange), var(--orange2));
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.8rem;
+      font-weight: 900;
+      color: var(--white);
+    }
+    @media (max-width: 600px) {
+      .recipe-grid-scroll { padding: 20px 16px; }
+      .recipe-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ═══ NAVBAR ═══ -->
+<header id="navbar">
+  <div class="container">
+    <nav class="nav-inner">
+      <a class="nav-logo" href="#">
+        <img src="LOGO.jpg" alt="HF Online Coaching" class="logo-img"
+             onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
+        <div style="display:none; width:46px; height:46px; background:linear-gradient(135deg,#FF6B00,#FFD700); border-radius:8px; align-items:center; justify-content:center; font-size:1.3rem; font-weight:900; color:#090909; box-shadow:0 0 18px rgba(255,107,0,0.55); flex-shrink:0;">HF</div>
+      </a>
+
+      <ul class="nav-links">
+        <li><a href="#" onclick="goTo('achievements'); return false;">הישגים</a></li>
+        <li><a href="#" onclick="goTo('results'); return false;">תוצאות</a></li>
+        <li><a href="#" onclick="goTo('features'); return false;">מה מקבלים</a></li>
+        <li><a href="#" onclick="goTo('pricing'); return false;">מסלולים</a></li>
+        <li><a href="#" onclick="goTo('terms'); return false;">תקנון</a></li>
+        <li><a href="#" onclick="goTo('coach-plans'); return false;" style="color:var(--gold);">FIT JOURNEY APP</a></li>
+        <li><a href="#" onclick="openRecipeBook(); return false;" style="color:var(--gold);">ספר מתכונים</a></li>
+      </ul>
+
+      <div class="nav-cta">
+        <a href="login.html" style="padding:10px 18px;font-size:0.85rem;background:transparent;border:1px solid rgba(255,107,0,0.4);color:var(--orange);border-radius:6px;text-decoration:none;font-weight:700;transition:background 0.2s;" onmouseover="this.style.background='rgba(255,107,0,0.1)'" onmouseout="this.style.background='transparent'">
+          אזור אישי
+        </a>
+        <a href="#" class="btn-primary" onclick="goTo('pricing'); return false;" style="padding:12px 24px;font-size:0.9rem;animation:none;">
+          התחל עכשיו
+        </a>
+      </div>
+
+      <button class="hamburger" id="hamburger" aria-label="פתח תפריט">
+        <span></span><span></span><span></span>
+      </button>
+    </nav>
+  </div>
+  <div class="mobile-menu" id="mobile-menu">
+    <a onclick="goTo('achievements'); closeMobile(); return false;">הישגים</a>
+    <a onclick="goTo('results'); closeMobile(); return false;">תוצאות</a>
+    <a onclick="goTo('features'); closeMobile(); return false;">מה מקבלים</a>
+    <a onclick="scrollTo('pricing'); closeMobile()">מסלולים</a>
+    <a onclick="goTo('terms'); closeMobile(); return false;">תקנון</a>
+    <a onclick="openRecipeBook(); closeMobile(); return false;" style="color:var(--gold);">ספר מתכונים</a>
+    <a href="login.html" style="color:var(--orange);">אזור אישי</a>
+    <a class="btn-primary" href="#" onclick="goTo('pricing'); closeMobile(); return false;">התחל עכשיו</a>
+  </div>
+</header>
+
+
+<!-- ═══ HERO ═══ -->
+<section id="hero">
+  <div class="hero-bg"></div>
+  <div class="sparks">
+    <div class="spark"></div><div class="spark"></div>
+    <div class="spark"></div><div class="spark"></div>
+    <div class="spark"></div><div class="spark"></div>
+    <div class="spark"></div><div class="spark"></div>
+    <div class="spark"></div><div class="spark"></div>
+    <div class="spark"></div><div class="spark"></div>
+  </div>
+  <div class="hero-line"></div>
+
+  <div class="hero-content">
+    <div class="hero-tag">Halel Fit Journey</div>
+
+    <h1 class="hero-title">
+      ליווי אונליין שמביא<br>
+      <span class="highlight">תוצאות אמיתיות</span>
+    </h1>
+
+    <p class="hero-sub">
+      תוכנית אימונים, תזונה וליווי אישי שמותאמים בדיוק למטרה שלך —<br>
+      מסה, חיטוב, שינוי גוף או הכנה לתחרות.
+    </p>
+
+    <div class="hero-buttons">
+      <a href="#" class="btn-primary" onclick="goTo('pricing'); return false;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+        התחל תהליך עכשיו
+      </a>
+      <a href="#" class="btn-secondary" onclick="goTo('results'); return false;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8" fill="currentColor" stroke="none"/></svg>
+        צפה בתוצאות של מתאמנים
+      </a>
+    </div>
+
+    <div class="scroll-hint">
+      <span>גלול למטה</span>
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══ COACH ACHIEVEMENTS ═══ -->
+<section id="achievements">
+  <div class="container">
+    <h2 class="section-title">הישגים <span>תחרותיים</span></h2>
+    <div class="title-line"></div>
+
+    <div class="achievements-layout">
+
+      <!-- טיימליין ───────────────────── -->
+      <div class="timeline">
+
+        <!-- 2026 -->
+        <div class="year-block">
+          <div class="year-label">2026</div>
+
+          <div class="achieve-item">
+            <div class="achieve-medal">🏆</div>
+            <div class="achieve-info">
+              <div class="achieve-comp">MBC Classic Physique — Overall Champion</div>
+              <div class="achieve-place">מקום ראשון כולל</div>
+              <span class="achieve-org">MBC</span>
+            </div>
+          </div>
+
+          <div class="achieve-item">
+            <div class="achieve-medal">🥇</div>
+            <div class="achieve-info">
+              <div class="achieve-comp">WNBF Classic Physique</div>
+              <div class="achieve-place">מקום ראשון</div>
+              <span class="achieve-org">WNBF</span>
+            </div>
+          </div>
+        </div>
+
+
+      </div>
+
+      <!-- תמונות עם מתחרים ───────────────────── -->
+      <div>
+        <div class="comp-photos-title">תמונות מהתחרויות</div>
+        <div class="comp-grid">
+
+          <!-- MBC 2026 -->
+          <div class="comp-photo">
+            <img src="mbc2026.jpg" alt="MBC 2026 — HF"
+                 onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
+            <div class="comp-photo-placeholder" style="display:none;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+              <span>mbc2026.jpg</span>
+            </div>
+            <div class="comp-photo-label">🏆 MBC 2026</div>
+          </div>
+
+          <!-- WNBF 2026 -->
+          <div class="comp-photo" style="aspect-ratio:3/4;">
+            <img src="wnbf2026.jpg" alt="WNBF 2026 — HF" style="object-fit:cover; object-position:center 20%;"
+                 onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
+            <div class="comp-photo-placeholder" style="display:none;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+              <span>wnbf2026.jpg</span>
+            </div>
+            <div class="comp-photo-label">🥇 WNBF 2026</div>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+
+    <!-- סיכום עונת תחרויות מאי 2026 -->
+    <div class="season-summary-wrap">
+    <div class="season-summary">
+      <img src="may2026.jpg" alt="סיכום עונת תחרויות מאי 2026 — HF"
+           onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
+      <div class="season-summary-placeholder" style="display:none;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+        <span>may2026.jpg</span>
+      </div>
+      <div class="season-caption">
+        <div class="season-caption-title">סיכום <span>עונת תחרויות מאי 2026</span></div>
+        <div class="season-medals">
+          <span class="season-medal-tag trophy">🏆 Overall Champion</span>
+          <span class="season-medal-tag gold">🥇 WNBF</span>
+        </div>
+      </div>
+    </div>
+    </div><!-- /season-summary-wrap -->
+
+  </div>
+</section>
+
+
+<!-- ═══ RESULTS CAROUSEL ═══ -->
+<section id="results">
+  <div class="container">
+    <h2 class="section-title">תוצאות <span>מתאמנים</span></h2>
+    <div class="title-line"></div>
+
+    <div class="carousel-wrapper">
+      <div class="carousel-track-outer">
+        <div class="carousel-track" id="carousel-track">
+
+          <!-- דניאל רון -->
+          <div class="result-card">
+            <div class="result-img-wrap">
+              <img src="images/daniel.jpg" alt="טרנספורמציה של דניאל רון — לפני ואחרי ליווי HF"
+                   onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+              />
+              <div class="result-img-placeholder" style="display:none;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+                <span>הוסף תמונה: images/daniel.jpg</span>
+              </div>
+            </div>
+            <div class="card-info">
+              <div class="card-top">
+                <div class="card-name">דניאל רון</div>
+                <div class="weight-tag">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+                  +13 ק"ג
+                </div>
+              </div>
+              <div class="card-divider"></div>
+              <p class="card-desc">
+                עלייה של 13 קילוגרם עם שמירה מלאה על אחוז שומן נמוך — גוף אתלטי, חד ומוגדר.
+                <span class="card-quote">"לא האמנתי שאני יכול לעלות ככה במשקל. ניסיתי עם מספר מאמנים לפני — כל אחד הבטיח תוצאות, אבל המאזניים לא זזו. עד שהגעתי לפה. פתאום הכל התחיל להשתנות — התוכנית הייתה מדויקת, המעקב היה צמוד, והגוף פשוט הגיב. התוצאות מדברות בעד עצמן."</span>
+              </p>
+            </div>
+          </div>
+
+          <!-- לירן -->
+          <div class="result-card">
+            <div class="result-img-wrap">
+              <!-- שים את תמונת לפני/אחרי של לירן בתיקיית images ליד הקובץ -->
+              <img src="images/liran.jpg" alt="טרנספורמציה של לירן — לפני ואחרי ליווי HF"
+                   onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+              />
+              <div class="result-img-placeholder" style="display:none;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+                <span>הוסף תמונה: images/liran.jpg</span>
+              </div>
+            </div>
+            <div class="card-info">
+              <div class="card-top">
+                <div class="card-name">לירן</div>
+                <div class="weight-tag">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+                  +16 ק"ג
+                </div>
+              </div>
+              <div class="card-divider"></div>
+              <p class="card-desc">
+                תהליך בניית מסה שעשה את כל ההבדל — עלייה של 16 קילוגרם עם שמירה מלאה על אחוז שומן נמוך.
+                תוכנית אימונים ותזונה מדויקת שבנינו יחד, מעקב שוטף ועקביות — זה הסוד.
+                <span class="card-quote">"לא האמנתי שאפשר לעלות ככה בלי לתפוח — הגוף פשוט השתנה."</span>
+              </p>
+            </div>
+          </div>
+
+          <!-- אופיר -->
+          <div class="result-card">
+            <div class="result-img-wrap">
+              <img src="images/OFIR.jpg" alt="טרנספורמציה של אופיר — לפני ואחרי ליווי HF"
+                   onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
+              <div class="result-img-placeholder" style="display:none;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+                <span>images/OFIR.jpg</span>
+              </div>
+            </div>
+            <div class="card-info">
+              <div class="card-top">
+                <div class="card-name">אופיר</div>
+                <div class="weight-tag" style="background:rgba(255,107,0,0.18);border-color:rgba(255,107,0,0.5);color:var(--orange);">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
+                  -35 ק"ג
+                </div>
+              </div>
+              <div class="card-divider"></div>
+              <p class="card-desc">
+                ירידה של 35 קילוגרם שינתה את החיים — לא רק את הגוף, אלא את האנרגיה, הביטחון והתחושה היומיומית.
+                <span class="card-quote">"תמיד חשבתי שזה לא בשבילי, שאני לא מהסוג שמצליח. אבל כשיש מישהו שמאמין בך יותר ממה שאתה מאמין בעצמך — קורים דברים. הגוף שלי היום הוא ההוכחה."</span>
+              </p>
+            </div>
+          </div>
+
+          <!-- נשיאל — סליידשואו 3 תמונות -->
+          <div class="result-card">
+            <div class="result-img-wrap">
+              <div class="slideshow-wrap" id="nesial-slideshow">
+                <img id="nesial-img" class="slide-img" src="images/nesial1.jpg" alt="נשיאל — טרנספורמציה" />
+                <div class="slide-dots" id="nesial-dots">
+                  <div class="slide-dot active"></div>
+                  <div class="slide-dot"></div>
+                  <div class="slide-dot"></div>
+                </div>
+              </div>
+            </div>
+            <div class="card-info">
+              <div class="card-top">
+                <div class="card-name">נשיאל</div>
+                <div class="weight-tag">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+                  +18 ק"ג
+                </div>
+              </div>
+              <div class="card-divider"></div>
+              <p class="card-desc">
+                שינוי מדהים שאי אפשר להתעלם ממנו — טרנספורמציה מלאה שמראה מה קורה כשמחויבות פוגשת תוכנית נכונה.
+                <span class="card-quote">"הגוף שלי השתנה לחלוטין — לא האמנתי שזה אפשרי."</span>
+              </p>
+            </div>
+          </div>
+
+        </div><!-- /track -->
+      </div><!-- /outer -->
+
+      <div class="carousel-nav">
+        <button class="carousel-btn" id="btn-prev" aria-label="הקודם">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>
+        </button>
+        <button class="carousel-btn" id="btn-next" aria-label="הבא">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>
+        </button>
+      </div>
+
+      <div class="carousel-dots" id="carousel-dots"></div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══ WHO IS IT FOR ═══ -->
+<section id="who">
+  <div class="container">
+    <h2 class="section-title">למי זה <span>מתאים?</span></h2>
+    <div class="title-line"></div>
+
+    <div class="who-grid">
+      <div class="who-card">
+        <div class="check-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>
+        </div>
+        <p>אנשים שרוצים לעלות מסת שריר בצורה נכונה</p>
+      </div>
+      <div class="who-card">
+        <div class="check-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>
+        </div>
+        <p>אנשים שרוצים להתחטב בלי לאבד מסת שריר</p>
+      </div>
+      <div class="who-card">
+        <div class="check-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>
+        </div>
+        <p>מתאמנים תקועים שלא מצליחים להתקדם לבד</p>
+      </div>
+      <div class="who-card">
+        <div class="check-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>
+        </div>
+        <p>אנשים שרוצים מסגרת, פיקוח וליווי אישי</p>
+      </div>
+      <div class="who-card">
+        <div class="check-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>
+        </div>
+        <p>מתחרים או אנשים שרוצים להגיע לרמה גבוהה יותר</p>
+      </div>
+      <div class="who-card">
+        <div class="check-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>
+        </div>
+        <p>מתחילים שרוצים להתחיל נכון בלי לבזבז זמן</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══ FEATURES ═══ -->
+<section id="features">
+  <div class="container">
+    <h2 class="section-title">מה <span>מקבלים</span> בליווי?</h2>
+    <div class="title-line"></div>
+
+    <div class="features-grid">
+
+      <div class="feat-card">
+        <div class="feat-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <path d="M6.5 6.5h11M4 12h16M6.5 17.5h11"/><circle cx="12" cy="12" r="10"/>
+          </svg>
+        </div>
+        <div class="feat-title">תוכנית אימונים אישית</div>
+        <p class="feat-desc">מותאמת לרמה, מטרה, ציוד, זמינות, פציעות וניסיון קודם — בניית תוכנית שעובדת בדיוק בשבילך.</p>
+      </div>
+
+      <div class="feat-card">
+        <div class="feat-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <path d="M12 2a7 7 0 0 1 7 7c0 5-7 13-7 13S5 14 5 9a7 7 0 0 1 7-7z"/><circle cx="12" cy="9" r="2.5"/>
+          </svg>
+        </div>
+        <div class="feat-title">תפריט תזונה אישי</div>
+        <p class="feat-desc">מותאם למשקל, מטרה, אורח חיים והעדפות מזון — תוכנית תזונה שאפשר לחיות איתה לאורך זמן.</p>
+      </div>
+
+      <div class="feat-card">
+        <div class="feat-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+          </svg>
+        </div>
+        <div class="feat-title">מעקב שוטף</div>
+        <p class="feat-desc">בדיקת התקדמות לפי משקל, תמונות, ביצועים ומדדים — כך תמיד יודעים איפה עומדים ולאן הולכים.</p>
+      </div>
+
+      <div class="feat-card">
+        <div class="feat-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/>
+          </svg>
+        </div>
+        <div class="feat-title">שינויים לפי צורך</div>
+        <p class="feat-desc">עדכונים בתפריט ובאימונים בהתאם לתגובת הגוף — הגוף שלך מתפתח, התוכנית מתפתחת איתו.</p>
+      </div>
+
+      <div class="feat-card">
+        <div class="feat-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+          </svg>
+        </div>
+        <div class="feat-title">ליווי אונליין אישי</div>
+        <p class="feat-desc">מענה, הכוונה, תיקונים ושמירה על מסגרת לאורך כל הדרך — לא לבד, אף פעם לא לבד.</p>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══ PRICING ═══ -->
+<section id="pricing">
+  <div class="container">
+    <h2 class="section-title">מסלולי <span>ליווי</span></h2>
+    <div class="title-line"></div>
+
+    <div class="pricing-grid">
+
+      <!-- Monthly -->
+      <div class="price-card">
+        <div class="price-badge">ללא התחייבות</div>
+        <div class="plan-name">ליווי חודשי</div>
+        <div class="price-amount"><span class="currency">₪</span>400</div>
+        <div class="price-period">לחודש · מתחדש אוטומטית</div>
+        <div class="price-divider"></div>
+        <ul class="price-features">
+          <li>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
+            תוכנית אימונים אישית
+          </li>
+          <li>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
+            תפריט תזונה מותאם
+          </li>
+          <li>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
+            מעקב חודשי
+          </li>
+          <li>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
+            עדכונים לפי צורך
+          </li>
+          <li>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
+            ליווי אונליין
+          </li>
+        </ul>
+        <button class="btn-secondary price-cta" onclick="openPayment('חודשי')">בחר מסלול</button>
+      </div>
+
+      <!-- 3 Months (Featured) -->
+      <div class="price-card featured">
+        <div class="price-badge featured-badge">הכי פופולרי</div>
+        <div class="plan-name">ליווי 3 חודשים</div>
+        <div class="price-amount"><span class="currency">₪</span>1,100</div>
+        <div class="price-period">ל-3 חודשים · חסכון של 100₪</div>
+        <div class="price-divider"></div>
+        <ul class="price-features">
+          <li>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
+            בניית תוכנית מלאה
+          </li>
+          <li>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
+            תפריט תזונה אישי
+          </li>
+          <li>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
+            מעקב התקדמות שוטף
+          </li>
+          <li>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
+            שינויי תפריט ואימונים
+          </li>
+          <li>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
+            ליווי אונליין מלא
+          </li>
+          <li>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
+            ליווי לאורך 3 חודשים
+          </li>
+        </ul>
+        <button class="btn-primary price-cta" onclick="openPayment('3 חודשים')">בחר מסלול</button>
+      </div>
+
+      <!-- 6 Months -->
+      <div class="price-card">
+        <div class="price-badge">הכי משתלם</div>
+        <div class="plan-name">ליווי חצי שנה</div>
+        <div class="price-amount"><span class="currency">₪</span>2,000</div>
+        <div class="price-period">ל-6 חודשים · חסכון של 400₪</div>
+        <div class="price-divider"></div>
+        <ul class="price-features">
+          <li>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
+            ליווי מלא ל-6 חודשים
+          </li>
+          <li>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
+            תוכנית אימונים מתקדמת
+          </li>
+          <li>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
+            תפריט מותאם ומעודכן
+          </li>
+          <li>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
+            מעקב רציף
+          </li>
+          <li>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
+            התאמות לפי התקדמות
+          </li>
+          <li>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
+            בניית תהליך מסודר לתוצאה
+          </li>
+        </ul>
+        <button class="btn-secondary price-cta" onclick="openPayment('חצי שנה')">בחר מסלול</button>
+      </div>
+
+
+    </div>
+
+    <!-- Bit payment info -->
+    <div style="max-width:420px;margin:28px auto 0;text-align:center;padding:18px 22px;background:rgba(255,215,0,0.04);border:1px solid rgba(255,215,0,0.18);border-radius:14px;">
+      <div style="font-size:0.78rem;color:#888;margin-bottom:8px;letter-spacing:0.5px;">ניתן לשלם גם בביט</div>
+      <div style="display:flex;align-items:center;justify-content:center;gap:10px;">
+        <img src="https://upload.wikimedia.org/wikipedia/he/thumb/3/32/Bit_logo.svg/200px-Bit_logo.svg.png" alt="Bit" style="height:22px;filter:brightness(1.1);" onerror="this.style.display='none'"/>
+        <span style="font-size:1.3rem;font-weight:900;color:#FFD700;letter-spacing:1px;direction:ltr;">058-693-1163</span>
+      </div>
+      <div style="font-size:0.72rem;color:#555;margin-top:8px;">לאחר התשלום שלח הודעה בוואצאפ לאישור</div>
+    </div>
+
+  </div>
+</section>
+
+
+<!-- ═══ TERMS / ACCORDION ═══ -->
+<section id="terms">
+  <div class="container">
+    <h2 class="section-title">תקנון <span>אימון אונליין</span></h2>
+    <div class="title-line"></div>
+
+    <div class="accordion" id="accordion">
+
+      <div class="acc-item">
+        <button class="acc-header">
+          <span>1. כללי</span>
+          <svg class="acc-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+        <div class="acc-body">
+          <p>השירות ניתן כליווי אונליין בתחום הכושר, פיתוח הגוף, תזונה ואורח חיים ספורטיבי. הליווי אינו מהווה ייעוץ רפואי, טיפול רפואי או תחליף לאבחון על ידי רופא, דיאטן קליני או איש מקצוע רפואי מוסמך. הלקוח מצהיר כי הוא כשיר לבצע פעילות גופנית, וכי במידה ויש לו מגבלה רפואית — עליו לעדכן את המאמן מראש ולהיוועץ ברופא לפני תחילת התהליך.</p>
+        </div>
+      </div>
+
+      <div class="acc-item">
+        <button class="acc-header">
+          <span>2. מסלולי השירות</span>
+          <svg class="acc-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+        <div class="acc-body">
+          <p>העסק מציע שלושה מסלולי ליווי:</p>
+          <ul>
+            <li>ליווי חודשי — 400 ₪ לחודש</li>
+            <li>ליווי ל-3 חודשים — 1,100 ₪</li>
+            <li>ליווי לחצי שנה — 2,000 ₪</li>
+          </ul>
+          <p style="margin-top:10px;">כל מסלול כולל בניית תוכנית אימונים, תפריט תזונה, מעקב והכוונה בהתאם למסלול שנרכש.</p>
+        </div>
+      </div>
+
+      <div class="acc-item">
+        <button class="acc-header">
+          <span>3. חידוש וביטול מסלול חודשי</span>
+          <svg class="acc-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+        <div class="acc-body">
+          <p>המסלול החודשי הינו מסלול מתחדש מדי חודש באופן קבוע, עד שהלקוח מבקש לבטל אותו. ביטול המסלול החודשי יתבצע בהודעה מראש של חודש ימים. כלומר, לאחר הודעת הביטול, הלקוח יחויב עבור חודש נוסף, והשירות יסתיים בסיום אותו חודש. לדוגמה: אם לקוח מודיע על ביטול ב-10 לחודש, הליווי יימשך חודש נוסף ממועד ההודעה, ולאחר מכן יופסק.</p>
+        </div>
+      </div>
+
+      <div class="acc-item">
+        <button class="acc-header">
+          <span>4. ביטול מסלולים ארוכים</span>
+          <svg class="acc-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+        <div class="acc-body">
+          <p>במסלולי 3 חודשים וחצי שנה, התשלום מתבצע עבור תקופת ליווי מוגדרת מראש. לאחר תחילת הליווי, לא יינתן החזר כספי מלא או חלקי, למעט מקרים חריגים ובכפוף לשיקול דעת העסק. הסיבה לכך היא שהתהליך כולל בניית תוכנית אישית, השקעת זמן מקצועית, פתיחת תיק לקוח, התאמות ותכנון מראש.</p>
+        </div>
+      </div>
+
+      <div class="acc-item">
+        <button class="acc-header">
+          <span>5. אחריות הלקוח</span>
+          <svg class="acc-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+        <div class="acc-body">
+          <p>הלקוח אחראי לבצע את ההנחיות, האימונים והתפריט כפי שנמסרו לו. תוצאות התהליך תלויות בשיתוף הפעולה של הלקוח, התמדה, דיווחים מדויקים, ביצוע בפועל, שינה, תזונה, אימונים ואורח חיים. העסק אינו מתחייב לתוצאה מסוימת, משום שכל גוף מגיב בצורה שונה.</p>
+        </div>
+      </div>
+
+      <div class="acc-item">
+        <button class="acc-header">
+          <span>6. דיווחים ומעקב</span>
+          <svg class="acc-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+        <div class="acc-body">
+          <p>הלקוח מתחייב לשלוח עדכונים לפי דרישת המאמן, כגון: משקל, תמונות התקדמות, ביצועים באימונים, תחושת רעב/עייפות, חריגות מהתפריט, שינויים במצב הבריאותי. אי שליחת עדכונים בזמן עלולה לפגוע באיכות הליווי ובקצב ההתקדמות.</p>
+        </div>
+      </div>
+
+      <div class="acc-item">
+        <button class="acc-header">
+          <span>7. שינויים בתוכנית</span>
+          <svg class="acc-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+        <div class="acc-body">
+          <p>שינויים בתפריט או בתוכנית האימונים יבוצעו לפי שיקול דעת המאמן ובהתאם להתקדמות הלקוח. לא כל שבוע נדרש שינוי. לעיתים ההתקדמות הטובה ביותר מגיעה דווקא מהתמדה בתוכנית קיימת.</p>
+        </div>
+      </div>
+
+      <div class="acc-item">
+        <button class="acc-header">
+          <span>8. זמני מענה</span>
+          <svg class="acc-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+        <div class="acc-body">
+          <p>המענה ניתן במסגרת שעות פעילות סבירות. ייתכנו עיכובים במענה בסופי שבוע, חגים, עומס עבודה או נסיבות אישיות.</p>
+        </div>
+      </div>
+
+      <div class="acc-item">
+        <button class="acc-header">
+          <span>9. שימוש בתמונות ותוצאות</span>
+          <svg class="acc-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+        <div class="acc-body">
+          <p>העסק רשאי להשתמש בתמונות התקדמות, סיפורי הצלחה ותוצאות של לקוחות לצורכי שיווק רק באישור הלקוח. ללא אישור מפורש מהלקוח — לא יפורסמו תמונות מזהות.</p>
+        </div>
+      </div>
+
+      <div class="acc-item">
+        <button class="acc-header">
+          <span>10. תשלומים</span>
+          <svg class="acc-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+        <div class="acc-body">
+          <p>התשלום יתבצע מראש עבור המסלול שנבחר. תחילת הליווי תתבצע רק לאחר הסדרת התשלום ומילוי פרטי הלקוח הנדרשים. איחור בתשלום במסלול חודשי עלול לגרום לעצירת הליווי עד להסדרת התשלום.</p>
+        </div>
+      </div>
+
+      <div class="acc-item">
+        <button class="acc-header">
+          <span>11. הקפאת מנוי</span>
+          <svg class="acc-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+        <div class="acc-body">
+          <p>הקפאת מנוי תתאפשר במקרים חריגים בלבד, כגון פציעה משמעותית, מחלה או נסיבות מיוחדות, ובכפוף לאישור העסק.</p>
+        </div>
+      </div>
+
+      <div class="acc-item">
+        <button class="acc-header">
+          <span>12. סיום ליווי מצד העסק</span>
+          <svg class="acc-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+        <div class="acc-body">
+          <p>העסק רשאי להפסיק ליווי במקרה של: יחס לא מכבד, אי תשלום, חוסר שיתוף פעולה מתמשך, הסתרת מידע רפואי חשוב, שימוש לרעה בשירות, התנהלות שפוגעת בתהליך או בעסק.</p>
+        </div>
+      </div>
+
+      <div class="acc-item">
+        <button class="acc-header">
+          <span>13. הצהרת בריאות</span>
+          <svg class="acc-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+        <div class="acc-body">
+          <p>הלקוח מצהיר כי הוא מבין שכל פעילות גופנית כרוכה בסיכון מסוים, וכי עליו לבצע את האימונים בזהירות, בטכניקה נכונה ובהתאם ליכולתו האישית. בכל כאב חריג, סחרחורת, קוצר נשימה, לחץ בחזה או תחושה לא תקינה — יש לעצור פעילות ולפנות לגורם רפואי מוסמך.</p>
+        </div>
+      </div>
+
+      <div class="acc-item">
+        <button class="acc-header">
+          <span>14. אישור התקנון</span>
+          <svg class="acc-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+        <div class="acc-body">
+          <p>רכישת אחד ממסלולי הליווי מהווה אישור מצד הלקוח כי קרא, הבין והסכים לתנאי התקנון.</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══ COACH PLANS ═══ -->
+<section id="coach-plans" style="background:var(--black);padding:100px 0;">
+  <div class="container">
+    <h2 class="section-title">הפלטפורמה <span>למאמנים</span></h2>
+    <div class="title-line"></div>
+    <p style="text-align:center;color:var(--muted);font-size:1rem;margin-bottom:16px;max-width:560px;margin-right:auto;margin-left:auto;line-height:1.7;">
+      פאנל ניהול מקצועי לליווי מתאמנים אונליין — תוכניות אימון, תזונה, מעקב התקדמות ועוד.
+    </p>
+    <p style="text-align:center;font-size:0.82rem;color:#555;margin-bottom:50px;">
+      תשלום דרך ביט · גישה מיידית · ללא עמלות
+    </p>
+
+    <div class="pricing-grid">
+
+      <!-- חודשי -->
+      <div class="price-card">
+        <div class="price-badge">ללא התחייבות</div>
+        <div class="plan-name">חודש אחד</div>
+        <div class="price-amount"><span class="currency">₪</span>250</div>
+        <div class="price-period">לחודש · גישה מלאה 30 יום</div>
+        <div class="price-divider"></div>
+        <ul class="price-features">
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>ניהול מתאמנים ללא הגבלה</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>בניית תוכניות אימון</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>תפריטי תזונה אישיים</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>מעקב התקדמות ושיאים</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>לוח בקרה אישי</li>
+        </ul>
+        <a href="coach-signup.html?plan=1" class="btn-secondary price-cta" style="text-decoration:none;display:block;text-align:center;">הצטרף עכשיו</a>
+      </div>
+
+      <!-- 3 חודשים — featured -->
+      <div class="price-card featured">
+        <div class="price-badge featured-badge">הכי פופולרי</div>
+        <div class="plan-name">3 חודשים</div>
+        <div class="price-amount"><span class="currency">₪</span>600</div>
+        <div class="price-period">ל-3 חודשים · חסכון של 150 ₪</div>
+        <div class="price-divider"></div>
+        <ul class="price-features">
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>ניהול מתאמנים ללא הגבלה</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>בניית תוכניות אימון</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>תפריטי תזונה אישיים</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>מעקב התקדמות ושיאים</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>לוח בקרה אישי</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>עדיפות בתמיכה טכנית</li>
+        </ul>
+        <a href="coach-signup.html?plan=3" class="btn-primary price-cta" style="text-decoration:none;display:block;text-align:center;animation:none;">הצטרף עכשיו</a>
+      </div>
+
+      <!-- חצי שנה -->
+      <div class="price-card">
+        <div class="price-badge">הכי משתלם</div>
+        <div class="plan-name">6 חודשים</div>
+        <div class="price-amount"><span class="currency">₪</span>1,000</div>
+        <div class="price-period">ל-6 חודשים · חסכון של 500 ₪</div>
+        <div class="price-divider"></div>
+        <ul class="price-features">
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>ניהול מתאמנים ללא הגבלה</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>בניית תוכניות אימון</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>תפריטי תזונה אישיים</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>מעקב התקדמות ושיאים</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>לוח בקרה אישי</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>עדיפות מקסימלית בתמיכה</li>
+        </ul>
+        <a href="coach-signup.html?plan=6" class="btn-secondary price-cta" style="text-decoration:none;display:block;text-align:center;">הצטרף עכשיו</a>
+      </div>
+
+    </div>
+
+    <p style="text-align:center;margin-top:28px;font-size:0.8rem;color:#444;line-height:1.7;">
+      יש שאלות? <a href="https://wa.me/972586931163" target="_blank" rel="noopener" style="color:var(--orange);text-decoration:none;">שלח הודעה בוואצאפ</a>
+    </p>
+
+    <div style="text-align:center;margin-top:20px;">
+      <a href="guide.html" style="display:inline-flex;align-items:center;gap:8px;padding:12px 28px;background:transparent;border:1px solid rgba(255,107,0,0.35);border-radius:10px;color:var(--orange);font-family:'Heebo',sans-serif;font-size:0.92rem;font-weight:700;text-decoration:none;transition:all 0.2s;" onmouseover="this.style.background='rgba(255,107,0,0.08)'" onmouseout="this.style.background='transparent'">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+        מדריך לשימוש
+      </a>
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══ CLOSING CTA ═══ -->
+<section id="closing">
+  <div class="container">
+    <blockquote class="closing-quote">
+      "הגוף שלך לא משתנה <span>מניחושים.</span><br>
+      הוא משתנה מ<strong>תוכנית מדויקת</strong>, <strong>מעקב נכון</strong> והתמדה.<br>
+      כאן מתחילים <span>תהליך אמיתי.</span>"
+    </blockquote>
+    <a href="#" class="btn-primary" onclick="goTo('pricing'); return false;" style="font-size:1.1rem;padding:18px 44px;">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+      התחל תהליך עכשיו
+    </a>
+  </div>
+</section>
+
+<!-- ═══ RECIPE BOOK OVERLAY ═══ -->
+<div class="recipe-overlay" id="recipe-book-overlay">
+  <div class="recipe-overlay-header">
+    <div class="recipe-overlay-title">ספר <span>מתכונים</span></div>
+    <button class="recipe-overlay-close" onclick="closeRecipeBook()" aria-label="סגור">✕</button>
+  </div>
+  <div class="recipe-grid-scroll">
+    <div class="recipe-grid" id="recipe-grid"></div>
+  </div>
+</div>
+
+<!-- ═══ RECIPE DETAIL OVERLAY ═══ -->
+<div class="recipe-detail-overlay" id="recipe-detail-overlay">
+  <div class="recipe-detail-inner" id="recipe-detail-inner"></div>
+</div>
+
+<!-- ═══ PAYMENT MODAL ═══ -->
+<div class="modal-overlay" id="payment-modal" onclick="handleOverlayClick(event)">
+  <div class="modal">
+
+    <div class="modal-header">
+      <button class="modal-close" onclick="closePayment()" aria-label="סגור">✕</button>
+      <div class="modal-plan-label">מסלול נבחר</div>
+      <div class="modal-plan-name" id="modal-plan-name">ליווי חודשי</div>
+      <div class="modal-plan-price"><span id="modal-plan-price">400</span> ₪<small id="modal-plan-sub"></small></div>
+    </div>
+
+    <div class="modal-body">
+      <div class="modal-section-title">בחר אמצעי תשלום</div>
+
+      <div class="pay-options">
+
+        <!-- ביט -->
+        <div class="pay-btn" onclick="toggleBitQR()" style="cursor:pointer;user-select:none;">
+          <div class="pay-icon" style="background:rgba(0,180,255,0.1);border-color:rgba(0,180,255,0.3);">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#00b4ff" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 12h8M12 8v8"/></svg>
+          </div>
+          <div class="pay-btn-text">
+            <span class="pay-btn-title">ביט</span>
+            <span class="pay-btn-sub">סרוק QR ושלח את הסכום המדויק</span>
+          </div>
+          <svg id="bit-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="2" style="transition:transform 0.2s;"><path d="M6 9l6 6 6-6"/></svg>
+        </div>
+
+        <!-- QR Section -->
+        <div id="bit-qr-section" style="display:none;text-align:center;padding:18px 0 8px;">
+          <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:12px 16px;margin-bottom:14px;text-align:right;">
+            <div style="font-size:0.8rem;color:#aaa;margin-bottom:6px;font-weight:700;">מלא בביט:</div>
+            <div style="font-size:0.85rem;margin-bottom:5px;">💰 <span style="color:#aaa;">בסכום:</span> <strong id="bit-amount" style="color:#FFD700;">400 ₪</strong></div>
+            <div style="font-size:0.85rem;">✉️ <span style="color:#aaa;">בסיבה:</span> <strong style="color:#60a5fa;">כתובת המייל שלך</strong></div>
+          </div>
+          <img id="bit-qr-img" src="" alt="QR ביט" style="width:190px;height:190px;border-radius:12px;border:2px solid rgba(0,180,255,0.3);"/>
+          <div style="font-size:0.75rem;color:#555;margin-top:8px;">פתח את אפליקציית ביט וסרוק</div>
+          <a href="https://www.bitpay.co.il/app/me/38AB25F4-8C62-2CA0-2650-34D4AD05E3D3CF3B" target="_blank" rel="noopener"
+             style="display:inline-flex;align-items:center;gap:7px;margin-top:10px;padding:9px 18px;background:rgba(0,180,255,0.1);border:1px solid rgba(0,180,255,0.35);border-radius:10px;color:#00b4ff;font-weight:700;font-size:0.85rem;text-decoration:none;transition:background 0.2s;"
+             onmouseover="this.style.background='rgba(0,180,255,0.2)'" onmouseout="this.style.background='rgba(0,180,255,0.1)'">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#00b4ff" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 12h8M12 8v8"/></svg>
+            שלם ישירות בביט
+          </a>
+          <a id="pay-wa-confirm" href="#" target="_blank" rel="noopener"
+             style="display:inline-flex;align-items:center;gap:8px;margin-top:14px;padding:10px 20px;background:#25d366;border-radius:10px;color:#fff;font-weight:700;font-size:0.88rem;text-decoration:none;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413z"/></svg>
+            שלחתי — שלח אישור בוואצאפ
+          </a>
+        </div>
+
+      </div>
+
+      <p class="modal-note">
+        לאחר התשלום תיצור איתך קשר תוך 24 שעות להתחלת התהליך
+      </p>
+    </div>
+
+  </div>
+</div>
+
+
+<footer>
+  <div class="container">
+
+    <div class="footer-contact">
+
+      <!-- אינסטגרם -->
+      <a href="https://instagram.com/halel_sheli29" target="_blank" rel="noopener">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/>
+          <circle cx="12" cy="12" r="4"/>
+          <circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/>
+        </svg>
+        @halel_sheli29
+      </a>
+
+      <!-- טלפון -->
+      <a href="tel:0586931163">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.07 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/>
+        </svg>
+        058-693-1163
+      </a>
+
+      <!-- וואצאפ -->
+      <a href="https://wa.me/972586931163" target="_blank" rel="noopener">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413z"/>
+        </svg>
+        WhatsApp
+      </a>
+
+      <!-- מייל -->
+      <a href="mailto:halel1201@gmail.com">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+          <polyline points="22,6 12,13 2,6"/>
+        </svg>
+        halel1201@gmail.com
+      </a>
+
+    </div>
+
+    <div class="footer-divider"></div>
+    <p>HF Online Coaching &copy; 2025 · כל הזכויות שמורות · <span>Halel Fit Journey</span></p>
+
+  </div>
+</footer>
+
+
+<script>
+  /* ─── SMOOTH SCROLL ─── */
+  function goTo(id) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const offset = 80;
+    const top = el.getBoundingClientRect().top + window.pageYOffset - offset;
+    window.scrollTo({ top, behavior: 'smooth' });
+  }
+
+  /* ─── MOBILE MENU ─── */
+  const hamburger = document.getElementById('hamburger');
+  const mobileMenu = document.getElementById('mobile-menu');
+  hamburger.addEventListener('click', () => {
+    const open = mobileMenu.style.display === 'flex';
+    mobileMenu.style.display = open ? 'none' : 'flex';
+  });
+  function closeMobile() { mobileMenu.style.display = 'none'; }
+
+  /* ─── CAROUSEL ─── */
+  (function() {
+    const track = document.getElementById('carousel-track');
+    const dotsContainer = document.getElementById('carousel-dots');
+    const btnNext = document.getElementById('btn-next');
+    const btnPrev = document.getElementById('btn-prev');
+    const cards = Array.from(track.children);
+    const total = cards.length;
+    let current = 0;
+
+    function getVisible() { return 1; }
+
+    function maxIndex() { return Math.max(0, total - getVisible()); }
+
+    function buildDots() {
+      dotsContainer.innerHTML = '';
+      const count = maxIndex() + 1;
+      for (let i = 0; i < count; i++) {
+        const d = document.createElement('div');
+        d.className = 'dot' + (i === current ? ' active' : '');
+        d.addEventListener('click', () => goTo(i));
+        dotsContainer.appendChild(d);
+      }
+    }
+
+    function updateDots() {
+      Array.from(dotsContainer.children).forEach((d, i) => {
+        d.classList.toggle('active', i === current);
+      });
+    }
+
+    function goTo(idx) {
+      current = Math.max(0, Math.min(idx, maxIndex()));
+      const cardW = cards[0].offsetWidth + 24;
+      track.style.transform = `translateX(-${current * cardW}px)`;
+      updateDots();
+    }
+
+    // left arrow (←) = scroll left = next card
+    btnNext.addEventListener('click', () => goTo(current + 1));
+    // right arrow (→) = scroll right = prev card
+    btnPrev.addEventListener('click', () => goTo(current - 1));
+
+    const nav = document.querySelector('.carousel-nav');
+    buildDots();
+    if (total <= 1) {
+      nav.style.display = 'none';
+      dotsContainer.style.display = 'none';
+    }
+    window.addEventListener('resize', () => { buildDots(); goTo(current); });
+  })();
+
+  /* ─── NESIAL SLIDESHOW ─── */
+  (function() {
+    const img  = document.getElementById('nesial-img');
+    const dots = document.querySelectorAll('#nesial-dots .slide-dot');
+    if (!img) return;
+    const srcs = ['images/nesial1.jpg','images/nesial2.jpg','images/nesial3.jpg'];
+    let cur = 0;
+
+    setInterval(() => {
+      cur = (cur + 1) % srcs.length;
+      img.style.opacity = '0';
+      setTimeout(() => {
+        img.src = srcs[cur];
+        img.style.opacity = '1';
+        dots.forEach((d,i) => d.classList.toggle('active', i === cur));
+      }, 500);
+    }, 3500);
+  })();
+
+  /* ─── ACCORDION ─── */
+  document.querySelectorAll('.acc-header').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const item = btn.closest('.acc-item');
+      const isOpen = item.classList.contains('open');
+      // close all
+      document.querySelectorAll('.acc-item').forEach(i => i.classList.remove('open'));
+      if (!isOpen) item.classList.add('open');
+    });
+  });
+
+  /* ─── PAYMENT MODAL ─── */
+  const PAYPAL_EMAIL = 'halel1201@gmail.com';
+
+  const plans = {
+    'חודשי':    { price: '400',   amount: '400.00',   sub: ' / חודש' },
+    '3 חודשים': { price: '1,100', amount: '1100.00',  sub: ' / 3 חודשים' },
+    'חצי שנה':  { price: '2,000', amount: '2000.00',  sub: ' / 6 חודשים' },
+
+  };
+
+  const PLAN_MAP = { 'חודשי': 'monthly', '3 חודשים': '3months', 'חצי שנה': '6months' };
+  function openPayment(planName) {
+    const plan = plans[planName];
+    if (!plan) return;
+    document.getElementById('modal-plan-name').textContent = planName;
+    document.getElementById('modal-plan-price').textContent = plan.price;
+    document.getElementById('modal-plan-sub').textContent = plan.sub;
+    document.getElementById('bit-amount').textContent = plan.price + ' ₪';
+    document.getElementById('bit-qr-section').style.display = 'none';
+    document.getElementById('bit-arrow').style.transform = '';
+    document.getElementById('bit-qr-img').src = 'bit-qr.png';
+    const waMsg = encodeURIComponent(`שלום הלל, שילמתי בביט על מסלול ${planName} בסך ${plan.price}₪`);
+    document.getElementById('pay-wa-confirm').href = `https://wa.me/972586931163?text=${waMsg}`;
+    document.getElementById('payment-modal').classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function toggleBitQR() {
+    const sec = document.getElementById('bit-qr-section');
+    const arr = document.getElementById('bit-arrow');
+    const open = sec.style.display !== 'none';
+    sec.style.display = open ? 'none' : 'block';
+    arr.style.transform = open ? '' : 'rotate(180deg)';
+  }
+
+  function closePayment() {
+    document.getElementById('payment-modal').classList.remove('open');
+    document.body.style.overflow = '';
+  }
+
+  function handleOverlayClick(e) {
+    if (e.target === document.getElementById('payment-modal')) closePayment();
+  }
+
+
+  /* ─── RECIPE BOOK ─── */
+  const _sbR = supabase.createClient(
+    'https://luwknflmhvcxgifzxgrk.supabase.co',
+    'sb_publishable_k3M7SfBeiBGs3rTKewBzWQ_7RHRskB9'
+  );
+  let _recipes = [];
+
+  async function openRecipeBook() {
+    const overlay = document.getElementById('recipe-book-overlay');
+    const grid    = document.getElementById('recipe-grid');
+    overlay.classList.add('open');
+    document.body.style.overflow = 'hidden';
+
+    if (!_recipes.length) {
+      grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:60px 0;color:#555;">טוען מתכונים...</div>';
+      const { data } = await _sbR.from('recipes').select('*').order('category').order('name');
+      _recipes = data || [];
+    }
+
+    if (!_recipes.length) {
+      grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:60px 0;color:#555;font-size:1rem;">מתכונים בדרך... 🔥</div>';
+      return;
+    }
+
+    grid.innerHTML = _recipes.map(r => `
+      <div class="recipe-card" onclick="openRecipeDetail('${r.id}')">
+        <div class="recipe-card-img-wrap">
+          ${r.image_url
+            ? `<img src="${r.image_url}" alt="${r.name}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">`
+            : ''}
+          <div class="recipe-img-placeholder" style="display:${r.image_url ? 'none' : 'flex'}">🍽️</div>
+        </div>
+        <div class="recipe-card-body">
+          <div class="recipe-card-name">${r.name}</div>
+          <div class="recipe-card-meta">${r.category}${r.calories ? ' · ' + r.calories + ' קק"ל' : ''}${r.prep_time ? ' · ' + r.prep_time + ' דק\'' : ''}</div>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function closeRecipeBook() {
+    document.getElementById('recipe-book-overlay').classList.remove('open');
+    if (!document.getElementById('payment-modal').classList.contains('open')) {
+      document.body.style.overflow = '';
+    }
+  }
+
+  function openRecipeDetail(id) {
+    const r = _recipes.find(x => x.id === id);
+    if (!r) return;
+    const ings  = Array.isArray(r.ingredients) ? r.ingredients : [];
+    const steps = r.instructions ? r.instructions.split('\n').filter(Boolean) : [];
+    const tags  = [r.category, r.prep_time ? r.prep_time + ' דקות' : '', r.calories ? r.calories + ' קק"ל' : ''].filter(Boolean);
+    const macros = [
+      r.protein  ? `חלבון ${r.protein}g`    : '',
+      r.carbs    ? `פחמימות ${r.carbs}g`    : '',
+      r.fat      ? `שומן ${r.fat}g`         : '',
+    ].filter(Boolean);
+
+    const inner = document.getElementById('recipe-detail-inner');
+    inner.innerHTML = `
+      <button class="recipe-back-btn" onclick="closeRecipeDetail()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        חזרה לספר מתכונים
+      </button>
+      <div class="recipe-detail-img-wrap">
+        ${r.image_url ? `<img src="${r.image_url}" alt="${r.name}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">` : ''}
+        <div class="recipe-detail-img-placeholder" style="display:${r.image_url ? 'none' : 'flex'}">🍽️</div>
+      </div>
+      <div class="recipe-detail-name">${r.name}</div>
+      <div class="recipe-detail-tags">${tags.map(t => `<span class="recipe-tag">${t}</span>`).join('')}</div>
+      ${macros.length ? `<div class="recipe-detail-tags" style="margin-top:6px;">${macros.map(m => `<span class="recipe-tag" style="border-color:rgba(255,215,0,0.3);color:#FFD700;">${m}</span>`).join('')}</div>` : ''}
+      ${ings.length ? `
+        <div class="recipe-section-title">מרכיבים</div>
+        <ul class="recipe-ingredients">${ings.map(i => `<li>${i}</li>`).join('')}</ul>
+      ` : ''}
+      ${steps.length ? `
+        <div class="recipe-section-title">אופן הכנה</div>
+        <ol class="recipe-steps">${steps.map((s, i) => `<li><div class="step-num">${i + 1}</div><span>${s}</span></li>`).join('')}</ol>
+      ` : ''}
+    `;
+    const overlay = document.getElementById('recipe-detail-overlay');
+    overlay.classList.add('open');
+    overlay.scrollTop = 0;
+  }
+
+  function closeRecipeDetail() {
+    document.getElementById('recipe-detail-overlay').classList.remove('open');
+  }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') {
+      closeRecipeDetail();
+      closeRecipeBook();
+      closePayment();
+    }
+  });
+
+  /* ─── NAVBAR SCROLL STYLE ─── */
+  window.addEventListener('scroll', () => {
+    const nav = document.getElementById('navbar');
+    nav.style.background = window.scrollY > 60
+      ? 'rgba(9,9,9,0.97)'
+      : 'rgba(9,9,9,0.88)';
+  });
+</script>
+
+<!-- כפתור וואצאפ צף -->
+<a href="https://wa.me/972586931163" target="_blank" rel="noopener"
+   style="position:fixed;bottom:24px;left:24px;z-index:999;width:56px;height:56px;border-radius:50%;background:#25d366;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(37,211,102,0.4);transition:transform 0.2s,box-shadow 0.2s;"
+   onmouseover="this.style.transform='scale(1.1)';this.style.boxShadow='0 6px 28px rgba(37,211,102,0.6)'"
+   onmouseout="this.style.transform='scale(1)';this.style.boxShadow='0 4px 20px rgba(37,211,102,0.4)'"
+   title="צור קשר בוואצאפ">
+  <svg width="28" height="28" viewBox="0 0 24 24" fill="white">
+    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413z"/>
+  </svg>
+</a>
+</body>
+</html>

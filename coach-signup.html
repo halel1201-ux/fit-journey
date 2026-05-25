@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2020/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%230a0a0a'/><rect x='1.5' y='1.5' width='29' height='29' rx='6.5' fill='none' stroke='%23FF6B00' stroke-width='1' stroke-opacity='0.5'/><text x='16' y='22' font-family='Arial Black,sans-serif' font-size='13' font-weight='900' fill='%23FF6B00' text-anchor='middle'>FJ</text></svg>"/>
+  <title>הצטרף כמאמן בכיר — HF Coaching</title>
+  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;700;900&display=swap" rel="stylesheet"/>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --orange:#FF6B00; --gold:#FFD700; --black:#090909; --white:#fff; --muted:#888; }
+    body {
+      font-family: 'Heebo', sans-serif;
+      background: radial-gradient(ellipse 80% 40% at 50% 100%, rgba(255,107,0,0.12) 0%, transparent 70%), var(--black);
+      color: var(--white); min-height: 100vh;
+      display: flex; align-items: flex-start; justify-content: center;
+      padding: 32px 16px 48px;
+    }
+    .card {
+      width: 100%; max-width: 500px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,107,0,0.3);
+      border-radius: 20px; overflow: hidden;
+      box-shadow: 0 0 80px rgba(255,107,0,0.1);
+    }
+    .card-top {
+      padding: 28px 28px 20px; text-align: center;
+      background: linear-gradient(135deg, rgba(255,107,0,0.09), transparent);
+      border-bottom: 1px solid rgba(255,107,0,0.12);
+    }
+    .fj-icon {
+      width: 76px; height: 76px;
+      background: linear-gradient(145deg, #FF6B00 0%, #FF8C00 55%, #FFD700 100%);
+      border-radius: 22px;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 12px;
+      position: relative; overflow: hidden;
+      box-shadow: 0 0 0 1px rgba(255,107,0,0.4), 0 8px 32px rgba(255,107,0,0.45), 0 2px 8px rgba(0,0,0,0.6);
+    }
+    .fj-icon::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0; height: 52%;
+      background: linear-gradient(180deg, rgba(255,255,255,0.18) 0%, transparent 100%);
+      border-radius: 22px 22px 0 0;
+    }
+    .fj-icon span {
+      font-family: 'Arial Black', 'Heebo', sans-serif;
+      font-size: 2rem; font-weight: 900; color: #fff;
+      letter-spacing: -1.5px; z-index: 1;
+      text-shadow: 0 2px 6px rgba(0,0,0,0.35);
+    }
+    .hf-sub  { font-size: 0.75rem; color: var(--muted); letter-spacing: 1.8px; margin-top: 4px; text-transform: uppercase; }
+
+    /* STEPS INDICATOR */
+    .steps-bar { display:flex; align-items:center; justify-content:center; gap:0; padding:20px 28px 0; }
+    .step-dot { width:28px; height:28px; border-radius:50%; border:2px solid rgba(255,255,255,0.12); background:transparent; color:#555; font-size:0.75rem; font-weight:900; display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:all 0.3s; }
+    .step-dot.active { border-color:var(--orange); background:rgba(255,107,0,0.15); color:var(--orange); }
+    .step-dot.done   { border-color:var(--orange); background:var(--orange); color:#fff; }
+    .step-line { flex:1; height:2px; background:rgba(255,255,255,0.07); max-width:60px; }
+    .step-line.done { background:rgba(255,107,0,0.4); }
+    .step-label { font-size:0.65rem; color:var(--muted); text-align:center; margin-top:4px; }
+    .steps-labels { display:flex; justify-content:space-around; padding:4px 18px 16px; }
+
+    .card-body { padding: 22px 28px 32px; }
+    .step-title { font-size: 1.1rem; font-weight: 900; margin-bottom: 5px; }
+    .step-sub   { font-size: 0.82rem; color: var(--muted); margin-bottom: 20px; line-height: 1.6; }
+
+    /* FIELDS */
+    .field { margin-bottom: 14px; }
+    .field label { display:block; font-size:0.76rem; font-weight:700; color:var(--muted); margin-bottom:5px; }
+    .field input {
+      width:100%; padding:11px 14px;
+      background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1);
+      border-radius:8px; color:var(--white); font-family:'Heebo',sans-serif;
+      font-size:0.94rem; outline:none; transition:border-color 0.2s;
+    }
+    .field input[type="email"],.field input[type="tel"] { direction:ltr; text-align:right; }
+    .field input:focus { border-color:var(--orange); }
+
+    /* PLAN CARDS */
+    .plans { display:flex; flex-direction:column; gap:10px; margin-bottom:20px; }
+    .plan-card {
+      border:1px solid rgba(255,255,255,0.1); border-radius:12px; padding:15px 17px;
+      cursor:pointer; transition:all 0.2s; position:relative; background:rgba(255,255,255,0.02);
+      display:block;
+    }
+    .plan-card:hover  { border-color:rgba(255,107,0,0.4); background:rgba(255,107,0,0.04); }
+    .plan-card.selected { border-color:var(--orange); background:rgba(255,107,0,0.09); }
+    .plan-card.featured.selected { border-color:var(--gold); background:rgba(255,215,0,0.07); }
+    .plan-badge { position:absolute; top:-9px; right:14px; background:linear-gradient(135deg,var(--orange),#FF8C00); color:#fff; font-size:0.63rem; font-weight:900; padding:2px 10px; border-radius:8px; }
+    .plan-badge.gold { background:linear-gradient(135deg,var(--gold),#FFC200); color:#000; }
+    .plan-inner { display:flex; align-items:center; gap:12px; }
+    .plan-radio-circle { width:18px; height:18px; border:2px solid rgba(255,255,255,0.2); border-radius:50%; flex-shrink:0; position:relative; transition:all 0.2s; }
+    .plan-card.selected .plan-radio-circle { border-color:var(--orange); background:var(--orange); }
+    .plan-card.selected .plan-radio-circle::after { content:''; position:absolute; top:3px; right:3px; width:8px; height:8px; background:#fff; border-radius:50%; }
+    .plan-info { flex:1; }
+    .plan-name-text { font-size:0.95rem; font-weight:900; }
+    .plan-desc-text  { font-size:0.76rem; color:var(--muted); margin-top:2px; }
+    .plan-price-wrap { text-align:left; white-space:nowrap; }
+    .plan-price-wrap strong { font-size:1.3rem; font-weight:900; color:var(--orange); }
+    .plan-card.featured.selected .plan-price-wrap strong { color:var(--gold); }
+    .plan-price-wrap small { font-size:0.72rem; color:var(--muted); display:block; }
+
+    /* BUTTONS */
+    .btn-go {
+      width:100%; padding:14px;
+      background:linear-gradient(135deg,var(--orange),#FF8C00);
+      color:#fff; font-family:'Heebo',sans-serif;
+      font-size:1rem; font-weight:700; border:none; border-radius:10px;
+      cursor:pointer; transition:opacity 0.2s,transform 0.15s; margin-top:4px;
+    }
+    .btn-go:hover { opacity:0.9; transform:translateY(-1px); }
+    .btn-go:disabled { opacity:0.45; cursor:not-allowed; transform:none; }
+    .btn-back { background:none; border:none; color:var(--muted); font-family:'Heebo',sans-serif; font-size:0.82rem; cursor:pointer; margin-bottom:16px; padding:0; display:inline-flex; align-items:center; gap:5px; }
+    .btn-back:hover { color:var(--white); }
+
+    .msg { padding:11px 14px; border-radius:8px; font-size:0.83rem; margin-bottom:14px; display:none; line-height:1.6; }
+    .msg.err { background:rgba(255,60,60,0.09); border:1px solid rgba(255,60,60,0.3); color:#ff7070; }
+
+    /* PAYMENT STEP */
+    .pay-summary { background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-radius:12px; padding:14px 16px; margin-bottom:18px; }
+    .pay-summary-row { display:flex; justify-content:space-between; align-items:center; padding:5px 0; font-size:0.84rem; }
+    .pay-summary-row:not(:last-child) { border-bottom:1px solid rgba(255,255,255,0.04); }
+    .pay-summary-label { color:var(--muted); }
+    .pay-summary-val   { font-weight:700; }
+    .pay-total { font-size:1.15rem; font-weight:900; color:var(--gold); }
+
+    .bit-box { background:rgba(0,180,255,0.05); border:1px solid rgba(0,180,255,0.2); border-radius:14px; padding:20px; text-align:center; margin-bottom:18px; }
+    .bit-title { font-size:0.85rem; font-weight:700; color:#60c8ff; margin-bottom:14px; }
+    .bit-amount-badge { display:inline-block; background:rgba(255,215,0,0.1); border:1px solid rgba(255,215,0,0.3); border-radius:10px; padding:8px 20px; font-size:1.4rem; font-weight:900; color:var(--gold); margin-bottom:14px; }
+    .bit-instructions { background:rgba(255,255,255,0.04); border-radius:8px; padding:10px 14px; text-align:right; margin-bottom:14px; }
+    .bit-instructions-row { font-size:0.82rem; padding:4px 0; display:flex; gap:8px; }
+    .bit-instructions-row span:first-child { color:var(--muted); flex-shrink:0; }
+    .bit-instructions-row strong { color:var(--white); }
+    .btn-bit { display:inline-flex; align-items:center; gap:8px; padding:11px 22px; background:rgba(0,180,255,0.1); border:1px solid rgba(0,180,255,0.35); border-radius:10px; color:#00b4ff; font-family:'Heebo',sans-serif; font-weight:700; font-size:0.88rem; text-decoration:none; transition:background 0.2s; cursor:pointer; }
+    .btn-bit:hover { background:rgba(0,180,255,0.2); }
+    .btn-wa { display:inline-flex; align-items:center; gap:8px; padding:11px 22px; background:#25d366; border:none; border-radius:10px; color:#fff; font-family:'Heebo',sans-serif; font-weight:700; font-size:0.88rem; text-decoration:none; transition:opacity 0.2s; margin-top:10px; cursor:pointer; width:100%; justify-content:center; }
+    .btn-wa:hover { opacity:0.88; }
+    .btn-confirm { width:100%; padding:14px; background:linear-gradient(135deg,#22c55e,#16a34a); color:#fff; font-family:'Heebo',sans-serif; font-size:1rem; font-weight:700; border:none; border-radius:10px; cursor:pointer; transition:opacity 0.2s,transform 0.15s; margin-top:10px; }
+    .btn-confirm:hover { opacity:0.9; transform:translateY(-1px); }
+    .btn-confirm:disabled { opacity:0.45; cursor:not-allowed; transform:none; }
+
+    /* SUCCESS */
+    .success-screen { display:none; text-align:center; padding:6px 0; }
+    .success-screen.show { display:block; }
+    .step-block { display:none; }
+    .step-block.show { display:block; }
+    .success-icon  { font-size:3.2rem; margin-bottom:14px; }
+    .success-title { font-size:1.4rem; font-weight:900; margin-bottom:8px; }
+    .success-sub   { font-size:0.87rem; color:var(--muted); line-height:1.7; margin-bottom:22px; }
+    .success-info  { background:rgba(255,107,0,0.07); border:1px solid rgba(255,107,0,0.22); border-radius:12px; padding:14px 18px; margin-bottom:22px; text-align:right; }
+    .si-row { display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-bottom:1px solid rgba(255,255,255,0.05); font-size:0.84rem; }
+    .si-row:last-child { border-bottom:none; }
+    .si-label { color:var(--muted); }
+    .si-val   { font-weight:700; }
+    .btn-login { display:block; width:100%; padding:13px; background:linear-gradient(135deg,var(--orange),#FF8C00); color:#fff; font-family:'Heebo',sans-serif; font-size:1rem; font-weight:700; border:none; border-radius:10px; cursor:pointer; text-decoration:none; text-align:center; }
+    .btn-login:hover { opacity:0.9; }
+
+    .already-link { text-align:center; margin-top:16px; font-size:0.78rem; color:var(--muted); }
+    .already-link a { color:var(--orange); text-decoration:none; }
+    .already-link a:hover { text-decoration:underline; }
+
+    /* DISCOUNT */
+    .disc-row { display:flex; gap:8px; margin:14px 0 4px; }
+    .disc-row input { flex:1; padding:10px 12px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12); border-radius:8px; color:#fff; font-family:'Heebo',sans-serif; font-size:0.88rem; direction:ltr; text-align:right; outline:none; transition:border-color 0.2s; }
+    .disc-row input:focus { border-color:var(--orange); }
+    .disc-row button { padding:10px 16px; background:transparent; border:1px solid rgba(255,107,0,0.4); border-radius:8px; color:var(--orange); font-family:'Heebo',sans-serif; font-weight:700; font-size:0.85rem; cursor:pointer; white-space:nowrap; transition:background 0.2s; }
+    .disc-row button:hover { background:rgba(255,107,0,0.1); }
+    .disc-msg { padding:8px 12px; border-radius:8px; font-size:0.82rem; font-weight:700; margin-bottom:10px; border:1px solid; display:none; }
+    .disc-msg.ok  { background:rgba(60,200,60,0.08); border-color:rgba(60,200,60,0.3); color:#70dd70; }
+    .disc-msg.err { background:rgba(255,60,60,0.08); border-color:rgba(255,60,60,0.3); color:#ff7070; }
+    .btn-free-coach { width:100%; padding:13px; background:linear-gradient(135deg,var(--orange),#FF8C00); color:#fff; font-family:'Heebo',sans-serif; font-size:1rem; font-weight:700; border:none; border-radius:10px; cursor:pointer; transition:opacity 0.2s; margin-top:4px; }
+    .btn-free-coach:hover { opacity:0.9; }
+
+    /* RECEIPT */
+    .receipt-box { background:#fff; color:#111; border-radius:12px; padding:20px; margin:18px 0 10px; text-align:right; direction:rtl; }
+    .receipt-box .r-brand { font-size:1rem; font-weight:900; letter-spacing:0.5px; margin-bottom:2px; }
+    .receipt-box .r-tag { font-size:0.7rem; color:#666; margin-bottom:14px; }
+    .receipt-box .r-row { display:flex; justify-content:space-between; align-items:center; padding:5px 0; border-bottom:1px solid #eee; font-size:0.82rem; }
+    .receipt-box .r-row:last-child { border:none; }
+    .receipt-box .r-lbl { color:#666; }
+    .receipt-box .r-val { font-weight:700; }
+    .receipt-box .r-total-row { display:flex; justify-content:space-between; align-items:center; padding:8px 0 0; font-size:1rem; font-weight:900; color:#FF6B00; margin-top:4px; }
+    .btn-print { width:100%; padding:11px; background:transparent; border:1px solid rgba(255,255,255,0.18); border-radius:8px; color:#888; font-family:'Heebo',sans-serif; font-size:0.88rem; font-weight:700; cursor:pointer; margin-top:8px; transition:all 0.2s; }
+    .btn-print:hover { border-color:rgba(255,107,0,0.4); color:var(--orange); }
+    @media print { nav,header,.card-top,.steps-bar,.btn-print,.btn-wa,.btn-login { display:none!important; } .receipt-box { box-shadow:none; } }
+  </style>
+</head>
+<body>
+<div class="card">
+  <div class="card-top">
+    <div class="fj-icon"><span>FJ</span></div>
+    <div class="hf-sub">COACHING PLATFORM · הצטרף כמאמן בכיר</div>
+  </div>
+
+  <!-- STEPS BAR -->
+  <div class="steps-bar">
+    <div class="step-dot active" id="dot-1">1</div>
+    <div class="step-line" id="line-1"></div>
+    <div class="step-dot" id="dot-2">2</div>
+    <div class="step-line" id="line-2"></div>
+    <div class="step-dot" id="dot-3">3</div>
+  </div>
+  <div class="steps-labels">
+    <span class="step-label">פרטים</span>
+    <span class="step-label">תשלום</span>
+    <span class="step-label">אישור</span>
+  </div>
+
+  <div class="card-body">
+
+    <!-- ─── STEP 1: DETAILS ─── -->
+    <div class="step-block show" id="step-1">
+      <div class="step-title">פרטים אישיים</div>
+      <div class="step-sub">מלא את הפרטים שלך ובחר מסלול</div>
+      <div class="msg err" id="err-1"></div>
+
+      <div class="field">
+        <label>שם מלא</label>
+        <input id="inp-name" type="text" placeholder="ישראל ישראלי" autocomplete="name"/>
+      </div>
+      <div class="field">
+        <label>כתובת אימייל</label>
+        <input id="inp-email" type="email" placeholder="your@email.com" autocomplete="email"/>
+      </div>
+      <div class="field">
+        <label>מספר טלפון</label>
+        <input id="inp-phone" type="tel" placeholder="05X-XXXXXXX" autocomplete="tel"/>
+      </div>
+      <div class="field">
+        <label>סיסמה לכניסה</label>
+        <input id="inp-pass" type="password" placeholder="לפחות 6 תווים" autocomplete="new-password"/>
+      </div>
+      <div class="field">
+        <label>אימות סיסמה</label>
+        <input id="inp-pass2" type="password" placeholder="הכנס שוב" autocomplete="new-password"/>
+      </div>
+
+      <div style="margin-bottom:8px;margin-top:4px;font-size:0.76rem;font-weight:700;color:var(--muted);">בחר מסלול</div>
+      <div class="plans">
+
+        <label class="plan-card" id="plan-1" onclick="selectPlan(1)">
+          <div class="plan-badge">ללא התחייבות</div>
+          <div class="plan-inner">
+            <span class="plan-radio-circle" id="check-1"></span>
+            <div class="plan-info">
+              <div class="plan-name-text">חודש אחד</div>
+              <div class="plan-desc-text">גישה מלאה לפאנל מאמן — 30 יום</div>
+            </div>
+            <div class="plan-price-wrap">
+              <strong>250</strong> <span style="font-size:0.8rem;color:var(--muted);">₪</span>
+              <small>לחודש</small>
+            </div>
+          </div>
+        </label>
+
+        <label class="plan-card featured" id="plan-3" onclick="selectPlan(3)">
+          <div class="plan-badge gold">הכי פופולרי</div>
+          <div class="plan-inner">
+            <span class="plan-radio-circle" id="check-3"></span>
+            <div class="plan-info">
+              <div class="plan-name-text">3 חודשים</div>
+              <div class="plan-desc-text">חסכון של 150 ₪ — גישה ל-90 יום</div>
+            </div>
+            <div class="plan-price-wrap">
+              <strong>600</strong> <span style="font-size:0.8rem;color:var(--muted);">₪</span>
+              <small>ל-3 חודשים</small>
+            </div>
+          </div>
+        </label>
+
+        <label class="plan-card" id="plan-6" onclick="selectPlan(6)">
+          <div class="plan-badge">הכי משתלם</div>
+          <div class="plan-inner">
+            <span class="plan-radio-circle" id="check-6"></span>
+            <div class="plan-info">
+              <div class="plan-name-text">6 חודשים</div>
+              <div class="plan-desc-text">חסכון של 500 ₪ — גישה ל-180 יום</div>
+            </div>
+            <div class="plan-price-wrap">
+              <strong>1,000</strong> <span style="font-size:0.8rem;color:var(--muted);">₪</span>
+              <small>ל-6 חודשים</small>
+            </div>
+          </div>
+        </label>
+
+      </div>
+
+      <button class="btn-go" onclick="goToPayment()">המשך לתשלום ←</button>
+      <div class="already-link">כבר יש לך חשבון? <a href="login.html">כניסה למערכת</a></div>
+    </div>
+
+    <!-- ─── STEP 2: PAYMENT ─── -->
+    <div class="step-block" id="step-2">
+      <button class="btn-back" onclick="backToDetails()">← חזור</button>
+      <div class="step-title">תשלום</div>
+      <div class="step-sub">שלם דרך ביט ולחץ "שלמתי" לאישור</div>
+
+      <div class="msg err" id="err-2"></div>
+
+      <!-- Summary -->
+      <div class="pay-summary">
+        <div class="pay-summary-row">
+          <span class="pay-summary-label">מסלול</span>
+          <span class="pay-summary-val" id="sum-plan">3 חודשים</span>
+        </div>
+        <div class="pay-summary-row">
+          <span class="pay-summary-label">שם</span>
+          <span class="pay-summary-val" id="sum-name">—</span>
+        </div>
+        <div class="pay-summary-row" style="margin-top:4px;">
+          <span class="pay-summary-label" style="font-weight:700;">לתשלום</span>
+          <span class="pay-summary-val pay-total" id="sum-total">600 ₪</span>
+        </div>
+      </div>
+
+      <!-- Bit payment -->
+      <div class="bit-box">
+        <div class="bit-title">
+          <svg style="vertical-align:middle;margin-left:5px;" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#60c8ff" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 12h8M12 8v8"/></svg>
+          תשלום דרך ביט
+        </div>
+        <div class="bit-amount-badge" id="bit-amount-badge">600 ₪</div>
+        <div class="bit-instructions">
+          <div class="bit-instructions-row"><span>💰 סכום:</span><strong id="bit-amount-text">600 ₪ — בדיוק</strong></div>
+          <div class="bit-instructions-row"><span>✉️ סיבה:</span><strong>כתובת המייל שלך</strong></div>
+        </div>
+        <a href="https://www.bitpay.co.il/app/me/38AB25F4-8C62-2CA0-2650-34D4AD05E3D3CF3B"
+           target="_blank" rel="noopener" class="btn-bit">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#00b4ff" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 12h8M12 8v8"/></svg>
+          פתח ביט ושלם
+        </a>
+      </div>
+
+      <!-- Discount code -->
+      <div class="disc-row">
+        <input type="text" id="disc-input" placeholder="יש לך קוד הטבה?" autocomplete="off"
+          oninput="this.value=this.value.toUpperCase()" onkeydown="if(event.key==='Enter')applyDiscount()"/>
+        <button onclick="applyDiscount()">החל</button>
+      </div>
+      <div class="disc-msg" id="disc-msg"></div>
+
+      <!-- Free (100% discount) -->
+      <button class="btn-free-coach" id="btn-free-coach" style="display:none;" onclick="completeFree()">✓ השלם ללא תשלום ←</button>
+
+      <!-- Confirm sent -->
+      <button class="btn-confirm" id="btn-confirm" onclick="confirmPayment(false)">
+        ✓ שלמתי — שמור את המקום שלי
+      </button>
+
+      <div style="margin-top:12px;font-size:0.75rem;color:#444;text-align:center;line-height:1.6;">
+        לאחר האישור הפרטים ישלחו למנהל ויאשר גישה תוך 24 שעות
+      </div>
+    </div>
+
+    <!-- ─── STEP 3: SUCCESS ─── -->
+    <div class="step-block" id="step-3">
+      <div style="text-align:center;padding:6px 0;">
+        <div class="success-icon">⏳</div>
+        <div class="success-title">ממתין לאישור</div>
+        <div class="success-sub">הפרטים נשמרו והחשבון נוצר.<br/>לאחר אימות התשלום — המנהל יפעיל את הגישה<br/>ותקבל הודעה ב-WhatsApp תוך 24 שעות.</div>
+        <div class="success-info" id="success-info"></div>
+
+        <!-- Receipt -->
+        <div class="receipt-box" id="receipt-box" style="display:none;">
+          <div class="r-brand">FIT JOURNEY COACHING</div>
+          <div class="r-tag">אישור רכישה — פאנל מאמנים</div>
+          <div class="r-row"><span class="r-lbl">מספר אישור</span><span class="r-val" id="r-num">—</span></div>
+          <div class="r-row"><span class="r-lbl">תאריך</span><span class="r-val" id="r-date">—</span></div>
+          <div class="r-row"><span class="r-lbl">שם</span><span class="r-val" id="r-name">—</span></div>
+          <div class="r-row"><span class="r-lbl">אימייל</span><span class="r-val" id="r-email" style="direction:ltr;unicode-bidi:embed;">—</span></div>
+          <div class="r-row"><span class="r-lbl">מסלול</span><span class="r-val" id="r-plan">—</span></div>
+          <div class="r-row" id="r-disc-row" style="display:none;"><span class="r-lbl">הנחה</span><span class="r-val" id="r-disc" style="color:#22c55e;">—</span></div>
+          <div class="r-total-row"><span>סה"כ שולם</span><span id="r-total">—</span></div>
+        </div>
+        <button class="btn-print" id="btn-print" style="display:none;" onclick="window.print()">🖨️ הדפס / שמור קבלה כ-PDF</button>
+
+        <a id="btn-wa-success" href="#" target="_blank" class="btn-wa" rel="noopener">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413z"/></svg>
+          שלח אישור בוואצאפ למאמן
+        </a>
+        <a href="login.html" class="btn-login" style="margin-top:10px;">עבור לדף הכניסה</a>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  const URL_ = 'https://luwknflmhvcxgifzxgrk.supabase.co';
+  const KEY  = 'sb_publishable_k3M7SfBeiBGs3rTKewBzWQ_7RHRskB9';
+  const BIT_LINK = 'https://www.bitpay.co.il/app/me/38AB25F4-8C62-2CA0-2650-34D4AD05E3D3CF3B';
+  const WA_NUMBER = '972586931163';
+  const sb = supabase.createClient(URL_, KEY);
+  const WEB3FORMS_KEY = 'e1f22501-3ec2-4d1b-b7b6-05bf60cb4818';
+
+  async function sendNotifEmail(subject, lines) {
+    if (!WEB3FORMS_KEY || WEB3FORMS_KEY === 'REPLACE_WITH_YOUR_KEY') return;
+    try {
+      const res = await fetch('https://api.web3forms.com/submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify({ access_key: WEB3FORMS_KEY, subject, message: lines.join('\n'), from_name: 'FJ Coaching System', botcheck: '' })
+      });
+      const json = await res.json();
+      console.log('📧 Web3Forms response:', json);
+    } catch(e) { console.error('📧 Email error:', e); }
+  }
+
+  const PLANS = {
+    1: { label:'חודש אחד',    price:250,  priceStr:'250 ₪',  desc:'30 יום גישה' },
+    3: { label:'3 חודשים',   price:600,  priceStr:'600 ₪',  desc:'90 יום גישה' },
+    6: { label:'6 חודשים',   price:1000, priceStr:'1,000 ₪', desc:'180 יום גישה' },
+  };
+  const DISCOUNT_CODES = { 'LIEM0812': 100 };
+
+  let selectedMonths  = 3;
+  let discountPercent = 0;
+
+  // Pre-select from URL param
+  const urlPlan = parseInt(new URLSearchParams(location.search).get('plan'));
+  selectPlan([1,3,6].includes(urlPlan) ? urlPlan : 3);
+
+  function selectPlan(months) {
+    selectedMonths = months;
+    [1,3,6].forEach(m => {
+      const card = document.getElementById(`plan-${m}`);
+      if (card) card.classList.toggle('selected', m === months);
+    });
+  }
+
+  function showErr(id, msg) {
+    const el = document.getElementById(id);
+    el.textContent = msg; el.style.display = 'block';
+  }
+  function hideErr(id) { document.getElementById(id).style.display = 'none'; }
+
+  function setStep(n) {
+    [1,2,3].forEach(i => {
+      document.getElementById(`step-${i}`).classList.toggle('show', i === n);
+      const dot = document.getElementById(`dot-${i}`);
+      if (i < n)  { dot.classList.add('done'); dot.textContent = '✓'; dot.classList.remove('active'); }
+      else if (i === n) { dot.classList.add('active'); dot.classList.remove('done'); dot.textContent = i; }
+      else { dot.classList.remove('active','done'); dot.textContent = i; }
+    });
+    [1,2].forEach(i => {
+      const line = document.getElementById(`line-${i}`);
+      if (line) line.classList.toggle('done', i < n);
+    });
+  }
+
+  function goToPayment() {
+    const name  = document.getElementById('inp-name').value.trim();
+    const email = document.getElementById('inp-email').value.trim().toLowerCase();
+    const phone = document.getElementById('inp-phone').value.trim();
+    hideErr('err-1');
+    if (!name)  { showErr('err-1','יש להזין שם מלא'); return; }
+    if (!email) { showErr('err-1','יש להזין כתובת אימייל'); return; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showErr('err-1','כתובת אימייל לא תקינה'); return; }
+    if (!phone) { showErr('err-1','יש להזין מספר טלפון'); return; }
+    const pass1 = document.getElementById('inp-pass').value;
+    const pass2 = document.getElementById('inp-pass2').value;
+    if (!pass1 || pass1.length < 6) { showErr('err-1','סיסמה חייבת להכיל לפחות 6 תווים'); return; }
+    if (pass1 !== pass2) { showErr('err-1','הסיסמאות אינן תואמות'); return; }
+
+    const plan = PLANS[selectedMonths];
+    document.getElementById('sum-plan').textContent  = plan.label;
+    document.getElementById('sum-name').textContent  = name;
+    document.getElementById('sum-total').textContent = plan.priceStr;
+    document.getElementById('bit-amount-badge').textContent = plan.priceStr;
+    document.getElementById('bit-amount-text').textContent  = `${plan.priceStr} — בדיוק`;
+    setStep(2);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function backToDetails() { setStep(1); window.scrollTo({ top:0, behavior:'smooth' }); }
+
+  function applyDiscount() {
+    const code  = document.getElementById('disc-input').value.trim().toUpperCase();
+    const msgEl = document.getElementById('disc-msg');
+    const plan  = PLANS[selectedMonths];
+    if (!code) return;
+    const pct = DISCOUNT_CODES[code];
+    if (pct === undefined) {
+      msgEl.className = 'disc-msg err'; msgEl.style.display = 'block';
+      msgEl.textContent = 'קוד הטבה לא תקין'; return;
+    }
+    discountPercent = pct;
+    const saved = Math.round(plan.price * pct / 100);
+    const final = plan.price - saved;
+    msgEl.className = 'disc-msg ok'; msgEl.style.display = 'block';
+    msgEl.textContent = `קוד הוחל — ${pct}% הנחה · חיסכון של ${saved} ₪`;
+    document.getElementById('disc-input').disabled = true;
+    document.getElementById('sum-total').textContent = final === 0 ? 'ללא תשלום' : final + ' ₪';
+    if (final === 0) {
+      document.getElementById('bit-box').style.display      = 'none';
+      document.getElementById('btn-confirm').style.display  = 'none';
+      document.getElementById('btn-free-coach').style.display = 'block';
+    }
+  }
+
+  function completeFree() { confirmPayment(true); }
+
+  async function confirmPayment(isFree) {
+    const name  = document.getElementById('inp-name').value.trim();
+    const email = document.getElementById('inp-email').value.trim().toLowerCase();
+    const phone = document.getElementById('inp-phone').value.trim();
+    const pass  = document.getElementById('inp-pass').value;
+    hideErr('err-2');
+    const btn = isFree
+      ? document.getElementById('btn-free-coach')
+      : document.getElementById('btn-confirm');
+    btn.disabled = true; btn.textContent = 'שומר...';
+
+    const plan   = PLANS[selectedMonths];
+    const saved  = Math.round(plan.price * discountPercent / 100);
+    const final  = plan.price - saved;
+    const paidStr = final === 0 ? 'ללא תשלום' : final + ' ₪';
+
+    // 1. שליחת מייל — ראשון מכל, לפני כל קריאה ל-Supabase
+    sendNotifEmail(
+      `🆕 מאמן חדש ממתין לאישור — ${name}`,
+      [
+        `שם:       ${name}`,
+        `מייל:     ${email}`,
+        `טלפון:    ${phone}`,
+        `מסלול:    ${plan.label}`,
+        `מחיר:     ${paidStr}`,
+        `קוד הנחה: ${discountPercent > 0 ? discountPercent + '%' : 'ללא'}`,
+        `סטטוס:    ממתין לאישור`,
+        ``,
+        `לאישור: https://fit-journey1.vercel.app/admin.html`
+      ]
+    );
+
+    // 2. יצירת Auth user — מתעלמים מכל שגיאה
+    try { await sb.auth.signUp({ email, password: pass }); } catch(e) { console.log('auth skip:', e?.message); }
+
+    // 3. שמירה ב-DB — מתעלמים מכל שגיאה
+    btn.disabled = false;
+    btn.textContent = isFree ? '✓ השלם ללא תשלום ←' : '✓ שלמתי — שמור את המקום שלי';
+    try { await sb.from('coaches').upsert({ name, email, phone, role: 'pending' }, { onConflict: 'email' }); } catch(e) { console.log('db skip:', e?.message); }
+
+    // WA message
+    const waMsg = encodeURIComponent(
+      `שלום, ${isFree ? 'הצטרפתי עם קוד הטבה' : 'שלחתי תשלום של ' + paidStr} לפאנל מאמנים.\nשם: ${name}\nמייל: ${email}\nמסלול: ${plan.label} (${plan.desc})`
+    );
+    document.getElementById('btn-wa-success').href = `https://wa.me/${WA_NUMBER}?text=${waMsg}`;
+
+    // Summary box
+    document.getElementById('success-info').innerHTML = `
+      <div class="si-row"><span class="si-label">שם</span><span class="si-val">${esc(name)}</span></div>
+      <div class="si-row"><span class="si-label">אימייל</span><span class="si-val">${esc(email)}</span></div>
+      <div class="si-row"><span class="si-label">מסלול</span><span class="si-val">${plan.label}</span></div>
+      <div class="si-row"><span class="si-label">שולם</span><span class="si-val">${paidStr}</span></div>
+    `;
+
+    // Receipt
+    const now    = new Date();
+    const num    = 'FJ-' + now.getFullYear().toString().slice(2) +
+      String(now.getMonth()+1).padStart(2,'0') +
+      String(now.getDate()).padStart(2,'0') + '-' +
+      String(Math.floor(Math.random()*9000)+1000);
+    const dateStr = now.toLocaleDateString('he-IL', { day:'2-digit', month:'2-digit', year:'numeric' });
+    document.getElementById('r-num').textContent   = num;
+    document.getElementById('r-date').textContent  = dateStr;
+    document.getElementById('r-name').textContent  = name;
+    document.getElementById('r-email').textContent = email;
+    document.getElementById('r-plan').textContent  = plan.label + ' — ' + plan.desc;
+    document.getElementById('r-total').textContent = paidStr;
+    if (discountPercent > 0) {
+      document.getElementById('r-disc-row').style.display = 'flex';
+      document.getElementById('r-disc').textContent = `− ${saved} ₪ (${discountPercent}%)`;
+    }
+    document.getElementById('receipt-box').style.display = 'block';
+    document.getElementById('btn-print').style.display   = 'block';
+
+    setStep(3);
+    window.scrollTo({ top:0, behavior:'smooth' });
+  }
+
+  function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Enter') return;
+    const s1 = document.getElementById('step-1');
+    if (s1.classList.contains('show')) goToPayment();
+  });
+</script>
+</body>
+</html>

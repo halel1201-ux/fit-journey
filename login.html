@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%230a0a0a'/><rect x='1.5' y='1.5' width='29' height='29' rx='6.5' fill='none' stroke='%23FF6B00' stroke-width='1' stroke-opacity='0.5'/><text x='16' y='22' font-family='Arial Black,sans-serif' font-size='13' font-weight='900' fill='%23FF6B00' text-anchor='middle'>FJ</text></svg>"/>
+  <title>כניסה — HF Coaching</title>
+  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;700;900&display=swap" rel="stylesheet"/>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --orange:#FF6B00; --gold:#FFD700; --black:#090909; --white:#fff; --muted:#aaa; }
+    body {
+      font-family: 'Heebo', sans-serif;
+      background: radial-gradient(ellipse 70% 50% at 50% 100%, rgba(255,107,0,0.13) 0%, transparent 70%), var(--black);
+      color: var(--white);
+      min-height: 100vh;
+      display: flex; align-items: center; justify-content: center;
+      padding: 24px;
+    }
+    .card {
+      width: 100%; max-width: 400px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,107,0,0.3);
+      border-radius: 18px; overflow: hidden;
+      box-shadow: 0 0 60px rgba(255,107,0,0.1);
+    }
+    .card-top {
+      padding: 32px 28px 22px; text-align: center;
+      background: linear-gradient(135deg, rgba(255,107,0,0.08), transparent);
+      border-bottom: 1px solid rgba(255,107,0,0.12);
+    }
+    .fj-icon {
+      width: 76px; height: 76px;
+      background: linear-gradient(145deg, #FF6B00 0%, #FF8C00 55%, #FFD700 100%);
+      border-radius: 22px;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 12px;
+      position: relative; overflow: hidden;
+      box-shadow: 0 0 0 1px rgba(255,107,0,0.4), 0 8px 32px rgba(255,107,0,0.45), 0 2px 8px rgba(0,0,0,0.6);
+    }
+    .fj-icon::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0; height: 52%;
+      background: linear-gradient(180deg, rgba(255,255,255,0.18) 0%, transparent 100%);
+      border-radius: 22px 22px 0 0;
+    }
+    .fj-icon span {
+      font-family: 'Arial Black', 'Heebo', sans-serif;
+      font-size: 2rem; font-weight: 900; color: #fff;
+      letter-spacing: -1.5px; z-index: 1;
+      text-shadow: 0 2px 6px rgba(0,0,0,0.35);
+    }
+    .hf-sub { font-size: 0.77rem; color: var(--muted); letter-spacing: 1.5px; margin-top: 4px; }
+    .card-body { padding: 28px 28px 32px; }
+
+    /* MODE TABS */
+    .mode-tabs { display: flex; gap: 8px; margin-bottom: 22px; }
+    .mode-tab {
+      flex: 1; padding: 9px; border-radius: 8px; font-family: 'Heebo', sans-serif;
+      font-size: 0.85rem; font-weight: 700; cursor: pointer; text-align: center;
+      border: 1px solid rgba(255,255,255,0.1); background: transparent; color: var(--muted);
+      transition: all 0.2s;
+    }
+    .mode-tab.active {
+      background: rgba(255,107,0,0.12); border-color: rgba(255,107,0,0.4); color: var(--orange);
+    }
+
+    .field { margin-bottom: 18px; }
+    .field label { display: block; font-size: 0.8rem; font-weight: 700; color: var(--muted); margin-bottom: 7px; }
+    .field input {
+      width: 100%; padding: 12px 14px;
+      background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px; color: var(--white); font-family: 'Heebo', sans-serif;
+      font-size: 0.97rem; direction: ltr; text-align: right; outline: none;
+      transition: border-color 0.2s;
+    }
+    .field input:focus { border-color: var(--orange); }
+    .btn-go {
+      width: 100%; padding: 13px; margin-top: 4px;
+      background: linear-gradient(135deg, var(--orange), #FF8C00);
+      color: var(--white); font-family: 'Heebo', sans-serif;
+      font-size: 1rem; font-weight: 700; border: none; border-radius: 8px;
+      cursor: pointer; transition: opacity 0.2s, transform 0.15s;
+    }
+    .btn-go:hover { opacity: 0.9; transform: translateY(-1px); }
+    .btn-go:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+    .msg { padding: 12px 14px; border-radius: 8px; font-size: 0.85rem; margin-bottom: 16px; display: none; line-height: 1.6; }
+    .msg.err { background: rgba(255,60,60,0.1); border: 1px solid rgba(255,60,60,0.3); color: #ff7070; }
+    .msg.ok  { background: rgba(60,200,60,0.08); border: 1px solid rgba(60,200,60,0.3); color: #70dd70; text-align: center; }
+    .hint { font-size: 0.77rem; color: #555; text-align: center; margin-top: 16px; line-height: 1.5; }
+  </style>
+</head>
+<body>
+<div class="card">
+  <div class="card-top">
+    <div class="fj-icon"><span>FJ</span></div>
+    <div class="hf-sub">FIT JOURNEY · אזור אישי</div>
+  </div>
+  <div class="card-body">
+    <div class="msg err" id="err"></div>
+    <div class="msg ok"  id="ok"></div>
+
+    <!-- MODE TABS -->
+    <div class="mode-tabs">
+      <button class="mode-tab active" id="tab-pass" onclick="setMode('password')">סיסמה</button>
+      <button class="mode-tab"        id="tab-link" onclick="setMode('magic')">קישור למייל</button>
+    </div>
+
+    <div id="form-wrap">
+      <div class="field">
+        <label>כתובת אימייל</label>
+        <input type="email" id="email" placeholder="your@email.com" autofocus/>
+      </div>
+
+      <!-- Password field — shown in password mode -->
+      <div class="field" id="pass-field">
+        <label>סיסמה</label>
+        <input type="password" id="password" placeholder="הכנס סיסמה"/>
+      </div>
+
+      <button class="btn-go" id="btn" onclick="handleSubmit()">כניסה</button>
+      <p class="hint" id="hint">הסיסמה הוגדרה עבורך על ידי המאמן.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+  const URL_ = 'https://luwknflmhvcxgifzxgrk.supabase.co';
+  const KEY  = 'sb_publishable_k3M7SfBeiBGs3rTKewBzWQ_7RHRskB9';
+  const ADMIN = 'halel1201@gmail.com';
+  const sb = supabase.createClient(URL_, KEY);
+
+  let currentMode = 'password';
+
+  function setMode(mode) {
+    currentMode = mode;
+    document.getElementById('tab-pass').classList.toggle('active', mode === 'password');
+    document.getElementById('tab-link').classList.toggle('active', mode === 'magic');
+    document.getElementById('pass-field').style.display = mode === 'password' ? 'block' : 'none';
+    document.getElementById('btn').textContent = mode === 'password' ? 'כניסה' : 'שלח קישור כניסה';
+    document.getElementById('hint').textContent = mode === 'password'
+      ? 'הסיסמה הוגדרה עבורך על ידי המאמן.'
+      : 'ישלח אליך קישור כניסה ישירות לאימייל.';
+    document.getElementById('err').style.display = 'none';
+    document.getElementById('ok').style.display = 'none';
+  }
+
+  // If already logged in — redirect
+  sb.auth.getSession().then(({ data: { session } }) => {
+    if (session) redirect(session.user.email);
+  });
+
+  // Handle magic link redirect
+  sb.auth.onAuthStateChange((event, session) => {
+    if (event === 'SIGNED_IN' && session) redirect(session.user.email);
+  });
+
+  async function redirect(email) {
+    if (email === ADMIN) { window.location.href = 'admin.html'; return; }
+    const { data: coach } = await sb.from('coaches').select('email').eq('email', email).single();
+    if (coach) {
+      const { data: client } = await sb.from('clients').select('email').eq('email', email).single();
+      window.location.href = client ? 'dashboard.html' : 'coach.html';
+      return;
+    }
+    window.location.href = 'dashboard.html';
+  }
+
+  function handleSubmit() {
+    if (currentMode === 'password') loginWithPassword();
+    else sendLink();
+  }
+
+  async function loginWithPassword() {
+    const email    = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value;
+    const err = document.getElementById('err');
+    const btn = document.getElementById('btn');
+    err.style.display = 'none';
+    if (!email || !password) { err.textContent = 'יש למלא אימייל וסיסמה'; err.style.display = 'block'; return; }
+    btn.disabled = true; btn.textContent = 'נכנס...';
+    const { error } = await sb.auth.signInWithPassword({ email, password });
+    btn.disabled = false; btn.textContent = 'כניסה';
+    if (error) { err.textContent = 'אימייל או סיסמה שגויים'; err.style.display = 'block'; }
+  }
+
+  async function sendLink() {
+    const email = document.getElementById('email').value.trim();
+    const err = document.getElementById('err');
+    const ok  = document.getElementById('ok');
+    const btn = document.getElementById('btn');
+    err.style.display = 'none'; ok.style.display = 'none';
+    if (!email) { err.textContent = 'יש להזין כתובת אימייל'; err.style.display = 'block'; return; }
+    btn.disabled = true; btn.textContent = 'שולח...';
+    const { error } = await sb.auth.signInWithOtp({
+      email,
+      options: { emailRedirectTo: window.location.href }
+    });
+    btn.disabled = false; btn.textContent = 'שלח קישור כניסה';
+    if (error) { err.textContent = 'שגיאה בשליחה. בדוק את האימייל ונסה שוב.'; err.style.display = 'block'; return; }
+    ok.textContent = '✓ קישור נשלח! בדוק את תיבת הדואר שלך.';
+    ok.style.display = 'block';
+    document.getElementById('form-wrap').style.opacity = '0.4';
+    document.getElementById('form-wrap').style.pointerEvents = 'none';
+  }
+
+  document.addEventListener('keydown', e => { if (e.key === 'Enter') handleSubmit(); });
+</script>
+</body>
+</html>

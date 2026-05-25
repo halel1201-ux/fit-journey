@@ -1,0 +1,2236 @@
+﻿<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%230a0a0a'/><rect x='1.5' y='1.5' width='29' height='29' rx='6.5' fill='none' stroke='%23FF6B00' stroke-width='1' stroke-opacity='0.5'/><text x='16' y='22' font-family='Arial Black,sans-serif' font-size='13' font-weight='900' fill='%23FF6B00' text-anchor='middle'>FJ</text></svg>"/>
+  <title>פאנל מאמן — HF Coaching</title>
+  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;700;900&display=swap" rel="stylesheet"/>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --orange:#FF6B00; --gold:#FFD700; --black:#090909; --graphite:#111; --white:#fff; --muted:#888; --card:rgba(255,255,255,0.04); --border:rgba(255,107,0,0.25); }
+    body { font-family: 'Heebo', sans-serif; background: var(--black); color: var(--white); min-height: 100vh; }
+    ::-webkit-scrollbar { width: 5px; } ::-webkit-scrollbar-track { background: #0e0e0e; } ::-webkit-scrollbar-thumb { background: var(--orange); border-radius: 3px; }
+    .topnav { height: 58px; background: rgba(9,9,9,0.95); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(255,107,0,0.15); display: flex; align-items: center; justify-content: space-between; padding: 0 20px; position: sticky; top: 0; z-index: 100; }
+    .topnav-brand { font-size: 1.2rem; font-weight: 900; background: linear-gradient(135deg, var(--orange), var(--gold)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .topnav-sub { font-size: 0.75rem; color: var(--muted); }
+    .btn-sm { padding: 7px 16px; border-radius: 6px; font-family: 'Heebo', sans-serif; font-size: 0.82rem; font-weight: 700; cursor: pointer; transition: background 0.2s, opacity 0.2s; }
+    .btn-outline { background: transparent; border: 1px solid rgba(255,107,0,0.4); color: var(--orange); }
+    .btn-outline:hover { background: rgba(255,107,0,0.1); }
+    .btn-orange { background: linear-gradient(135deg, var(--orange), #FF8C00); border: none; color: var(--white); }
+    .btn-orange:hover { opacity: 0.88; }
+    .btn-orange:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-red { background: transparent; border: 1px solid rgba(255,60,60,0.35); color: #ff7070; font-size: 0.78rem; padding: 4px 10px; }
+    .btn-red:hover { background: rgba(255,60,60,0.1); }
+    .layout { display: flex; min-height: calc(100vh - 58px); }
+    .sidebar { width: 240px; flex-shrink: 0; background: rgba(255,255,255,0.02); border-left: 1px solid rgba(255,255,255,0.06); display: flex; flex-direction: column; }
+    .sidebar-head { padding: 16px 14px 12px; border-bottom: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: space-between; }
+    .sidebar-title { font-size: 0.78rem; font-weight: 700; color: var(--muted); letter-spacing: 1px; }
+    .client-list { flex: 1; overflow-y: auto; }
+    .client-item { padding: 12px 14px; cursor: pointer; border-bottom: 1px solid rgba(255,255,255,0.04); transition: background 0.15s; }
+    .client-item:hover { background: rgba(255,107,0,0.06); }
+    .client-item.active { background: rgba(255,107,0,0.1); border-right: 3px solid var(--orange); }
+    .client-item-name { font-size: 0.9rem; font-weight: 700; }
+    .client-item-email { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
+    .main { flex: 1; overflow-y: auto; padding: 24px 28px 60px; }
+    .no-select { display: flex; align-items: center; justify-content: center; height: 300px; color: #333; font-size: 1rem; }
+    .sec-card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 22px 22px; margin-bottom: 24px; }
+    .sec-card-title { font-size: 1rem; font-weight: 900; color: var(--white); margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; }
+    .sec-card-title span { color: var(--orange); }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .form-grid.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+    .form-grid.cols-1 { grid-template-columns: 1fr; }
+    @media (max-width: 600px) { .form-grid, .form-grid.cols-3 { grid-template-columns: 1fr; } }
+    .f-group { display: flex; flex-direction: column; gap: 5px; }
+    .f-group label { font-size: 0.77rem; font-weight: 700; color: var(--muted); }
+    .f-group input, .f-group select { padding: 9px 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 7px; color: var(--white); font-family: 'Heebo', sans-serif; font-size: 0.88rem; outline: none; transition: border-color 0.2s; }
+    .f-group input:focus, .f-group select:focus { border-color: var(--orange); }
+    .f-group select option { background: #1a1a1a; }
+    .day-block { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); border-radius: 10px; padding: 14px 16px; margin-bottom: 10px; }
+    .day-block-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+    .day-block-head input { flex: 1; padding: 7px 10px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; color: var(--white); font-family: 'Heebo', sans-serif; font-size: 0.88rem; outline: none; }
+    .day-block-head input:focus { border-color: var(--orange); }
+    .muscle-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 12px; }
+    .muscle-pill { padding: 5px 12px; border-radius: 20px; font-family: 'Heebo', sans-serif; font-size: 0.78rem; font-weight: 700; cursor: pointer; white-space: nowrap; border: 1px solid rgba(255,255,255,0.12); background: transparent; color: var(--muted); transition: all 0.15s; }
+    .muscle-pill:hover { border-color: rgba(255,107,0,0.4); color: var(--white); }
+    .muscle-pill.muscle-active { background: rgba(255,107,0,0.15); border-color: var(--orange); color: var(--orange); }
+    .ex-row { display: grid; grid-template-columns: 2fr 1fr 3fr auto; gap: 8px; align-items: center; margin-bottom: 7px; }
+    .ex-row input { padding: 7px 10px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 6px; color: var(--white); font-family: 'Heebo', sans-serif; font-size: 0.82rem; outline: none; }
+    .ex-row input:focus { border-color: rgba(255,107,0,0.5); }
+    .ex-row input::placeholder { color: #444; }
+    .add-link { display: inline-flex; align-items: center; gap: 5px; font-size: 0.8rem; font-weight: 700; color: var(--orange); background: none; border: none; cursor: pointer; padding: 4px 0; transition: opacity 0.2s; font-family: 'Heebo', sans-serif; }
+    .add-link:hover { opacity: 0.7; }
+    .meal-block { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); border-radius: 10px; padding: 14px 16px; margin-bottom: 10px; }
+    .meal-block-head { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+    .meal-block-head input { flex: 1; padding: 7px 10px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; color: var(--white); font-family: 'Heebo', sans-serif; font-size: 0.88rem; outline: none; }
+    .meal-block-head input:focus { border-color: var(--orange); }
+    .item-row { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 1fr 1fr auto; gap: 6px; align-items: center; margin-bottom: 6px; }
+    .item-row input { padding: 6px 8px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 6px; color: var(--white); font-family: 'Heebo', sans-serif; font-size: 0.8rem; outline: none; text-align: center; }
+    .item-row input:first-child { text-align: right; }
+    .item-row input:focus { border-color: rgba(255,107,0,0.5); }
+    .item-row input::placeholder { color: #444; font-size: 0.72rem; }
+    .nutri-header { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 1fr 1fr auto; gap: 6px; margin-bottom: 6px; }
+    .nutri-header span { font-size: 0.7rem; font-weight: 700; color: var(--muted); text-align: center; padding: 0 2px; }
+    .nutri-header span:first-child { text-align: right; }
+    .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); padding: 10px 22px; border-radius: 8px; font-size: 0.88rem; font-weight: 700; z-index: 999; transition: opacity 0.3s; opacity: 0; pointer-events: none; }
+    .toast.ok  { background: rgba(60,200,60,0.15); border: 1px solid rgba(60,200,60,0.4); color: #70dd70; }
+    .toast.err { background: rgba(255,60,60,0.15); border: 1px solid rgba(255,60,60,0.4); color: #ff7070; }
+    .toast.show { opacity: 1; }
+    /* AI BOX */
+    .sets-coach-wrap { margin:8px 0; }
+    .sets-coach-head { display:grid; grid-template-columns:28px 72px 1fr 22px; gap:6px; padding:3px 8px; font-size:0.68rem; font-weight:700; color:var(--muted); }
+    .sets-coach-row { display:grid; grid-template-columns:28px 72px 1fr 22px; gap:6px; align-items:center; padding:4px 8px; background:rgba(255,255,255,0.02); border-radius:6px; margin-bottom:3px; }
+    .sets-coach-row input { background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); border-radius:5px; color:#fff; font-family:'Heebo',sans-serif; font-size:0.82rem; padding:4px 6px; outline:none; width:100%; text-align:center; }
+    .sets-coach-row input:focus { border-color:var(--orange); }
+    .sets-coach-range { display:flex; align-items:center; gap:4px; }
+    .sets-coach-range input { width:44px !important; }
+    .sets-coach-range span { color:var(--muted); font-size:0.75rem; white-space:nowrap; }
+    .btn-add-set { font-size:0.75rem; color:var(--orange); background:none; border:1px dashed rgba(255,107,0,0.3); border-radius:6px; padding:4px 12px; cursor:pointer; margin-top:4px; font-family:'Heebo',sans-serif; }
+    .btn-add-set:hover { background:rgba(255,107,0,0.08); }
+    .ai-box { background: rgba(255,215,0,0.04); border: 1px solid rgba(255,215,0,0.2); border-radius: 10px; padding: 14px 16px; margin-bottom: 18px; }
+    .ai-box-title { font-size: 0.82rem; font-weight: 700; color: var(--gold); margin-bottom: 10px; }
+    .ai-textarea { width: 100%; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: var(--white); font-family: 'Heebo', sans-serif; font-size: 0.88rem; padding: 10px 12px; resize: vertical; min-height: 72px; outline: none; transition: border-color 0.2s; line-height: 1.6; }
+    .ai-textarea:focus { border-color: var(--gold); }
+    .ai-status { font-size: 0.78rem; color: var(--muted); margin-right: 10px; }
+    .meal-alts { margin-top:12px; padding:10px 14px; background:rgba(60,180,255,0.04); border:1px solid rgba(60,180,255,0.18); border-radius:8px; }
+    .meal-alts-row { display:flex; align-items:flex-start; gap:8px; margin-bottom:5px; flex-wrap:wrap; font-size:0.77rem; }
+    .meal-alts-row:last-child { margin-bottom:0; }
+    .alt-label { font-weight:700; color:#60b4ff; flex-shrink:0; min-width:60px; }
+    .alt-pill { display:inline-block; padding:2px 9px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:10px; color:#ccc; margin:2px; }
+    .modal-bg { position:fixed;inset:0;background:rgba(0,0,0,0.8);backdrop-filter:blur(6px);z-index:200;display:none;align-items:center;justify-content:center;padding:20px; }
+    .modal-bg.open { display:flex; }
+    .modal { background:#151515;border:1px solid rgba(255,107,0,0.35);border-radius:16px;padding:28px;width:100%;max-width:440px;box-shadow:0 0 60px rgba(255,107,0,0.15); }
+    .modal h3 { font-size:1.1rem;font-weight:900;color:var(--white);margin-bottom:20px; }
+    .modal h3 span { color:var(--orange); }
+    .modal-actions { display:flex;justify-content:flex-end;gap:10px;margin-top:20px; }
+    .role-badge { display:inline-block;padding:2px 8px;border-radius:8px;font-size:0.65rem;font-weight:700; }
+    .role-badge.regular { background:rgba(255,255,255,0.07);color:#888; }
+    .role-badge.senior  { background:rgba(255,215,0,0.12);color:#FFD700; }
+    .role-badge.admin   { background:rgba(255,107,0,0.15);color:#FF6B00; }
+    #loader { position: fixed; inset: 0; background: var(--black); display: flex; align-items: center; justify-content: center; z-index: 999; }
+    .spin { width: 36px; height: 36px; border: 3px solid rgba(255,107,0,0.2); border-top-color: var(--orange); border-radius: 50%; animation: sp 0.7s linear infinite; }
+    @keyframes sp { to { transform: rotate(360deg); } }
+    /* CLIENT CARD */
+    .client-card-badge { display:inline-flex;align-items:center;gap:6px;padding:6px 14px;background:rgba(255,107,0,0.08);border:1px solid rgba(255,107,0,0.2);border-radius:20px;font-size:0.82rem;color:var(--orange);cursor:pointer;transition:background 0.2s; }
+    .client-card-badge:hover { background:rgba(255,107,0,0.16); }
+    .client-card-modal { position:fixed;inset:0;z-index:300;background:rgba(0,0,0,0.75);backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;padding:20px; }
+    .client-card-modal.open { display:flex; }
+    .client-card-inner { background:#161616;border:1px solid rgba(255,107,0,0.3);border-radius:18px;padding:28px;width:100%;max-width:360px;box-shadow:0 0 60px rgba(255,107,0,0.15); }
+    .client-card-avatar { width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,var(--orange),#FF8C00);display:flex;align-items:center;justify-content:center;font-size:1.6rem;font-weight:900;color:#fff;margin-bottom:16px; }
+    .client-card-name { font-size:1.2rem;font-weight:900;margin-bottom:4px; }
+    .client-card-row { display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.06);font-size:0.88rem; }
+    .client-card-row:last-of-type { border-bottom:none; }
+    .client-card-label { color:var(--muted);min-width:70px; }
+    .client-card-val { color:var(--white);font-weight:600; }
+    .client-card-val a { color:var(--orange);text-decoration:none; }
+    .client-card-val a:hover { text-decoration:underline; }
+    /* PUSH OVERLAY */
+    .push-overlay { position:fixed;inset:0;z-index:350;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,0.6);opacity:0;pointer-events:none;transition:opacity 0.2s; }
+    .push-overlay.open { opacity:1;pointer-events:auto; }
+    .push-drawer { width:100%;max-width:520px;background:#131313;border:1px solid rgba(255,107,0,0.2);border-radius:18px 18px 0 0;padding:24px 20px 32px;max-height:80vh;overflow-y:auto;transform:translateY(40px);transition:transform 0.25s; }
+    .push-overlay.open .push-drawer { transform:translateY(0); }
+    .push-head { display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;font-size:1rem;font-weight:900; }
+    .push-head button { background:rgba(255,255,255,0.07);border:none;color:#888;width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:1rem; }
+    .push-tabs { display:flex;gap:8px;margin-bottom:18px; }
+    .push-tab { padding:7px 16px;border-radius:6px;font-family:'Heebo',sans-serif;font-size:0.82rem;font-weight:700;cursor:pointer;background:transparent;border:1px solid rgba(255,255,255,0.1);color:var(--muted);transition:all 0.15s; }
+    .push-tab.active { background:rgba(255,107,0,0.15);border-color:var(--orange);color:var(--orange); }
+    .push-drawer textarea { width:100%;padding:9px 12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:7px;color:var(--white);font-family:'Heebo',sans-serif;font-size:0.88rem;resize:vertical;outline:none;line-height:1.5; }
+    .push-drawer textarea:focus { border-color:var(--orange); }
+    .sched-item { display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:8px;margin-bottom:8px; }
+    .sched-item.sent { opacity:0.4; }
+    .sched-item-msg { font-size:0.85rem;font-weight:700;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+    .sched-item-time { font-size:0.72rem;color:var(--muted);flex-shrink:0; }
+    .sched-badge { font-size:0.7rem;padding:3px 8px;border-radius:10px;flex-shrink:0; }
+    .sched-badge.pending { background:rgba(255,107,0,0.1);color:var(--orange);border:1px solid rgba(255,107,0,0.3); }
+    .sched-badge.done { background:rgba(60,200,60,0.08);color:#70dd70;border:1px solid rgba(60,200,60,0.25); }
+    /* PLANS OVERLAY */
+    .plans-overlay { position: fixed; inset: 0; z-index: 400; background: var(--black); display: none; flex-direction: column; overflow: hidden; }
+    .plans-overlay.open { display: flex; }
+    .plans-hdr { flex-shrink: 0; height: 62px; padding: 0 18px; background: rgba(9,9,9,0.97); backdrop-filter: blur(14px); border-bottom: 1px solid rgba(255,107,0,0.2); display: flex; align-items: center; justify-content: space-between; }
+    .plans-hdr-title { font-size: 1.1rem; font-weight: 900; background: linear-gradient(135deg,var(--orange),var(--gold)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+    .plans-body { flex: 1; overflow-y: auto; padding: 20px 16px 100px; max-width: 800px; margin: 0 auto; width: 100%; }
+    .plans-tabs { display: flex; gap: 8px; margin-bottom: 24px; }
+    .plans-tab { flex: 1; padding: 9px; border-radius: 8px; font-family: 'Heebo', sans-serif; font-size: 0.82rem; font-weight: 700; cursor: pointer; text-align: center; border: 1px solid rgba(255,255,255,0.1); background: transparent; color: var(--muted); transition: all 0.2s; }
+    .plans-tab.active { background: rgba(255,107,0,0.12); border-color: rgba(255,107,0,0.4); color: var(--orange); }
+    .plan-editor-card { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; padding: 20px; margin-bottom: 14px; }
+    .plan-editor-card.featured-card { border-color: rgba(255,107,0,0.5); background: rgba(255,107,0,0.04); }
+    .plan-card-title { font-size: 1rem; font-weight: 900; margin-bottom: 14px; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    .plan-featured-toggle { display: flex; align-items: center; gap: 6px; font-size: 0.75rem; color: var(--muted); font-weight: 700; cursor: pointer; }
+    .plan-featured-toggle input { accent-color: var(--orange); width: 16px; height: 16px; cursor: pointer; }
+    .plan-field { margin-bottom: 12px; }
+    .plan-field label { display: block; font-size: 0.75rem; font-weight: 700; color: var(--muted); margin-bottom: 5px; }
+    .plan-field input, .plan-field textarea { width: 100%; padding: 10px 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: var(--white); font-family: 'Heebo', sans-serif; font-size: 0.9rem; outline: none; transition: border-color 0.2s; }
+    .plan-field input:focus, .plan-field textarea:focus { border-color: var(--orange); }
+    .plan-field textarea { resize: vertical; min-height: 90px; line-height: 1.6; }
+    .btn-save-plans { width: 100%; padding: 13px; background: linear-gradient(135deg,var(--orange),#FF8C00); color: #fff; font-family: 'Heebo', sans-serif; font-size: 1rem; font-weight: 700; border: none; border-radius: 10px; cursor: pointer; transition: opacity 0.2s; margin-bottom: 24px; }
+    .btn-save-plans:hover { opacity: 0.9; }
+    .btn-save-plans:disabled { opacity: 0.5; cursor: not-allowed; }
+    /* leads table */
+    .leads-title { font-size: 0.88rem; font-weight: 900; color: var(--orange); margin-bottom: 12px; letter-spacing: 0.5px; }
+    .lead-row { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); border-radius: 10px; margin-bottom: 8px; }
+    .lead-name { font-size: 0.88rem; font-weight: 700; flex: 1; }
+    .lead-plan { font-size: 0.78rem; color: var(--muted); }
+    .lead-price { font-size: 0.88rem; font-weight: 900; color: var(--gold); white-space: nowrap; }
+    .lead-status { font-size: 0.7rem; font-weight: 700; padding: 2px 9px; border-radius: 8px; white-space: nowrap; }
+    .lead-status.lead { background: rgba(255,215,0,0.12); color: #FFD700; }
+    .lead-status.paid { background: rgba(60,200,60,0.12); color: #70dd70; }
+    .btn-mark-paid { font-size: 0.72rem; padding: 3px 10px; background: transparent; border: 1px solid rgba(60,200,60,0.35); border-radius: 6px; color: #70dd70; cursor: pointer; white-space: nowrap; font-family: 'Heebo', sans-serif; font-weight: 700; transition: background 0.2s; }
+    .btn-mark-paid:hover { background: rgba(60,200,60,0.1); }
+    /* RECORDS */
+    .records-overlay { position: fixed; inset: 0; z-index: 400; background: var(--black); display: none; flex-direction: column; overflow: hidden; }
+    .records-overlay.open { display: flex; }
+    .rec-hdr { flex-shrink: 0; height: 62px; padding: 0 18px; background: rgba(9,9,9,0.97); backdrop-filter: blur(14px); border-bottom: 1px solid rgba(255,215,0,0.2); display: flex; align-items: center; justify-content: space-between; }
+    .rec-hdr-title { font-size: 1.1rem; font-weight: 900; background: linear-gradient(135deg,#FFD700,#FF6B00); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+    .btn-close-rec { background: rgba(255,255,255,0.07); border: none; color: var(--muted); width: 34px; height: 34px; border-radius: 50%; cursor: pointer; font-size: 1rem; }
+    .rec-body { flex: 1; overflow-y: auto; padding: 20px 16px 40px; max-width: 700px; margin: 0 auto; width: 100%; }
+    .rec-mode-tabs { display: flex; gap: 8px; margin-bottom: 20px; }
+    .rec-tab { padding: 8px 18px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.04); color: var(--muted); font-family:'Heebo',sans-serif; font-size:0.85rem; font-weight:700; cursor:pointer; transition:all 0.2s; }
+    .rec-tab.active { background: rgba(255,215,0,0.12); border-color: var(--gold); color: var(--gold); }
+    .muscle-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+    .m-tab { padding: 5px 12px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.08); background: transparent; color: #555; font-family:'Heebo',sans-serif; font-size:0.75rem; font-weight:700; cursor:pointer; transition:all 0.2s; }
+    .m-tab.active { background: rgba(255,107,0,0.12); border-color: var(--orange); color: var(--orange); }
+    .ex-select { width:100%; padding:12px 14px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12); border-radius:10px; color:var(--white); font-family:'Heebo',sans-serif; font-size:0.95rem; outline:none; cursor:pointer; margin-bottom:20px; }
+    .podium { display:flex; flex-direction:column; gap:10px; margin-bottom:20px; }
+    .podium-row { display:flex; align-items:center; gap:14px; padding:14px 16px; border-radius:14px; border:1px solid rgba(255,255,255,0.06); background:rgba(255,255,255,0.03); }
+    .podium-row.rank-1 { border-color:rgba(255,215,0,0.45); background:rgba(255,215,0,0.06); }
+    .podium-row.rank-2 { border-color:rgba(192,192,192,0.3); background:rgba(192,192,192,0.04); }
+    .podium-row.rank-3 { border-color:rgba(205,127,50,0.3); background:rgba(205,127,50,0.04); }
+    .podium-medal { font-size:1.6rem; flex-shrink:0; width:32px; text-align:center; }
+    .podium-info { flex:1; min-width:0; }
+    .podium-name { font-size:0.95rem; font-weight:900; margin-bottom:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .podium-stats { font-size:0.78rem; color:var(--muted); }
+    .podium-orm { font-size:0.9rem; font-weight:700; color:var(--gold); white-space:nowrap; }
+    .my-rec-box { padding:13px 16px; border-radius:12px; border:1px solid rgba(255,107,0,0.2); background:rgba(255,107,0,0.05); font-size:0.85rem; color:var(--muted); margin-top:4px; }
+    .my-rec-box strong { color:var(--orange); }
+    .steps-row { display:flex; gap:10px; margin-bottom:24px; }
+    .steps-input { flex:1; padding:12px 14px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12); border-radius:10px; color:var(--white); font-family:'Heebo',sans-serif; font-size:0.95rem; outline:none; }
+    .btn-save-steps { padding:12px 20px; background:var(--orange); border:none; border-radius:10px; color:#fff; font-family:'Heebo',sans-serif; font-size:0.9rem; font-weight:700; cursor:pointer; white-space:nowrap; }
+    .no-records { text-align:center; padding:40px 20px; color:#444; font-size:0.9rem; }
+
+    .btn-mob-menu { display:none; align-items:center; gap:5px; background:rgba(255,107,0,0.1); border:1px solid rgba(255,107,0,0.3); border-radius:6px; color:var(--orange); padding:7px 12px; font-family:'Heebo',sans-serif; font-size:0.82rem; font-weight:700; cursor:pointer; }
+    .sidebar-bd { display:none; position:fixed; inset:0; top:58px; background:rgba(0,0,0,0.65); z-index:140; }
+    .sidebar-bd.open { display:block; }
+
+    .bottom-nav { display:none; }
+    @media (max-width: 768px) {
+      .layout { display:block; }
+      .sidebar { position:fixed; right:0; top:58px; height:calc(100vh - 58px); width:280px; z-index:150; transform:translateX(110%); transition:transform 0.3s ease; box-shadow:-6px 0 24px rgba(0,0,0,0.6); }
+      .sidebar.mob-open { transform:translateX(0); }
+      .main { padding:16px 14px 80px; width:100%; }
+      .btn-mob-menu { display:none !important; }
+      .topnav { padding:0 12px; }
+      .topnav-sub { display:none; }
+      .topnav-desktop-btns { display:none !important; }
+      .btn-sm { padding:6px 10px; font-size:0.75rem; }
+      .form-grid { grid-template-columns:1fr 1fr; }
+      .ex-row { grid-template-columns:1fr 1fr; }
+      .item-row { grid-template-columns:1fr 1fr 1fr; }
+      .nutri-header { grid-template-columns:1fr 1fr 1fr; }
+      .nutri-header span:nth-child(n+4) { display:none; }
+      .sec-card { padding:16px 14px; }
+      .bottom-nav { display:flex; position:fixed; bottom:0; left:0; right:0; z-index:150; background:rgba(10,10,10,0.97); backdrop-filter:blur(14px); border-top:1px solid rgba(255,107,0,0.15); height:62px; align-items:stretch; }
+      .bn-item { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; cursor:pointer; background:none; border:none; color:var(--muted); font-family:'Heebo',sans-serif; font-size:0.6rem; font-weight:700; transition:color 0.2s; padding:0; text-decoration:none; }
+      .bn-item:hover, .bn-item.active { color:var(--orange); }
+      .bn-icon { font-size:1.3rem; line-height:1; }
+      .bn-more-menu { position:fixed; bottom:62px; left:0; right:0; background:rgba(15,15,15,0.98); border-top:1px solid rgba(255,255,255,0.07); padding:8px 0; z-index:160; display:none; }
+      .bn-more-menu.open { display:block; }
+      .bn-more-item { display:flex; align-items:center; gap:12px; padding:13px 20px; font-size:0.9rem; font-weight:700; color:var(--white); cursor:pointer; border:none; background:none; font-family:'Heebo',sans-serif; width:100%; }
+      .bn-more-item:hover { background:rgba(255,107,0,0.08); color:var(--orange); }
+    }
+    @media (max-width: 480px) {
+      .form-grid, .form-grid.cols-3 { grid-template-columns:1fr; }
+    }
+    .notif-bell { position:relative; cursor:pointer; }
+    .notif-badge { position:absolute; top:-4px; right:-4px; background:var(--orange); color:#fff; font-size:0.6rem; font-weight:900; width:16px; height:16px; border-radius:50%; display:flex; align-items:center; justify-content:center; }
+    .notif-panel { position:fixed; top:58px; left:0; right:0; bottom:0; z-index:200; display:none; }
+    .notif-panel.open { display:flex; }
+    .notif-overlay { position:absolute; inset:0; background:rgba(0,0,0,0.5); }
+    .notif-drawer { position:absolute; top:0; left:0; width:420px; max-width:100vw; height:100%; background:#161616; border-right:1px solid rgba(255,107,0,0.2); overflow-y:auto; z-index:1; padding:20px; }
+    .notif-head { font-size:1.1rem; font-weight:900; margin-bottom:18px; display:flex; align-items:center; justify-content:space-between; }
+    .notif-card { background:rgba(255,255,255,0.04); border:1px solid rgba(255,107,0,0.2); border-radius:12px; padding:14px 16px; margin-bottom:12px; cursor:pointer; transition:border-color 0.2s; }
+    .notif-card:hover { border-color:rgba(255,107,0,0.5); }
+    .notif-card.unread { border-color:rgba(255,107,0,0.45); background:rgba(255,107,0,0.06); }
+    .notif-card-name { font-size:0.95rem; font-weight:700; margin-bottom:4px; }
+    .notif-card-meta { font-size:0.78rem; color:var(--muted); margin-bottom:6px; }
+    .notif-card-prs { font-size:0.78rem; color:var(--gold); }
+    .notif-card-nutrition { font-size:0.78rem; color:#4ade80; margin-top:4px; }
+    .notif-empty { text-align:center; padding:60px 20px; color:#444; font-size:0.9rem; }
+    .notif-time { font-size:0.7rem; color:#555; }
+  </style>
+</head>
+<body>
+
+<div id="loader"><div class="spin"></div></div>
+
+<div class="topnav">
+  <div>
+    <div class="topnav-brand" id="coach-brand">FJ Coach</div>
+    <div class="topnav-sub" id="coach-sub">פאנל מאמן</div>
+  </div>
+  <div style="display:flex;gap:8px;align-items:center;">
+    <span id="license-days-badge" style="display:none;padding:4px 10px;border-radius:8px;font-size:0.72rem;font-weight:700;"></span>
+    <div class="notif-bell" onclick="openNotifPanel()" id="notif-bell-wrap">
+      <button class="btn-sm btn-outline" style="border-color:rgba(255,107,0,0.3);color:var(--orange);">🔔</button>
+      <span class="notif-badge" id="notif-badge" style="display:none;">0</span>
+    </div>
+    <div class="topnav-desktop-btns" style="display:flex;gap:8px;align-items:center;">
+      <button class="btn-mob-menu" onclick="toggleMobileSidebar()">☰ מתאמנים</button>
+      <button class="btn-sm btn-outline" onclick="openRecords()" style="border-color:rgba(255,215,0,0.35);color:#FFD700;">🏆 שיאים</button>
+      <button class="btn-sm btn-outline" onclick="openPlans()" style="border-color:rgba(255,107,0,0.4);color:var(--orange);">💰 מסלולים</button>
+      <button class="btn-sm btn-outline" onclick="openPushOverlay()" style="border-color:rgba(255,107,0,0.4);color:var(--orange);">📣 הודעות</button>
+      <a href="exercises.html" class="btn-sm btn-outline" style="text-decoration:none;">🏋️ תרגילים</a>
+      <a href="food.html" class="btn-sm btn-outline" style="text-decoration:none;">🥗 מזון</a>
+      <a id="btn-trainee-link" href="dashboard.html" style="display:none;" class="btn-sm btn-outline">החלף מצב — מתאמן</a>
+      <button class="btn-sm btn-outline" onclick="logout()">יציאה</button>
+    </div>
+  </div>
+</div>
+
+<div class="sidebar-bd" onclick="toggleMobileSidebar()"></div>
+
+<div class="layout">
+  <div class="sidebar" id="sidebar">
+    <div class="sidebar-head">
+      <span class="sidebar-title">המתאמנים שלי</span>
+      <button class="btn-sm btn-orange" id="btn-add-client" style="display:none;font-size:0.75rem;padding:5px 10px;" onclick="openAddModal()">+ הוסף</button>
+    </div>
+    <div class="client-list" id="client-list"></div>
+  </div>
+  <div class="main" id="main-area">
+    <div class="no-select">← בחר מתאמן מהרשימה</div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- PLANS OVERLAY -->
+<div class="plans-overlay" id="plans-overlay">
+  <div class="plans-hdr">
+    <div class="plans-hdr-title">💰 מסלולי הליווי שלי</div>
+    <button class="btn-close-rec" onclick="closePlans()">✕</button>
+  </div>
+  <div class="plans-body">
+    <div class="plans-tabs">
+      <button class="plans-tab active" id="ptab-editor" onclick="switchPlansTab('editor')">✏️ עריכה</button>
+      <button class="plans-tab" id="ptab-leads"  onclick="switchPlansTab('leads')">📋 לידים</button>
+      <button class="plans-tab" id="ptab-stats"  onclick="switchPlansTab('stats')">📊 סטטיסטיקות</button>
+    </div>
+
+    <!-- EDITOR TAB -->
+    <div id="ptab-editor-body">
+      <p style="font-size:0.82rem;color:var(--muted);margin-bottom:18px;line-height:1.6;">הגדר מחיר ותיאור לכל מסלול. הלקוחות שלך יראו אותם כשהמנוי שלהם יסתיים.</p>
+
+      <div class="plan-editor-card" id="pcard-1">
+        <div class="plan-card-title">
+          <span>📅 חודש אחד</span>
+          <label class="plan-featured-toggle"><input type="checkbox" id="pfeat-1" onchange="updateFeaturedCard(1)"/> מומלץ</label>
+        </div>
+        <div class="plan-field"><label>מחיר (₪)</label><input type="number" id="pprice-1" placeholder="0" min="0"/></div>
+        <div class="plan-field"><label>מה הלקוח מקבל</label><textarea id="pdesc-1" placeholder="תאר מה כלול במסלול זה..."></textarea></div>
+      </div>
+
+      <div class="plan-editor-card" id="pcard-3">
+        <div class="plan-card-title">
+          <span>📅 3 חודשים</span>
+          <label class="plan-featured-toggle"><input type="checkbox" id="pfeat-3" onchange="updateFeaturedCard(3)"/> מומלץ</label>
+        </div>
+        <div class="plan-field"><label>מחיר (₪)</label><input type="number" id="pprice-3" placeholder="0" min="0"/></div>
+        <div class="plan-field"><label>מה הלקוח מקבל</label><textarea id="pdesc-3" placeholder="תאר מה כלול במסלול זה..."></textarea></div>
+      </div>
+
+      <div class="plan-editor-card" id="pcard-6">
+        <div class="plan-card-title">
+          <span>📅 6 חודשים</span>
+          <label class="plan-featured-toggle"><input type="checkbox" id="pfeat-6" onchange="updateFeaturedCard(6)"/> מומלץ</label>
+        </div>
+        <div class="plan-field"><label>מחיר (₪)</label><input type="number" id="pprice-6" placeholder="0" min="0"/></div>
+        <div class="plan-field"><label>מה הלקוח מקבל</label><textarea id="pdesc-6" placeholder="תאר מה כלול במסלול זה..."></textarea></div>
+      </div>
+
+      <button class="btn-save-plans" id="btn-save-plans" onclick="savePlans()">💾 שמור מסלולים</button>
+    </div>
+
+    <!-- LEADS TAB -->
+    <div id="ptab-leads-body" style="display:none;">
+      <div class="leads-title">לידים ועסקאות</div>
+      <div id="leads-wrap"><div class="empty">טוען...</div></div>
+    </div>
+
+    <!-- STATS TAB -->
+    <div id="ptab-stats-body" style="display:none;">
+      <div id="stats-cards-wrap"><div class="empty">טוען...</div></div>
+
+      <!-- Income section -->
+      <div style="margin-top:22px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+          <div class="leads-title" style="margin-bottom:0;">כל ההכנסות</div>
+          <button style="background:linear-gradient(135deg,var(--orange),#FF8C00);border:none;color:#fff;font-family:'Heebo',sans-serif;font-weight:700;font-size:0.82rem;padding:6px 14px;border-radius:8px;cursor:pointer;display:flex;align-items:center;gap:5px;" onclick="openIncomeModal()">+ הוסף הכנסה</button>
+        </div>
+        <div id="income-list-wrap"><div class="empty">טוען...</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- INCOME MODAL -->
+<div class="modal-bg" id="income-modal" style="display:none;z-index:600;" onclick="if(event.target===this)closeIncomeModal()">
+  <div class="modal" style="max-width:360px;">
+    <h3>הוסף <span>הכנסה</span></h3>
+    <div style="display:flex;flex-direction:column;gap:12px;margin-top:4px;">
+      <div class="f-group">
+        <label>תיאור</label>
+        <input id="inc-desc" placeholder="למשל: ייעוץ חד-פעמי, תוכנית עצמאית..."/>
+      </div>
+      <div class="f-group">
+        <label>סכום (₪)</label>
+        <input id="inc-amount" type="number" min="1" placeholder="0"/>
+      </div>
+      <div class="f-group">
+        <label>תאריך</label>
+        <input id="inc-date" type="date"/>
+      </div>
+    </div>
+    <div class="msg err" id="inc-err" style="display:none;margin-top:10px;"></div>
+    <div style="display:flex;gap:10px;margin-top:16px;">
+      <button class="btn-orange" onclick="saveManualIncome()" style="flex:1;padding:12px;font-size:0.95rem;">שמור</button>
+      <button class="btn-sm btn-outline" onclick="closeIncomeModal()" style="flex:1;padding:12px;font-size:0.95rem;">ביטול</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD CLIENT MODAL (מאמן בכיר / אדמין בלבד) -->
+<div class="modal-bg" id="add-modal">
+  <div class="modal">
+    <h3>הוסף <span>מתאמן חדש</span></h3>
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <div class="f-group"><label>שם מלא</label><input id="new-name" placeholder="ישראל ישראלי"/></div>
+      <div class="f-group"><label>אימייל</label><input id="new-email" type="email" placeholder="client@email.com" style="direction:ltr;text-align:right;"/></div>
+      <div class="form-grid">
+        <div class="f-group"><label>תחילת ליווי</label><input id="new-start" type="date"/></div>
+        <div class="f-group"><label>סיום ליווי</label><input id="new-end" type="date"/></div>
+      </div>
+      <div class="f-group">
+        <label>סוג מסלול</label>
+        <select id="new-plan">
+          <option value="ליווי חודשי">ליווי חודשי</option>
+          <option value="ליווי 3 חודשים">ליווי 3 חודשים</option>
+          <option value="ליווי חצי שנה">ליווי חצי שנה</option>
+        </select>
+      </div>
+    </div>
+    <div id="add-err" style="margin-top:12px;font-size:0.82rem;color:#ff7070;display:none;"></div>
+    <div class="modal-actions">
+      <button class="btn-sm btn-outline" onclick="closeAddModal()">ביטול</button>
+      <button class="btn-sm btn-orange" id="add-btn" onclick="addClient()">הוסף מתאמן</button>
+    </div>
+  </div>
+</div>
+
+<div class="notif-panel" id="notif-panel">
+  <div class="notif-overlay" onclick="closeNotifPanel()"></div>
+  <div class="notif-drawer">
+    <div class="notif-head">
+      <span>🔔 התראות</span>
+      <button onclick="closeNotifPanel()" style="background:none;border:none;color:var(--muted);font-size:1.2rem;cursor:pointer;">✕</button>
+    </div>
+    <div id="notif-list"></div>
+  </div>
+</div>
+
+<!-- CLIENT CARD MODAL -->
+<div class="client-card-modal" id="client-card-modal">
+  <div class="client-card-inner">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px;">
+      <div>
+        <div class="client-card-avatar" id="cc-avatar">?</div>
+        <div class="client-card-name" id="cc-name"></div>
+      </div>
+      <button onclick="closeClientCard()" style="background:rgba(255,255,255,0.07);border:none;color:#888;width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:1rem;">✕</button>
+    </div>
+    <div class="client-card-row">
+      <span class="client-card-label">מייל</span>
+      <span class="client-card-val" id="cc-email"></span>
+    </div>
+    <div class="client-card-row">
+      <span class="client-card-label">טלפון</span>
+      <span class="client-card-val" id="cc-phone"></span>
+      <a id="cc-wa-inline" href="#" target="_blank" style="display:none;margin-right:auto;padding:4px 12px;background:rgba(37,211,102,0.12);border:1px solid rgba(37,211,102,0.3);border-radius:8px;color:#25d366;font-size:0.8rem;font-weight:700;text-decoration:none;white-space:nowrap;">💬 WA</a>
+    </div>
+    <div class="client-card-row">
+      <span class="client-card-label">מסלול</span>
+      <span class="client-card-val" id="cc-plan"></span>
+    </div>
+    <div class="client-card-row">
+      <span class="client-card-label">ליווי עד</span>
+      <span class="client-card-val" id="cc-end"></span>
+    </div>
+    <div style="margin-top:18px;display:flex;gap:10px;">
+      <a id="cc-wa" href="#" target="_blank" style="flex:1;text-align:center;padding:10px;background:rgba(37,211,102,0.1);border:1px solid rgba(37,211,102,0.3);border-radius:10px;color:#25d366;font-size:0.85rem;font-weight:700;text-decoration:none;">WhatsApp</a>
+      <a id="cc-mail" href="#" style="flex:1;text-align:center;padding:10px;background:rgba(255,107,0,0.1);border:1px solid rgba(255,107,0,0.3);border-radius:10px;color:var(--orange);font-size:0.85rem;font-weight:700;text-decoration:none;">שלח מייל</a>
+    </div>
+  </div>
+</div>
+
+<!-- RECORDS OVERLAY -->
+<div class="records-overlay" id="records-overlay">
+  <div class="rec-hdr">
+    <div class="rec-hdr-title">🏆 שיאי הנבחרת שלי</div>
+    <button class="btn-close-rec" onclick="closeRecords()">✕</button>
+  </div>
+  <div class="rec-body" id="rec-body"></div>
+</div>
+
+<script>
+  const URL_ = 'https://luwknflmhvcxgifzxgrk.supabase.co';
+  const KEY  = 'sb_publishable_k3M7SfBeiBGs3rTKewBzWQ_7RHRskB9';
+  const CLAUDE_KEY = atob('c2stYW50LWFwaTAzLVRFbWJWYk9YUHlTV2o1RVRnd2tCNmkwLWRWLUE2aUlSbzhCVE0xckJGaGxqUzE4V2hOOWdoOEhtVkgtOVYxUXlMSm01NE5QOTZGNTVBNF9GUS15NHlBLTViQXRnZ0FB');
+  const sb   = supabase.createClient(URL_, KEY);
+
+  const ONESIGNAL_APP_ID   = 'fe16a494-b8de-47e9-8a29-de052e048ec8';
+  const ONESIGNAL_REST_KEY = 'os_v2_app_7ylkjffy3zd6tcrj3ycs4beozaggpy5dukfe45efqruamrlljsrgz4rncsssvzvsbpt2df3zts2vdwcl2qg6zowamqntfmprxzppmjq';
+
+  function initOneSignal(userEmail) {
+    window.OneSignalDeferred = window.OneSignalDeferred || [];
+    OneSignalDeferred.push(async function(OneSignal) {
+      try {
+        await OneSignal.init({ appId: ONESIGNAL_APP_ID, serviceWorkerPath: 'OneSignalSDKWorker.js', notifyButton: { enable: false }, allowLocalhostAsSecureOrigin: true });
+        if (!OneSignal.User.PushSubscription.optedIn) await OneSignal.User.PushSubscription.optIn();
+        const subId = OneSignal.User.PushSubscription.id;
+        if (subId && userEmail) {
+          await sb.from('push_tokens').upsert({ user_email: userEmail, onesignal_player_id: subId, updated_at: new Date().toISOString() }, { onConflict: 'user_email' });
+        }
+      } catch(e) { console.warn('OneSignal:', e); }
+    });
+  }
+
+  async function sendPush(subscriptionIds, title, body) {
+    if (!subscriptionIds?.length) return;
+    try {
+      await fetch('https://onesignal.com/api/v1/notifications', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Key ${ONESIGNAL_REST_KEY}` },
+        body: JSON.stringify({ app_id: ONESIGNAL_APP_ID, include_subscription_ids: subscriptionIds, headings: { he: title, en: title }, contents: { he: body, en: body } })
+      });
+    } catch(e) { console.warn('sendPush:', e); }
+  }
+
+  function openPushOverlay() {
+    document.getElementById('push-overlay').classList.add('open');
+    document.body.style.overflow = 'hidden';
+    loadScheduledMessages();
+  }
+  function closePushOverlay() {
+    document.getElementById('push-overlay').classList.remove('open');
+    document.body.style.overflow = '';
+  }
+  function switchPushTab(tab) {
+    document.getElementById('push-tab-now').style.display        = tab === 'now'       ? 'block' : 'none';
+    document.getElementById('push-tab-scheduled').style.display  = tab === 'scheduled' ? 'block' : 'none';
+    document.getElementById('ptab-now').classList.toggle('active',       tab === 'now');
+    document.getElementById('ptab-scheduled').classList.toggle('active', tab === 'scheduled');
+  }
+
+  async function sendBroadcastPush() {
+    const msg = document.getElementById('push-msg').value.trim();
+    if (!msg) return;
+    const btn = document.querySelector('.btn-broadcast');
+    btn.disabled = true; btn.textContent = 'שולח...';
+    const clientEmails = clients.map(c => c.email);
+    if (!clientEmails.length) { toast('אין מתאמנים', 'err'); btn.disabled = false; btn.textContent = '📣 שלח לכולם'; return; }
+    const { data: tokens } = await sb.from('push_tokens').select('onesignal_player_id').in('user_email', clientEmails);
+    const ids = (tokens || []).map(t => t.onesignal_player_id);
+    if (!ids.length) { toast('אף מתאמן עדיין לא אישר התראות', 'err'); btn.disabled = false; btn.textContent = '📣 שלח לכולם'; return; }
+    await sendPush(ids, 'הודעה ממאמנך', msg);
+    btn.disabled = false; btn.textContent = '📣 שלח לכולם';
+    document.getElementById('push-msg').value = '';
+    const sentEl = document.getElementById('push-sent-msg');
+    sentEl.style.display = 'inline';
+    setTimeout(() => sentEl.style.display = 'none', 3000);
+    toast('ההודעה נשלחה ל-' + ids.length + ' מתאמנים', 'ok');
+  }
+
+  async function loadScheduledMessages() {
+    const list = document.getElementById('sched-list');
+    if (!list) return;
+    list.innerHTML = '<div style="color:#444;font-size:0.82rem;text-align:center;padding:12px;">טוען...</div>';
+    const { data } = await sb.from('scheduled_messages').select('*').eq('coach_email', coachEmail).order('scheduled_time');
+    if (!data || !data.length) {
+      list.innerHTML = '<div style="color:#444;font-size:0.82rem;text-align:center;padding:20px 0;">אין הודעות מתוזמנות</div>';
+      return;
+    }
+    list.innerHTML = data.map(m => {
+      const dt = new Date(m.scheduled_time);
+      const ts = dt.toLocaleString('he-IL', { day:'2-digit', month:'2-digit', year:'2-digit', hour:'2-digit', minute:'2-digit' });
+      return `<div class="sched-item${m.sent ? ' sent' : ''}">
+        <div class="sched-item-msg" title="${m.message}">${m.message}</div>
+        <div class="sched-item-time">${ts}</div>
+        <div class="sched-badge ${m.sent ? 'done' : 'pending'}">${m.sent ? '✓ נשלח' : 'ממתין'}</div>
+      </div>`;
+    }).join('');
+    // Fire overdue pending messages
+    const now = new Date();
+    const overdue = data.filter(m => !m.sent && new Date(m.scheduled_time) <= now);
+    if (overdue.length) {
+      const emails = clients.map(c => c.email);
+      if (emails.length) {
+        const { data: toks } = await sb.from('push_tokens').select('onesignal_player_id').in('user_email', emails);
+        const ids = (toks || []).map(t => t.onesignal_player_id);
+        for (const m of overdue) {
+          await sendPush(ids, 'הודעה ממאמנך', m.message);
+          await sb.from('scheduled_messages').update({ sent: true }).eq('id', m.id);
+        }
+      }
+      loadScheduledMessages();
+    }
+  }
+
+  async function saveScheduledMessage() {
+    const msg  = document.getElementById('sched-msg').value.trim();
+    const time = document.getElementById('sched-time').value;
+    if (!msg || !time) { toast('יש למלא הודעה ושעה', 'err'); return; }
+    const btn = document.querySelector('.btn-add-sched');
+    btn.disabled = true;
+    const { error } = await sb.from('scheduled_messages').insert({ coach_email: coachEmail, message: msg, scheduled_time: new Date(time).toISOString(), sent: false });
+    btn.disabled = false;
+    if (error) { toast('שגיאה בשמירה', 'err'); return; }
+    document.getElementById('sched-msg').value = '';
+    document.getElementById('sched-time').value = '';
+    toast('התזמון נשמר', 'ok');
+    loadScheduledMessages();
+  }
+
+  let coachEmail = null;
+  let coachName  = null;
+  let coachRole  = 'regular';
+  let clients    = [];
+  let activeEmail = null;
+  let trainingPlan  = [];
+  let nutritionPlan = [];
+  let dayClipboard  = null;
+  let mealClipboard = null;
+  let exerciseLibrary = [];
+  let allFoodItems = [];
+
+  /* ── UNIT MEASURES ── */
+  const FOOD_UNITS_RAW = [
+    ['קוטג׳','כף שטוחה',15],['קוטג׳','כף גדושה',25],['קוטג׳','כפית',8],['קוטג׳','קופסה',250],
+    ['גבינה לבנה','כף שטוחה',15],['גבינה לבנה','כף גדושה',25],['גבינה לבנה','כפית',8],['גבינה לבנה','קופסה',250],
+    ['לאבנה','כף',20],['לאבנה','כפית',7],['יוגורט יווני','גביע',200],['יוגורט יווני','כף',15],
+    ['גבינה צהובה','פרוסה ארוזה',28],['גבינת עמק','פרוסה',28],['גבינת מוצרלה','פרוסה',25],
+    ['גבינת פטה','קובייה',30],['פרמזן מגורד','כף',5],['חלב','כוס',240],['חלב','כף',15],
+    ['חזה עוף','פרוסת פסטרמה דקה',15],['חזה עוף','שניצל בינוני',150],['חזה עוף','חתיכה ממוצעת',200],
+    ['פרגית','חתיכה',120],['ירך עוף','יחידה',150],['שוק עוף','יחידה',120],['כנף עוף','יחידה',35],
+    ['חזה הודו','פרוסה',20],['פסטרמה הודו','פרוסה',15],['בקר טחון','קציצה קטנה',100],['בקר טחון','המבורגר',150],
+    ['אנטריקוט','סטייק',300],['סינטה','סטייק',250],['פילה בקר','סטייק',220],['שייטל','סטייק',250],
+    ['אסאדו','חתיכה',350],['כבד עוף','יחידה',20],['לבבות עוף','יחידה',10],
+    ['סלמון','פילה',250],['טונה טרייה','סטייק',220],['אמנון','פילה',180],
+    ['דניס','דג שלם',400],['לברק','דג שלם',450],['מקרל','דג שלם',300],['סרדינים','יחידה',25],
+    ['ביצה','יחידה L',60],['חלבון ביצה','חלבון אחד',33],
+    ['אורז מבושל','כף',15],['אורז מבושל','כוס',160],['פסטה מבושלת','כף',15],['פסטה מבושלת','כוס',140],
+    ['קינואה מבושלת','כף',15],['קינואה מבושלת','כוס',185],['בורגול מבושל','כף',15],['בורגול מבושל','כוס',180],
+    ['שיבולת שועל','כף',10],['שיבולת שועל','כוס',80],
+    ['תפוח אדמה','קטן',100],['תפוח אדמה','בינוני',180],['בטטה','קטנה',130],['בטטה','בינונית',250],
+    ['לחם','פרוסה',30],['פיתה','יחידה',80],['פיתה כוסמין','יחידה',75],['בננה','יחידה בינונית',120],['תמר מג׳הול','יחידה',24],
+    ['טחינה','כף',15],['טחינה','כפית',5],['חמאת בוטנים','כף',15],['חמאת בוטנים','כפית',5],
+    ['שמן זית','כף',10],['שמן זית','כפית',5],['אבוקדו','חצי אבוקדו',100],
+    ['שקדים','יחידה',1.2],['אגוז מלך','יחידה',5],['קשיו','יחידה',1.5],['פיסטוק','יחידה',0.6],
+  ];
+  const FOOD_UNITS_MAP = {};
+  for (const [food, unit, grams] of FOOD_UNITS_RAW) {
+    if (!FOOD_UNITS_MAP[food]) FOOD_UNITS_MAP[food] = [];
+    FOOD_UNITS_MAP[food].push({ name: unit, grams });
+  }
+  const GENERIC_UNITS = [
+    { name:'גרם',grams:1 },{ name:'כף',grams:15 },{ name:'כפית',grams:5 },
+    { name:'כוס',grams:240 },{ name:'יחידה',grams:100 },{ name:'פרוסה',grams:30 },{ name:'חצי',grams:50 },
+  ];
+  function getUnitsForFood(foodName) {
+    const specific = FOOD_UNITS_MAP[foodName] || [];
+    if (!specific.length) return GENERIC_UNITS;
+    return specific.some(u => u.name === 'גרם') ? specific : [{ name:'גרם',grams:1 }, ...specific];
+  }
+  function toggleItemExpand(mi, ii) {
+    const item = nutritionPlan[mi].items[ii];
+    item._exp = !item._exp;
+    if (!item._unit) item._unit = 'גרם';
+    if (item._qty == null) item._qty = parseFloat(item.quantity) || 100;
+    renderNutritionEditor();
+  }
+  function setItemUnit(mi, ii, unitName) {
+    const item = nutritionPlan[mi].items[ii];
+    item._unit = unitName; item._qty = unitName === 'גרם' ? 100 : 1;
+    recalcItemMacros(mi, ii); renderNutritionEditor();
+  }
+  function setItemQty(mi, ii, qty) {
+    nutritionPlan[mi].items[ii]._qty = qty;
+    recalcItemMacros(mi, ii); renderNutritionEditor();
+  }
+  function onQuantityInput(mi, ii, val) {
+    const item = nutritionPlan[mi].items[ii];
+    item.quantity = val;
+    const m = String(val).match(/([\d.]+)/);
+    if (!m) return;
+    const num = parseFloat(m[1]);
+    if (!num) return;
+    item._unit = item._unit || 'גרם';
+    item._qty  = num;
+    recalcItemMacros(mi, ii);
+    const rowEl = document.getElementById(`item-${mi}-${ii}`);
+    if (!rowEl) return;
+    rowEl.querySelectorAll('input[type=number]').forEach(inp => {
+      if      (inp.placeholder === "קל׳") inp.value = item.calories || '';
+      else if (inp.placeholder === 'P')   inp.value = item.protein  || '';
+      else if (inp.placeholder === 'C')   inp.value = item.carbs    || '';
+      else if (inp.placeholder === 'F')   inp.value = item.fat      || '';
+    });
+  }
+  function recalcItemMacros(mi, ii) {
+    const item = nutritionPlan[mi].items[ii];
+    const food = allFoodItems.find(f => f.name === item.food);
+    if (!food) return;
+    const units = getUnitsForFood(item.food);
+    const unit  = units.find(u => u.name === item._unit) || { grams: 1 };
+    const grams = (item._qty || 1) * unit.grams;
+    const r = grams / 100;
+    item.calories = Math.round(food.calories * r * 10) / 10;
+    item.protein  = Math.round(food.protein  * r * 10) / 10;
+    item.carbs    = Math.round(food.carbs    * r * 10) / 10;
+    item.fat      = Math.round(food.fat      * r * 10) / 10;
+    item.quantity = item._unit === 'גרם' ? `${Math.round(grams)} גרם` : `${item._qty} ${item._unit} (${Math.round(grams)}g)`;
+  }
+
+  /* ── INIT ── */
+  async function init() {
+    let { data: { session } } = await sb.auth.getSession();
+    if (!session) {
+      await new Promise(resolve => {
+        const { data: { subscription } } = sb.auth.onAuthStateChange((event, s) => {
+          if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') { session = s; subscription.unsubscribe(); resolve(); }
+        });
+        setTimeout(resolve, 3000);
+      });
+    }
+    if (!session) { window.location.href = 'login.html'; return; }
+    const { data: coach } = await sb.from('coaches').select('*').eq('email', session.user.email).single();
+    if (!coach) { window.location.href = 'login.html'; return; }
+    coachEmail = session.user.email;
+    coachName  = coach.name;
+    coachRole  = coach.role || 'regular';
+    coachPlans = coach.plans || {};
+    document.getElementById('coach-brand').textContent = `FJ — ${coachName}`;
+    initOneSignal(coachEmail);
+
+    // מאמן ממתין לאישור
+    if (coachRole === 'pending') {
+      document.getElementById('loader').style.display = 'none';
+      showPendingApproval(coachName);
+      return;
+    }
+
+    // בדיקת תוקף רישיון — מאמן בכיר בלבד
+    if (coachRole === 'senior') {
+      const today = new Date().toISOString().split('T')[0];
+      const licEnd = coach.license_end;
+      if (!licEnd || licEnd < today) {
+        document.getElementById('loader').style.display = 'none';
+        showLicenseExpired(licEnd);
+        return;
+      }
+      const daysLeft = Math.ceil((new Date(licEnd + 'T23:59:59') - new Date()) / 864e5);
+      const badge = document.getElementById('license-days-badge');
+      if (badge) {
+        badge.textContent = daysLeft <= 7 ? `⚠️ ${daysLeft} ימים נותרו` : `✓ עוד ${daysLeft} ימים`;
+        badge.style.background = daysLeft <= 7 ? 'rgba(255,60,60,0.15)' : 'rgba(60,200,60,0.12)';
+        badge.style.color = daysLeft <= 7 ? '#ff7070' : '#70dd70';
+        badge.style.display = 'inline-block';
+      }
+    }
+
+    if (coachRole === 'senior' || coachRole === 'admin') {
+      document.getElementById('btn-add-client').style.display = 'block';
+    }
+    const { data: clientRow } = await sb.from('clients').select('email').eq('email', coachEmail).single();
+    if (clientRow) {
+      document.getElementById('btn-trainee-link').style.display = 'block';
+      const bl2 = document.getElementById('bn-trainee-link2');
+      if (bl2) bl2.style.display = 'flex';
+    }
+    await Promise.all([loadClients(), loadExerciseLibrary(), loadFoodItems()]);
+    document.getElementById('loader').style.display = 'none';
+    loadNotifications();
+  }
+
+  async function loadClients() {
+    const { data } = await sb.from('clients').select('*').eq('coach_email', coachEmail).order('created_at');
+    clients = data || [];
+    renderSidebar();
+  }
+
+  function openAddModal() {
+    document.getElementById('add-modal').classList.add('open');
+    ['new-name','new-email','new-start','new-end'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('add-err').style.display = 'none';
+  }
+  function closeAddModal() {
+    document.getElementById('add-modal').classList.remove('open');
+    document.getElementById('add-err').style.display = 'none';
+  }
+  async function addClient() {
+    const name  = document.getElementById('new-name').value.trim();
+    const email = document.getElementById('new-email').value.trim();
+    const start = document.getElementById('new-start').value;
+    const end   = document.getElementById('new-end').value;
+    const plan  = document.getElementById('new-plan').value;
+    const errEl = document.getElementById('add-err');
+    const btn   = document.getElementById('add-btn');
+    errEl.style.display = 'none';
+    if (!name || !email || !start || !end) { errEl.textContent = 'יש למלא את כל השדות'; errEl.style.display = 'block'; return; }
+    btn.disabled = true; btn.textContent = 'מוסיף...';
+    const { error } = await sb.from('clients').insert({ email, name, coaching_start: start, coaching_end: end, plan_type: plan, coach_email: coachEmail });
+    btn.disabled = false; btn.textContent = 'הוסף מתאמן';
+    if (error) { errEl.textContent = error.message; errEl.style.display = 'block'; return; }
+    closeAddModal();
+    await loadClients();
+    toast(`${name} נוסף בהצלחה ✓`, 'ok');
+  }
+
+  /* ── NOTIFICATIONS ── */
+  let coachNotifs = [];
+
+  async function loadNotifications() {
+    const { data } = await sb.from('coach_notifications')
+      .select('*')
+      .eq('coach_email', coachEmail)
+      .order('created_at', { ascending: false })
+      .limit(50);
+    coachNotifs = data || [];
+    const unread = coachNotifs.filter(n => !n.read).length;
+    const badge = document.getElementById('notif-badge');
+    if (unread > 0) {
+      badge.textContent = unread > 9 ? '9+' : unread;
+      badge.style.display = 'flex';
+    } else {
+      badge.style.display = 'none';
+    }
+  }
+
+  function openNotifPanel() {
+    const list = document.getElementById('notif-list');
+    if (!coachNotifs.length) {
+      list.innerHTML = '<div class="notif-empty">אין התראות עדיין</div>';
+    } else {
+      list.innerHTML = coachNotifs.map(n => {
+        const d = n.data || {};
+        const prsHtml = d.prs && d.prs.length
+          ? `<div class="notif-card-prs">🏆 ${d.prs.map(p => esc(p.exercise)).join(' · ')}</div>` : '';
+        const calHtml = d.calories_target > 0
+          ? `<div class="notif-card-nutrition">🍽 ${d.calories_eaten||0} / ${d.calories_target} קק"ל</div>` : '';
+        const dateStr = new Date(n.created_at).toLocaleString('he-IL', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+        return `<div class="notif-card${n.read ? '' : ' unread'}" onclick="notifGoClient('${n.client_email}')">
+          <div class="notif-card-name">${esc(n.client_name || n.client_email.split('@')[0])}</div>
+          <div class="notif-card-meta">🏋️ ${esc(d.day_name||'אימון')} · ⏱ ${d.duration_min||0} דק׳ · ${d.exercises_count||0} תרגילים</div>
+          ${prsHtml}${calHtml}
+          <div class="notif-time">${dateStr}</div>
+        </div>`;
+      }).join('');
+    }
+    document.getElementById('notif-panel').classList.add('open');
+    // Mark all as read
+    const unreadIds = coachNotifs.filter(n => !n.read).map(n => n.id);
+    if (unreadIds.length) {
+      sb.from('coach_notifications').update({ read: true }).in('id', unreadIds).then(() => {
+        coachNotifs.forEach(n => { n.read = true; });
+        document.getElementById('notif-badge').style.display = 'none';
+      });
+    }
+  }
+
+  function closeNotifPanel() {
+    document.getElementById('notif-panel').classList.remove('open');
+  }
+
+  function notifGoClient(clientEmail) {
+    closeNotifPanel();
+    selectClient(clientEmail);
+  }
+
+  function renderSidebar() {
+    const el = document.getElementById('client-list');
+    if (!clients.length) { el.innerHTML = '<div style="padding:16px;color:#444;font-size:0.82rem;text-align:center;">אין מתאמנים עדיין</div>'; return; }
+    el.innerHTML = clients.map(c => `
+      <div class="client-item ${c.email === activeEmail ? 'active' : ''}" onclick="selectClient('${c.email}')">
+        <div class="client-item-name">${esc(c.name)}</div>
+        <div class="client-item-email">${c.email}</div>
+      </div>`).join('');
+  }
+
+  async function selectClient(email) {
+    activeEmail = email;
+    renderSidebar();
+    closeMobileSidebar();
+    const client = clients.find(c => c.email === email);
+    const [{ data: tr }, { data: nu }] = await Promise.all([
+      sb.from('training_plans').select('plan').eq('client_email', email).single(),
+      sb.from('nutrition_plans').select('plan').eq('client_email', email).single()
+    ]);
+    trainingPlan  = tr?.plan || [];
+    nutritionPlan = nu?.plan || [];
+    renderMain(client);
+  }
+
+  function renderMain(client) {
+    const phone = client.phone || '';
+    const endDate = client.coaching_end ? new Date(client.coaching_end + 'T12:00:00').toLocaleDateString('he-IL') : '—';
+    document.getElementById('main-area').innerHTML = `
+      <div class="sec-card">
+        <div class="sec-card-title">פרטי מתאמן <span>${esc(client.name)}</span></div>
+        <div style="margin-bottom:16px;">
+          <button class="client-card-badge" onclick="openClientCard('${esc(client.email)}')">
+            👤 כרטיס קשר — ${esc(client.name)}
+          </button>
+        </div>
+        <div class="form-grid" style="margin-bottom:14px;">
+          <div class="f-group"><label>שם</label><input id="e-name" value="${esc(client.name)}"/></div>
+          <div class="f-group"><label>טלפון</label><input id="e-phone" value="${esc(phone)}" placeholder="050-0000000" type="tel" style="direction:ltr;text-align:right;"/></div>
+          <div class="f-group"><label>תחילת ליווי</label><input id="e-start" type="date" value="${client.coaching_start || ''}"/></div>
+          <div class="f-group"><label>סיום ליווי</label><input id="e-end" type="date" value="${client.coaching_end || ''}"/></div>
+        </div>
+        <div style="margin-bottom:16px;">
+          <div style="font-size:0.78rem;font-weight:700;color:var(--muted);margin-bottom:8px;">יעדי מאקרו יומיים</div>
+          <div class="form-grid" style="grid-template-columns:1fr 1fr 1fr 1fr;">
+            <div class="f-group"><label>קלוריות</label><input id="e-cal" type="number" value="${client.target_calories||''}" placeholder="2000"/></div>
+            <div class="f-group"><label>חלבון (g)</label><input id="e-prot" type="number" value="${client.target_protein||''}" placeholder="150"/></div>
+            <div class="f-group"><label>פחמימה (g)</label><input id="e-carb" type="number" value="${client.target_carbs||''}" placeholder="250"/></div>
+            <div class="f-group"><label>שומן (g)</label><input id="e-fat" type="number" value="${client.target_fat||''}" placeholder="60"/></div>
+          </div>
+        </div>
+        <div style="margin-bottom:16px;">
+          <div style="font-size:0.78rem;font-weight:700;color:var(--muted);margin-bottom:8px;">שתייה ומשקל</div>
+          <div class="form-grid">
+            <div class="f-group">
+              <label>יעד שתייה יומי (ליטרים)</label>
+              <input id="e-water" type="number" step="0.1" min="0.5" max="6" value="${client.target_water||''}" placeholder="2.5"/>
+            </div>
+            <div class="f-group">
+              <label>משקל עדכני (ק"ג)</label>
+              <input id="e-weight" type="number" step="0.1" min="20" max="400" value="${client.current_weight||''}" placeholder="—"/>
+            </div>
+          </div>
+        </div>
+        <button class="btn-sm btn-orange" onclick="saveProfile()">שמור פרטים</button>
+      </div>
+
+      <div class="sec-card">
+        <div class="sec-card-title">🏋️ תוכנית אימונים
+          <button class="btn-sm btn-orange" onclick="addDay()">+ הוסף יום</button>
+        </div>
+        <div class="ai-box" style="margin-bottom:10px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+            <div class="ai-box-title" style="margin-bottom:0;">⚙️ תבנית ברירת מחדל</div>
+            <button class="btn-sm btn-outline" style="font-size:0.72rem;padding:3px 10px;" onclick="saveDefaultTemplate()">שמור תבנית</button>
+          </div>
+          <textarea class="ai-textarea" id="default-template" style="min-height:56px;font-size:0.82rem;" placeholder="הגדר מבנה ברירת מחדל — יוחל כשהבקשה כללית&#10;דוגמה: 4 ימים PUSH/PULL/LEGS/UPPER | PUSH: חזה עליון + כתפיים + טריצפס | PULL: גב + ביצפס | LEGS: קוואדס + המסטרינג + שוקיים | UPPER: חזה + גב + כתפיים"></textarea>
+          <div style="font-size:0.72rem;color:#555;margin-top:5px;">אם הבקשה מפורטת — התבנית תיבלם. אם כללית ("4 ימים מסה") — AI ילך לפי התבנית.</div>
+        </div>
+        <div class="ai-box">
+          <div class="ai-box-title">✨ בנה תוכנית עם AI</div>
+          <textarea class="ai-textarea" id="ai-prompt" placeholder="תאר את התוכנית: ימי אימון, מטרה, ציוד, רמה, מוקד שרירים...&#10;דוגמה: 3 ימי אימון בשבוע, חדר כושר מלא, מטרת מסה, רמת ביניים, A/B/C split"></textarea>
+          <div style="display:flex;align-items:center;margin-top:10px;">
+            <button class="btn-sm btn-orange" id="ai-gen-btn" onclick="generatePlanWithAI()">✨ צור תוכנית</button>
+            <span class="ai-status" id="ai-status"></span>
+          </div>
+        </div>
+        <div style="display:flex;gap:6px;margin-bottom:8px;">
+          <button class="btn-sm btn-orange" onclick="addDay()">+ הוסף יום</button>
+          <button class="btn-sm btn-outline" id="btn-paste-day" style="display:none;border-color:rgba(255,215,0,0.4);color:#FFD700;" onclick="pasteDay()">📋 הדבק יום</button>
+        </div>
+        <div id="training-editor"></div>
+        <button class="btn-sm btn-orange" style="margin-top:14px;" onclick="saveTraining()">שמור תוכנית</button>
+      </div>
+
+      <div class="sec-card">
+        <div class="sec-card-title">🥗 תפריט תזונה
+          <div style="display:flex;gap:6px;align-items:center;">
+            <button class="btn-sm btn-orange" onclick="addMeal()">+ הוסף ארוחה</button>
+            <button class="btn-sm btn-outline" id="btn-paste-meal" style="display:none;" onclick="pasteMeal()">📋 הדבק</button>
+          </div>
+        </div>
+        <div id="nutrition-editor"></div>
+        <div class="ai-box" style="margin-top:14px;">
+          <div class="ai-box-title">✨ בניית תפריט עם AI</div>
+          <textarea class="ai-textarea" id="nutri-ai-prompt" placeholder='תאר את המטרה: לדוגמה "בניית מסה לגבר 3 ארוחות ביום" — הבינה תבנה תפריט מלא עם חלופות למקורות חלבון, פחמימה ושומן בכל ארוחה'></textarea>
+          <div style="display:flex;align-items:center;gap:10px;margin-top:8px;">
+            <button class="btn-sm btn-orange" id="nutri-ai-btn" onclick="generateNutritionWithAI()">✨ בנה תפריט</button>
+            <span class="ai-status" id="nutri-ai-status"></span>
+          </div>
+        </div>
+        <button class="btn-sm btn-orange" style="margin-top:14px;" onclick="saveNutrition()">שמור תפריט</button>
+      </div>
+
+      <div class="sec-card">
+        <div class="sec-card-title">📊 יומן אימונים</div>
+        <div id="client-logs-wrap"><div style="color:#444;font-size:0.85rem;">טוען...</div></div>
+      </div>
+    `;
+    renderTrainingEditor();
+    renderNutritionEditor();
+    loadDefaultTemplate();
+    loadClientLogs(client.email);
+  }
+
+  /* ── CLIENT CARD ── */
+  function openClientCard(email) {
+    const c = clients.find(x => x.email === email);
+    if (!c) return;
+    const initials = (c.name || '?').split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase();
+    document.getElementById('cc-avatar').textContent = initials;
+    document.getElementById('cc-name').textContent   = c.name;
+    document.getElementById('cc-email').innerHTML    = `<a href="mailto:${c.email}">${c.email}</a>`;
+    const phone = c.phone || '';
+    document.getElementById('cc-phone').innerHTML    = phone ? `<a href="tel:${phone}">${phone}</a>` : '—';
+    const end = c.coaching_end ? new Date(c.coaching_end+'T12:00:00').toLocaleDateString('he-IL') : '—';
+    document.getElementById('cc-plan').textContent   = c.plan_type || '—';
+    document.getElementById('cc-end').textContent    = end;
+    const waNum = phone.replace(/\D/g,'');
+    const waHref = waNum ? `https://wa.me/972${waNum.replace(/^0/,'')}` : '#';
+    const waInline = document.getElementById('cc-wa-inline');
+    if (waNum) { waInline.href = waHref; waInline.style.display = 'inline'; }
+    else { waInline.style.display = 'none'; }
+    const waBtn = document.getElementById('cc-wa');
+    waBtn.href = waHref;
+    waBtn.style.opacity = waNum ? '1' : '0.3';
+    waBtn.style.pointerEvents = waNum ? 'auto' : 'none';
+    document.getElementById('cc-mail').href = `mailto:${c.email}`;
+    document.getElementById('client-card-modal').classList.add('open');
+  }
+  function closeClientCard() { document.getElementById('client-card-modal').classList.remove('open'); }
+
+  /* ── SAVE PROFILE ── */
+  async function saveProfile() {
+    const name  = document.getElementById('e-name').value.trim();
+    const phone = document.getElementById('e-phone').value.trim();
+    const start = document.getElementById('e-start').value;
+    const end   = document.getElementById('e-end').value;
+    const cal    = parseInt(document.getElementById('e-cal').value)    || null;
+    const prot   = parseInt(document.getElementById('e-prot').value)   || null;
+    const carb   = parseInt(document.getElementById('e-carb').value)   || null;
+    const fat    = parseInt(document.getElementById('e-fat').value)    || null;
+    const water  = parseFloat(document.getElementById('e-water').value)  || null;
+    const weight = parseFloat(document.getElementById('e-weight').value) || null;
+    const { error } = await sb.from('clients')
+      .update({ name, phone, coaching_start: start, coaching_end: end,
+                target_calories: cal, target_protein: prot, target_carbs: carb, target_fat: fat,
+                target_water: water, current_weight: weight })
+      .eq('email', activeEmail);
+    if (error) { toast('שגיאה בשמירה', 'err'); return; }
+    await loadClients();
+    toast('פרטים נשמרו ✓', 'ok');
+  }
+
+  function toggleMobileSidebar() {
+    document.getElementById('sidebar').classList.toggle('mob-open');
+    document.querySelector('.sidebar-bd').classList.toggle('open');
+  }
+  function closeMobileSidebar() {
+    document.getElementById('sidebar').classList.remove('mob-open');
+    document.querySelector('.sidebar-bd').classList.remove('open');
+  }
+  function toggleMoreMenu() {
+    document.getElementById('bn-more-menu').classList.toggle('open');
+  }
+
+  /* ── UTILS ── */
+  function esc(s) { return (s||'').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+  function toast(msg, type='ok') {
+    const el = document.getElementById('toast');
+    el.textContent = msg; el.className = 'toast '+type+' show';
+    setTimeout(() => el.classList.remove('show'), 2500);
+  }
+  async function logout() { await sb.auth.signOut(); window.location.href = 'login.html'; }
+
+  function showPendingApproval(name) {
+    document.body.innerHTML = `
+      <style>
+        body{font-family:'Heebo',sans-serif;background:#090909;color:#fff;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;}
+        .p-card{max-width:420px;width:100%;background:rgba(255,255,255,0.03);border:1px solid rgba(255,215,0,0.3);border-radius:18px;padding:40px 32px;text-align:center;box-shadow:0 0 60px rgba(255,215,0,0.08);}
+        .p-icon{font-size:3rem;margin-bottom:16px;}
+        .p-title{font-size:1.5rem;font-weight:900;color:#FFD700;margin-bottom:10px;}
+        .p-sub{font-size:0.9rem;color:#888;line-height:1.7;margin-bottom:24px;}
+        .p-steps{text-align:right;background:rgba(255,255,255,0.03);border-radius:12px;padding:16px 18px;margin-bottom:24px;}
+        .p-step{display:flex;align-items:center;gap:10px;padding:7px 0;font-size:0.85rem;border-bottom:1px solid rgba(255,255,255,0.05);}
+        .p-step:last-child{border-bottom:none;}
+        .p-step-num{width:22px;height:22px;border-radius:50%;background:rgba(255,215,0,0.15);border:1px solid rgba(255,215,0,0.4);color:#FFD700;font-size:0.7rem;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+        .p-step-num.done{background:rgba(60,200,60,0.15);border-color:rgba(60,200,60,0.4);color:#70dd70;}
+        .btn-wa{display:flex;align-items:center;justify-content:center;gap:8px;padding:12px;background:#25d366;border:none;border-radius:10px;color:#fff;font-family:'Heebo',sans-serif;font-size:0.95rem;font-weight:700;cursor:pointer;text-decoration:none;margin-bottom:10px;}
+        .btn-logout{display:block;margin-top:10px;font-size:0.82rem;color:#555;background:none;border:none;cursor:pointer;font-family:'Heebo',sans-serif;text-decoration:underline;}
+      </style>
+      <div class="p-card">
+        <div class="p-icon">⏳</div>
+        <div class="p-title">ממתין לאישור</div>
+        <div class="p-sub">שלום ${name ? name : ''}! הבקשה שלך התקבלה.<br/>לאחר אימות התשלום הגישה תופעל.</div>
+        <div class="p-steps">
+          <div class="p-step"><span class="p-step-num done">✓</span>הרשמה ויצירת חשבון</div>
+          <div class="p-step"><span class="p-step-num done">✓</span>שליחת תשלום בביט</div>
+          <div class="p-step"><span class="p-step-num">3</span>אישור מנהל והפעלת גישה</div>
+        </div>
+        <a href="https://wa.me/972586931163" target="_blank" class="btn-wa">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413z"/></svg>
+          שלח הודעה לאישור מהיר
+        </a>
+        <button class="btn-logout" onclick="(async()=>{await supabase.createClient('https://luwknflmhvcxgifzxgrk.supabase.co','sb_publishable_k3M7SfBeiBGs3rTKewBzWQ_7RHRskB9').auth.signOut();window.location.href='login.html';})()">יציאה מהמערכת</button>
+      </div>`;
+  }
+
+  function showLicenseExpired(licEnd) {
+    document.body.innerHTML = `
+      <style>
+        body{font-family:'Heebo',sans-serif;background:#090909;color:#fff;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;}
+        .exp-card{max-width:420px;width:100%;background:rgba(255,255,255,0.03);border:1px solid rgba(255,60,60,0.35);border-radius:18px;padding:40px 32px;text-align:center;box-shadow:0 0 60px rgba(255,60,60,0.1);}
+        .exp-icon{font-size:3rem;margin-bottom:16px;}
+        .exp-title{font-size:1.5rem;font-weight:900;color:#ff7070;margin-bottom:10px;}
+        .exp-sub{font-size:0.9rem;color:#888;line-height:1.7;margin-bottom:28px;}
+        .exp-ended{font-size:0.8rem;color:#555;margin-bottom:24px;}
+        .btn-renew{display:inline-block;padding:14px 32px;background:linear-gradient(135deg,#FF6B00,#FF8C00);border:none;border-radius:10px;color:#fff;font-family:'Heebo',sans-serif;font-size:1rem;font-weight:700;cursor:pointer;text-decoration:none;margin-bottom:14px;width:100%;}
+        .btn-renew:hover{opacity:0.88;}
+        .btn-logout{display:block;margin-top:8px;font-size:0.82rem;color:#555;background:none;border:none;cursor:pointer;font-family:'Heebo',sans-serif;text-decoration:underline;}
+      </style>
+      <div class="exp-card">
+        <div class="exp-icon">🔒</div>
+        <div class="exp-title">הרישיון שלך פג</div>
+        <div class="exp-sub">הגישה לפאנל המאמן אינה זמינה.<br/>כדי להמשיך לעבוד עם המתאמנים שלך — חדש את המנוי.</div>
+        ${licEnd ? `<div class="exp-ended">תוקף הרישיון: ${licEnd}</div>` : ''}
+        <a href="coach-signup.html" class="btn-renew">חדש מנוי עכשיו</a>
+        <button class="btn-logout" onclick="(async()=>{await supabase.createClient('https://luwknflmhvcxgifzxgrk.supabase.co','sb_publishable_k3M7SfBeiBGs3rTKewBzWQ_7RHRskB9').auth.signOut();window.location.href='login.html';})()">יציאה מהמערכת</button>
+      </div>`;
+  }
+
+  /* ── TRAINING EDITOR ── */
+  const MUSCLES = ['חזה','גב','כתפיים','יד קדמית','יד אחורית','אמות','4 ראשי','המסטרינג','ישבן','עגל','ליבה'];
+  function renderTrainingEditor() {
+    const el = document.getElementById('training-editor');
+    if (!el) return;
+    if (!trainingPlan.length) { el.innerHTML='<div style="color:#444;font-size:0.85rem;padding:8px 0;">אין ימים עדיין — לחץ + הוסף יום</div>'; return; }
+    el.innerHTML = trainingPlan.map((day, di) => `
+      <div class="day-block">
+        <div class="day-block-head">
+          <input value="${esc(day.day)}" oninput="trainingPlan[${di}].day=this.value" placeholder="שם יום (יום א׳ — חזה)"/>
+          <button class="btn-sm btn-outline" onclick="copyDay(${di})" style="border-color:rgba(255,215,0,0.35);color:#FFD700;padding:5px 10px;">📋 העתק</button>
+          <button class="btn-sm btn-red" onclick="removeDay(${di})">הסר</button>
+        </div>
+        <div class="muscle-row">
+          ${MUSCLES.map(m=>`<button class="muscle-pill${(day.muscles||[]).includes(m)?' muscle-active':''}" onclick="toggleMuscle(${di},'${m}',this)">${m}</button>`).join('')}
+        </div>
+        ${(day.exercises||[]).map((ex,ei)=>exRow(di,ei,ex)).join('')}
+        <button class="add-link" onclick="addExercise(${di})">+ הוסף תרגיל</button>
+      </div>`).join('');
+    if (dayClipboard) {
+      const btn = document.getElementById('btn-paste-day');
+      if (btn) { btn.style.display = 'block'; btn.textContent = `📋 הדבק — ${esc(dayClipboard.name || dayClipboard.day || 'יום')}`; }
+    }
+  }
+  function addDay() { trainingPlan.push({day:'',muscles:[],exercises:[]}); renderTrainingEditor(); }
+  function removeDay(i) { trainingPlan.splice(i,1); renderTrainingEditor(); }
+  function copyDay(di) {
+    dayClipboard = JSON.parse(JSON.stringify(trainingPlan[di]));
+    const btn = document.getElementById('btn-paste-day');
+    if (btn) { btn.style.display = 'block'; btn.textContent = `📋 הדבק — ${esc(dayClipboard.name || dayClipboard.day || 'יום')}`; }
+    toast('יום הועתק ✓', 'ok');
+  }
+  function pasteDay() {
+    if (!dayClipboard) return;
+    const copy = JSON.parse(JSON.stringify(dayClipboard));
+    copy.name = (copy.name || copy.day || '') + ' (עותק)';
+    copy.day  = copy.name;
+    trainingPlan.push(copy);
+    renderTrainingEditor();
+  }
+  function toggleMuscle(di,m,btn) {
+    const arr = trainingPlan[di].muscles||[];
+    const idx = arr.indexOf(m);
+    if (idx===-1) arr.push(m); else arr.splice(idx,1);
+    trainingPlan[di].muscles=arr;
+    btn.classList.toggle('muscle-active');
+  }
+  function parseSetsToArray(spec) {
+    if (Array.isArray(spec)) return spec;
+    const s = String(spec || '').trim();
+    let m = s.match(/^(\d+)[x×X]([\d\/]+)/);
+    if (m) {
+      const count = Math.min(parseInt(m[1]), 10);
+      const parts = m[2].split('/');
+      return Array.from({length: count}, (_, i) => {
+        const r = parseInt(parts[i] || parts[parts.length-1]) || 10;
+        return { reps_min: r, reps_max: r, recommended_kg: 0 };
+      });
+    }
+    m = s.match(/^(\d+)[x×X](\d+)-(\d+)/);
+    if (m) return Array.from({length: parseInt(m[1])}, () => ({ reps_min: parseInt(m[2]), reps_max: parseInt(m[3]), recommended_kg: 0 }));
+    m = s.match(/^(\d+)$/);
+    if (m) return Array.from({length: Math.min(parseInt(m[1]),10)}, () => ({ reps_min: 8, reps_max: 12, recommended_kg: 0 }));
+    return [{reps_min:10,reps_max:15,recommended_kg:0},{reps_min:8,reps_max:12,recommended_kg:0},{reps_min:8,reps_max:12,recommended_kg:0},{reps_min:8,reps_max:12,recommended_kg:0}];
+  }
+
+  function updateCoachSet(di, ei, si, field, val) {
+    if (!Array.isArray(trainingPlan[di].exercises[ei].sets))
+      trainingPlan[di].exercises[ei].sets = parseSetsToArray(trainingPlan[di].exercises[ei].sets);
+    trainingPlan[di].exercises[ei].sets[si][field] = +val;
+  }
+
+  function addCoachSet(di, ei) {
+    if (!Array.isArray(trainingPlan[di].exercises[ei].sets))
+      trainingPlan[di].exercises[ei].sets = parseSetsToArray(trainingPlan[di].exercises[ei].sets);
+    const arr = trainingPlan[di].exercises[ei].sets;
+    const last = arr[arr.length-1] || {reps_min:8,reps_max:12,recommended_kg:0};
+    arr.push({...last});
+    renderTrainingEditor();
+  }
+
+  function removeCoachSet(di, ei, si) {
+    trainingPlan[di].exercises[ei].sets.splice(si, 1);
+    renderTrainingEditor();
+  }
+
+  function addExercise(di) {
+    trainingPlan[di].exercises.push({
+      name: '', sets: [{reps_min:10,reps_max:15,recommended_kg:0},{reps_min:8,reps_max:12,recommended_kg:0},{reps_min:8,reps_max:12,recommended_kg:0},{reps_min:8,reps_max:12,recommended_kg:0}],
+      video_url: '', description: '', rest_time: 90
+    });
+    renderTrainingEditor();
+  }
+
+  function exRow(di, ei, ex) {
+    if (!Array.isArray(ex.sets)) ex.sets = parseSetsToArray(ex.sets || ex.sets_reps);
+    const sets = ex.sets;
+    const total = trainingPlan[di].exercises.length;
+    const restOpts = [30,45,60,75,90,105,120,150,180,240,300];
+    const curRest = ex.rest_time || 90;
+    const restHtml = restOpts.map(s => {
+      const lbl = s < 60 ? s + ' שנ׳' : (s % 60 === 0 ? (s/60) + ' דק׳' : Math.floor(s/60) + ':' + (s%60).toString().padStart(2,'0') + ' דק׳');
+      return `<option value="${s}" ${curRest === s ? 'selected' : ''}>${lbl}</option>`;
+    }).join('');
+    return `<div style="margin-bottom:10px;background:rgba(255,255,255,0.02);border-radius:8px;padding:10px 12px;">
+      <div class="ex-row" style="margin-bottom:7px;">
+        <input value="${esc(ex.name)}" oninput="trainingPlan[${di}].exercises[${ei}].name=this.value;showExSugg(this,${di},${ei})" onblur="setTimeout(hideExSugg,160)" autocomplete="off" placeholder="שם תרגיל" style="flex:2;"/>
+        <input value="${esc(ex.video_url||'')}" oninput="trainingPlan[${di}].exercises[${ei}].video_url=this.value" placeholder="קישור לסרטון" style="direction:ltr;text-align:right;flex:1;"/>
+        <div style="display:flex;flex-direction:column;gap:2px;">
+          <button onclick="moveExercise(${di},${ei},-1)" ${ei===0?'disabled':''} style="padding:2px 6px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:4px;color:${ei===0?'#444':'#ccc'};cursor:${ei===0?'default':'pointer'};font-size:0.65rem;line-height:1;">▲</button>
+          <button onclick="moveExercise(${di},${ei},1)"  ${ei===total-1?'disabled':''} style="padding:2px 6px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:4px;color:${ei===total-1?'#444':'#ccc'};cursor:${ei===total-1?'default':'pointer'};font-size:0.65rem;line-height:1;">▼</button>
+        </div>
+        <button class="btn-sm btn-red" onclick="removeExercise(${di},${ei})">✕</button>
+      </div>
+      <div class="sets-coach-wrap">
+        <div class="sets-coach-head"><span>סט</span><span style="text-align:center;">ק"ג מומלץ</span><span>טווח חזרות</span><span></span></div>
+        ${sets.map((s, si) => `
+          <div class="sets-coach-row">
+            <span style="font-size:0.8rem;font-weight:700;color:var(--muted);text-align:center;">${si+1}</span>
+            <input type="number" step="0.5" min="0" value="${s.recommended_kg||0}" oninput="updateCoachSet(${di},${ei},${si},'recommended_kg',this.value)" placeholder="0"/>
+            <div class="sets-coach-range">
+              <input type="number" min="1" value="${s.reps_min||8}" oninput="updateCoachSet(${di},${ei},${si},'reps_min',this.value)"/>
+              <span>עד</span>
+              <input type="number" min="1" value="${s.reps_max||12}" oninput="updateCoachSet(${di},${ei},${si},'reps_max',this.value)"/>
+            </div>
+            <button onclick="removeCoachSet(${di},${ei},${si})" style="background:none;border:none;color:#555;cursor:pointer;font-size:0.9rem;padding:0;line-height:1;">✕</button>
+          </div>`).join('')}
+        <button class="btn-add-set" onclick="addCoachSet(${di},${ei})">+ הוסף סט</button>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;margin-top:8px;margin-bottom:7px;">
+        <span style="font-size:0.75rem;font-weight:700;color:var(--muted);white-space:nowrap;">⏱ מנוחה בין סטים:</span>
+        <select onchange="trainingPlan[${di}].exercises[${ei}].rest_time=+this.value" style="padding:6px 10px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:6px;color:#fff;font-family:'Heebo',sans-serif;font-size:0.82rem;outline:none;cursor:pointer;">${restHtml}</select>
+      </div>
+      <textarea oninput="trainingPlan[${di}].exercises[${ei}].description=this.value" placeholder="טיפ / תיאור טכני לתרגיל (יוצג למתאמן בזמן האימון)..." style="width:100%;padding:7px 10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:6px;color:#fff;font-family:'Heebo',sans-serif;font-size:0.8rem;outline:none;resize:vertical;min-height:46px;direction:rtl;" onfocus="this.style.borderColor='rgba(255,107,0,0.4)'" onblur="this.style.borderColor='rgba(255,255,255,0.08)'">${esc(ex.description||ex.notes||'')}</textarea>
+    </div>`;
+  }
+  function moveExercise(di, ei, dir) {
+    const arr = trainingPlan[di].exercises;
+    const to = ei + dir;
+    if (to < 0 || to >= arr.length) return;
+    [arr[ei], arr[to]] = [arr[to], arr[ei]];
+    renderTrainingEditor();
+  }
+  function removeExercise(di,ei) { trainingPlan[di].exercises.splice(ei,1); renderTrainingEditor(); }
+  const DEFAULT_TMPL_KEY = 'hf_default_training_template';
+
+  function saveDefaultTemplate() {
+    const t = document.getElementById('default-template')?.value.trim() || '';
+    localStorage.setItem(DEFAULT_TMPL_KEY, t);
+    const btn = event.target;
+    btn.textContent = '✓ נשמר';
+    setTimeout(() => btn.textContent = 'שמור תבנית', 1500);
+  }
+
+  function loadDefaultTemplate() {
+    const saved = localStorage.getItem(DEFAULT_TMPL_KEY) || '';
+    const el = document.getElementById('default-template');
+    if (el && saved) el.value = saved;
+    return saved;
+  }
+
+  function hasCustomStructure(prompt) {
+    return /PUSH|PULL|UPPER|LOWER|יום א|יום ב|יום ג|יום ד|PPL|A\/B/i.test(prompt) && prompt.length > 80;
+  }
+
+  async function generatePlanWithAI() {
+    const prompt = document.getElementById('ai-prompt').value.trim();
+    const statusEl = document.getElementById('ai-status');
+    const btn = document.getElementById('ai-gen-btn');
+    if (!prompt) { statusEl.style.color = '#ff7070'; statusEl.textContent = 'יש לתאר את התוכנית קודם'; return; }
+
+    btn.disabled = true; btn.textContent = '⏳ בונה...';
+    statusEl.style.color = 'var(--muted)'; statusEl.textContent = 'Claude חושב...';
+
+    try {
+      const defaultTmpl = loadDefaultTemplate();
+      const useDefault  = defaultTmpl && !hasCustomStructure(prompt);
+      const templateSection = useDefault
+        ? `\n\n## תבנית ברירת מחדל — חובה לפעול לפיה:\n${defaultTmpl}`
+        : '';
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': CLAUDE_KEY,
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true'
+        },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-6',
+          max_tokens: 4096,
+          messages: [{ role: 'user', content:
+`אתה TRAINER AI — מערכת בניית תוכניות אימון מקצועית של HF Coaching.
+המערכת מבוססת על שיטת HF הייחודית. עליך לפעול לפיה בלבד — לא לפי שיטות כושר גנריות.
+
+## בקשת המאמן:
+"${prompt}"${templateSection}
+
+## ═══ חוקי ברזל — חובה לעמוד בכולם ═══
+
+### 1. טכניקות — אילו קיימות ומתי להשתמש
+המערכת מכירה רק את הטכניקות הבאות:
+- פירמידה (5×20/15/12/10/8) — תרגילים מורכבים בלבד
+- Rest Pause — תרגילים מורכבים יציבים בלבד (סמית, מכונות, לחיצות, RDL)
+- 6 איטי 6 מהיר — תרגילים מורכבים בלבד
+- Isomix — תרגילים מבודדים במכונה/כבל בלבד
+- Isomix Advanced — תרגילים מבודדים במכונה/כבל בלבד
+- IsoBurst — תרגילים מבודדים במכונה/כבל בלבד
+- Drop Set — תרגילים מבודדים בלבד
+
+### 2. חוקי שימוש בטכניקות
+- Isomix / Isomix Advanced / IsoBurst — מבודדים בלבד! אסור בתרגיל מורכב!
+- לא יותר מ-2 טכניקות מתקדמות בכל אימון (לא בכל תרגיל)
+- טכניקה רק בסטים העובדים — לא בסט חימום
+- תרגילים מורכבים כבדים (סקוואט, דדליפט) — ראשונים באימון לפני כל עייפות
+
+### 3. תרגיל מורכב vs. מבודד
+מורכב — מערב כמה מפרקים: לחיצות, סקוואט, דדליפט, חתירה, מתח, פולי עליון, היפ טראסט, לחיצה צרה
+מבודד — שריר אחד: כפיפת מרפקים, פשיטת מרפקים, פרפר, הרחקות, פייס פול, כפיפת ברך, פשיטת ברך, קרוסאובר, הרחקת כתף
+
+### 4. פירמידה 5×20/15/12/10/8 — תרגיל מורכב
+כל סט — משקל עולה, חזרות יורדות:
+- סט 1 (20) = חימום מפרקים, קל, לא לכשל
+- סט 2 (15) = התחלת עומס
+- סט 3 (12) = אזור היפרטרופיה מרכזי
+- סט 4 (10) = כבד, עומס מכני גבוה
+- סט 5 (8) = הכי כבד, RIR 1-2
+רוב הסטים RIR 1-2. רק הסט האחרון לפעמים עד כשל.
+
+### 5. מבנה Rest Pause (תרגיל מורכב יציב)
+עובדים עד כמעט כשל → 10-15 שניות מנוחה → עוד חזרות → אפשר חזרה נוספת.
+
+### 6. מבנה 6 איטי 6 מהיר (תרגיל מורכב)
+6 חזרות איטיות (TUT, שליטה, Stretch) + ישר 6 חזרות מהירות (פאמפ, סיבים מהירים).
+
+### 7. מבנה Isomix (מבודד, מכונה/כבל)
+כל חזרה = תנועה מלאה + עצירה 3-5 שניות בכיווץ המקסימלי.
+
+### 8. מבנה Isomix Advanced (מבודד, מכונה/כבל)
+5 חזרות Hold 5 שניות → 5 חזרות Hold 10 שניות → 5 חזרות Hold 15 שניות.
+
+### 9. מבנה IsoBurst (מבודד, מכונה/כבל — הכי מתקדם)
+חוק: משך Hold = מספר חזרות שבוצעו.
+סט 1: 15 שניות עבודה + Hold.
+סט 2: 60 שניות ÷ 4 חלקים של 15 שניות, Hold אחרי כל חלק.
+סט 3: 30 שניות ÷ 2 חלקים, Drop אחרי כל חלק.
+סט 4: 45 שניות ÷ 3 חלקים, Drop אחרי כל חלק.
+
+### 10. Drop Set (מבודד)
+הורדת משקל ללא מנוחה: 8 / 8 / 8 (הורדה 20% בכל שלב).
+
+### 11. נפח לפי גודל שריר
+שרירים גדולים (גב, חזה, רגליים) — עד 20-25 סטים.
+שרירים קטנים (ידיים, כתפיים) — עד 12-16 סטים.
+
+### 12. סדר חובה באימון
+1. תרגיל מורכב כבד ראשון (סקוואט / דדליפט / לחיצה)
+2. תרגיל מורכב שני
+3. מכונות / מבודדים
+4. פאמפ + טכניקות
+
+### 13. שדה notes — חובה לקרוא
+מלא notes רק אם המאמן ציין במפורש טכניקה ליד התרגיל (לדוגמה: "6 איטי 6 מהיר", "Rest Pause", "Isomix", "Drop Set", "איטי בירידה").
+אם המאמן לא כתב דבר מעבר לשם ולסטים — השאר notes ריק לחלוטין "".
+
+## ═══ מאגר תרגילים מורשה (שמות מדויקים בלבד) ═══
+
+### חזה
+מורכבים: לחיצת חזה במוט, לחיצת חזה בשיפוע חיובי, לחיצת חזה בסמית׳ משין, לחיצת חזה במכונת האמר, מקבילים לחזה, לחיצת חזה במכונה
+מבודדים (מכונה/כבל): פרפר חזה במכונה, קרוס כבלים לחזה, קרוס כבלים בשיפוע חיובי, פרפר חזה בכבלים
+
+### גב
+משיכה (מורכב): פולי עליון רחב, מתח, פולי עליון באחיזה ניטרלית, פולאובר בכבל לידיים ישרות
+חתירה (מורכב): חתירה במוט, חתירת T, חתירה בפולי תחתון, חתירה עם תמיכה לחזה, חתירה עם דאמבל, חתירה במכונת האמר
+גב תחתון: היפראקסטנשן, ראק פול | טרפזים: שרגס, שרגס בסמית׳, שרגס עם דאמבלים
+
+### כתפיים
+לחיצות (מורכב): לחיצת כתפיים, לחיצת כתפיים בסמית׳, לחיצת כתפיים במכונה, ארנולד פרס
+צידית (מבודד — כבל/מכונה): הרחקת כתפיים עם דאמבלים, הרחקת כתף בכבל, הרחקת כתף במכונה
+קדמית: הרמה קדמית
+אחורית (מבודד — מכונה/כבל): פרפר הפוך במכונה, פרפר אחורי בכבלים, פייס פול
+
+### יד קדמית
+ביצפס (מבודד): כפיפת מרפקים במוט, כפיפת מרפקים עם דאמבלים, כפיפת מרפקים במכשיר כומר, כפיפת מרפקים בכבל, בייזיאן קרל, ספיידר קרל
+פטישים: כפיפת פטישים, פטישים עם חבל, פטישים באחיזה צידית
+מורכב: מתח באחיזה צרה
+
+### יד אחורית
+מורכבים: לחיצת חזה באחיזה צרה, מקבילים ליד אחורית
+מבודדים (כבל/מכונה): פשיטת מרפקים עם חבל, פשיטת מרפקים עם מוט, פשיטת מרפקים מעל הראש בכבל, סקאל קראשר, פשיטת מרפקים יד יד
+
+### 4 ראשי
+חובה (מורכב): סקוואט חופשי, סקוואט בסמית׳, פרונט סקוואט, לחיצת רגליים
+מבודד (כבל/מכונה): פשיטת ברכיים
+אופציונלי: האק סקוואט, בולגרי, מכרעים בהליכה
+
+### המסטרינג
+מורכב (חובה ראשון): דדליפט רומני, היפ טראסט, GHR
+מבודד (מכונה): כפיפת ברכיים בשכיבה, כפיפת ברכיים בישיבה
+
+### מקרבים (מכונה/כבל): מכונת מקרבים, קירוב רגל בכבל
+### שוקיים: תאומים בעמידה, תאומים בישיבה, תאומים בלג פרס
+### ליבה: כפיפות בטן, כפיפות בטן בכבל, הרמת רגליים במתח, פלאנק, גלגל בטן
+
+## ═══ חוקי חלוקה לפי ימים ═══
+PUSH: 3 חזה (מורכב ראשון + מכונה + מבודד) + 2 כתפיים (לחיצה + צידית) + 2 יד אחורית (מורכב + מבודד)
+PULL: 3 גב (משיכה + חתירה + נוסף) + 1 כתף אחורית + 1 יד קדמית + 1 פטישים
+LEGS: סקוואט/דדליפט (מורכב ראשון) + לחיצת רגליים + פשיטת ברכיים + 2 המסטרינג (מורכב חובה+מבודד) + 1 מקרבים
+UPPER: 2 חזה + 2 גב (משיכה+חתירה) + 2 כתפיים (לחיצה+צידית) + 1 יד קדמית + 2 יד אחורית
+Bro Split: 6-8 תרגילים לשריר, דגש על מבודדים, ניתן 2 טכניקות
+
+## ═══ פורמט תשובה ═══
+החזר אך ורק JSON תקני ללא markdown ללא הסבר:
+[{"day":"יום א׳ — PUSH","muscles":["חזה","כתפיים","יד אחורית"],"exercises":[{"name":"לחיצת חזה במוט","sets_reps":"5×20/15/12/10/8","notes":""},{"name":"פרפר חזה במכונה","sets_reps":"4×12-20","notes":""}]}]` }]
+        })
+      });
+      if (!res.ok) { const e = await res.json(); throw new Error(e.error?.message || `HTTP ${res.status}`); }
+      const data = await res.json();
+      const text = data.content[0].text.trim();
+      const match = text.match(/\[[\s\S]*\]/);
+      if (!match) throw new Error('תשובה לא תקינה מה-AI');
+      const plan = JSON.parse(match[0]);
+      if (!Array.isArray(plan) || !plan.length) throw new Error('תוכנית ריקה');
+      trainingPlan = plan.map(day => ({
+        ...day,
+        name: day.name || day.day || '',
+        exercises: (day.exercises || []).map(ex => ({
+          name:        ex.name        || '',
+          sets:        parseSetsToArray(ex.sets || ex.sets_reps),
+          description: ex.description || ex.notes     || '',
+          video_url:   ex.video_url   || '',
+          rest_time:   ex.rest_time   || 90,
+        }))
+      }));
+      renderTrainingEditor();
+      statusEl.style.color = '#70dd70';
+      statusEl.textContent = `✓ ${plan.length} ימי אימון נבנו — בדוק ושמור`;
+    } catch (e) {
+      statusEl.style.color = '#ff7070';
+      statusEl.textContent = 'שגיאה: ' + e.message;
+    }
+    btn.disabled = false; btn.textContent = '✨ צור תוכנית';
+  }
+
+  async function saveTraining() {
+    const { error } = await sb.from('training_plans').upsert({client_email:activeEmail,plan:trainingPlan,updated_at:new Date().toISOString()},{onConflict:'client_email'});
+    error ? toast('שגיאה בשמירה','err') : toast('תוכנית נשמרה ✓','ok');
+  }
+
+  function copyMeal(mi) {
+    mealClipboard = JSON.parse(JSON.stringify(nutritionPlan[mi]));
+    const btn = document.getElementById('btn-paste-meal');
+    if (btn) { btn.style.display = 'inline-block'; btn.textContent = `📋 הדבק — ${esc(mealClipboard.meal || 'ארוחה')}`; }
+    toast('ארוחה הועתקה ✓', 'ok');
+  }
+
+  function pasteMeal() {
+    if (!mealClipboard) return;
+    const copy = JSON.parse(JSON.stringify(mealClipboard));
+    copy.meal = (copy.meal || '') + ' (עותק)';
+    nutritionPlan.push(copy);
+    renderNutritionEditor();
+    toast('ארוחה הודבקה ✓', 'ok');
+  }
+
+  async function generateNutritionWithAI() {
+    const prompt   = document.getElementById('nutri-ai-prompt').value.trim();
+    const statusEl = document.getElementById('nutri-ai-status');
+    const btn      = document.getElementById('nutri-ai-btn');
+    if (!prompt) { statusEl.style.color='#ff7070'; statusEl.textContent='יש לתאר את המטרה קודם'; return; }
+    const clientWeight = parseFloat(document.getElementById('e-weight').value) || null;
+    const targetCal    = parseInt(document.getElementById('e-cal').value)    || null;
+    const targetProt   = parseInt(document.getElementById('e-prot').value)   || null;
+    const targetCarb   = parseInt(document.getElementById('e-carb').value)   || null;
+    const targetFat    = parseInt(document.getElementById('e-fat').value)    || null;
+    const weightLine = clientWeight ? `משקל המתאמן: ${clientWeight} ק"ג` : '';
+    const macrosLine = (targetCal||targetProt||targetCarb||targetFat)
+      ? `יעדי מאקרו: ${targetCal||'—'} קל׳ | חלבון ${targetProt||'—'}ג׳ | פחמימה ${targetCarb||'—'}ג׳ | שומן ${targetFat||'—'}ג׳` : '';
+    btn.disabled = true; btn.textContent = '⏳ בונה...';
+    statusEl.style.color = 'var(--muted)'; statusEl.textContent = 'Claude בונה תפריט...';
+    try {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type':'application/json','x-api-key':CLAUDE_KEY,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-6',
+          max_tokens: 4096,
+          messages: [{ role: 'user', content:
+`אתה NUTRITION AI — מערכת בניית תפריטי תזונה מקצועית של HF Coaching.
+
+## בקשה:
+"${prompt}"
+${weightLine ? '\n' + weightLine : ''}
+${macrosLine ? '\n' + macrosLine : ''}
+
+## חוקי קשיח:
+0. אם המאמן שולח מבנה תפריט קיים (שמות ארוחות ומזונות כבר מופיעים בבקשה) — שמור עליו במדויק: אותו מספר ארוחות, אותם שמות ארוחות, אותם מזונות, אותן כמויות. אל תוסיף ואל תחסר ואל תשנה כלום — רק מלא ערכים מספריים חסרים (calories/protein/carbs/fat) לפי המאגר.
+1. ארוחת בוקר — פרווה או חלבית בלבד (אסור לשלב בשר/עוף/דג)
+2. לא לשלב מוצרי חלב עם בשר/עוף/דג באותה ארוחה (כשרות)
+3. בכל ארוחה — לפחות 3 אפשרויות שוות ערך קלורי לכל מקור מאקרו:
+   protein_options: 3+ אפשרויות לחלבון (שמות המזון בלבד)
+   carbs_options: 3+ אפשרויות לפחמימה (שמות המזון בלבד)
+   fat_options: 3+ אפשרויות לשומן (שמות המזון בלבד)
+4. הכמויות והערכים המדויקים בהתאם למשקל הגוף ולמטרה
+5. השתמש במזונות מהמאגר בלבד
+
+## מאגר מזון (שם | גרם | קל' | P | C | F):
+חזה עוף מבושל|100|165|31|0|3.6
+פילה עוף|100|110|23|0|1.5
+שוק עוף|100|209|26|0|11
+טונה בקופסה|85|100|22|0|0.5
+סלמון|100|208|20|0|13
+בקר טחון רזה 5%|100|137|21|0|6
+פילה בקר|100|158|26|0|6
+ביצה שלמה|60|85|7.5|0.5|6
+חלבון ביצה|33|17|3.5|0.2|0
+גבינה לבנה 5%|100|73|11|3|1.5
+גבינה לבנה 9%|100|95|10|3|4
+קוטג' 3%|100|73|11|3|1.5
+יוגורט יווני 0%|150|90|15|6|0
+יוגורט יווני 2%|150|110|13|6|3
+גבינה צהובה 28%|28|90|6|0.5|7
+אבקת חלבון ויי|30|120|24|3|2
+טופו|100|76|8|2|4
+אורז לבן מבושל|100|130|2.7|28|0.3
+אורז חום מבושל|100|112|2.6|24|0.9
+פסטה מבושלת|100|131|5|25|1.1
+קינואה מבושלת|100|120|4.4|21|1.9
+לחם שיפון|30|75|3|15|0.8
+לחם מלא|30|75|3|14|1
+פיתה מלאה|60|160|6|32|1.5
+תפוח אדמה מבושל|100|93|2|21|0.1
+בטטה מבושלת|100|90|2|21|0.1
+שיבולת שועל|40|148|5|26|2.8
+שמן זית|15|134|0|0|15
+אבוקדו|100|160|2|9|15
+טחינה גולמית|20|122|3.5|3.5|11
+אגוזי מלך|28|185|4|4|18
+שקדים|28|163|6|6|14
+בוטנים|28|166|7|6|14
+חמאת בוטנים טבעית|32|188|8|6|16
+ברוקולי|100|34|2.8|7|0.4
+תרד|100|23|2.9|3.6|0.4
+מלפפון|100|16|0.7|3.6|0.1
+עגבניה|100|18|0.9|3.9|0.2
+חסה|100|15|1.4|2.9|0.2
+פלפל אדום|100|31|1|6|0.3
+
+## פורמט — החזר JSON בלבד ללא markdown:
+[{"meal":"ארוחת בוקר","items":[{"food":"שיבולת שועל","quantity":"80 גרם","calories":296,"protein":10,"carbs":52,"fat":5.6}],"protein_options":["יוגורט יווני 0%","גבינה לבנה 5%","חלבון ביצה"],"carbs_options":["שיבולת שועל","לחם מלא","פיתה מלאה"],"fat_options":["שקדים","אבוקדו","טחינה גולמית"]}]` }]
+        })
+      });
+      if (!res.ok) { const e = await res.json(); throw new Error(e.error?.message || `HTTP ${res.status}`); }
+      const data = await res.json();
+      const text = data.content[0].text.trim();
+      const match = text.match(/\[[\s\S]*\]/);
+      if (!match) throw new Error('תשובה לא תקינה מה-AI');
+      const plan = JSON.parse(match[0]);
+      if (!Array.isArray(plan) || !plan.length) throw new Error('תפריט ריק');
+      nutritionPlan = plan;
+      renderNutritionEditor();
+      statusEl.style.color = '#70dd70';
+      statusEl.textContent = `✓ ${plan.length} ארוחות נבנו — בדוק ושמור`;
+    } catch(e) {
+      statusEl.style.color = '#ff7070';
+      statusEl.textContent = 'שגיאה: ' + e.message;
+    }
+    btn.disabled = false; btn.textContent = '✨ בנה תפריט';
+  }
+
+  /* ── NUTRITION EDITOR ── */
+  function renderNutritionEditor() {
+    const el = document.getElementById('nutrition-editor');
+    if (!el) return;
+    if (!nutritionPlan.length) { el.innerHTML='<div style="color:#444;font-size:0.85rem;padding:8px 0;">אין ארוחות עדיין — לחץ + הוסף ארוחה</div>'; return; }
+
+    const totCal  = Math.round(nutritionPlan.reduce((s,m)=>s+(m.items||[]).reduce((a,i)=>a+(i.calories||0),0),0));
+    const totProt = Math.round(nutritionPlan.reduce((s,m)=>s+(m.items||[]).reduce((a,i)=>a+(i.protein||0),0),0));
+    const totCarb = Math.round(nutritionPlan.reduce((s,m)=>s+(m.items||[]).reduce((a,i)=>a+(i.carbs||0),0),0));
+    const totFat  = Math.round(nutritionPlan.reduce((s,m)=>s+(m.items||[]).reduce((a,i)=>a+(i.fat||0),0),0));
+    const tgCal   = parseInt(document.getElementById('e-cal')?.value)  || 0;
+    const tgProt  = parseInt(document.getElementById('e-prot')?.value) || 0;
+    const tgCarb  = parseInt(document.getElementById('e-carb')?.value) || 0;
+    const tgFat   = parseInt(document.getElementById('e-fat')?.value)  || 0;
+    const pct = (v,t) => t ? Math.min(100, Math.round(v/t*100)) : (v>0?100:0);
+    const bar = (label, val, tg, color) => `
+      <div style="margin-bottom:9px;">
+        <div style="display:flex;justify-content:space-between;font-size:0.75rem;margin-bottom:4px;">
+          <span style="font-weight:700;color:${color};">${label}</span>
+          <span style="color:#ccc;">${val}${label==='קלוריות'?'':' ג׳'}${tg ? ` <span style="color:#555;">/ ${tg}</span>` : ''}</span>
+        </div>
+        <div style="height:6px;background:rgba(255,255,255,0.07);border-radius:3px;overflow:hidden;">
+          <div style="height:100%;width:${pct(val,tg)}%;background:${color};border-radius:3px;transition:width 0.3s;"></div>
+        </div>
+      </div>`;
+
+    const macroBar = `
+      <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:14px 16px;margin-bottom:16px;">
+        ${bar('קלוריות', totCal, tgCal, 'var(--orange)')}
+        ${bar('חלבון',   totProt, tgProt, '#4ade80')}
+        ${bar('פחמימה',  totCarb, tgCarb, '#60a5fa')}
+        ${bar('שומן',    totFat,  tgFat,  '#facc15')}
+      </div>`;
+
+    el.innerHTML = macroBar + nutritionPlan.map((meal,mi)=>`
+      <div class="meal-block">
+        <div class="meal-block-head">
+          <input value="${esc(meal.meal)}" oninput="nutritionPlan[${mi}].meal=this.value" placeholder="שם ארוחה"/>
+          <div style="display:flex;gap:5px;">
+            <button class="btn-sm btn-outline" style="padding:4px 9px;font-size:0.75rem;" onclick="copyMeal(${mi})">📋 העתק</button>
+            <button class="btn-sm btn-red" onclick="removeMeal(${mi})">הסר ארוחה</button>
+          </div>
+        </div>
+        <div class="nutri-header"><span>מזון</span><span>כמות</span><span>קל׳</span><span>חלבון</span><span>פחמימה</span><span>שומן</span><span></span></div>
+        <div>${(meal.items||[]).map((item,ii)=>itemRow(mi,ii,item)).join('')}</div>
+        <button class="add-link" onclick="addItem(${mi})">+ הוסף מזון</button>
+        ${(meal.protein_options && meal.protein_options.length) || (meal.carbs_options && meal.carbs_options.length) || (meal.fat_options && meal.fat_options.length) ? `
+        <div class="meal-alts">
+          <div style="font-size:0.78rem;font-weight:700;color:#60b4ff;margin-bottom:8px;">חלופות לארוחה זו:</div>
+          ${meal.protein_options && meal.protein_options.length ? `<div class="meal-alts-row"><span class="alt-label">חלבון:</span><span>${meal.protein_options.map(o=>`<span class="alt-pill">${esc(o)}</span>`).join('')}</span></div>` : ''}
+          ${meal.carbs_options && meal.carbs_options.length ? `<div class="meal-alts-row"><span class="alt-label">פחמימה:</span><span>${meal.carbs_options.map(o=>`<span class="alt-pill">${esc(o)}</span>`).join('')}</span></div>` : ''}
+          ${meal.fat_options && meal.fat_options.length ? `<div class="meal-alts-row"><span class="alt-label">שומן:</span><span>${meal.fat_options.map(o=>`<span class="alt-pill">${esc(o)}</span>`).join('')}</span></div>` : ''}
+        </div>` : ''}
+      </div>`).join('');
+  }
+  function itemRow(mi, ii, item) {
+    const exp=item._exp||false, unitName=item._unit||'גרם', qty=item._qty!=null?item._qty:(unitName==='גרם'?100:1);
+    const units=getUnitsForFood(item.food), selUnit=units.find(u=>u.name===unitName)||units[0];
+    const totalG=selUnit?Math.round(qty*selUnit.grams*10)/10:qty;
+    const altOpen=item._altOpen||false, alts=item.alternatives||[];
+    const unitPicker=exp?`
+      <div style="background:rgba(255,107,0,0.06);border:1px solid rgba(255,107,0,0.2);border-radius:8px;padding:8px 12px;margin-top:4px;">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <span style="font-size:0.8rem;color:var(--muted);">מידה:</span>
+          <select onchange="setItemUnit(${mi},${ii},this.value)" style="padding:5px 8px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.14);border-radius:6px;color:#fff;font-family:'Heebo',sans-serif;font-size:0.82rem;outline:none;cursor:pointer;max-width:200px;">
+            ${units.map(u=>`<option value="${esc(u.name)}" ${u.name===unitName?'selected':''}>${esc(u.name)}${u.grams!==1?' ('+u.grams+'g)':''}</option>`).join('')}
+          </select>
+          <span style="font-size:0.8rem;color:var(--muted);">×</span>
+          <input type="number" min="0.1" step="0.1" value="${qty}" style="width:72px;padding:5px 8px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.14);border-radius:6px;color:#fff;font-family:'Heebo',sans-serif;font-size:0.82rem;text-align:center;outline:none;" oninput="setItemQty(${mi},${ii},+this.value)"/>
+          <span style="font-size:0.82rem;color:var(--orange);font-weight:700;">= ${totalG}g</span>
+        </div>
+      </div>`:'' ;
+    const altPanel=altOpen?`
+      <div style="background:rgba(96,180,255,0.04);border:1px solid rgba(96,180,255,0.2);border-radius:8px;padding:10px 12px;margin-top:5px;">
+        <div style="font-size:0.75rem;color:#60b4ff;font-weight:700;margin-bottom:8px;">🔄 חלופות לפריט זה:</div>
+        ${alts.length?alts.map((a,ai)=>{
+          const _af=allFoodItems.find(f=>f.id===a.food_id||f.name===a.name);
+          const _eqG=(_af&&_af.calories&&item.calories)?Math.round(item.calories/_af.calories*100):null;
+          return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;padding:4px 8px;background:rgba(255,255,255,0.03);border-radius:6px;">
+            <span style="font-size:0.82rem;flex:1;color:#ccc;">${esc(a.name)}</span>
+            ${_eqG?`<span style="font-size:0.75rem;color:var(--orange);font-weight:700;">${_eqG}g</span>`:'<span style="font-size:0.72rem;color:#555;">?g</span>'}
+            <button onmousedown="removeAlt(${mi},${ii},${ai})" style="padding:1px 6px;background:rgba(255,70,70,0.1);border:1px solid rgba(255,70,70,0.3);border-radius:4px;color:#ff7070;cursor:pointer;font-size:0.7rem;">✕</button>
+          </div>`;
+        }).join(''):'<div style="color:#555;font-size:0.78rem;margin-bottom:8px;">אין חלופות עדיין — חפש מאכל מהמאגר</div>'}
+        <div style="position:relative;margin-top:6px;">
+          <input type="text" id="alt-inp-${mi}-${ii}" placeholder="הוסף חלופה — חפש מאכל..." autocomplete="off"
+            style="width:100%;padding:7px 10px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:6px;color:#fff;font-family:'Heebo',sans-serif;font-size:0.8rem;outline:none;"
+            oninput="showAltSuggCoach(this,${mi},${ii})"
+            onblur="setTimeout(hideAltSuggCoach,160)"/>
+          <div id="alt-sugg-${mi}-${ii}" style="display:none;position:absolute;top:calc(100% + 2px);right:0;left:0;background:#1e1e1e;border:1px solid rgba(96,180,255,0.3);border-radius:8px;z-index:700;overflow:hidden;box-shadow:0 6px 20px rgba(0,0,0,0.7);max-height:220px;overflow-y:auto;"></div>
+        </div>
+      </div>`:'' ;
+    return `<div style="margin-bottom:6px;">
+      <div class="item-row" id="item-${mi}-${ii}">
+        <div style="display:flex;align-items:center;gap:3px;min-width:0;">
+          <input value="${esc(item.food)}" oninput="nutritionPlan[${mi}].items[${ii}].food=this.value;showFoodSuggCoach(this,${mi},${ii})" onblur="setTimeout(hideFoodSuggCoach,160)" autocomplete="off" placeholder="מזון" style="flex:1;min-width:0;padding:6px 8px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:6px;color:#fff;font-family:'Heebo',sans-serif;font-size:0.8rem;outline:none;"/>
+          <button onclick="toggleItemExpand(${mi},${ii})" style="padding:3px 7px;background:${exp?'rgba(255,107,0,0.2)':'rgba(255,255,255,0.04)'};border:1px solid ${exp?'rgba(255,107,0,0.45)':'rgba(255,255,255,0.1)'};border-radius:5px;color:${exp?'var(--orange)':'#666'};cursor:pointer;font-size:0.65rem;flex-shrink:0;">${exp?'▲':'▼'}</button>
+        </div>
+        <input value="${esc(item.quantity)}" oninput="onQuantityInput(${mi},${ii},this.value)" placeholder="כמות"/>
+        <input value="${item.calories||''}" oninput="nutritionPlan[${mi}].items[${ii}].calories=+this.value" placeholder="קל׳" type="number"/>
+        <input value="${item.protein||''}"  oninput="nutritionPlan[${mi}].items[${ii}].protein=+this.value"  placeholder="P"   type="number"/>
+        <input value="${item.carbs||''}"    oninput="nutritionPlan[${mi}].items[${ii}].carbs=+this.value"    placeholder="C"   type="number"/>
+        <input value="${item.fat||''}"      oninput="nutritionPlan[${mi}].items[${ii}].fat=+this.value"      placeholder="F"   type="number"/>
+        <button onclick="toggleItemAlt(${mi},${ii})" style="padding:3px 7px;background:${altOpen||alts.length?'rgba(96,180,255,0.12)':'rgba(255,255,255,0.04)'};border:1px solid ${altOpen||alts.length?'rgba(96,180,255,0.4)':'rgba(255,255,255,0.1)'};border-radius:5px;color:${altOpen||alts.length?'#60b4ff':'#555'};cursor:pointer;font-size:0.65rem;flex-shrink:0;" title="הוסף חלופות">🔄${alts.length?' '+alts.length:''}</button>
+        <button class="btn-sm btn-red" onclick="removeItem(${mi},${ii})">✕</button>
+      </div>
+      ${unitPicker}${altPanel}
+    </div>`;
+  }
+  function addMeal()       { nutritionPlan.push({meal:'',items:[]}); renderNutritionEditor(); }
+  function removeMeal(i)   { nutritionPlan.splice(i,1); renderNutritionEditor(); }
+  function addItem(mi)     { nutritionPlan[mi].items.push({food:'',quantity:'',calories:0,protein:0,carbs:0,fat:0}); renderNutritionEditor(); }
+  function removeItem(mi,ii) { nutritionPlan[mi].items.splice(ii,1); renderNutritionEditor(); }
+  async function saveNutrition() {
+    const { error } = await sb.from('nutrition_plans').upsert({client_email:activeEmail,plan:nutritionPlan,updated_at:new Date().toISOString()},{onConflict:'client_email'});
+    error ? toast('שגיאה בשמירה','err') : toast('תפריט נשמר ✓','ok');
+  }
+
+  /* ── EXERCISE AUTOCOMPLETE ── */
+  async function loadExerciseLibrary() {
+    const { data } = await sb.from('exercises').select('id,name,muscle_group,sub_muscle_group').order('name');
+    exerciseLibrary = data || [];
+  }
+  async function loadFoodItems() {
+    const { data } = await sb.from('food_items').select('*').order('name');
+    allFoodItems = data || [];
+  }
+  function showExSugg(input, di, ei) {
+    hideExSugg();
+    trainingPlan[di].exercises[ei].name = input.value;
+    const q = input.value.trim().toLowerCase();
+    if (!q) return;
+    const matches = exerciseLibrary.filter(e => e.name.toLowerCase().includes(q)).slice(0,8);
+    if (!matches.length) return;
+    const rect = input.getBoundingClientRect();
+    const drop = document.createElement('div');
+    drop.id = 'ex-sugg-drop';
+    drop.style.cssText=`position:fixed;top:${rect.bottom+2}px;right:${window.innerWidth-rect.right}px;width:${rect.width}px;background:#1e1e1e;border:1px solid rgba(255,107,0,0.4);border-radius:8px;z-index:500;overflow:hidden;box-shadow:0 6px 20px rgba(0,0,0,0.6);`;
+    matches.forEach(ex => {
+      const item = document.createElement('div');
+      item.style.cssText='padding:9px 12px;cursor:pointer;font-size:0.85rem;border-bottom:1px solid rgba(255,255,255,0.05);display:flex;justify-content:space-between;align-items:center;';
+      const lbl = ex.sub_muscle_group?`${ex.muscle_group} › ${ex.sub_muscle_group}`:ex.muscle_group;
+      item.innerHTML=`<span>${hlMatch(ex.name,q)}</span><span style="font-size:0.72rem;color:var(--muted);">${lbl}</span>`;
+      item.onmousedown=()=>{ trainingPlan[di].exercises[ei].name=ex.name; input.value=ex.name; hideExSugg(); };
+      item.onmouseover=()=>item.style.background='rgba(255,107,0,0.1)';
+      item.onmouseout=()=>item.style.background='';
+      drop.appendChild(item);
+    });
+    document.body.appendChild(drop);
+  }
+  function hideExSugg() { const d=document.getElementById('ex-sugg-drop'); if(d) d.remove(); }
+  function hlMatch(name,q) {
+    const idx=name.toLowerCase().indexOf(q);
+    if(idx===-1) return esc(name);
+    return esc(name.slice(0,idx))+`<span style="color:var(--orange);font-weight:700;">${esc(name.slice(idx,idx+q.length))}</span>`+esc(name.slice(idx+q.length));
+  }
+  function showFoodSuggCoach(input, mi, ii) {
+    hideFoodSuggCoach();
+    const q = input.value.trim();
+    if(!q || !allFoodItems.length) return;
+    const matches = allFoodItems.filter(f=>f.name.includes(q)).slice(0,8);
+    if(!matches.length) return;
+    const rect=input.getBoundingClientRect();
+    const drop=document.createElement('div');
+    drop.id='food-sugg-coach';
+    drop.style.cssText=`position:fixed;top:${rect.bottom+2}px;right:${window.innerWidth-rect.right}px;min-width:${rect.width+180}px;background:#1e1e1e;border:1px solid rgba(255,107,0,0.4);border-radius:8px;z-index:600;overflow:hidden;box-shadow:0 6px 24px rgba(0,0,0,0.7);`;
+    matches.forEach(f=>{
+      const item=document.createElement('div');
+      item.style.cssText='padding:9px 12px;cursor:pointer;font-size:0.85rem;border-bottom:1px solid rgba(255,255,255,0.05);display:flex;justify-content:space-between;align-items:center;gap:12px;';
+      item.innerHTML=`<span style="font-weight:600;">${esc(f.name)}</span><span style="font-size:0.72rem;color:#888;white-space:nowrap;">${f.calories}קק"ל | P${f.protein}g C${f.carbs}g F${f.fat}g</span>`;
+      item.onmousedown=()=>{
+        nutritionPlan[mi].items[ii].food=f.name; nutritionPlan[mi].items[ii].calories=f.calories;
+        nutritionPlan[mi].items[ii].protein=f.protein; nutritionPlan[mi].items[ii].carbs=f.carbs;
+        nutritionPlan[mi].items[ii].fat=f.fat;
+        if(!nutritionPlan[mi].items[ii].quantity) nutritionPlan[mi].items[ii].quantity='100 גרם';
+        hideFoodSuggCoach(); renderNutritionEditor();
+      };
+      item.onmouseover=()=>item.style.background='rgba(255,107,0,0.1)';
+      item.onmouseout=()=>item.style.background='';
+      drop.appendChild(item);
+    });
+    document.body.appendChild(drop);
+  }
+  function hideFoodSuggCoach() { const d=document.getElementById('food-sugg-coach'); if(d) d.remove(); }
+
+  function toggleItemAlt(mi, ii) {
+    const item = nutritionPlan[mi].items[ii];
+    item._altOpen = !item._altOpen;
+    renderNutritionEditor();
+  }
+  function addAlt(mi, ii, foodId, foodName) {
+    const item = nutritionPlan[mi].items[ii];
+    if (!item.alternatives) item.alternatives = [];
+    if (!item.alternatives.some(a => a.name === foodName))
+      item.alternatives.push({ food_id: foodId, name: foodName });
+    hideAltSuggCoach();
+    renderNutritionEditor();
+  }
+  function removeAlt(mi, ii, ai) {
+    nutritionPlan[mi].items[ii].alternatives.splice(ai, 1);
+    renderNutritionEditor();
+  }
+  function showAltSuggCoach(input, mi, ii) {
+    hideAltSuggCoach();
+    const q = input.value.trim();
+    if (!q || !allFoodItems.length) return;
+    const matches = allFoodItems.filter(f => f.name.includes(q)).slice(0, 7);
+    const drop = document.getElementById(`alt-sugg-${mi}-${ii}`);
+    if (!drop || !matches.length) return;
+    drop.innerHTML = '';
+    drop.style.display = 'block';
+    matches.forEach(f => {
+      const el = document.createElement('div');
+      el.style.cssText = 'padding:8px 12px;cursor:pointer;font-size:0.82rem;border-bottom:1px solid rgba(255,255,255,0.04);color:#fff;';
+      el.innerHTML = `<span style="font-weight:700;">${esc(f.name)}</span> <span style="color:#888;font-size:0.75rem;">${f.calories} קל׳/100g</span>`;
+      el.onmouseover = () => el.style.background = 'rgba(96,180,255,0.1)';
+      el.onmouseout  = () => el.style.background = '';
+      el.onmousedown = () => addAlt(mi, ii, f.id, f.name);
+      drop.appendChild(el);
+    });
+  }
+  function hideAltSuggCoach() {
+    document.querySelectorAll('[id^="alt-sugg-"]').forEach(el => { el.style.display='none'; el.innerHTML=''; });
+  }
+
+  document.addEventListener('click', e => {
+    const d1=document.getElementById('ex-sugg-drop'); if(d1&&!d1.contains(e.target)) hideExSugg();
+    const d2=document.getElementById('food-sugg-coach'); if(d2&&!d2.contains(e.target)) hideFoodSuggCoach();
+    if(!e.target.closest('[id^="alt-sugg-"]')&&!e.target.closest('[id^="alt-inp-"]')) hideAltSuggCoach();
+  });
+
+  /* ── WORKOUT LOGS ── */
+  async function loadClientLogs(email) {
+    const el=document.getElementById('client-logs-wrap'); if(!el) return;
+    const { data } = await sb.from('workout_logs').select('*').eq('client_email',email).order('log_date',{ascending:false}).limit(30);
+    if(!el) return;
+    if(!(data||[]).length){ el.innerHTML='<div style="color:#444;font-size:0.85rem;">המתאמן עדיין לא תיעד אימונים</div>'; return; }
+    el.innerHTML=(data||[]).map(log=>{
+      const d=new Date(log.log_date+'T12:00:00');
+      const ds=d.toLocaleDateString('he-IL',{day:'2-digit',month:'2-digit',year:'numeric'});
+      return `<div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:10px;margin-bottom:6px;overflow:hidden;">
+        <div style="padding:10px 14px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='block'?'none':'block'">
+          <div><div style="font-size:0.88rem;font-weight:700;">${ds}</div><div style="font-size:0.78rem;color:var(--orange);margin-top:2px;">${esc(log.day_name)}</div></div>
+          <span style="color:var(--orange);font-size:0.75rem;">▼</span>
+        </div>
+        <div style="display:none;padding:0 14px 12px;">
+          ${(log.exercises||[]).map(ex=>`
+            <div style="padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.04);">
+              <div style="font-size:0.82rem;font-weight:700;color:var(--gold);margin-bottom:3px;">${esc(ex.name)}</div>
+              <div style="font-size:0.8rem;color:var(--muted);">${(ex.sets||[]).map((s,i)=>`סט ${i+1}: <span style="color:#fff">${s.weight||'—'} ק"ג × ${s.reps||'—'}</span>`).join(' &nbsp;|&nbsp; ')}</div>
+            </div>`).join('')}
+          ${log.notes?`<div style="margin-top:8px;font-size:0.8rem;color:var(--muted);">📝 ${esc(log.notes)}</div>`:''}
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  /* ── RECORDS ── */
+  let RECORD_EXERCISES = {
+    'חזה':['לחיצת חזה במשקולות','לחיצת חזה במוט חופשי','לחיצת חזה בסמית','לחיצת חזה בשיפוע חיובי במוט חופשי','לחיצת חזה בשיפוע חיובי בסמית','לחיצת חזה בשיפוע חיובי במשקולות'],
+    'רגליים':['סקוואט חופשי','סקוואט בסמית','דדליפט קונבנציונלי','דדליפט רומני','היפ טראסט'],
+    'גב':['פולי עליון לגב','חתירה במוט חופשי','חתירה בסמית'],
+    'יד קדמית':['יד קדמית במוט','יד קדמית בדאמבלים'],
+    'יד אחורית':['לחיצה צרה במוט','לחיצה צרה בסמית'],
+    'כתפיים':['לחיצת כתפיים במוט חופשי','לחיצת כתפיים בסמית','לחיצת כתפיים בדאמבלים'],
+  };
+  const MEDALS=['🥇','🥈','🥉'];
+  let recMode='strength', recMuscle='חזה', recExercise='לחיצת חזה במוט חופשי';
+  let recLogs=null, recClients={}, recSteps=[];
+
+  function calc1RM(w,r){ w=parseFloat(w);r=parseInt(r); if(!w||!r||r<=0) return 0; return Math.round(w*(1+r/30)*10)/10; }
+
+  async function openRecords() {
+    document.getElementById('records-overlay').classList.add('open');
+    document.body.style.overflow='hidden';
+    if(recLogs!==null){ renderRecBody(); return; }
+    document.getElementById('rec-body').innerHTML='<div style="text-align:center;padding:40px;color:#444;">טוען נתונים...</div>';
+    const clientEmails = clients.map(c=>c.email);
+    if(!clientEmails.length){ recLogs=[]; recSteps=[]; renderRecBody(); return; }
+    const today=new Date().toISOString().split('T')[0];
+    const [{ data: logs },{ data: steps },{ data: allExs }] = await Promise.all([
+      sb.from('workout_logs').select('client_email,log_date,exercises').in('client_email',clientEmails),
+      sb.from('steps_logs').select('client_email,steps').eq('log_date',today).in('client_email',clientEmails),
+      sb.from('exercises').select('name,muscle_group,compound').order('muscle_group').order('name')
+    ]);
+    recLogs=logs||[]; recSteps=steps||[];
+    clients.forEach(c=>{ recClients[c.email]=c.name||c.email.split('@')[0]; });
+    const exNameToGroup={};
+    (allExs||[]).forEach(e=>{ exNameToGroup[e.name]={ mg:e.muscle_group||'אחר', compound:!!e.compound }; });
+    const inLogs=new Set();
+    recLogs.forEach(log=>{ (log.exercises||[]).forEach(ex=>{ if(ex.name&&(ex.sets||[]).some(s=>s.weight&&s.reps)) inLogs.add(ex.name); }); });
+    const built={};
+    const addEx=(name,mg)=>{ if(!built[mg]) built[mg]=[]; if(!built[mg].includes(name)) built[mg].push(name); };
+    (allExs||[]).forEach(e=>{ if(e.compound) addEx(e.name,e.muscle_group||'אחר'); });
+    inLogs.forEach(name=>{ const info=exNameToGroup[name]; addEx(name,info?info.mg:'אחר'); });
+    if(Object.keys(built).length){
+      RECORD_EXERCISES=built;
+      recMuscle=Object.keys(RECORD_EXERCISES)[0]||recMuscle;
+      recExercise=(RECORD_EXERCISES[recMuscle]||[])[0]||recExercise;
+    }
+    renderRecBody();
+  }
+
+  function closeRecords() { document.getElementById('records-overlay').classList.remove('open'); document.body.style.overflow=''; }
+
+  function renderRecBody() {
+    const body=document.getElementById('rec-body');
+    const modeTabs=`<div class="rec-mode-tabs">
+      <button class="rec-tab${recMode==='strength'?' active':''}" onclick="setRecMode('strength')">💪 שיאי כוח</button>
+      <button class="rec-tab${recMode==='steps'?' active':''}" onclick="setRecMode('steps')">🚶 צעדים יומיים</button>
+    </div>`;
+    if(recMode==='steps'){
+      const today=new Date().toLocaleDateString('he-IL',{day:'2-digit',month:'2-digit',year:'numeric'});
+      const myS=recSteps.find(s=>s.client_email===coachEmail);
+      const top=[...recSteps].sort((a,b)=>b.steps-a.steps).slice(0,10);
+      body.innerHTML=modeTabs+`
+        <div style="font-size:0.8rem;color:var(--muted);margin-bottom:14px;">📅 היום — ${today}</div>
+        <div class="steps-row">
+          <input class="steps-input" type="number" id="steps-inp" min="0" placeholder="כמה צעדים עשית היום?" value="${myS?myS.steps:''}"/>
+          <button class="btn-save-steps" onclick="logSteps()">שמור</button>
+        </div>
+        ${top.length?`<div class="podium">${top.map((s,i)=>`
+          <div class="podium-row${i<3?' rank-'+(i+1):''}">
+            <div class="podium-medal">${i<3?MEDALS[i]:'#'+(i+1)}</div>
+            <div class="podium-info"><div class="podium-name">${esc(recClients[s.client_email]||s.client_email.split('@')[0])}</div></div>
+            <div class="podium-orm">${Number(s.steps).toLocaleString()} צעדים</div>
+          </div>`).join('')}</div>`:'<div class="no-records">אף מתאמן לא רשם צעדים היום עדיין 🚶</div>'}
+        ${myS?`<div class="my-rec-box">👤 הצעדים שלי היום: <strong>${Number(myS.steps).toLocaleString()}</strong></div>`:''}`;
+      return;
+    }
+    const board=buildExBoard(recExercise);
+    body.innerHTML=modeTabs+`
+      <div class="muscle-tabs">${Object.keys(RECORD_EXERCISES).map(m=>`<button class="m-tab${m===recMuscle?' active':''}" onclick="setRecMuscle('${m}')">${m}</button>`).join('')}</div>
+      <select class="ex-select" onchange="setRecEx(this.value)">${(RECORD_EXERCISES[recMuscle]||[]).map(ex=>`<option value="${ex}"${ex===recExercise?' selected':''}>${ex}</option>`).join('')}</select>
+      ${board.length?`<div class="podium">${board.map((e,i)=>`
+        <div class="podium-row rank-${i+1}">
+          <div class="podium-medal">${MEDALS[i]}</div>
+          <div class="podium-info"><div class="podium-name">${esc(e.name)}</div><div class="podium-stats">${e.weight} ק"ג × ${e.reps} חזרות · ${e.date}</div></div>
+          <div class="podium-orm">1RM: ${e.orm}</div>
+        </div>`).join('')}</div>`:'<div class="no-records">אין תוצאות עדיין לתרגיל זה 💪</div>'}`;
+  }
+
+  function buildExBoard(exName){
+    const best={};
+    recLogs.forEach(log=>{
+      (log.exercises||[]).forEach(ex=>{
+        if(ex.name!==exName) return;
+        (ex.sets||[]).forEach(set=>{
+          const orm=calc1RM(set.weight,set.reps); if(!orm) return;
+          const cur=best[log.client_email];
+          if(!cur||orm>cur.orm||(orm===cur.orm&&parseFloat(set.weight)>cur.weight)){
+            best[log.client_email]={name:recClients[log.client_email]||log.client_email.split('@')[0],weight:parseFloat(set.weight),reps:parseInt(set.reps),orm,date:log.log_date};
+          }
+        });
+      });
+    });
+    return Object.values(best).sort((a,b)=>b.orm-a.orm||b.weight-a.weight).slice(0,3);
+  }
+
+  function setRecMode(m)   { recMode=m; renderRecBody(); }
+  function setRecMuscle(m) { recMuscle=m; recExercise=RECORD_EXERCISES[m][0]; renderRecBody(); }
+  function setRecEx(ex)    { recExercise=ex; renderRecBody(); }
+
+  async function logSteps() {
+    const val=parseInt(document.getElementById('steps-inp').value);
+    if(!val||val<0) return;
+    const today=new Date().toISOString().split('T')[0];
+    const btn=document.querySelector('.btn-save-steps');
+    btn.disabled=true; btn.textContent='שומר...';
+    const { error } = await sb.from('steps_logs').upsert({client_email:coachEmail,steps:val,log_date:today},{onConflict:'client_email,log_date'});
+    btn.disabled=false; btn.textContent='שמור';
+    if(error){ toast('שגיאה בשמירה','err'); return; }
+    const idx=recSteps.findIndex(s=>s.client_email===coachEmail);
+    if(idx>=0) recSteps[idx].steps=val; else recSteps.push({client_email:coachEmail,steps:val});
+    renderRecBody();
+  }
+
+  /* ── PLANS ── */
+  let coachPlans = {};
+  let plansTab = 'editor';
+
+  function openPlans() {
+    document.getElementById('plans-overlay').classList.add('open');
+    document.body.style.overflow = 'hidden';
+    loadPlansEditor();
+  }
+  function closePlans() {
+    document.getElementById('plans-overlay').classList.remove('open');
+    document.body.style.overflow = '';
+  }
+  function switchPlansTab(tab) {
+    plansTab = tab;
+    ['editor','leads','stats'].forEach(t => {
+      document.getElementById(`ptab-${t}`).classList.toggle('active', t === tab);
+      document.getElementById(`ptab-${t}-body`).style.display = t === tab ? 'block' : 'none';
+    });
+    if (tab === 'leads') loadLeads();
+    if (tab === 'stats') loadStats();
+  }
+  function updateFeaturedCard(months) {
+    [1, 3, 6].forEach(m => {
+      if (m !== months) document.getElementById(`pfeat-${m}`).checked = false;
+      document.getElementById(`pcard-${m}`).classList.toggle('featured-card', m === months && document.getElementById(`pfeat-${months}`).checked);
+    });
+  }
+  function loadPlansEditor() {
+    [1, 3, 6].forEach(m => {
+      const p = coachPlans[`plan_${m}`] || {};
+      document.getElementById(`pprice-${m}`).value    = p.price || '';
+      document.getElementById(`pdesc-${m}`).value     = p.desc  || '';
+      document.getElementById(`pfeat-${m}`).checked   = !!p.featured;
+      document.getElementById(`pcard-${m}`).classList.toggle('featured-card', !!p.featured);
+    });
+  }
+  async function savePlans() {
+    const btn = document.getElementById('btn-save-plans');
+    btn.disabled = true; btn.textContent = 'שומר...';
+    const plans = {};
+    [1, 3, 6].forEach(m => {
+      plans[`plan_${m}`] = {
+        price:    parseInt(document.getElementById(`pprice-${m}`).value) || 0,
+        desc:     document.getElementById(`pdesc-${m}`).value.trim(),
+        featured: document.getElementById(`pfeat-${m}`).checked
+      };
+    });
+    const { error } = await sb.from('coaches').update({ plans }).eq('email', coachEmail);
+    btn.disabled = false; btn.textContent = '💾 שמור מסלולים';
+    if (error) { toast('שגיאה בשמירה', 'err'); return; }
+    coachPlans = plans;
+    toast('✓ המסלולים נשמרו!', 'ok');
+  }
+  async function loadLeads() {
+    const wrap = document.getElementById('leads-wrap');
+    wrap.innerHTML = '<div class="empty">טוען...</div>';
+    const { data: leads } = await sb.from('coach_sales')
+      .select('*').eq('coach_email', coachEmail)
+      .order('created_at', { ascending: false });
+    if (!leads || !leads.length) { wrap.innerHTML = '<div class="empty">אין לידים עדיין — כשלקוח יבחר מסלול הוא יופיע כאן</div>'; return; }
+    const labels = { 1:'חודש', 3:'3 חודשים', 6:'6 חודשים' };
+    const totalPaid = leads.filter(l => l.status === 'paid').reduce((s, l) => s + (l.plan_price || 0), 0);
+    wrap.innerHTML = `
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;">
+        <div style="background:rgba(255,107,0,0.07);border:1px solid rgba(255,107,0,0.2);border-radius:10px;padding:12px;text-align:center;">
+          <div style="font-size:1.4rem;font-weight:900;color:var(--orange);">${leads.length}</div>
+          <div style="font-size:0.7rem;color:var(--muted);">סה"כ לידים</div>
+        </div>
+        <div style="background:rgba(60,200,60,0.07);border:1px solid rgba(60,200,60,0.2);border-radius:10px;padding:12px;text-align:center;">
+          <div style="font-size:1.4rem;font-weight:900;color:#70dd70;">${leads.filter(l=>l.status==='paid').length}</div>
+          <div style="font-size:0.7rem;color:var(--muted);">נסגרו</div>
+        </div>
+        <div style="background:rgba(255,215,0,0.07);border:1px solid rgba(255,215,0,0.2);border-radius:10px;padding:12px;text-align:center;">
+          <div style="font-size:1.4rem;font-weight:900;color:var(--gold);">${totalPaid.toLocaleString()} ₪</div>
+          <div style="font-size:0.7rem;color:var(--muted);">הכנסות</div>
+        </div>
+      </div>
+      ${leads.map(l => `
+        <div class="lead-row">
+          <div style="flex:1;">
+            <div class="lead-name">${esc(l.client_name || l.client_email.split('@')[0])}</div>
+            <div class="lead-plan">${labels[l.plan_months]||l.plan_months+' חודש'} · ${new Date(l.created_at).toLocaleDateString('he-IL',{day:'2-digit',month:'2-digit',year:'numeric'})}</div>
+          </div>
+          <div class="lead-price">${l.plan_price} ₪</div>
+          <span class="lead-status ${l.status}">${l.status==='paid'?'✓ שולם':'⏳ ליד'}</span>
+          ${l.status==='lead' ? `<button class="btn-mark-paid" onclick="markPaid('${l.id}',this)">סמן שולם</button>` : ''}
+        </div>`).join('')}`;
+  }
+  async function markPaid(id, btn) {
+    btn.disabled = true;
+    await sb.from('coach_sales').update({ status: 'paid' }).eq('id', id);
+    loadLeads();
+  }
+
+  /* ── STATS ── */
+  async function loadStats() {
+    document.getElementById('stats-cards-wrap').innerHTML = '<div class="empty">טוען...</div>';
+    document.getElementById('income-list-wrap').innerHTML  = '<div class="empty">טוען...</div>';
+
+    const clientEmails = clients.map(c => c.email);
+    const queries = [
+      sb.from('coach_sales').select('*').eq('coach_email', coachEmail).order('created_at', { ascending: false }),
+    ];
+    if (clientEmails.length) {
+      queries.push(sb.from('training_plans').select('client_email').in('client_email', clientEmails));
+      queries.push(sb.from('nutrition_plans').select('client_email').in('client_email', clientEmails));
+    } else {
+      queries.push(Promise.resolve({ data: [] }));
+      queries.push(Promise.resolve({ data: [] }));
+    }
+    const [{ data: sales }, { data: trPlans }, { data: nuPlans }] = await Promise.all(queries);
+
+    const allSales  = sales || [];
+    const paid      = allSales.filter(s => s.status === 'paid' || s.status === 'manual');
+    const leads     = allSales.filter(s => s.status === 'lead');
+    const revenue   = paid.reduce((s, l) => s + (l.plan_price || 0), 0);
+    const trCount   = (trPlans || []).length;
+    const nuCount   = (nuPlans || []).length;
+
+    // 5 stats cards
+    document.getElementById('stats-cards-wrap').innerHTML = `
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:6px;">
+        <div style="text-align:center;padding:12px 6px;background:rgba(255,107,0,0.07);border:1px solid rgba(255,107,0,0.2);border-radius:10px;">
+          <div style="font-size:1.6rem;font-weight:900;color:var(--orange);">${clients.length}</div>
+          <div style="font-size:0.65rem;color:var(--muted);margin-top:2px;">מתאמנים</div>
+        </div>
+        <div style="text-align:center;padding:12px 6px;background:rgba(255,215,0,0.07);border:1px solid rgba(255,215,0,0.2);border-radius:10px;">
+          <div style="font-size:1.1rem;font-weight:900;color:var(--gold);">${revenue.toLocaleString()} ₪</div>
+          <div style="font-size:0.65rem;color:var(--muted);margin-top:2px;">הכנסות</div>
+        </div>
+        <div style="text-align:center;padding:12px 6px;background:rgba(60,200,60,0.07);border:1px solid rgba(60,200,60,0.2);border-radius:10px;">
+          <div style="font-size:1.6rem;font-weight:900;color:#70dd70;">${paid.length}</div>
+          <div style="font-size:0.65rem;color:var(--muted);margin-top:2px;">עסקאות</div>
+        </div>
+        <div style="text-align:center;padding:12px 6px;background:rgba(100,150,255,0.07);border:1px solid rgba(100,150,255,0.2);border-radius:10px;">
+          <div style="font-size:1.6rem;font-weight:900;color:#88aaff;">${trCount}</div>
+          <div style="font-size:0.65rem;color:var(--muted);margin-top:2px;">תוכניות אימון</div>
+        </div>
+        <div style="text-align:center;padding:12px 6px;background:rgba(100,200,150,0.07);border:1px solid rgba(100,200,150,0.2);border-radius:10px;">
+          <div style="font-size:1.6rem;font-weight:900;color:#70ddaa;">${nuCount}</div>
+          <div style="font-size:0.65rem;color:var(--muted);margin-top:2px;">תפריטי תזונה</div>
+        </div>
+      </div>
+      ${leads.length ? `<div style="font-size:0.78rem;color:#FFD700;text-align:center;padding:6px;">⏳ ${leads.length} ליד${leads.length>1?'ים':''} ממתינים לסגירה — עבור ל<button onclick="switchPlansTab('leads')" style="background:none;border:none;color:var(--orange);font-family:'Heebo',sans-serif;font-weight:700;cursor:pointer;font-size:0.78rem;">לידים</button></div>` : ''}`;
+
+    // Income list
+    if (!paid.length) {
+      document.getElementById('income-list-wrap').innerHTML = '<div class="empty">אין הכנסות עדיין</div>';
+      return;
+    }
+    const planLabels = { 1:'חודש', 3:'3 חודשים', 6:'6 חודשים', 0:'הכנסה מזדמנת' };
+    document.getElementById('income-list-wrap').innerHTML = paid.map(s => {
+      const dateStr = new Date(s.created_at).toLocaleDateString('he-IL', {day:'2-digit',month:'2-digit',year:'numeric'});
+      const label   = s.status === 'manual' ? (s.client_name || 'הכנסה מזדמנת') : esc(s.client_name || s.client_email?.split('@')[0] || '');
+      const sub     = s.status === 'manual' ? dateStr : `${planLabels[s.plan_months]||''} · ${dateStr}`;
+      return `<div class="lead-row">
+        <div style="flex:1;">
+          <div class="lead-name">${label}</div>
+          <div class="lead-plan">${sub}</div>
+        </div>
+        <div class="lead-price">${s.plan_price} ₪</div>
+        <span class="lead-status paid">${s.status==='manual'?'💵 מזדמן':'✓ שולם'}</span>
+      </div>`;
+    }).join('');
+  }
+
+  /* ── MANUAL INCOME ── */
+  function openIncomeModal() {
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('inc-desc').value   = '';
+    document.getElementById('inc-amount').value = '';
+    document.getElementById('inc-date').value   = today;
+    document.getElementById('inc-err').style.display = 'none';
+    document.getElementById('income-modal').style.display = 'flex';
+  }
+  function closeIncomeModal() {
+    document.getElementById('income-modal').style.display = 'none';
+  }
+  async function saveManualIncome() {
+    const desc   = document.getElementById('inc-desc').value.trim();
+    const amount = parseInt(document.getElementById('inc-amount').value);
+    const date   = document.getElementById('inc-date').value;
+    const errEl  = document.getElementById('inc-err');
+    errEl.style.display = 'none';
+    if (!desc)          { errEl.textContent = 'יש להזין תיאור'; errEl.style.display = 'block'; return; }
+    if (!amount || amount < 1) { errEl.textContent = 'יש להזין סכום תקין'; errEl.style.display = 'block'; return; }
+    const { error } = await sb.from('coach_sales').insert({
+      coach_email: coachEmail,
+      client_email: 'manual',
+      client_name: desc,
+      plan_months: 0,
+      plan_price: amount,
+      status: 'manual',
+      created_at: date ? new Date(date).toISOString() : new Date().toISOString()
+    });
+    if (error) { errEl.textContent = 'שגיאה בשמירה'; errEl.style.display = 'block'; return; }
+    closeIncomeModal();
+    loadStats();
+    toast('✓ הכנסה נשמרה!', 'ok');
+  }
+
+  init();
+</script>
+
+<!-- BOTTOM NAV (mobile only) -->
+<nav class="bottom-nav">
+  <button class="bn-item" onclick="toggleMobileSidebar()">
+    <span class="bn-icon">👥</span>מתאמנים
+  </button>
+  <button class="bn-item" onclick="openRecords()">
+    <span class="bn-icon">🏆</span>שיאים
+  </button>
+  <a href="exercises.html" class="bn-item">
+    <span class="bn-icon">🏋️</span>תרגילים
+  </a>
+  <a href="food.html" class="bn-item">
+    <span class="bn-icon">🥗</span>מזון
+  </a>
+  <button class="bn-item" onclick="openPlans()">
+    <span class="bn-icon">💰</span>מסלולים
+  </button>
+  <button class="bn-item" onclick="openPushOverlay()">
+    <span class="bn-icon">📣</span>הודעות
+  </button>
+  <button class="bn-item" onclick="toggleMoreMenu()">
+    <span class="bn-icon">⋯</span>עוד
+  </button>
+</nav>
+
+<div class="bn-more-menu" id="bn-more-menu" onclick="toggleMoreMenu()">
+  <button class="bn-more-item" id="bn-trainee-link2" style="display:none;" onclick="window.location.href='dashboard.html'">
+    🔄 החלף למצב מתאמן
+  </button>
+  <button class="bn-more-item" onclick="logout()">🚪 יציאה</button>
+</div>
+
+<!-- PUSH NOTIFICATIONS OVERLAY -->
+<div class="push-overlay" id="push-overlay">
+  <div class="push-drawer">
+    <div class="push-head">
+      <span>📣 שלח הודעה למתאמנים</span>
+      <button onclick="closePushOverlay()">✕</button>
+    </div>
+    <div class="push-tabs">
+      <button class="push-tab active" id="ptab-now" onclick="switchPushTab('now')">שלח עכשיו</button>
+      <button class="push-tab" id="ptab-scheduled" onclick="switchPushTab('scheduled')">הודעות מתוזמנות</button>
+    </div>
+
+    <!-- Tab: Send Now -->
+    <div id="push-tab-now">
+      <div class="f-group" style="margin-bottom:14px;">
+        <label>הודעה לכל המתאמנים</label>
+        <textarea id="push-msg" rows="3" placeholder="למשל: יש לך אימון היום — בהצלחה! 💪"></textarea>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;">
+        <button class="btn-sm btn-orange btn-broadcast" onclick="sendBroadcastPush()">📣 שלח לכולם</button>
+        <span id="push-sent-msg" style="color:#70dd70;font-size:0.82rem;display:none;">✓ נשלח!</span>
+      </div>
+    </div>
+
+    <!-- Tab: Scheduled -->
+    <div id="push-tab-scheduled" style="display:none;">
+      <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid rgba(255,255,255,0.07);">
+        <div class="f-group">
+          <label>הודעה מתוזמנת</label>
+          <textarea id="sched-msg" rows="2" placeholder="תוכן ההודעה..."></textarea>
+        </div>
+        <div class="f-group">
+          <label>תאריך ושעה</label>
+          <input type="datetime-local" id="sched-time" style="padding:9px 12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:7px;color:var(--white);font-family:'Heebo',sans-serif;font-size:0.88rem;outline:none;"/>
+        </div>
+        <button class="btn-sm btn-orange btn-add-sched" onclick="saveScheduledMessage()" style="align-self:flex-start;">+ הוסף תזמון</button>
+      </div>
+      <div id="sched-list" style="display:flex;flex-direction:column;gap:6px;"></div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
