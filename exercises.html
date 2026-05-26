@@ -81,18 +81,37 @@
     /* CARD */
     .ex-card {
       background: var(--card); border: 1px solid var(--border);
-      border-radius: 14px; padding: 18px 16px; cursor: pointer;
-      transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
-      display: flex; flex-direction: column; gap: 10px;
+      border-radius: 14px; padding: 16px 14px 12px;
+      transition: box-shadow 0.2s, border-color 0.2s;
+      display: flex; flex-direction: column; gap: 8px;
     }
-    .ex-card:hover { transform: translateY(-3px); box-shadow: 0 8px 28px rgba(255,107,0,0.15); border-color: rgba(255,107,0,0.5); }
+    .ex-card:hover { box-shadow: 0 8px 28px rgba(255,107,0,0.12); border-color: rgba(255,107,0,0.4); }
     .ex-muscle-badge {
       display: inline-block; padding: 3px 10px; border-radius: 12px;
       background: rgba(255,107,0,0.1); border: 1px solid rgba(255,107,0,0.25);
       font-size: 0.72rem; font-weight: 700; color: var(--orange); align-self: flex-start;
     }
-    .ex-card-name { font-size: 0.95rem; font-weight: 700; line-height: 1.4; flex: 1; }
-    .ex-card-footer { font-size: 0.78rem; font-weight: 700; }
+    .ex-card-name { font-size: 0.95rem; font-weight: 700; line-height: 1.4; flex: 1; color: var(--white); text-decoration: none; display: block; }
+    .ex-card-name.clickable { color: var(--orange); cursor: pointer; }
+    .ex-card-name.clickable:hover { text-decoration: underline; }
+    /* URL input row on card */
+    .card-url-row { display: flex; gap: 6px; margin-top: 4px; }
+    .card-url-input {
+      flex: 1; padding: 6px 10px; background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08); border-radius: 7px;
+      color: var(--white); font-family: 'Heebo', sans-serif;
+      font-size: 0.75rem; outline: none; direction: ltr; min-width: 0;
+    }
+    .card-url-input:focus { border-color: var(--orange); }
+    .card-url-input::placeholder { color: #444; }
+    .card-url-btn {
+      padding: 6px 11px; background: var(--orange); border: none; border-radius: 7px;
+      color: #fff; font-family: 'Heebo', sans-serif; font-size: 0.75rem;
+      font-weight: 700; cursor: pointer; white-space: nowrap; transition: opacity 0.2s;
+      flex-shrink: 0;
+    }
+    .card-url-btn:hover { opacity: 0.85; }
+    .card-url-btn:disabled { opacity: 0.5; cursor: default; }
     .has-video { color: var(--orange); }
     .no-video { color: #444; }
 
@@ -100,55 +119,10 @@
     .empty { grid-column: 1 / -1; text-align: center; padding: 60px 20px; color: #444; }
     .empty-icon { font-size: 3rem; margin-bottom: 12px; }
 
-    /* MODAL */
-    .modal-bg {
-      position: fixed; inset: 0; background: rgba(0,0,0,0.85);
-      backdrop-filter: blur(8px); z-index: 200;
-      display: none; align-items: center; justify-content: center; padding: 20px;
-    }
-    .modal-bg.open { display: flex; }
-    .modal {
-      background: #161616; border: 1px solid rgba(255,107,0,0.3);
-      border-radius: 18px; width: 100%; max-width: 640px;
-      box-shadow: 0 0 80px rgba(255,107,0,0.12); overflow: hidden;
-      max-height: 90vh; overflow-y: auto;
-    }
-    .modal-header {
-      padding: 22px 24px 16px; border-bottom: 1px solid rgba(255,255,255,0.06);
-      display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
-    }
-    .modal-title { font-size: 1.25rem; font-weight: 900; margin-bottom: 6px; }
-    .modal-close {
-      background: none; border: none; color: var(--muted); font-size: 1.3rem;
-      cursor: pointer; padding: 2px 6px; line-height: 1; transition: color 0.2s; flex-shrink: 0;
-    }
-    .modal-close:hover { color: var(--white); }
-    .modal-body { padding: 20px 24px 28px; }
-    .video-wrap { position: relative; width: 100%; padding-bottom: 56.25%; background: #000; border-radius: 10px; overflow: hidden; margin-bottom: 16px; }
-    .video-wrap iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: none; }
-    .no-video-box {
-      aspect-ratio: 16/9; background: rgba(255,255,255,0.02);
-      border: 1px dashed rgba(255,107,0,0.2); border-radius: 10px;
-      display: flex; align-items: center; justify-content: center;
-      color: #444; font-size: 0.88rem; margin-bottom: 16px;
-    }
-    .modal-desc { font-size: 0.9rem; color: var(--muted); line-height: 1.7; }
-
     /* LOADER */
     #loader { position: fixed; inset: 0; background: var(--black); display: flex; align-items: center; justify-content: center; z-index: 999; transition: opacity 0.3s; }
     .spin { width: 40px; height: 40px; border: 3px solid rgba(255,107,0,0.2); border-top-color: var(--orange); border-radius: 50%; animation: spin 0.7s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
-
-    /* VIDEO EDIT */
-    .video-edit-row { display:flex; gap:8px; margin-top:16px; }
-    .video-edit-input { flex:1; padding:9px 13px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:8px; color:var(--white); font-family:'Heebo',sans-serif; font-size:0.88rem; outline:none; direction:ltr; }
-    .video-edit-input:focus { border-color:var(--orange); }
-    .video-edit-input::placeholder { color:#444; }
-    .video-save-btn { padding:9px 18px; background:var(--orange); border:none; border-radius:8px; color:#fff; font-family:'Heebo',sans-serif; font-size:0.85rem; font-weight:700; cursor:pointer; transition:opacity 0.2s; white-space:nowrap; }
-    .video-save-btn:hover { opacity:0.85; }
-    .video-save-btn:disabled { opacity:0.5; cursor:default; }
-    .video-clear-btn { padding:9px 14px; background:transparent; border:1px solid rgba(255,80,80,0.4); border-radius:8px; color:#ff7070; font-family:'Heebo',sans-serif; font-size:0.85rem; cursor:pointer; transition:all 0.2s; }
-    .video-clear-btn:hover { background:rgba(255,80,80,0.1); }
 
     @media (max-width: 480px) {
       .exercises-grid { grid-template-columns: repeat(auto-fill, minmax(155px, 1fr)); }
@@ -184,34 +158,7 @@
   <div class="exercises-grid" id="exercises-grid"></div>
 </div>
 
-<!-- EXERCISE MODAL -->
-<div class="modal-bg" id="ex-modal" onclick="onModalBgClick(event)">
-  <div class="modal" id="modal-inner">
-    <div class="modal-header">
-      <div>
-        <div class="modal-title" id="modal-name"></div>
-        <span class="ex-muscle-badge" id="modal-muscle"></span>
-      </div>
-      <button class="modal-close" onclick="closeModal()">✕</button>
-    </div>
-    <div class="modal-body">
-      <div id="modal-video"></div>
-      <div id="modal-meta" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;"></div>
-      <div class="modal-desc" id="modal-desc"></div>
-
-      <!-- Video URL editor -->
-      <div style="margin-top:16px;border-top:1px solid rgba(255,255,255,0.06);padding-top:16px;">
-        <div style="font-size:0.78rem;color:var(--muted);margin-bottom:8px;">🎬 לינק לסרטון</div>
-        <div class="video-edit-row">
-          <input class="video-edit-input" id="modal-video-input" placeholder="הדבק כאן לינק לסרטון (YouTube, Drive, Vimeo...)" />
-          <button class="video-save-btn" id="modal-video-save" onclick="saveVideoUrl()">שמור</button>
-          <button class="video-clear-btn" id="modal-video-clear" onclick="clearVideoUrl()">🗑</button>
-        </div>
-        <div id="modal-video-msg" style="font-size:0.78rem;height:18px;margin-top:4px;"></div>
-      </div>
-    </div>
-  </div>
-</div>
+<!-- (modal removed — video URL editing is now inline on each card) -->
 
 <script>
   const URL_ = 'https://luwknflmhvcxgifzxgrk.supabase.co';
@@ -311,91 +258,56 @@
       grid.innerHTML = '<div class="empty"><div class="empty-icon">🔍</div><div>לא נמצאו תרגילים</div></div>';
       return;
     }
-    grid.innerHTML = list.map(ex => `
-      <div class="ex-card" data-id="${ex.id}" onclick="openModal('${ex.id}')">
-        <span class="ex-muscle-badge">${ex.sub_muscle_group || ex.muscle_group}</span>
-        <div class="ex-card-name">${esc(ex.name)}</div>
-        <div class="ex-card-footer ${ex.video_url ? 'has-video' : 'no-video'}">
-          ${ex.video_url ? '▶ צפה בסרטון' : '— ללא סרטון'}
-        </div>
-      </div>
-    `).join('');
+    grid.innerHTML = list.map(ex => {
+      const hasVideo = !!ex.video_url;
+      const nameHtml = hasVideo
+        ? `<a class="ex-card-name clickable" href="${esc(ex.video_url)}" target="_blank" rel="noopener">${esc(ex.name)} ▶</a>`
+        : `<div class="ex-card-name">${esc(ex.name)}</div>`;
+      return `
+        <div class="ex-card" data-id="${ex.id}">
+          <span class="ex-muscle-badge">${ex.sub_muscle_group || ex.muscle_group}</span>
+          ${nameHtml}
+          <div class="card-url-row">
+            <input class="card-url-input" id="url-${ex.id}" value="${esc(ex.video_url || '')}"
+              placeholder="הדבק לינק לסרטון..." dir="ltr"
+              onkeydown="if(event.key==='Enter')saveUrl('${ex.id}')"/>
+            <button class="card-url-btn" onclick="saveUrl('${ex.id}')">שמור</button>
+          </div>
+        </div>`;
+    }).join('');
   }
 
-  let currentExId = null;
-
-  function showVideo(url) {
-    const el = document.getElementById('modal-video');
-    if (!url) { el.innerHTML = `<div class="no-video-box">לא קושר סרטון עדיין</div>`; return; }
-    const yt = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
-    if (yt) {
-      el.innerHTML = `<div class="video-wrap"><iframe src="https://www.youtube.com/embed/${yt[1]}?rel=0" allowfullscreen allow="accelerometer;autoplay;clipboard-write;encrypted-media;gyroscope;picture-in-picture"></iframe></div>`;
-    } else {
-      // כל לינק אחר — פתח בטאב חדש
-      el.innerHTML = `<div class="no-video-box" style="flex-direction:column;gap:10px;">
-        <a href="${url}" target="_blank" style="color:var(--orange);font-weight:700;font-size:0.9rem;">▶ פתח סרטון בחלון חדש</a>
-        <span style="font-size:0.75rem;color:#555;">${url.substring(0,60)}...</span>
-      </div>`;
-    }
-  }
-
-  async function saveVideoUrl() {
-    if (!currentExId) return;
-    const url = document.getElementById('modal-video-input').value.trim();
-    const btn = document.getElementById('modal-video-save');
-    const msg = document.getElementById('modal-video-msg');
-    btn.disabled = true; btn.textContent = 'שומר...';
-    const { error } = await sb.from('exercises').update({ video_url: url || null }).eq('id', currentExId);
+  async function saveUrl(id) {
+    const input = document.getElementById(`url-${id}`);
+    if (!input) return;
+    const url = input.value.trim();
+    const btn = input.nextElementSibling;
+    btn.disabled = true; btn.textContent = '...';
+    const { error } = await sb.from('exercises').update({ video_url: url || null }).eq('id', id);
     btn.disabled = false; btn.textContent = 'שמור';
-    if (error) { msg.style.color = '#ff6464'; msg.textContent = 'שגיאה: ' + error.message; return; }
-    const ex = allExercises.find(e => String(e.id) === String(currentExId));
-    if (ex) ex.video_url = url || null;
-    showVideo(url || null);
-    msg.style.color = '#4CAF50'; msg.textContent = url ? '✓ נשמר בהצלחה' : '✓ הסרטון הוסר';
-    setTimeout(() => { msg.textContent = ''; }, 2500);
-    // update card footer
-    const card = document.querySelector(`[data-id="${currentExId}"] .ex-card-footer`);
-    if (card) { card.className = `ex-card-footer ${url ? 'has-video' : 'no-video'}`; card.textContent = url ? '▶ סרטון' : '— ללא סרטון'; }
-  }
-
-  async function clearVideoUrl() {
-    document.getElementById('modal-video-input').value = '';
-    await saveVideoUrl();
-  }
-
-  function openModal(id) {
+    if (error) { btn.textContent = '✗'; setTimeout(() => btn.textContent = 'שמור', 2000); return; }
     const ex = allExercises.find(e => String(e.id) === String(id));
-    if (!ex) return;
-    currentExId = id;
-
-    document.getElementById('modal-name').textContent   = ex.name;
-    document.getElementById('modal-muscle').textContent = ex.sub_muscle_group || ex.muscle_group;
-    document.getElementById('modal-desc').textContent   = ex.description || '';
-    document.getElementById('modal-video-input').value  = ex.video_url || '';
-    document.getElementById('modal-video-msg').textContent = '';
-
-    const metaEl = document.getElementById('modal-meta');
-    const chips = [];
-    if (ex.equipment) chips.push(`<span style="padding:3px 10px;border-radius:10px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);font-size:0.75rem;color:#ccc;">${ex.equipment}</span>`);
-    if (ex.difficulty && ex.difficulty !== 'כל הרמות') chips.push(`<span style="padding:3px 10px;border-radius:10px;background:rgba(255,215,0,0.08);border:1px solid rgba(255,215,0,0.2);font-size:0.75rem;color:var(--gold);">${ex.difficulty}</span>`);
-    if (ex.secondary_muscles && ex.secondary_muscles.length) chips.push(`<span style="padding:3px 10px;border-radius:10px;background:rgba(255,107,0,0.06);border:1px solid rgba(255,107,0,0.15);font-size:0.75rem;color:var(--muted);">גם: ${ex.secondary_muscles.join(', ')}</span>`);
-    metaEl.innerHTML = chips.join('');
-
-    showVideo(ex.video_url || null);
-
-    document.getElementById('ex-modal').classList.add('open');
-    document.body.style.overflow = 'hidden';
-  }
-
-  function onModalBgClick(e) {
-    if (e.target === document.getElementById('ex-modal')) closeModal();
-  }
-
-  function closeModal() {
-    document.getElementById('ex-modal').classList.remove('open');
-    document.getElementById('modal-video').innerHTML = '';
-    currentExId = null;
-    document.body.style.overflow = '';
+    if (ex) ex.video_url = url || null;
+    // update name link
+    const card = document.querySelector(`[data-id="${id}"]`);
+    if (card) {
+      const nameEl = card.querySelector('.ex-card-name');
+      if (nameEl) {
+        if (url) {
+          const a = document.createElement('a');
+          a.className = 'ex-card-name clickable';
+          a.href = url; a.target = '_blank'; a.rel = 'noopener';
+          a.textContent = (ex?.name || '') + ' ▶';
+          nameEl.replaceWith(a);
+        } else {
+          const d = document.createElement('div');
+          d.className = 'ex-card-name';
+          d.textContent = ex?.name || '';
+          nameEl.replaceWith(d);
+        }
+      }
+    }
+    btn.textContent = '✓'; setTimeout(() => btn.textContent = 'שמור', 2000);
   }
 
   function esc(s) {
@@ -407,7 +319,6 @@
     window.location.href = 'login.html';
   }
 
-  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
 
   init();
 </script>

@@ -303,7 +303,7 @@
     .mt-tab { padding:5px 11px; border-radius:14px; border:1px solid rgba(255,255,255,0.08); background:transparent; color:#555; font-family:'Heebo',sans-serif; font-size:0.75rem; font-weight:700; cursor:pointer; transition:all 0.2s; white-space:nowrap; }
     .mt-tab.active { background:rgba(255,107,0,0.12); border-color:var(--orange); color:var(--orange); }
     .food-add-wrap { position:relative; margin-bottom:20px; }
-    .food-input-row { display:flex; gap:8px; align-items:stretch; }
+    .food-input-row { display:flex; gap:8px; align-items:stretch; flex-wrap:wrap; }
     .food-inp { flex:1; padding:11px 14px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12); border-radius:10px; color:var(--white); font-family:'Heebo',sans-serif; font-size:0.9rem; outline:none; }
     .food-inp:focus { border-color:var(--orange); }
     .food-grams { width:76px; padding:11px 10px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12); border-radius:10px; color:var(--white); font-family:'Heebo',sans-serif; font-size:0.9rem; outline:none; text-align:center; }
@@ -391,6 +391,59 @@
       .water-btn { font-size: 0.75rem; padding: 10px 4px; }
       .weight-row { padding: 12px 14px; }
       .btn-weight { padding: 8px 12px; font-size: 0.78rem; }
+    }
+
+    /* ── Enhanced mobile: small phones ─────────────────── */
+    @media (max-width: 480px) {
+      /* Food input: stack name above grams+button */
+      .food-inp { width: 100%; }
+      .food-grams { flex: 1; width: auto; min-width: 62px; }
+
+      /* Nutrition plan table: allow horizontal scroll so columns stay readable */
+      .meal-block { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+      .nutri-table { min-width: 380px; font-size: 0.76rem; }
+      .nutri-table th, .nutri-table td { padding: 5px 4px; }
+
+      /* Workout session: compact grid on tiny screens */
+      .sets-head { grid-template-columns: 40px 1fr 1fr 36px; gap: 5px; }
+      .s-row     { grid-template-columns: 40px 1fr 1fr 36px; gap: 5px; }
+      .s-inp { padding: 7px 3px; font-size: 0.84rem; }
+      .session-ex-title { font-size: 0.97rem; }
+      .session-body { padding: 14px 12px 8px; }
+
+      /* Water: slightly smaller text to fit 3 buttons */
+      .water-btn { padding: 8px 3px; font-size: 0.7rem; }
+      .water-btn span { font-size: 0.62rem; }
+
+      /* Section titles */
+      .sec-title { font-size: 0.95rem; }
+
+      /* Renewal: always single column */
+      .renewal-grid { grid-template-columns: 1fr; }
+
+      /* Records / Nutrition overlay tabs */
+      .rec-tab, .nutri-tab { padding: 6px 10px; font-size: 0.78rem; }
+      .m-tab { padding: 4px 9px; font-size: 0.72rem; }
+      .mt-tab { padding: 4px 9px; font-size: 0.72rem; }
+
+      /* Podium: compact */
+      .podium-row { padding: 10px 12px; gap: 10px; }
+      .podium-medal { font-size: 1.3rem; width: 26px; }
+      .podium-name { font-size: 0.88rem; }
+
+      /* Steps row: stack on tiny */
+      .steps-row { flex-direction: column; gap: 8px; }
+      .btn-save-steps { width: 100%; }
+
+      /* Timer */
+      .timer-num { font-size: clamp(2.4rem, 10vw, 3.5rem); }
+
+      /* AI chat */
+      .ai-chat-box { height: 85vh; }
+
+      /* History */
+      .hist-date { font-size: 0.82rem; }
+      .hist-ex { font-size: 0.8rem; }
     }
   </style>
 </head>

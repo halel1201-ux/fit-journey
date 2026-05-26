@@ -230,6 +230,51 @@
     }
     @media (max-width: 480px) {
       .form-grid, .form-grid.cols-3 { grid-template-columns:1fr; }
+
+      /* Topnav: tighter on tiny phones */
+      .topnav { gap:4px; padding:6px 8px; }
+      .btn-sm { padding:4px 6px; font-size:0.65rem; }
+      .topnav-brand { font-size:0.88rem; }
+
+      /* Main area */
+      .main { padding:10px 8px 60px; }
+      .sec-card { padding:12px 10px; margin-bottom:16px; }
+
+      /* Training exercise row: 2 columns */
+      .ex-row { grid-template-columns:1fr 1fr; gap:6px; }
+
+      /* Nutrition item row: name spans full width, then macros in 3 cols */
+      .item-row { grid-template-columns:1fr 1fr 1fr; gap:5px; }
+      .item-row > *:first-child { grid-column:1 / -1; }
+      /* Hide the header row — placeholders explain each input */
+      .nutri-header { display:none; }
+
+      /* Sets coach grid: tighter columns */
+      .sets-coach-head { grid-template-columns:22px 62px 1fr 20px; gap:4px; font-size:0.62rem; }
+      .sets-coach-row  { grid-template-columns:22px 62px 1fr 20px; gap:4px; }
+      .sets-coach-row input { font-size:0.78rem; padding:3px 4px; }
+      .sets-coach-range input { width:38px !important; }
+
+      /* Muscle pills: wrap nicely */
+      .muscle-row { gap:4px; }
+      .muscle-pill { padding:4px 9px; font-size:0.72rem; }
+
+      /* Day block */
+      .day-block { padding:12px 12px; }
+      .day-block-head { gap:6px; }
+
+      /* Meal block */
+      .meal-block { padding:12px 12px; }
+
+      /* AI box */
+      .ai-box { padding:10px 12px; }
+      .ai-textarea { font-size:0.84rem; min-height:60px; }
+
+      /* Section card title */
+      .sec-card-title { font-size:0.9rem; flex-wrap:wrap; gap:6px; }
+
+      /* Modal */
+      .modal { padding:20px 16px; }
     }
   </style>
 </head>
