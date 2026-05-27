@@ -94,6 +94,14 @@
     .ai-textarea { width: 100%; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: var(--white); font-family: 'Heebo', sans-serif; font-size: 0.88rem; padding: 10px 12px; resize: vertical; min-height: 72px; outline: none; transition: border-color 0.2s; line-height: 1.6; }
     .ai-textarea:focus { border-color: var(--gold); }
     .ai-status { font-size: 0.78rem; color: var(--muted); margin-right: 10px; }
+    /* ── File attachment UI ── */
+    .ai-attach-row { display:flex; align-items:center; gap:8px; margin-top:8px; flex-wrap:wrap; }
+    .btn-attach { display:inline-flex; align-items:center; gap:5px; padding:5px 11px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.14); border-radius:8px; color:var(--muted); font-family:'Heebo',sans-serif; font-size:0.77rem; font-weight:700; cursor:pointer; transition:all 0.2s; white-space:nowrap; }
+    .btn-attach:hover { border-color:rgba(255,107,0,0.4); color:var(--orange); background:rgba(255,107,0,0.05); }
+    .btn-attach.has-file { border-color:rgba(74,222,128,0.4); color:#4ade80; background:rgba(74,222,128,0.05); }
+    .attach-filename { font-size:0.74rem; color:#4ade80; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:180px; }
+    .btn-attach-clr { background:none; border:none; color:#555; cursor:pointer; font-size:0.82rem; padding:2px 6px; border-radius:4px; transition:color 0.2s; flex-shrink:0; }
+    .btn-attach-clr:hover { color:#ff7070; }
     .meal-alts { margin-top:12px; padding:10px 14px; background:rgba(60,180,255,0.04); border:1px solid rgba(60,180,255,0.18); border-radius:8px; }
     .meal-alts-row { display:flex; align-items:flex-start; gap:8px; margin-bottom:5px; flex-wrap:wrap; font-size:0.77rem; }
     .meal-alts-row:last-child { margin-bottom:0; }
@@ -487,6 +495,55 @@
   const KEY  = 'sb_publishable_k3M7SfBeiBGs3rTKewBzWQ_7RHRskB9';
   const CLAUDE_KEY = atob('c2stYW50LWFwaTAzLVRFbWJWYk9YUHlTV2o1RVRnd2tCNmkwLWRWLUE2aUlSbzhCVE0xckJGaGxqUzE4V2hOOWdoOEhtVkgtOVYxUXlMSm01NE5QOTZGNTVBNF9GUS15NHlBLTViQXRnZ0FB');
   const sb   = supabase.createClient(URL_, KEY);
+
+  // ─── AI file-attachment utilities ─────────────────────────────────────
+  let _pendingPlanFile  = null;
+  let _pendingNutriFile = null;
+
+  async function _doAttach(inputId, btnId, nameId, clrId) {
+    const input = document.getElementById(inputId);
+    const f = input && input.files[0];
+    if (!f) return null;
+    if (f.size > 20 * 1024 * 1024) { alert('הקובץ גדול מ-20MB — יש לדחוס לפני העלאה'); input.value=''; return null; }
+    const b64 = await new Promise((res,rej) => { const r=new FileReader(); r.onload=e=>res(e.target.result.split(',')[1]); r.onerror=rej; r.readAsDataURL(f); });
+    const mt = f.type;
+    let block;
+    if (mt === 'application/pdf') {
+      block = { type:'document', source:{ type:'base64', media_type:'application/pdf', data:b64 } };
+    } else if (['image/jpeg','image/png','image/webp','image/gif'].includes(mt)) {
+      block = { type:'image', source:{ type:'base64', media_type:mt, data:b64 } };
+    } else { alert('נתמכים: PDF, JPG, PNG, WEBP, GIF'); input.value=''; return null; }
+    const btn=document.getElementById(btnId), nm=document.getElementById(nameId), clr=document.getElementById(clrId);
+    if (btn) btn.classList.add('has-file');
+    if (nm)  { nm.textContent=f.name; nm.style.display='inline'; }
+    if (clr) clr.style.display='inline';
+    return block;
+  }
+  function _clearAttach(inputId, btnId, nameId, clrId) {
+    const el=document.getElementById(inputId); if(el) el.value='';
+    const btn=document.getElementById(btnId), nm=document.getElementById(nameId), clr=document.getElementById(clrId);
+    if(btn) btn.classList.remove('has-file');
+    if(nm)  nm.style.display='none';
+    if(clr) clr.style.display='none';
+  }
+  async function claudeFetch(bodyObj, fileBlock) {
+    const body = fileBlock
+      ? { ...bodyObj, messages: bodyObj.messages.map(m =>
+            typeof m.content==='string' ? { ...m, content:[fileBlock,{type:'text',text:m.content}] } : m) }
+      : bodyObj;
+    return fetch('https://api.anthropic.com/v1/messages', {
+      method:'POST',
+      headers:{ 'Content-Type':'application/json','x-api-key':CLAUDE_KEY,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true' },
+      body: JSON.stringify(body)
+    });
+  }
+  async function attachPlanFile()  { _pendingPlanFile  = await _doAttach('plan-file','btn-plan-attach','plan-fname','plan-fclr'); }
+  function  clearPlanAttach()      { _clearAttach('plan-file','btn-plan-attach','plan-fname','plan-fclr'); _pendingPlanFile=null; }
+  async function attachNutriFile() { _pendingNutriFile = await _doAttach('nutri-file','btn-nutri-attach','nutri-fname','nutri-fclr'); }
+  function  clearNutriAttach()     { _clearAttach('nutri-file','btn-nutri-attach','nutri-fname','nutri-fclr'); _pendingNutriFile=null; }
+  /** Wraps text + optional file block into Claude content (string or array) */
+  function _withFile(text, block) { return block ? [block, { type:'text', text }] : text; }
+  // ──────────────────────────────────────────────────────────────────────
 
   const ONESIGNAL_APP_ID   = 'fe16a494-b8de-47e9-8a29-de052e048ec8';
   const ONESIGNAL_REST_KEY = 'os_v2_app_7ylkjffy3zd6tcrj3ycs4beozaggpy5dukfe45efqruamrlljsrgz4rncsssvzvsbpt2df3zts2vdwcl2qg6zowamqntfmprxzppmjq';
@@ -937,6 +994,12 @@
         <div class="ai-box">
           <div class="ai-box-title">✨ בנה תוכנית עם AI</div>
           <textarea class="ai-textarea" id="ai-prompt" placeholder="תאר את התוכנית: ימי אימון, מטרה, ציוד, רמה, מוקד שרירים...&#10;דוגמה: 3 ימי אימון בשבוע, חדר כושר מלא, מטרת מסה, רמת ביניים, A/B/C split"></textarea>
+          <div class="ai-attach-row">
+            <input type="file" id="plan-file" accept=".pdf,image/jpeg,image/png,image/webp,image/gif" style="display:none;" onchange="attachPlanFile()"/>
+            <button class="btn-attach" id="btn-plan-attach" type="button" onclick="document.getElementById('plan-file').click()">📎 צרף תוכנית / תמונה</button>
+            <span class="attach-filename" id="plan-fname" style="display:none;"></span>
+            <button class="btn-attach-clr" id="plan-fclr" type="button" onclick="clearPlanAttach()" style="display:none;" title="הסר קובץ">✕</button>
+          </div>
           <div style="display:flex;align-items:center;margin-top:10px;">
             <button class="btn-sm btn-orange" id="ai-gen-btn" onclick="generatePlanWithAI()">✨ צור תוכנית</button>
             <span class="ai-status" id="ai-status"></span>
@@ -961,6 +1024,12 @@
         <div class="ai-box" style="margin-top:14px;">
           <div class="ai-box-title">✨ בניית תפריט עם AI</div>
           <textarea class="ai-textarea" id="nutri-ai-prompt" placeholder='תאר את המטרה: לדוגמה "בניית מסה לגבר 3 ארוחות ביום" — הבינה תבנה תפריט מלא עם חלופות למקורות חלבון, פחמימה ושומן בכל ארוחה'></textarea>
+          <div class="ai-attach-row">
+            <input type="file" id="nutri-file" accept=".pdf,image/jpeg,image/png,image/webp,image/gif" style="display:none;" onchange="attachNutriFile()"/>
+            <button class="btn-attach" id="btn-nutri-attach" type="button" onclick="document.getElementById('nutri-file').click()">📎 צרף תפריט / תמונה</button>
+            <span class="attach-filename" id="nutri-fname" style="display:none;"></span>
+            <button class="btn-attach-clr" id="nutri-fclr" type="button" onclick="clearNutriAttach()" style="display:none;" title="הסר קובץ">✕</button>
+          </div>
           <div style="display:flex;align-items:center;gap:10px;margin-top:8px;">
             <button class="btn-sm btn-orange" id="nutri-ai-btn" onclick="generateNutritionWithAI()">✨ בנה תפריט</button>
             <span class="ai-status" id="nutri-ai-status"></span>
@@ -1297,7 +1366,7 @@
         body: JSON.stringify({
           model: 'claude-sonnet-4-6',
           max_tokens: 4096,
-          messages: [{ role: 'user', content:
+          messages: [{ role: 'user', content: _withFile(
 `אתה TRAINER AI — מערכת בניית תוכניות אימון מקצועית של HF Coaching.
 המערכת מבוססת על שיטת HF הייחודית. עליך לפעול לפיה בלבד — לא לפי שיטות כושר גנריות.
 
@@ -1419,7 +1488,7 @@ Bro Split: 6-8 תרגילים לשריר, דגש על מבודדים, ניתן 2
 
 ## ═══ פורמט תשובה ═══
 החזר אך ורק JSON תקני ללא markdown ללא הסבר:
-[{"day":"יום א׳ — PUSH","muscles":["חזה","כתפיים","יד אחורית"],"exercises":[{"name":"לחיצת חזה במוט","sets_reps":"5×20/15/12/10/8","notes":""},{"name":"פרפר חזה במכונה","sets_reps":"4×12-20","notes":""}]}]` }]
+[{"day":"יום א׳ — PUSH","muscles":["חזה","כתפיים","יד אחורית"],"exercises":[{"name":"לחיצת חזה במוט","sets_reps":"5×20/15/12/10/8","notes":""},{"name":"פרפר חזה במכונה","sets_reps":"4×12-20","notes":""}]}]`, _pendingPlanFile) }]
         })
       });
       if (!res.ok) { const e = await res.json(); throw new Error(e.error?.message || `HTTP ${res.status}`); }
@@ -1493,7 +1562,7 @@ Bro Split: 6-8 תרגילים לשריר, דגש על מבודדים, ניתן 2
         body: JSON.stringify({
           model: 'claude-sonnet-4-6',
           max_tokens: 4096,
-          messages: [{ role: 'user', content:
+          messages: [{ role: 'user', content: _withFile(
 `אתה NUTRITION AI — מערכת בניית תפריטי תזונה מקצועית של HF Coaching.
 
 ## בקשה:
@@ -1555,7 +1624,7 @@ ${macrosLine ? '\n' + macrosLine : ''}
 פלפל אדום|100|31|1|6|0.3
 
 ## פורמט — החזר JSON בלבד ללא markdown:
-[{"meal":"ארוחת בוקר","items":[{"food":"שיבולת שועל","quantity":"80 גרם","calories":296,"protein":10,"carbs":52,"fat":5.6}],"protein_options":["יוגורט יווני 0%","גבינה לבנה 5%","חלבון ביצה"],"carbs_options":["שיבולת שועל","לחם מלא","פיתה מלאה"],"fat_options":["שקדים","אבוקדו","טחינה גולמית"]}]` }]
+[{"meal":"ארוחת בוקר","items":[{"food":"שיבולת שועל","quantity":"80 גרם","calories":296,"protein":10,"carbs":52,"fat":5.6}],"protein_options":["יוגורט יווני 0%","גבינה לבנה 5%","חלבון ביצה"],"carbs_options":["שיבולת שועל","לחם מלא","פיתה מלאה"],"fat_options":["שקדים","אבוקדו","טחינה גולמית"]}]`, _pendingNutriFile) }]
         })
       });
       if (!res.ok) { const e = await res.json(); throw new Error(e.error?.message || `HTTP ${res.status}`); }
