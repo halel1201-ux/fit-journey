@@ -1161,8 +1161,8 @@
     const cur = coachTokensCache[email] ?? 0;
     const newBal = cur + amount;
     const { error } = await sbAdmin.from('coach_tokens')
-      .upsert({ coach_email: email, balance: newBal, updated_at: new Date().toISOString() });
-    if (error) { toast('שגיאה בעדכון טוקנים', 'err'); return; }
+      .upsert({ coach_email: email, balance: newBal, updated_at: new Date().toISOString() }, { onConflict: 'coach_email' });
+    if (error) { console.error('grantCoachTokens error:', error); toast('שגיאה: ' + error.message, 'err'); return; }
     coachTokensCache[email] = newBal;
     toast(`✓ נוספו ${amount} טוקנים (סה"כ: ${newBal})`, 'ok');
     renderCoachesTable();
@@ -1173,8 +1173,8 @@
     const val = parseInt(inp?.value);
     if (isNaN(val) || val < 0) { toast('הכנס מספר תקין', 'err'); return; }
     const { error } = await sbAdmin.from('coach_tokens')
-      .upsert({ coach_email: email, balance: val, updated_at: new Date().toISOString() });
-    if (error) { toast('שגיאה', 'err'); return; }
+      .upsert({ coach_email: email, balance: val, updated_at: new Date().toISOString() }, { onConflict: 'coach_email' });
+    if (error) { console.error('setCoachTokensDirect error:', error); toast('שגיאה: ' + error.message, 'err'); return; }
     coachTokensCache[email] = val;
     if (inp) inp.value = '';
     toast(`✓ יתרה קבועה ל-${val} טוקנים`, 'ok');
