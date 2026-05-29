@@ -106,7 +106,8 @@
     .meal-alts-row { display:flex; align-items:flex-start; gap:8px; margin-bottom:5px; flex-wrap:wrap; font-size:0.77rem; }
     .meal-alts-row:last-child { margin-bottom:0; }
     .alt-label { font-weight:700; color:#60b4ff; flex-shrink:0; min-width:60px; }
-    .alt-pill { display:inline-block; padding:2px 9px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:10px; color:#ccc; margin:2px; }
+    .alt-pill { display:inline-block; padding:3px 10px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:10px; color:#ccc; margin:2px; cursor:pointer; transition:background 0.15s,border-color 0.15s,color 0.15s; }
+    .alt-pill:hover { background:rgba(255,107,0,0.12); border-color:rgba(255,107,0,0.4); color:#fff; }
     .modal-bg { position:fixed;inset:0;background:rgba(0,0,0,0.8);backdrop-filter:blur(6px);z-index:200;display:none;align-items:center;justify-content:center;padding:20px; }
     .modal-bg.open { display:flex; }
     .modal { background:#151515;border:1px solid rgba(255,107,0,0.35);border-radius:16px;padding:28px;width:100%;max-width:440px;box-shadow:0 0 60px rgba(255,107,0,0.15); }
@@ -1813,9 +1814,9 @@ ${macrosLine ? '\n' + macrosLine : ''}
         ${(meal.protein_options && meal.protein_options.length) || (meal.carbs_options && meal.carbs_options.length) || (meal.fat_options && meal.fat_options.length) ? `
         <div class="meal-alts">
           <div style="font-size:0.78rem;font-weight:700;color:#60b4ff;margin-bottom:8px;">חלופות לארוחה זו:</div>
-          ${meal.protein_options && meal.protein_options.length ? `<div class="meal-alts-row"><span class="alt-label">חלבון:</span><span>${meal.protein_options.map(o=>`<span class="alt-pill">${esc(o)}</span>`).join('')}</span></div>` : ''}
-          ${meal.carbs_options && meal.carbs_options.length ? `<div class="meal-alts-row"><span class="alt-label">פחמימה:</span><span>${meal.carbs_options.map(o=>`<span class="alt-pill">${esc(o)}</span>`).join('')}</span></div>` : ''}
-          ${meal.fat_options && meal.fat_options.length ? `<div class="meal-alts-row"><span class="alt-label">שומן:</span><span>${meal.fat_options.map(o=>`<span class="alt-pill">${esc(o)}</span>`).join('')}</span></div>` : ''}
+          ${meal.protein_options && meal.protein_options.length ? `<div class="meal-alts-row"><span class="alt-label">חלבון:</span><span>${meal.protein_options.map(o=>`<span class="alt-pill" onclick="swapMealChip(${mi},'${esc(o).replace(/'/g,"\\'")}','protein')" title="החלף מקור חלבון ב: ${esc(o)}">${esc(o)}</span>`).join('')}</span></div>` : ''}
+          ${meal.carbs_options && meal.carbs_options.length ? `<div class="meal-alts-row"><span class="alt-label">פחמימה:</span><span>${meal.carbs_options.map(o=>`<span class="alt-pill" onclick="swapMealChip(${mi},'${esc(o).replace(/'/g,"\\'")}','carbs')" title="החלף מקור פחמימה ב: ${esc(o)}">${esc(o)}</span>`).join('')}</span></div>` : ''}
+          ${meal.fat_options && meal.fat_options.length ? `<div class="meal-alts-row"><span class="alt-label">שומן:</span><span>${meal.fat_options.map(o=>`<span class="alt-pill" onclick="swapMealChip(${mi},'${esc(o).replace(/'/g,"\\'")}','fat')" title="החלף מקור שומן ב: ${esc(o)}">${esc(o)}</span>`).join('')}</span></div>` : ''}
         </div>` : ''}
       </div>`).join('');
   }
@@ -1842,10 +1843,11 @@ ${macrosLine ? '\n' + macrosLine : ''}
         ${alts.length?alts.map((a,ai)=>{
           const _af=allFoodItems.find(f=>f.id===a.food_id||f.name===a.name);
           const _eqG=(_af&&_af.calories&&item.calories)?Math.round(item.calories/_af.calories*100):null;
-          return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;padding:4px 8px;background:rgba(255,255,255,0.03);border-radius:6px;">
+          return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;padding:6px 10px;background:rgba(255,255,255,0.03);border-radius:8px;border:1px solid rgba(255,255,255,0.05);">
             <span style="font-size:0.82rem;flex:1;color:#ccc;">${esc(a.name)}</span>
             ${_eqG?`<span style="font-size:0.75rem;color:var(--orange);font-weight:700;">${_eqG}g</span>`:'<span style="font-size:0.72rem;color:#555;">?g</span>'}
-            <button onmousedown="removeAlt(${mi},${ii},${ai})" style="padding:1px 6px;background:rgba(255,70,70,0.1);border:1px solid rgba(255,70,70,0.3);border-radius:4px;color:#ff7070;cursor:pointer;font-size:0.7rem;">✕</button>
+            ${_eqG?`<button onmousedown="swapItemWithAlt(${mi},${ii},${_af?_af.id:0},'${(a.name||'').replace(/'/g,"\\'")}',${_eqG})" style="padding:3px 10px;background:rgba(255,107,0,0.15);border:1px solid rgba(255,107,0,0.4);border-radius:6px;color:var(--orange);cursor:pointer;font-size:0.75rem;font-weight:700;font-family:'Heebo',sans-serif;white-space:nowrap;">החלף ↙</button>`:''}
+            <button onmousedown="removeAlt(${mi},${ii},${ai})" style="padding:2px 7px;background:rgba(255,70,70,0.1);border:1px solid rgba(255,70,70,0.3);border-radius:4px;color:#ff7070;cursor:pointer;font-size:0.7rem;">✕</button>
           </div>`;
         }).join(''):'<div style="color:#555;font-size:0.78rem;margin-bottom:8px;">אין חלופות עדיין — חפש מאכל מהמאגר</div>'}
         <div style="position:relative;margin-top:6px;">
@@ -1965,6 +1967,47 @@ ${macrosLine ? '\n' + macrosLine : ''}
   function removeAlt(mi, ii, ai) {
     nutritionPlan[mi].items[ii].alternatives.splice(ai, 1);
     renderNutritionEditor();
+  }
+
+  // מחליף פריט בארוחה עם חלופה — ממלא כמות אוטומטית לפי קלוריות שקולות
+  function swapItemWithAlt(mi, ii, foodId, foodName, eqG) {
+    const af = allFoodItems.find(f => f.id === foodId || f.name === foodName);
+    if (!af || !af.calories) { toast('המזון לא נמצא במאגר הנתונים', 'err'); return; }
+    const item = nutritionPlan[mi].items[ii];
+    const r = eqG / 100;
+    item.food     = af.name;
+    item.quantity = eqG + 'g';
+    item._qty     = eqG;
+    item._unit    = 'גרם';
+    item.calories = Math.round(af.calories * r);
+    item.protein  = Math.round(af.protein  * r * 10) / 10;
+    item.carbs    = Math.round(af.carbs    * r * 10) / 10;
+    item.fat      = Math.round(af.fat      * r * 10) / 10;
+    item._altOpen = false;
+    renderNutritionEditor();
+    toast(`✓ הוחלף ב-${af.name} (${eqG}g)`, 'ok');
+  }
+
+  // מחליף את הפריט המוביל בקטגוריה (חלבון/פחמימה/שומן) לפי chip שנלחץ
+  function swapMealChip(mi, foodName, category) {
+    const meal  = nutritionPlan[mi];
+    const items = meal.items || [];
+    const af    = allFoodItems.find(f => f.name === foodName);
+    if (!af || !af.calories) { toast('המזון לא נמצא במאגר: ' + foodName, 'err'); return; }
+
+    // מוצא את הפריט עם הערך הגבוה ביותר בקטגוריה
+    let targetIdx = 0;
+    let maxVal = -1;
+    items.forEach((item, i) => {
+      const val = category === 'protein' ? (+item.protein||0)
+                : category === 'carbs'   ? (+item.carbs||0)
+                :                          (+item.fat||0);
+      if (val > maxVal) { maxVal = val; targetIdx = i; }
+    });
+
+    if (!items[targetIdx]) return;
+    const eqG = Math.round((items[targetIdx].calories || 100) / af.calories * 100);
+    swapItemWithAlt(mi, targetIdx, af.id, af.name, eqG);
   }
   function showAltSuggCoach(input, mi, ii) {
     hideAltSuggCoach();
