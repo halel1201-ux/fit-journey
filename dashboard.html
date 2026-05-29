@@ -445,6 +445,91 @@
       .hist-date { font-size: 0.82rem; }
       .hist-ex { font-size: 0.8rem; }
     }
+
+  /* ─── VOLUME MODAL ─── */
+  #volume-modal {
+    position: fixed; inset: 0; z-index: 9998;
+    background: rgba(0,0,0,0.88);
+    display: none; align-items: center; justify-content: center;
+    padding: 16px;
+  }
+  .vol-card {
+    background: linear-gradient(160deg, #1a1a1a 0%, #111 100%);
+    border: 1px solid rgba(255,107,0,0.45);
+    border-radius: 20px;
+    box-shadow: 0 0 60px rgba(255,107,0,0.3), 0 0 120px rgba(255,107,0,0.1);
+    padding: 36px 32px 28px;
+    max-width: 380px; width: 100%;
+    text-align: center;
+    position: relative;
+    animation: vol-pop 0.4s cubic-bezier(0.34,1.56,0.64,1) forwards;
+  }
+  @keyframes vol-pop {
+    from { transform: scale(0.7); opacity: 0; }
+    to   { transform: scale(1);   opacity: 1; }
+  }
+  .vol-close-btn {
+    position: absolute; top: 14px; left: 16px;
+    background: none; border: none; color: #666;
+    font-size: 1.3rem; cursor: pointer; line-height: 1;
+    transition: color 0.2s;
+  }
+  .vol-close-btn:hover { color: #fff; }
+  .vol-emoji-big {
+    font-size: 3.5rem; line-height: 1;
+    margin-bottom: 6px;
+    animation: vol-bounce 0.6s 0.3s ease both;
+  }
+  @keyframes vol-bounce {
+    0%   { transform: scale(0) rotate(-15deg); }
+    70%  { transform: scale(1.2) rotate(5deg); }
+    100% { transform: scale(1) rotate(0deg); }
+  }
+  .vol-label {
+    font-size: 0.8rem; font-weight: 400;
+    color: #888; letter-spacing: 2px; text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  .vol-number {
+    font-size: clamp(2.2rem, 8vw, 3rem);
+    font-weight: 900;
+    background: linear-gradient(135deg, #FF6B00, #FFD700);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1.1; margin-bottom: 12px;
+    min-height: 1.2em;
+  }
+  .vol-compare-text {
+    font-size: 1rem; font-weight: 700; color: #fff;
+    margin-bottom: 10px; line-height: 1.4;
+  }
+  .vol-vs-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 20px; padding: 6px 16px;
+    font-size: 0.88rem; font-weight: 700;
+    margin-bottom: 24px;
+  }
+  .vol-sets-breakdown {
+    display: flex; justify-content: center; gap: 18px;
+    margin-bottom: 20px;
+  }
+  .vol-stat {
+    text-align: center;
+  }
+  .vol-stat-num { font-size: 1.2rem; font-weight: 900; color: var(--orange, #FF6B00); }
+  .vol-stat-lbl { font-size: 0.72rem; color: #777; }
+  .vol-divider { width: 1px; background: rgba(255,255,255,0.1); }
+  .vol-btn-close {
+    width: 100%; padding: 13px;
+    background: linear-gradient(135deg, #FF6B00, #FF8C00);
+    color: #fff; font-family: 'Heebo', sans-serif;
+    font-size: 1rem; font-weight: 700;
+    border: none; border-radius: 10px; cursor: pointer;
+    box-shadow: 0 4px 20px rgba(255,107,0,0.35);
+    transition: opacity 0.2s;
+  }
+  .vol-btn-close:hover { opacity: 0.88; }
   </style>
 </head>
 <body>
@@ -811,7 +896,7 @@
           ${(day.exercises || []).map(ex => `
             <div class="exercise-row">
               <span class="ex-name">${ex.name}</span>
-              ${ex.sets ? `<span class="ex-sets">${ex.sets}</span>` : ''}
+              ${ex.sets ? `<span class="ex-sets">${formatSetsDisplay(ex.sets)}</span>` : ''}
               ${ex.video_url ? `<a class="ex-video" href="${ex.video_url}" target="_blank" rel="noopener">▶ צפה</a>` : ''}
             </div>
           `).join('')}
@@ -907,6 +992,18 @@
     document.getElementById('workout-session').classList.add('open');
     document.body.style.overflow = 'hidden';
     workoutSession.timerInterval = setInterval(tickClock, 1000);
+  }
+
+  function formatSetsDisplay(sets) {
+    if (!sets && sets !== 0) return '';
+    if (typeof sets === 'string') return sets;
+    if (typeof sets === 'number') return sets + ' סטים';
+    if (Array.isArray(sets)) {
+      const count = sets.length;
+      const r = sets[0]?.reps_min || sets[0]?.reps_max || sets[0]?.reps || '';
+      return r ? `${count}×${r}` : `${count} סטים`;
+    }
+    return '';
   }
 
   function parseSets(spec) {
@@ -1086,12 +1183,21 @@
 
     if (!exercises.length) { alert('יש לסיים לפחות סט אחד לפני שמירה'); return; }
 
-    // Fetch historical logs BEFORE saving for PR comparison
+    // Fetch historical logs BEFORE saving for PR + volume comparison
     const { data: histLogs } = await sb.from('workout_logs')
-      .select('exercises')
+      .select('exercises, day_name, total_volume')
       .eq('client_email', currentEmail)
       .order('log_date', { ascending: false })
       .limit(100);
+
+    // Calculate volume for this workout
+    const totalVolume = calcVolume(exercises);
+
+    // Find previous volume for same day
+    const prevLog = (histLogs || []).find(l => l.day_name === workoutSession.dayName);
+    const prevVol = prevLog?.total_volume > 0
+      ? prevLog.total_volume
+      : calcVolume(prevLog?.exercises);
 
     btn.disabled = true; btn.textContent = 'שומר...';
     const { error } = await sb.from('workout_logs').insert({
@@ -1099,7 +1205,8 @@
       log_date: new Date().toISOString().split('T')[0],
       day_name: workoutSession.dayName,
       exercises,
-      notes: `משך אימון: ${Math.floor(elapsed / 60)} דקות`
+      notes: `משך אימון: ${Math.floor(elapsed / 60)} דקות`,
+      total_volume: totalVolume
     });
     btn.disabled = false; btn.textContent = '✓ סיים ושלח';
     if (error) { alert('שגיאה בשמירה: ' + error.message); return; }
@@ -1148,7 +1255,11 @@
       })();
     }
 
-    if (prs.length) showDashToast('🏆 שיא אישי! ' + prs.map(p => p.exercise).join(' · '));
+    // Show volume popup
+    const totalSets = exercises.reduce((a, ex) => a + (ex.sets?.length || 0), 0);
+    showVolumeModal(totalVolume, prevVol || 0, totalSets, exercises.length, Math.floor(elapsed / 60));
+
+    if (prs.length) setTimeout(() => showDashToast('🏆 שיא אישי! ' + prs.map(p => p.exercise).join(' · ')), 4500);
 
     recLogs = null;
     closeSession();
@@ -1944,7 +2055,116 @@ ${foodList || 'אין פריטים'}
     renderNutriBody();
   }
 
+  /* ── VOLUME ── */
+  const VOL_MILESTONES = [
+    { min: 0,     emoji: '🌱', text: 'כל אימון מתחיל בצעד ראשון — המשך כך!' },
+    { min: 400,   emoji: '🐄', text: 'הרמת משקל של פרה שלמה — לא רע בכלל!' },
+    { min: 900,   emoji: '🐎', text: 'כמו להרים סוס — אתה חזק!' },
+    { min: 1500,  emoji: '🚗', text: 'כמו להרים מכונית ספורט — מרשים!' },
+    { min: 2500,  emoji: '🦛', text: 'כמו להרים היפופוטם — חיה אמיתית!' },
+    { min: 4000,  emoji: '🐘', text: 'כמו להרים פיל אפריקאי — מטורף!' },
+    { min: 6500,  emoji: '🚒', text: 'כמו להרים מכבש אש — מי אתה בכלל?!' },
+    { min: 10000, emoji: '🦣', text: 'כמו להרים ממוטה — YOU ARE A MACHINE!' },
+    { min: 16000, emoji: '🚌', text: 'כמו להרים אוטובוס שלם — אגדה חיה!' },
+    { min: 25000, emoji: '✈️', text: 'כמו להרים מטוס — אתה לא אנושי!' },
+    { min: 40000, emoji: '🐋', text: 'כמו להרים לוויתן כחול — חזק מהטבע עצמו!' },
+  ];
+
+  function calcVolume(exercises) {
+    let total = 0;
+    (exercises || []).forEach(ex => {
+      (ex.sets || []).forEach(s => {
+        const w = parseFloat(s.weight) || 0;
+        const r = parseInt(s.reps) || 0;
+        if (w > 0) total += w * r;
+      });
+    });
+    return Math.round(total);
+  }
+
+  function getVolMilestone(vol) {
+    let m = VOL_MILESTONES[0];
+    for (const ms of VOL_MILESTONES) {
+      if (vol >= ms.min) m = ms;
+      else break;
+    }
+    return m;
+  }
+
+  function animateCounter(id, to, duration) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const start = performance.now();
+    function step(now) {
+      const t = Math.min((now - start) / duration, 1);
+      const ease = 1 - Math.pow(1 - t, 3);
+      const val = Math.round(to * ease);
+      el.textContent = val.toLocaleString('he-IL') + ' ק"ג';
+      if (t < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  }
+
+  function showVolumeModal(currentVol, prevVol, totalSets, exCount, durationMin) {
+    const m = getVolMilestone(currentVol);
+
+    document.getElementById('vol-emoji').textContent = m.emoji;
+    document.getElementById('vol-compare-text').textContent = m.text;
+    document.getElementById('vol-stat-sets').textContent = totalSets;
+    document.getElementById('vol-stat-ex').textContent = exCount;
+    document.getElementById('vol-stat-dur').textContent = durationMin;
+
+    const vsEl = document.getElementById('vol-vs-badge');
+    if (prevVol > 0) {
+      const diff = currentVol - prevVol;
+      const pct = Math.round(Math.abs(diff) / prevVol * 100);
+      if (diff > 0)      vsEl.innerHTML = `<span style="color:#4ade80">↑ ${pct}%</span> מהאימון הקודם`;
+      else if (diff < 0) vsEl.innerHTML = `<span style="color:#f87171">↓ ${pct}%</span> מהאימון הקודם`;
+      else               vsEl.innerHTML = `<span style="color:#aaa">⟷ זהה לאימון הקודם</span>`;
+    } else {
+      vsEl.innerHTML = '⭐ האימון הראשון שלך ביום הזה!';
+    }
+
+    document.getElementById('vol-number').textContent = '0 ק"ג';
+    const modal = document.getElementById('volume-modal');
+    modal.style.display = 'flex';
+    setTimeout(() => animateCounter('vol-number', currentVol, 1800), 200);
+  }
+
+  function closeVolumeModal() {
+    document.getElementById('volume-modal').style.display = 'none';
+  }
+
   init();
 </script>
+
+<!-- ═══ VOLUME MODAL ═══ -->
+<div id="volume-modal" onclick="if(event.target===this)closeVolumeModal()">
+  <div class="vol-card">
+    <button class="vol-close-btn" onclick="closeVolumeModal()">✕</button>
+    <div class="vol-emoji-big" id="vol-emoji">💪</div>
+    <div class="vol-label">נפח אימון כולל</div>
+    <div class="vol-number" id="vol-number">0 ק"ג</div>
+    <div class="vol-compare-text" id="vol-compare-text"></div>
+    <div class="vol-vs-badge" id="vol-vs-badge"></div>
+    <div class="vol-sets-breakdown">
+      <div class="vol-stat">
+        <div class="vol-stat-num" id="vol-stat-sets">—</div>
+        <div class="vol-stat-lbl">סטים</div>
+      </div>
+      <div class="vol-divider"></div>
+      <div class="vol-stat">
+        <div class="vol-stat-num" id="vol-stat-ex">—</div>
+        <div class="vol-stat-lbl">תרגילים</div>
+      </div>
+      <div class="vol-divider"></div>
+      <div class="vol-stat">
+        <div class="vol-stat-num" id="vol-stat-dur">—</div>
+        <div class="vol-stat-lbl">דקות</div>
+      </div>
+    </div>
+    <button class="vol-btn-close" onclick="closeVolumeModal()">🔥 המשך כך!</button>
+  </div>
+</div>
 </body>
 </html>
