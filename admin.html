@@ -536,7 +536,9 @@
   const CLAUDE_KEY = atob('c2stYW50LWFwaTAzLVRFbWJWYk9YUHlTV2o1RVRnd2tCNmkwLWRWLUE2aUlSbzhCVE0xckJGaGxqUzE4V2hOOWdoOEhtVkgtOVYxUXlMSm01NE5QOTZGNTVBNF9GUS15NHlBLTViQXRnZ0FB');
   const ADMIN = 'halel1201@gmail.com';
   const sb = supabase.createClient(URL_, KEY);
-  const sbAdmin = supabase.createClient(URL_, SERVICE_KEY);
+  const sbAdmin = supabase.createClient(URL_, SERVICE_KEY, {
+    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }
+  });
 
   // ─── AI file-attachment utilities ─────────────────────────────────────
   let _pendingPlanFile  = null;
