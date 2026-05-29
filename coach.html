@@ -1469,7 +1469,7 @@
 ### 4 ראשי
 חובה (מורכב): סקוואט חופשי, סקוואט בסמית׳, פרונט סקוואט, לחיצת רגליים
 מבודד (כבל/מכונה): פשיטת ברכיים
-אופציונלי: האק סקוואט, בולגרי, מכרעים בהליכה
+אופציונלי: האק סקוואט, לאנץ בולגרי
 
 ### המסטרינג
 מורכב (חובה ראשון): דדליפט רומני, היפ טראסט, GHR
@@ -1904,13 +1904,21 @@ ${macrosLine ? '\n' + macrosLine : ''}
 
   /* ── RECORDS ── */
   let RECORD_EXERCISES = {
-    'חזה':['לחיצת חזה במשקולות','לחיצת חזה במוט חופשי','לחיצת חזה בסמית','לחיצת חזה בשיפוע חיובי במוט חופשי','לחיצת חזה בשיפוע חיובי בסמית','לחיצת חזה בשיפוע חיובי במשקולות'],
-    'רגליים':['סקוואט חופשי','סקוואט בסמית','דדליפט קונבנציונלי','דדליפט רומני','היפ טראסט'],
-    'גב':['פולי עליון לגב','חתירה במוט חופשי','חתירה בסמית'],
-    'יד קדמית':['יד קדמית במוט','יד קדמית בדאמבלים'],
-    'יד אחורית':['לחיצה צרה במוט','לחיצה צרה בסמית'],
-    'כתפיים':['לחיצת כתפיים במוט חופשי','לחיצת כתפיים בסמית','לחיצת כתפיים בדאמבלים'],
+    'חזה':       ['לחיצת חזה במשקולות','לחיצת חזה במוט חופשי','לחיצת חזה בסמית','לחיצת חזה בשיפוע חיובי במוט חופשי','לחיצת חזה בשיפוע חיובי בסמית','לחיצת חזה בשיפוע חיובי במשקולות'],
+    '4 ראשי':    ['סקוואט חופשי','סקוואט בסמית','לחיצת רגליים','האק סקוואט','לאנץ בולגרי'],
+    'המסטרינג':  ['דדליפט קונבנציונלי','דדליפט רומני','דדליפט רומני רגל רגל','היפ טראסט'],
+    'גב':        ['פולי עליון לגב','חתירה במוט חופשי','חתירה בסמית'],
+    'יד קדמית':  ['יד קדמית במוט','יד קדמית בדאמבלים'],
+    'יד אחורית': ['לחיצה צרה במוט','לחיצה צרה בסמית'],
+    'כתפיים':    ['לחיצת כתפיים במוט חופשי','לחיצת כתפיים בסמית','לחיצת כתפיים בדאמבלים','הרחקת כתפיים'],
   };
+  const RECORD_EX_RENAMES = {
+    'בולגרי ארבע ראשי':  'לאנץ בולגרי',
+    'לאנץ בולגרי גלוטס': 'לאנץ בולגרי',
+    'בולגרי':            'לאנץ בולגרי',
+  };
+  const RECORD_EX_FORCE_GROUP = { 'לאנץ בולגרי': '4 ראשי' };
+  function normalizeRecEx(name) { return RECORD_EX_RENAMES[name] || name; }
   const MEDALS=['🥇','🥈','🥉'];
   let recMode='strength', recMuscle='חזה', recExercise='לחיצת חזה במוט חופשי';
   let recLogs=null, recClients={}, recSteps=[];
@@ -1937,9 +1945,14 @@ ${macrosLine ? '\n' + macrosLine : ''}
     const inLogs=new Set();
     recLogs.forEach(log=>{ (log.exercises||[]).forEach(ex=>{ if(ex.name&&(ex.sets||[]).some(s=>s.weight&&s.reps)) inLogs.add(ex.name); }); });
     const built={};
-    const addEx=(name,mg)=>{ if(!built[mg]) built[mg]=[]; if(!built[mg].includes(name)) built[mg].push(name); };
-    (allExs||[]).forEach(e=>{ if(e.compound) addEx(e.name,e.muscle_group||'אחר'); });
-    inLogs.forEach(name=>{ const info=exNameToGroup[name]; addEx(name,info?info.mg:'אחר'); });
+    const addEx=(normName,mg)=>{
+      const forcedMg=RECORD_EX_FORCE_GROUP[normName]||mg;
+      if(!built[forcedMg]) built[forcedMg]=[];
+      if(RECORD_EX_FORCE_GROUP[normName]) Object.keys(built).forEach(g=>{ if(g!==forcedMg) built[g]=built[g].filter(n=>n!==normName); });
+      if(!built[forcedMg].includes(normName)) built[forcedMg].push(normName);
+    };
+    (allExs||[]).forEach(e=>{ if(e.compound) addEx(normalizeRecEx(e.name),e.muscle_group||'אחר'); });
+    inLogs.forEach(name=>{ const info=exNameToGroup[name]; addEx(normalizeRecEx(name),info?info.mg:'אחר'); });
     if(Object.keys(built).length){
       RECORD_EXERCISES=built;
       recMuscle=Object.keys(RECORD_EXERCISES)[0]||recMuscle;
@@ -1991,7 +2004,7 @@ ${macrosLine ? '\n' + macrosLine : ''}
     const best={};
     recLogs.forEach(log=>{
       (log.exercises||[]).forEach(ex=>{
-        if(ex.name!==exName) return;
+        if(normalizeRecEx(ex.name)!==exName) return;
         (ex.sets||[]).forEach(set=>{
           const orm=calc1RM(set.weight,set.reps); if(!orm) return;
           const cur=best[log.client_email];

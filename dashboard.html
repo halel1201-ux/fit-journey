@@ -148,9 +148,13 @@
     .rec-hdr-title { font-size: 1.1rem; font-weight: 900; background: linear-gradient(135deg,#FFD700,#FF6B00); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
     .btn-close-rec { background: rgba(255,255,255,0.07); border: none; color: var(--muted); width: 34px; height: 34px; border-radius: 50%; cursor: pointer; font-size: 1rem; }
     .rec-body { flex: 1; overflow-y: auto; padding: 20px 16px 40px; }
-    .rec-mode-tabs { display: flex; gap: 8px; margin-bottom: 20px; }
+    .rec-mode-tabs { display: flex; gap: 8px; margin-bottom: 12px; }
     .rec-tab { padding: 8px 18px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.04); color: var(--muted); font-family:'Heebo',sans-serif; font-size:0.85rem; font-weight:700; cursor:pointer; transition:all 0.2s; }
     .rec-tab.active { background: rgba(255,215,0,0.12); border-color: var(--gold); color: var(--gold); }
+    .rec-scope-tabs { display: flex; gap: 6px; margin-bottom: 18px; }
+    .scope-tab { flex: 1; padding: 7px 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.03); color: #666; font-family:'Heebo',sans-serif; font-size:0.82rem; font-weight:700; cursor:pointer; transition:all 0.2s; text-align:center; }
+    .scope-tab.active { background: rgba(255,107,0,0.15); border-color: var(--orange); color: var(--orange); }
+    .podium-coach { font-size:0.72rem; color:#666; font-weight:400; }
     .muscle-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
     .m-tab { padding: 5px 12px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.08); background: transparent; color: #555; font-family:'Heebo',sans-serif; font-size:0.75rem; font-weight:700; cursor:pointer; transition:all 0.2s; }
     .m-tab.active { background: rgba(255,107,0,0.12); border-color: var(--orange); color: var(--orange); }
@@ -1776,20 +1780,36 @@ ${foodList || 'אין פריטים'}
 
   /* ── RECORDS ── */
   let RECORD_EXERCISES = {
-    'חזה':        ['לחיצת חזה במשקולות','לחיצת חזה במוט חופשי','לחיצת חזה בסמית','לחיצת חזה בשיפוע חיובי במוט חופשי','לחיצת חזה בשיפוע חיובי בסמית','לחיצת חזה בשיפוע חיובי במשקולות'],
-    'רגליים':     ['סקוואט חופשי','סקוואט בסמית','דדליפט קונבנציונלי','דדליפט רומני','היפ טראסט'],
-    'גב':         ['פולי עליון לגב','חתירה במוט חופשי','חתירה בסמית'],
-    'יד קדמית':   ['יד קדמית במוט','יד קדמית בדאמבלים'],
-    'יד אחורית':  ['לחיצה צרה במוט','לחיצה צרה בסמית'],
-    'כתפיים':     ['לחיצת כתפיים במוט חופשי','לחיצת כתפיים בסמית','לחיצת כתפיים בדאמבלים'],
+    'חזה':       ['לחיצת חזה במשקולות','לחיצת חזה במוט חופשי','לחיצת חזה בסמית','לחיצת חזה בשיפוע חיובי במוט חופשי','לחיצת חזה בשיפוע חיובי בסמית','לחיצת חזה בשיפוע חיובי במשקולות'],
+    '4 ראשי':    ['סקוואט חופשי','סקוואט בסמית','לחיצת רגליים','האק סקוואט','לאנץ בולגרי'],
+    'המסטרינג':  ['דדליפט קונבנציונלי','דדליפט רומני','דדליפט רומני רגל רגל','היפ טראסט'],
+    'גב':        ['פולי עליון לגב','חתירה במוט חופשי','חתירה בסמית'],
+    'יד קדמית':  ['יד קדמית במוט','יד קדמית בדאמבלים'],
+    'יד אחורית': ['לחיצה צרה במוט','לחיצה צרה בסמית'],
+    'כתפיים':    ['לחיצת כתפיים במוט חופשי','לחיצת כתפיים בסמית','לחיצת כתפיים בדאמבלים','הרחקת כתפיים'],
   };
+
+  // שינויי שמות: מיפוי שם ישן → שם חדש בטבלת שיאים
+  const RECORD_EX_RENAMES = {
+    'בולגרי ארבע ראשי':  'לאנץ בולגרי',
+    'לאנץ בולגרי גלוטס': 'לאנץ בולגרי',
+    'בולגרי':            'לאנץ בולגרי',
+  };
+  // כפייה: תרגיל יופיע רק בקבוצה המוגדרת כאן
+  const RECORD_EX_FORCE_GROUP = {
+    'לאנץ בולגרי': '4 ראשי',
+  };
+  function normalizeRecEx(name) { return RECORD_EX_RENAMES[name] || name; }
+
   const MEDALS = ['🥇','🥈','🥉'];
 
   let recMode     = 'strength';
+  let recScope    = 'mine';   // 'mine' = הנבחרת שלנו | 'all' = כלליים
   let recMuscle   = 'חזה';
   let recExercise = 'לחיצת חזה במוט חופשי';
   let recLogs     = null;
   let recClients  = {};
+  let recClientCoach = {};   // clientEmail → coachEmail
   let recSteps    = [];
 
   function calc1RM(w, r) {
@@ -1806,13 +1826,17 @@ ${foodList || 'אין פריטים'}
     const today = new Date().toISOString().split('T')[0];
     const [{ data: logs }, { data: clients }, { data: steps }, { data: allExs }] = await Promise.all([
       sb.from('workout_logs').select('client_email,log_date,exercises'),
-      sb.from('clients').select('email,name'),
+      sb.from('clients').select('email,name,coach_email'),
       sb.from('steps_logs').select('client_email,steps').eq('log_date', today),
       sb.from('exercises').select('name,muscle_group,compound').order('muscle_group').order('name')
     ]);
     recLogs  = logs || [];
     recSteps = steps || [];
-    (clients || []).forEach(c => { recClients[c.email] = c.name || c.email.split('@')[0]; });
+    recClients = {}; recClientCoach = {};
+    (clients || []).forEach(c => {
+      recClients[c.email] = c.name || c.email.split('@')[0];
+      if (c.coach_email) recClientCoach[c.email] = c.coach_email;
+    });
     // Build from: compound exercises in DB + any exercise logged with weight & reps
     const exNameToGroup = {};
     (allExs || []).forEach(e => { exNameToGroup[e.name] = { mg: e.muscle_group || 'אחר', compound: !!e.compound }; });
@@ -1823,9 +1847,17 @@ ${foodList || 'אין פריטים'}
       });
     });
     const built = {};
-    const addEx = (name, mg) => { if (!built[mg]) built[mg] = []; if (!built[mg].includes(name)) built[mg].push(name); };
-    (allExs || []).forEach(e => { if (e.compound) addEx(e.name, e.muscle_group || 'אחר'); });
-    inLogs.forEach(name => { const info = exNameToGroup[name]; addEx(name, info ? info.mg : 'אחר'); });
+    const addEx = (normName, mg) => {
+      const forcedMg = RECORD_EX_FORCE_GROUP[normName] || mg;
+      if (!built[forcedMg]) built[forcedMg] = [];
+      // הסר מקבוצות אחרות אם יש כפייה
+      if (RECORD_EX_FORCE_GROUP[normName]) {
+        Object.keys(built).forEach(g => { if (g !== forcedMg) built[g] = built[g].filter(n => n !== normName); });
+      }
+      if (!built[forcedMg].includes(normName)) built[forcedMg].push(normName);
+    };
+    (allExs || []).forEach(e => { if (e.compound) addEx(normalizeRecEx(e.name), e.muscle_group || 'אחר'); });
+    inLogs.forEach(name => { const info = exNameToGroup[name]; addEx(normalizeRecEx(name), info ? info.mg : 'אחר'); });
     if (Object.keys(built).length) {
       RECORD_EXERCISES = built;
       recMuscle   = Object.keys(RECORD_EXERCISES)[0] || recMuscle;
@@ -1869,9 +1901,15 @@ ${foodList || 'אין פריטים'}
       return;
     }
 
-    const board   = buildExBoard(recExercise);
-    const myRec   = getMyRec(recExercise);
+    const myCoach = clientData?.coach_email || '';
+    const board   = buildExBoard(recExercise, recScope, myCoach);
+    const myRec   = getMyRec(recExercise, recScope, myCoach);
+    const scopeLabel = recScope === 'mine' ? 'הנבחרת שלנו' : 'שיאים כלליים';
     body.innerHTML = modeTabs + `
+      <div class="rec-scope-tabs">
+        <button class="scope-tab${recScope==='mine'?' active':''}" onclick="setRecScope('mine')">🏋️ הנבחרת שלנו</button>
+        <button class="scope-tab${recScope==='all'?' active':''}" onclick="setRecScope('all')">🌍 שיאים כלליים</button>
+      </div>
       <div class="muscle-tabs">
         ${Object.keys(RECORD_EXERCISES).map(m =>
           `<button class="m-tab${m===recMuscle?' active':''}" onclick="setRecMuscle('${m}')">${m}</button>`
@@ -1886,26 +1924,38 @@ ${foodList || 'אין פריטים'}
         <div class="podium-row rank-${i+1}">
           <div class="podium-medal">${MEDALS[i]}</div>
           <div class="podium-info">
-            <div class="podium-name">${esc(e.name)}</div>
+            <div class="podium-name">${esc(e.name)}${e.coachTag ? ` <span class="podium-coach">(${esc(e.coachTag)})</span>` : ''}</div>
             <div class="podium-stats">${e.weight} ק"ג × ${e.reps} חזרות · ${e.date}</div>
           </div>
           <div class="podium-orm">1RM: ${e.orm}</div>
         </div>`).join('')}</div>`
-      : '<div class="no-records">אין תוצאות עדיין לתרגיל זה 💪</div>'}
-      ${myRec ? `<div class="my-rec-box">👤 השיא שלי: <strong>${myRec.weight} ק"ג × ${myRec.reps} חזרות</strong> — 1RM: <strong>${myRec.orm} ק"ג</strong>${myRec.rank ? ` · מקום <strong>#${myRec.rank}</strong>` : ''}</div>` : ''}`;
+      : `<div class="no-records">אין תוצאות עדיין ב${scopeLabel} לתרגיל זה 💪</div>`}
+      ${myRec ? `<div class="my-rec-box">👤 השיא שלי: <strong>${myRec.weight} ק"ג × ${myRec.reps} חזרות</strong> — 1RM: <strong>${myRec.orm} ק"ג</strong>${myRec.rank ? ` · מקום <strong>#${myRec.rank}</strong> ב${scopeLabel}` : ''}</div>` : ''}`;
   }
 
-  function buildExBoard(exName) {
+  function buildExBoard(exName, scope, myCoach) {
     const best = {};
-    recLogs.forEach(log => {
+    const logsToUse = scope === 'mine'
+      ? recLogs.filter(l => recClientCoach[l.client_email] === myCoach)
+      : recLogs;
+    logsToUse.forEach(log => {
       (log.exercises||[]).forEach(ex => {
-        if (ex.name !== exName) return;
+        if (normalizeRecEx(ex.name) !== exName) return;
         (ex.sets||[]).forEach(set => {
           const orm = calc1RM(set.weight, set.reps);
           if (!orm) return;
           const cur = best[log.client_email];
           if (!cur || orm > cur.orm || (orm===cur.orm && parseFloat(set.weight)>cur.weight) || (orm===cur.orm && parseFloat(set.weight)===cur.weight && log.log_date>cur.date)) {
-            best[log.client_email] = { name: recClients[log.client_email]||log.client_email.split('@')[0], weight: parseFloat(set.weight), reps: parseInt(set.reps), orm, date: log.log_date };
+            const coachEmail = recClientCoach[log.client_email] || '';
+            const coachTag   = scope === 'all' && coachEmail
+              ? (recClients[coachEmail] || coachEmail.split('@')[0])
+              : '';
+            best[log.client_email] = {
+              name: recClients[log.client_email]||log.client_email.split('@')[0],
+              coachTag,
+              weight: parseFloat(set.weight), reps: parseInt(set.reps), orm,
+              date: log.log_date
+            };
           }
         });
       });
@@ -1913,11 +1963,11 @@ ${foodList || 'אין פריטים'}
     return Object.values(best).sort((a,b)=>b.orm-a.orm||b.weight-a.weight||b.date.localeCompare(a.date)).slice(0,3);
   }
 
-  function getMyRec(exName) {
+  function getMyRec(exName, scope, myCoach) {
     let best = null;
     recLogs.filter(l=>l.client_email===currentEmail).forEach(log => {
       (log.exercises||[]).forEach(ex => {
-        if (ex.name !== exName) return;
+        if (normalizeRecEx(ex.name) !== exName) return;
         (ex.sets||[]).forEach(set => {
           const orm = calc1RM(set.weight, set.reps);
           if (!orm) return;
@@ -1927,10 +1977,14 @@ ${foodList || 'אין פריטים'}
       });
     });
     if (!best) return null;
+    // Rank within the current scope
+    const scopeLogs = scope === 'mine'
+      ? recLogs.filter(l => recClientCoach[l.client_email] === myCoach)
+      : recLogs;
     const allBest = {};
-    recLogs.forEach(log => {
+    scopeLogs.forEach(log => {
       (log.exercises||[]).forEach(ex => {
-        if (ex.name!==exName) return;
+        if (normalizeRecEx(ex.name)!==exName) return;
         (ex.sets||[]).forEach(set => {
           const orm = calc1RM(set.weight,set.reps);
           if (!orm) return;
@@ -1942,9 +1996,10 @@ ${foodList || 'אין פריטים'}
     return { ...best, rank };
   }
 
-  function setRecMode(m)  { recMode=m; renderRecBody(); }
-  function setRecMuscle(m){ recMuscle=m; recExercise=RECORD_EXERCISES[m][0]; renderRecBody(); }
-  function setRecEx(ex)   { recExercise=ex; renderRecBody(); }
+  function setRecMode(m)   { recMode=m; renderRecBody(); }
+  function setRecScope(s)  { recScope=s; renderRecBody(); }
+  function setRecMuscle(m) { recMuscle=m; recExercise=(RECORD_EXERCISES[m]||[])[0]||recExercise; renderRecBody(); }
+  function setRecEx(ex)    { recExercise=ex; renderRecBody(); }
 
   async function logSteps() {
     const val = parseInt(document.getElementById('steps-inp').value);
