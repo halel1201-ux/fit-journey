@@ -275,23 +275,24 @@
 
     /* ── TOKEN SHOP MODAL ── */
     #token-shop-modal { position:fixed; inset:0; z-index:9998; background:rgba(0,0,0,0.88); display:none; align-items:center; justify-content:center; padding:16px; }
-    .tshop-card { background:linear-gradient(160deg,#1a1a1a 0%,#111 100%); border:1px solid rgba(255,107,0,0.35); border-radius:18px; box-shadow:0 0 40px rgba(255,107,0,0.2); padding:28px 24px; max-width:420px; width:100%; animation:vol-pop 0.35s cubic-bezier(0.34,1.56,0.64,1) forwards; }
+    .tshop-card { background:linear-gradient(160deg,#1a1a1a 0%,#111 100%); border:1px solid rgba(255,107,0,0.35); border-radius:18px; box-shadow:0 0 40px rgba(255,107,0,0.2); padding:28px 24px; max-width:440px; width:100%; animation:vol-pop 0.35s cubic-bezier(0.34,1.56,0.64,1) forwards; }
     .tshop-title { font-size:1.15rem; font-weight:900; color:#fff; }
     .tshop-sub   { font-size:0.8rem; color:#777; margin:6px 0 18px; line-height:1.5; }
-    .tshop-pkgs  { display:flex; flex-direction:column; gap:10px; margin-bottom:16px; }
-    .tshop-pkg   { display:flex; align-items:center; justify-content:space-between; padding:12px 16px; border:1.5px solid rgba(255,255,255,0.1); border-radius:10px; background:rgba(255,255,255,0.03); cursor:pointer; transition:all 0.2s; }
-    .tshop-pkg:hover { border-color:rgba(255,107,0,0.4); background:rgba(255,107,0,0.06); }
-    .tshop-pkg.selected { border-color:var(--orange); background:rgba(255,107,0,0.1); }
-    .tshop-pkg.featured { border-color:rgba(255,215,0,0.35); }
-    .tshop-pkg.featured.selected { border-color:var(--gold); background:rgba(255,215,0,0.08); }
+    .tshop-pkgs  { display:flex; flex-direction:column; gap:10px; margin-bottom:0; }
+    .tshop-pkg   { display:flex; align-items:center; justify-content:space-between; padding:12px 14px; border:1.5px solid rgba(255,255,255,0.1); border-radius:10px; background:rgba(255,255,255,0.03); transition:border-color 0.2s; gap:10px; }
+    .tshop-pkg.selected { border-color:var(--orange); background:rgba(255,107,0,0.07); }
+    .tshop-pkg.featured { border-color:rgba(255,215,0,0.3); }
+    .tshop-pkg.featured.selected { border-color:var(--gold); }
     .tshop-tok { font-size:1rem; font-weight:900; color:#fff; }
     .tshop-tok-sub { font-size:0.7rem; color:#666; margin-top:1px; }
     .tshop-price { font-size:1rem; font-weight:700; color:var(--orange); white-space:nowrap; }
     .tshop-popular { font-size:0.62rem; font-weight:700; padding:2px 7px; border-radius:8px; background:rgba(255,215,0,0.15); color:var(--gold); margin-right:6px; }
-    .tshop-bit-box { display:none; background:rgba(0,180,255,0.04); border:1px solid rgba(0,180,255,0.2); border-radius:12px; padding:14px 16px; }
-    .tshop-bit-box.show { display:block; }
-    .btn-tshop-pay { display:flex; align-items:center; justify-content:center; gap:8px; padding:11px; background:rgba(0,180,255,0.1); border:1px solid rgba(0,180,255,0.3); border-radius:10px; color:#60c8ff; text-decoration:none; font-weight:700; font-size:0.9rem; margin-bottom:10px; transition:background 0.2s; }
-    .btn-tshop-pay:hover { background:rgba(0,180,255,0.18); }
+    /* Direct Bit button inside each package */
+    .btn-tshop-bit { display:inline-flex; align-items:center; gap:5px; padding:7px 13px; background:rgba(0,180,255,0.1); border:1.5px solid rgba(0,180,255,0.35); border-radius:8px; color:#60c8ff; font-weight:700; font-size:0.8rem; text-decoration:none; white-space:nowrap; cursor:pointer; transition:background 0.2s,border-color 0.2s; flex-shrink:0; font-family:'Heebo',sans-serif; }
+    .btn-tshop-bit:hover { background:rgba(0,180,255,0.22); border-color:rgba(0,180,255,0.6); }
+    /* Confirmation row — appears after clicking Bit */
+    .tshop-confirm-row { display:none; border-top:1px solid rgba(255,255,255,0.07); padding-top:14px; margin-top:14px; }
+    .tshop-confirm-row.show { display:block; }
     .btn-tshop-req { width:100%; padding:12px; background:linear-gradient(135deg,#FF6B00,#FF8C00); border:none; border-radius:10px; color:#fff; font-family:'Heebo',sans-serif; font-size:0.95rem; font-weight:700; cursor:pointer; transition:opacity 0.2s; }
     .btn-tshop-req:hover { opacity:0.88; }
     .btn-tshop-req:disabled { opacity:0.45; cursor:not-allowed; }
@@ -580,7 +581,7 @@
 
   function openTokenShop() {
     _tshopSelected = null;
-    document.getElementById('tshop-bit-box').classList.remove('show');
+    document.getElementById('tshop-confirm-row').classList.remove('show');
     TSHOP_PKGS.forEach((_,i) => document.getElementById(`tpkg-${i}`)?.classList.remove('selected'));
     renderTokenBadge();
     document.getElementById('token-shop-modal').style.display = 'flex';
@@ -590,11 +591,10 @@
   function selectTokenPkg(idx) {
     _tshopSelected = TSHOP_PKGS[idx];
     TSHOP_PKGS.forEach((_,i) => document.getElementById(`tpkg-${i}`)?.classList.toggle('selected', i===idx));
-    document.getElementById('tshop-bit-amount').textContent  = `${_tshopSelected.price} ₪`;
-    document.getElementById('tshop-bit-amount-txt').textContent = `${_tshopSelected.price} ₪ — בדיוק`;
-    document.getElementById('tshop-bit-box').classList.add('show');
+    document.getElementById('tshop-confirm-amount').textContent = `${_tshopSelected.price} ₪`;
+    document.getElementById('tshop-confirm-row').classList.add('show');
     const btn = document.getElementById('btn-tshop-req');
-    if (btn) { btn.disabled = false; btn.textContent = '✓ שלחתי תשלום — בקש אישור'; }
+    if (btn) { btn.disabled = false; btn.textContent = '✓ שלחתי בביט — בקש אישור'; }
   }
 
   async function submitTokenRequest() {
@@ -2436,52 +2436,90 @@ ${macrosLine ? '\n' + macrosLine : ''}
 <!-- ═══ TOKEN SHOP MODAL ═══ -->
 <div id="token-shop-modal" onclick="if(event.target===this)closeTokenShop()">
   <div class="tshop-card">
+
     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px;">
-      <div class="tshop-title"><svg width="26" height="14" viewBox="0 0 30 16" xmlns="http://www.w3.org/2000/svg" style="vertical-align:middle;display:inline-block;margin-left:4px;"><rect x="0" y="0" width="25" height="16" rx="3" fill="#FF6B00"/><rect x="25.5" y="5" width="4" height="6" rx="1.5" fill="#FF6B00"/><text x="12.5" y="11.5" font-family="Arial Black,sans-serif" font-size="7.5" font-weight="900" fill="#000" text-anchor="middle">FJ</text></svg> רכישת טוקנים AI</div>
-      <button onclick="closeTokenShop()" style="background:none;border:none;color:#555;font-size:1.2rem;cursor:pointer;line-height:1;">✕</button>
+      <div class="tshop-title">
+        <svg width="26" height="14" viewBox="0 0 30 16" xmlns="http://www.w3.org/2000/svg" style="vertical-align:middle;display:inline-block;margin-left:6px;"><rect x="0" y="0" width="25" height="16" rx="3" fill="#FF6B00"/><rect x="25.5" y="5" width="4" height="6" rx="1.5" fill="#FF6B00"/><text x="12.5" y="11.5" font-family="Arial Black,sans-serif" font-size="7.5" font-weight="900" fill="#000" text-anchor="middle">FJ</text></svg>
+        רכישת טוקנים AI
+      </div>
+      <button onclick="closeTokenShop()" style="background:none;border:none;color:#555;font-size:1.2rem;cursor:pointer;line-height:1;padding:2px 4px;">✕</button>
     </div>
+
     <div class="tshop-sub">
       יתרה נוכחית: <strong id="tshop-current-bal" style="color:var(--orange);">—</strong> טוקנים<br>
       תוכנית אימון = <strong style="color:#aaa;">100 טוקנים</strong> · תפריט תזונה = <strong style="color:#aaa;">150 טוקנים</strong>
     </div>
 
     <div class="tshop-pkgs">
-      <div class="tshop-pkg" id="tpkg-0" onclick="selectTokenPkg(0)">
-        <div>
-          <div class="tshop-tok">500 <span style="font-size:0.75rem;color:#888;font-weight:400;">טוקנים</span></div>
-          <div class="tshop-tok-sub">0.10 ₪ לטוקן · ~5 תוכניות</div>
-        </div>
-        <div class="tshop-price">50 ₪</div>
-      </div>
-      <div class="tshop-pkg featured" id="tpkg-1" onclick="selectTokenPkg(1)">
-        <div>
-          <div class="tshop-tok">1,100 <span style="font-size:0.75rem;color:#aaa;font-weight:400;">טוקנים</span> <span class="tshop-popular">הכי משתלם</span></div>
-          <div class="tshop-tok-sub" style="color:#aaa;">0.09 ₪ לטוקן · ~11 תוכניות</div>
-        </div>
-        <div class="tshop-price" style="color:var(--gold);">100 ₪</div>
-      </div>
-      <div class="tshop-pkg" id="tpkg-2" onclick="selectTokenPkg(2)">
-        <div>
-          <div class="tshop-tok">3,000 <span style="font-size:0.75rem;color:#888;font-weight:400;">טוקנים</span></div>
-          <div class="tshop-tok-sub">0.08 ₪ לטוקן · ~30 תוכניות</div>
-        </div>
-        <div class="tshop-price">250 ₪</div>
-      </div>
-    </div>
 
-    <div class="tshop-bit-box" id="tshop-bit-box">
-      <div style="font-size:0.75rem;font-weight:700;color:#60c8ff;margin-bottom:10px;">💳 תשלום דרך ביט</div>
-      <div style="display:flex;flex-direction:column;gap:5px;margin-bottom:12px;font-size:0.82rem;">
-        <div>💰 <strong>סכום:</strong> <span id="tshop-bit-amount-txt" style="color:#aaa;">—</span></div>
-        <div>✉️ <strong>סיבה:</strong> <span style="color:#aaa;">כתובת המייל שלך</span></div>
+      <!-- ── 500 טוקנים ── -->
+      <div class="tshop-pkg" id="tpkg-0">
+        <div style="flex:1;min-width:0;">
+          <div class="tshop-tok">500 <span style="font-size:0.75rem;color:#888;font-weight:400;">טוקנים</span></div>
+          <div class="tshop-tok-sub">~5 תוכניות אימון</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;flex-shrink:0;">
+          <div class="tshop-price">50 ₪</div>
+          <a class="btn-tshop-bit"
+             href="https://www.bitpay.co.il/app/me/38AB25F4-8C62-2CA0-2650-34D4AD05E3D3CF3B"
+             target="_blank" rel="noopener"
+             onclick="selectTokenPkg(0)">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M8 12h8M12 8v8"/></svg>
+            שלם 50 ₪ בביט
+          </a>
+        </div>
       </div>
-      <a class="btn-tshop-pay" href="https://www.bitpay.co.il/app/me/38AB25F4-8C62-2CA0-2650-34D4AD05E3D3CF3B" target="_blank" rel="noopener">
-        💳 פתח ביט ושלם
-      </a>
+
+      <!-- ── 1,100 טוקנים (מומלץ) ── -->
+      <div class="tshop-pkg featured" id="tpkg-1">
+        <div style="flex:1;min-width:0;">
+          <div class="tshop-tok">1,100 <span style="font-size:0.75rem;color:#aaa;font-weight:400;">טוקנים</span> <span class="tshop-popular">הכי משתלם</span></div>
+          <div class="tshop-tok-sub" style="color:#888;">~11 תוכניות אימון</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;flex-shrink:0;">
+          <div class="tshop-price" style="color:var(--gold);">100 ₪</div>
+          <a class="btn-tshop-bit"
+             href="https://www.bitpay.co.il/app/me/38AB25F4-8C62-2CA0-2650-34D4AD05E3D3CF3B"
+             target="_blank" rel="noopener"
+             onclick="selectTokenPkg(1)"
+             style="border-color:rgba(255,215,0,0.4);color:#FFD700;background:rgba(255,215,0,0.07);">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M8 12h8M12 8v8"/></svg>
+            שלם 100 ₪ בביט
+          </a>
+        </div>
+      </div>
+
+      <!-- ── 3,000 טוקנים ── -->
+      <div class="tshop-pkg" id="tpkg-2">
+        <div style="flex:1;min-width:0;">
+          <div class="tshop-tok">3,000 <span style="font-size:0.75rem;color:#888;font-weight:400;">טוקנים</span></div>
+          <div class="tshop-tok-sub">~30 תוכניות אימון</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;flex-shrink:0;">
+          <div class="tshop-price">250 ₪</div>
+          <a class="btn-tshop-bit"
+             href="https://www.bitpay.co.il/app/me/38AB25F4-8C62-2CA0-2650-34D4AD05E3D3CF3B"
+             target="_blank" rel="noopener"
+             onclick="selectTokenPkg(2)">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M8 12h8M12 8v8"/></svg>
+            שלם 250 ₪ בביט
+          </a>
+        </div>
+      </div>
+
+    </div><!-- /tshop-pkgs -->
+
+    <!-- אישור — מופיע רק לאחר לחיצה על ביט -->
+    <div class="tshop-confirm-row" id="tshop-confirm-row">
+      <div style="font-size:0.78rem;color:#666;margin-bottom:10px;line-height:1.7;">
+        ✉️ <strong style="color:#aaa;">כתוב בסיבת התשלום את כתובת המייל שלך</strong><br>
+        💰 סכום לשליחה: <strong id="tshop-confirm-amount" style="color:var(--gold);">—</strong>
+      </div>
       <button id="btn-tshop-req" class="btn-tshop-req" onclick="submitTokenRequest()">
-        ✓ שלחתי תשלום — בקש אישור
+        ✓ שלחתי בביט — בקש אישור
       </button>
     </div>
+
   </div>
 </div>
 
