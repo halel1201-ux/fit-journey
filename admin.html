@@ -1147,13 +1147,13 @@
 
   /* ── TOKEN MANAGEMENT ── */
   async function loadCoachTokens() {
-    const { data } = await sb.from('coach_tokens').select('coach_email,balance');
+    const { data } = await sbAdmin.from('coach_tokens').select('coach_email,balance');
     coachTokensCache = {};
     (data || []).forEach(r => { coachTokensCache[r.coach_email] = r.balance; });
   }
 
   async function loadTokenRequests() {
-    const { data } = await sb.from('token_requests').select('*').eq('status','pending').order('created_at');
+    const { data } = await sbAdmin.from('token_requests').select('*').eq('status','pending').order('created_at');
     tokenRequestsCache = data || [];
   }
 
