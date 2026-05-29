@@ -116,16 +116,110 @@
     /* SCROLL TO TOP */
     .scroll-top { position: fixed; bottom: 24px; left: 24px; width: 40px; height: 40px; background: var(--orange); border: none; border-radius: 50%; color: white; font-size: 1rem; cursor: pointer; display: none; align-items: center; justify-content: center; box-shadow: 0 4px 16px rgba(255,107,0,0.4); z-index: 50; }
     .scroll-top.visible { display: flex; }
+
+    /* PRINT BUTTON */
+    .btn-pdf { display: inline-flex; align-items: center; gap: 6px; padding: 7px 16px; background: linear-gradient(135deg, var(--orange), #FF8C00); border: none; border-radius: 6px; color: #fff; font-family: 'Heebo', sans-serif; font-size: 0.82rem; font-weight: 700; cursor: pointer; transition: opacity 0.2s, transform 0.15s; text-decoration: none; }
+    .btn-pdf:hover { opacity: 0.88; transform: translateY(-1px); }
+    .btn-pdf svg { flex-shrink: 0; }
+
+    /* PDF PRINT HEADER (hidden on screen, visible in print) */
+    .print-header { display: none; }
+
+    /* ===================== PRINT / PDF ===================== */
+    @media print {
+      /* Force color printing */
+      *, *::before, *::after {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        color-adjust: exact !important;
+      }
+
+      /* Page margins */
+      @page { margin: 14mm 18mm 14mm 18mm; size: A4; }
+      @page :first { margin-top: 10mm; }
+
+      /* Hide interactive UI */
+      nav, .scroll-top, .hero-badge, .toc-wrap, .btn-pdf, .btn-back { display: none !important; }
+
+      /* Compact hero */
+      .hero { padding: 20px 20px 16px; background: none !important; border-bottom: 2px solid #FF6B00; }
+      .hero h1 { font-size: 1.8rem; margin-bottom: 8px; }
+      .hero p { font-size: 0.9rem; margin-bottom: 16px; }
+      .hero-stats { gap: 20px; }
+      .hero-stat-num { font-size: 1.3rem; }
+
+      /* Show PDF header */
+      .print-header { display: flex !important; align-items: center; justify-content: space-between; padding: 10px 0 12px; border-bottom: 1px solid rgba(255,107,0,0.4); margin-bottom: 16px; }
+      .print-header-logo { font-size: 1.1rem; font-weight: 900; color: #FF6B00; }
+      .print-header-sub { font-size: 0.75rem; color: #888; }
+
+      /* Main layout */
+      .main { padding: 0 0 20px; max-width: 100%; }
+
+      /* Sections — allow breaks between sections but not inside */
+      .guide-section { margin-bottom: 28px; scroll-margin-top: 0; page-break-inside: avoid; break-inside: avoid; }
+      .divider { height: 1px; margin: 20px 0; page-break-after: avoid; break-after: avoid; }
+
+      /* Force page break BEFORE each section (except first) */
+      .guide-section + .divider + .guide-section { page-break-before: always; break-before: always; }
+
+      /* Keep cards together */
+      .step-card { page-break-inside: avoid; break-inside: avoid; margin-bottom: 8px; }
+      .info-card { page-break-inside: avoid; break-inside: avoid; }
+      .alert { page-break-inside: avoid; break-inside: avoid; }
+
+      /* Section header */
+      .section-header { page-break-after: avoid; break-after: avoid; }
+
+      /* Typography tweaks for PDF */
+      body { font-size: 13px; line-height: 1.55; }
+      .section-title { font-size: 1.15rem; }
+      .step-title { font-size: 0.9rem; }
+      .step-desc { font-size: 0.82rem; }
+      .info-card-text { font-size: 0.78rem; }
+      .alert-text { font-size: 0.82rem; }
+
+      /* Compact steps */
+      .steps { gap: 8px; }
+      .step-card { padding: 13px 16px; }
+
+      /* Info grid stay 2-col on PDF */
+      .info-grid { grid-template-columns: 1fr 1fr !important; }
+
+      /* Footer minimal */
+      .footer { padding: 16px 0; font-size: 0.75rem; }
+
+      /* Quick ref section — don't break */
+      .guide-section:last-child { page-break-before: always; break-before: always; }
+    }
   </style>
 </head>
 <body>
+
+<!-- PDF HEADER — hidden on screen, shown only when printing -->
+<div class="print-header">
+  <div>
+    <div class="print-header-logo">FJ Online Coaching — מדריך פאנל המאמן</div>
+    <div class="print-header-sub">fitjourney.co.il · כל הזכויות שמורות 2025</div>
+  </div>
+  <div style="text-align:left;color:#888;font-size:0.75rem;">הופק אוטומטית מהמדריך הדיגיטלי</div>
+</div>
 
 <nav>
   <div class="nav-brand">
     <div class="nav-hf">FJ</div>
     <div class="nav-title">מדריך לשימוש — פאנל מאמן</div>
   </div>
-  <a href="index.html" class="btn-back">← חזרה</a>
+  <div style="display:flex;align-items:center;gap:8px;">
+    <button class="btn-pdf" onclick="window.print()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+        <line x1="12" y1="18" x2="12" y2="12"/><polyline points="9 15 12 18 15 15"/>
+      </svg>
+      הורד PDF
+    </button>
+    <a href="index.html" class="btn-back">← חזרה</a>
+  </div>
 </nav>
 
 <!-- HERO -->
@@ -134,8 +228,8 @@
   <h1>מדריך <span>פאנל המאמן</span><br/>FJ Online Coaching</h1>
   <p>כל מה שצריך לדעת כדי לנהל את המתאמנים שלך, לבנות תוכניות, לעקוב אחרי תוצאות ולסגור עסקאות.</p>
   <div class="hero-stats">
-    <div class="hero-stat"><div class="hero-stat-num">8</div><div class="hero-stat-label">פרקים</div></div>
-    <div class="hero-stat"><div class="hero-stat-num">~10</div><div class="hero-stat-label">דקות קריאה</div></div>
+    <div class="hero-stat"><div class="hero-stat-num">9</div><div class="hero-stat-label">פרקים</div></div>
+    <div class="hero-stat"><div class="hero-stat-num">~12</div><div class="hero-stat-label">דקות קריאה</div></div>
     <div class="hero-stat"><div class="hero-stat-num">100%</div><div class="hero-stat-label">עברית</div></div>
   </div>
 </section>
@@ -153,6 +247,7 @@
       <a class="toc-item" href="#s6"><span class="toc-num">6</span><span class="toc-icon">💰</span>מסלולים ומחירים</a>
       <a class="toc-item" href="#s7"><span class="toc-num">7</span><span class="toc-icon">📣</span>שליחת הודעות</a>
       <a class="toc-item" href="#s8"><span class="toc-num">8</span><span class="toc-icon">🏆</span>שיאי הנבחרת</a>
+      <a class="toc-item" href="#s9"><span class="toc-num">9</span><span class="toc-icon">⚡</span>מערכת הטוקנים — AI</a>
     </div>
   </div>
 </div>
@@ -335,7 +430,7 @@
 
     <div class="alert alert-green">
       <div class="alert-icon">✅</div>
-      <div class="alert-text"><strong>AI לתוכניות:</strong> יש כפתור <strong>"✨ AI"</strong> שמייצר תוכנית אימונים מותאמת אוטומטית לפי המטרה של המתאמן.</div>
+      <div class="alert-text"><strong>AI לתוכניות:</strong> יש כפתור <strong>"✨ AI"</strong> שמייצר תוכנית אימונים מותאמת אוטומטית לפי המטרה של המתאמן. <span style="color:var(--orange);">עלות: <strong>100 טוקנים</strong></span> — ראה פרק 9 למידע על הטוקנים.</div>
     </div>
   </div>
 
@@ -396,7 +491,7 @@
 
     <div class="alert alert-gold">
       <div class="alert-icon">💡</div>
-      <div class="alert-text"><strong>AI לתזונה:</strong> כפתור <strong>"✨ AI"</strong> מייצר תפריט שלם אוטומטית לפי יעד הקלוריות, העדפות ומשקל גוף.</div>
+      <div class="alert-text"><strong>AI לתזונה:</strong> כפתור <strong>"✨ AI"</strong> מייצר תפריט שלם אוטומטית לפי יעד הקלוריות, העדפות ומשקל גוף. <span style="color:var(--orange);">עלות: <strong>150 טוקנים</strong></span> — ראה פרק 9 למידע על הטוקנים.</div>
     </div>
   </div>
 
@@ -624,6 +719,103 @@
 
   <div class="divider"></div>
 
+  <!-- SECTION 9 -->
+  <div class="guide-section" id="s9">
+    <div class="section-header">
+      <div class="section-num">⚡</div>
+      <div>
+        <div class="section-title">מערכת הטוקנים — AI</div>
+        <div class="section-subtitle">כיצד עובדים הטוקנים, כמה עולה כל פעולה ואיך לרכוש עוד</div>
+      </div>
+    </div>
+
+    <div class="alert alert-orange">
+      <div class="alert-icon">
+        <svg width="22" height="12" viewBox="0 0 30 16" xmlns="http://www.w3.org/2000/svg" style="vertical-align:middle;"><rect x="0" y="0" width="25" height="16" rx="3" fill="#FF6B00"/><rect x="25.5" y="5" width="4" height="6" rx="1.5" fill="#FF6B00"/><text x="12.5" y="11.5" font-family="Arial Black,sans-serif" font-size="7.5" font-weight="900" fill="#000" text-anchor="middle">FJ</text></svg>
+      </div>
+      <div class="alert-text"><strong>מה זה טוקן FJ?</strong> טוקן הוא יחידת מדידה לשימוש בכלי ה-AI שבפאנל. כל פעולת AI (יצירת תוכנית אימון או תפריט תזונה) מנכה מיתרת הטוקנים שלך.</div>
+    </div>
+
+    <div class="steps">
+      <div class="step-card">
+        <div class="step-dot">1</div>
+        <div class="step-body">
+          <div class="step-title">עלות שימוש ב-AI</div>
+          <div class="step-desc">
+            <strong>✨ תוכנית אימון עם AI</strong> — <strong style="color:var(--orange);">100 טוקנים</strong><br/>
+            <strong>✨ תפריט תזונה עם AI</strong> — <strong style="color:var(--orange);">150 טוקנים</strong><br/><br/>
+            לפני כל שימוש, הפאנל בודק אוטומטית שיש לך מספיק טוקנים. אם אין — מופיע חלון רכישה.
+          </div>
+          <div class="step-tag tag-important">הטוקנים מנוכים רק לאחר שה-AI מסיים לייצר את התוכנית</div>
+        </div>
+      </div>
+      <div class="step-card">
+        <div class="step-dot">2</div>
+        <div class="step-body">
+          <div class="step-title">טוקנים חודשיים — כמה מקבלים?</div>
+          <div class="step-desc">
+            בהצטרפות לפאנל, טוקנים מזוכים לחשבונך מיד לפי המסלול שבחרת:<br/><br/>
+            <strong>• חודש אחד</strong> — 1,000 טוקנים<br/>
+            <strong>• 3 חודשים</strong> — 3,000 טוקנים<br/>
+            <strong>• 6 חודשים</strong> — 6,000 טוקנים<br/><br/>
+            הטוקנים <strong>נצברים</strong> — לא פגים בסוף החודש. כל מה שלא השתמשת נשאר לחודש הבא.
+          </div>
+          <div class="step-tag tag-tip">חידוש מנוי מוסיף טוקנים על יתרה קיימת — הם מצטברים</div>
+        </div>
+      </div>
+      <div class="step-card">
+        <div class="step-dot">3</div>
+        <div class="step-body">
+          <div class="step-title">איפה רואים את יתרת הטוקנים?</div>
+          <div class="step-desc">
+            יתרת הטוקנים מוצגת <strong>בסרגל העליון של הפאנל</strong> ליד שמך:<br/><br/>
+            <span style="background:rgba(255,107,0,0.1);border:1px solid rgba(255,107,0,0.3);border-radius:8px;padding:4px 12px;font-size:0.82rem;display:inline-flex;align-items:center;gap:8px;">
+              <svg width="22" height="12" viewBox="0 0 30 16" xmlns="http://www.w3.org/2000/svg"><rect x="0" y="0" width="25" height="16" rx="3" fill="#FF6B00"/><rect x="25.5" y="5" width="4" height="6" rx="1.5" fill="#FF6B00"/><text x="12.5" y="11.5" font-family="Arial Black,sans-serif" font-size="7.5" font-weight="900" fill="#000" text-anchor="middle">FJ</text></svg>
+              <span style="color:var(--orange);font-weight:900;">850</span>
+            </span><br/><br/>
+            הספרה מתעדכנת בזמן אמת לאחר כל פעולת AI.
+          </div>
+        </div>
+      </div>
+      <div class="step-card">
+        <div class="step-dot">4</div>
+        <div class="step-body">
+          <div class="step-title">רכישת טוקנים נוספים</div>
+          <div class="step-desc">
+            לחץ על כפתור <strong>"רכוש"</strong> ליד יתרת הטוקנים — נפתחת חנות הטוקנים עם שלוש חבילות:<br/><br/>
+            <strong>• 500 טוקנים</strong> — 50 ₪<br/>
+            <strong>• 1,100 טוקנים</strong> — 100 ₪ <em style="color:var(--gold);">(10% בונוס)</em><br/>
+            <strong>• 3,000 טוקנים</strong> — 250 ₪ <em style="color:var(--gold);">(20% בונוס)</em><br/><br/>
+            התשלום מתבצע דרך <strong>Bit</strong>. לאחר השליחה, הבקשה נשלחת לאישור מנהל המערכת.
+          </div>
+          <div class="step-tag tag-note">הזיכוי מתבצע בדרך כלל תוך שעות ספורות בשעות העבודה</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="info-grid">
+      <div class="info-card">
+        <div class="info-card-icon">
+          <svg width="32" height="17" viewBox="0 0 30 16" xmlns="http://www.w3.org/2000/svg"><rect x="0" y="0" width="25" height="16" rx="3" fill="#FF6B00"/><rect x="25.5" y="5" width="4" height="6" rx="1.5" fill="#FF6B00"/><text x="12.5" y="11.5" font-family="Arial Black,sans-serif" font-size="7.5" font-weight="900" fill="#000" text-anchor="middle">FJ</text></svg>
+        </div>
+        <div class="info-card-title">אייקון הסוללה FJ</div>
+        <div class="info-card-text">הסוללה הכתומה עם כיתוב FJ מופיעה בכל מקום שמציג טוקנים — יתרה, עלות פעולה, וחנות הרכישה.</div>
+      </div>
+      <div class="info-card">
+        <div class="info-card-icon">♾️</div>
+        <div class="info-card-title">ללא הגבלת AI</div>
+        <div class="info-card-text">כל עוד יש לך טוקנים — אתה יכול לייצר תוכניות ותפריטים ללא מגבלה. אין מכסה חודשית על מספר הבניות.</div>
+      </div>
+    </div>
+
+    <div class="alert alert-gold">
+      <div class="alert-icon">💡</div>
+      <div class="alert-text"><strong>טיפ חישוב:</strong> 1,000 טוקנים = כ-10 תוכניות אימון <em>או</em> כ-6 תפריטי תזונה. לרוב המאמנים הפעילים זה מספיק בנוחות לחודש שלם.</div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
   <!-- QUICK REF -->
   <div class="guide-section">
     <div class="section-header">
@@ -642,7 +834,7 @@
       <div class="info-card">
         <div class="info-card-icon">✨</div>
         <div class="info-card-title">AI לתוכניות ותזונה</div>
-        <div class="info-card-text">כפתור AI מייצר תוכניות מלאות אוטומטית. תמיד אפשר לערוך אחרי.</div>
+        <div class="info-card-text">כפתור AI מייצר תוכניות מלאות אוטומטית. עלות: 100 טוקנים לתוכנית, 150 לתפריט. תמיד אפשר לערוך אחרי.</div>
       </div>
       <div class="info-card">
         <div class="info-card-icon">📱</div>

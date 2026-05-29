@@ -105,6 +105,12 @@
     .closing p { color: var(--muted); font-size: 0.95rem; margin-bottom: 28px; }
 
     footer { border-top: 1px solid rgba(255,255,255,0.06); padding: 24px 0; text-align: center; font-size: 0.78rem; color: #444; }
+
+    /* TOKEN ROWS */
+    .plan-tokens-row { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; padding: 8px 12px; background: rgba(255,107,0,0.06); border: 1px solid rgba(255,107,0,0.2); border-radius: 8px; font-size: 0.82rem; color: var(--muted); }
+    .plan-tokens-row strong { color: var(--orange); }
+    .ai-cost-row { display: inline-flex; align-items: center; gap: 6px; margin-top: 10px; padding: 4px 10px; background: rgba(255,107,0,0.07); border: 1px solid rgba(255,107,0,0.2); border-radius: 8px; font-size: 0.78rem; color: var(--muted); }
+    .ai-cost-row strong { color: var(--orange); }
   </style>
 </head>
 <body>
@@ -177,7 +183,11 @@
       <div class="feat-card">
         <div class="feat-icon">🤖</div>
         <div class="feat-title">AI מובנה</div>
-        <div class="feat-desc">עוזר AI לבניית תוכניות, המלצות ארוחה לפי ערכים שנשארו, ומענה לשאלות תזונה.</div>
+        <div class="feat-desc">עוזר AI לבניית תוכניות אימון ותפריטי תזונה אוטומטיים — מותאם אישית לכל מתאמן.</div>
+        <div class="ai-cost-row">
+          <svg width="22" height="12" viewBox="0 0 30 16" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;"><rect x="0" y="0" width="25" height="16" rx="3" fill="#FF6B00"/><rect x="25.5" y="5" width="4" height="6" rx="1.5" fill="#FF6B00"/><text x="12.5" y="11.5" font-family="Arial Black,sans-serif" font-size="7.5" font-weight="900" fill="#000" text-anchor="middle">FJ</text></svg>
+          <span>תוכנית: <strong>100</strong> | תפריט: <strong>150</strong> טוקנים</span>
+        </div>
       </div>
 
       <div class="feat-card">
@@ -282,6 +292,10 @@
           <li>מעקב התקדמות ושיאים</li>
           <li>AI מובנה</li>
         </ul>
+        <div class="plan-tokens-row">
+          <svg width="24" height="13" viewBox="0 0 30 16" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;"><rect x="0" y="0" width="25" height="16" rx="3" fill="#FF6B00"/><rect x="25.5" y="5" width="4" height="6" rx="1.5" fill="#FF6B00"/><text x="12.5" y="11.5" font-family="Arial Black,sans-serif" font-size="7.5" font-weight="900" fill="#000" text-anchor="middle">FJ</text></svg>
+          <span><strong>1,000</strong> טוקנים AI כלולים</span>
+        </div>
         <a href="coach-signup.html?plan=1" class="btn-outline" style="display:block;text-align:center;">הצטרף עכשיו</a>
       </div>
 
@@ -298,6 +312,10 @@
           <li>AI מובנה</li>
           <li>עדיפות בתמיכה</li>
         </ul>
+        <div class="plan-tokens-row">
+          <svg width="24" height="13" viewBox="0 0 30 16" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;"><rect x="0" y="0" width="25" height="16" rx="3" fill="#FF6B00"/><rect x="25.5" y="5" width="4" height="6" rx="1.5" fill="#FF6B00"/><text x="12.5" y="11.5" font-family="Arial Black,sans-serif" font-size="7.5" font-weight="900" fill="#000" text-anchor="middle">FJ</text></svg>
+          <span><strong>3,000</strong> טוקנים AI כלולים</span>
+        </div>
         <a href="coach-signup.html?plan=3" class="btn-primary" style="display:block;text-align:center;">הצטרף עכשיו</a>
       </div>
 
@@ -314,6 +332,10 @@
           <li>AI מובנה</li>
           <li>עדיפות מקסימלית בתמיכה</li>
         </ul>
+        <div class="plan-tokens-row">
+          <svg width="24" height="13" viewBox="0 0 30 16" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;"><rect x="0" y="0" width="25" height="16" rx="3" fill="#FF6B00"/><rect x="25.5" y="5" width="4" height="6" rx="1.5" fill="#FF6B00"/><text x="12.5" y="11.5" font-family="Arial Black,sans-serif" font-size="7.5" font-weight="900" fill="#000" text-anchor="middle">FJ</text></svg>
+          <span><strong>6,000</strong> טוקנים AI כלולים</span>
+        </div>
         <a href="coach-signup.html?plan=6" class="btn-outline" style="display:block;text-align:center;">הצטרף עכשיו</a>
       </div>
 

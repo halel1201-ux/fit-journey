@@ -596,8 +596,10 @@
   let clients      = [];
   let coachesList  = [];
   let activeEmail  = null;
-  let coachNotifsCache = {};
-  let coachStatsCache  = {};
+  let coachNotifsCache  = {};
+  let coachStatsCache   = {};
+  let coachTokensCache  = {};   // coach_email → balance
+  let tokenRequestsCache = [];
   let addClientForCoach = null;
   let trainingPlan  = [];
   let nutritionPlan = [];
@@ -756,17 +758,25 @@
       : '👥 מאמנים';
   }
 
-  function openCoachesView() {
+  async function openCoachesView() {
     activeEmail = null;
     renderSidebar();
     document.getElementById('main-area').innerHTML = `
       <div id="pending-wrap"></div>
+      <div class="sec-card" style="margin-bottom:16px;">
+        <div class="sec-card-title"><svg width="26" height="14" viewBox="0 0 30 16" xmlns="http://www.w3.org/2000/svg" style="vertical-align:middle;display:inline-block;margin-left:4px;"><rect x="0" y="0" width="25" height="16" rx="3" fill="#FF6B00"/><rect x="25.5" y="5" width="4" height="6" rx="1.5" fill="#FF6B00"/><text x="12.5" y="11.5" font-family="Arial Black,sans-serif" font-size="7.5" font-weight="900" fill="#000" text-anchor="middle">FJ</text></svg> בקשות רכישת טוקנים
+          <button class="btn-sm btn-outline" onclick="loadTokenRequests().then(renderTokenRequestsSection)" style="font-size:0.72rem;">רענן</button>
+        </div>
+        <div id="token-requests-wrap"><div style="font-size:0.8rem;color:#555;">טוען...</div></div>
+      </div>
       <div class="sec-card">
         <div class="sec-card-title">👥 ניהול מאמנים
           <button class="btn-sm btn-orange" onclick="openAddCoachModal()">+ הוסף מאמן</button>
         </div>
         <div id="coaches-wrap"></div>
       </div>`;
+    await Promise.all([loadCoachTokens(), loadTokenRequests()]);
+    renderTokenRequestsSection();
     renderCoachesTable();
   }
 
@@ -900,6 +910,26 @@
           </div>`;
         }
 
+        // ── Token section ──
+        const tokBal = coachTokensCache[c.email] ?? '—';
+        const tokColor = tokBal === '—' ? '#555' : tokBal < 100 ? '#ff7070' : tokBal < 300 ? '#FFD700' : '#70dd70';
+        const tokenHtml = `
+        <div style="padding:8px 14px 12px;border-top:1px solid rgba(255,107,0,0.1);background:rgba(255,107,0,0.01);">
+          <div style="font-size:0.72rem;font-weight:700;color:var(--orange);letter-spacing:1px;margin-bottom:8px;">
+            <svg width="26" height="14" viewBox="0 0 30 16" xmlns="http://www.w3.org/2000/svg" style="vertical-align:middle;display:inline-block;margin-left:4px;"><rect x="0" y="0" width="25" height="16" rx="3" fill="#FF6B00"/><rect x="25.5" y="5" width="4" height="6" rx="1.5" fill="#FF6B00"/><text x="12.5" y="11.5" font-family="Arial Black,sans-serif" font-size="7.5" font-weight="900" fill="#000" text-anchor="middle">FJ</text></svg> טוקנים AI &nbsp;
+            <span style="font-size:0.9rem;font-weight:900;color:${tokColor};">${typeof tokBal==='number'?tokBal.toLocaleString('he-IL'):tokBal}</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+            <button class="btn-sm btn-orange" style="font-size:0.7rem;padding:4px 9px;" onclick="event.stopPropagation();grantCoachTokens('${c.email}',1000)">+1,000</button>
+            <button class="btn-sm btn-orange" style="font-size:0.7rem;padding:4px 9px;" onclick="event.stopPropagation();grantCoachTokens('${c.email}',3000)">+3,000</button>
+            <button class="btn-sm btn-orange" style="font-size:0.7rem;padding:4px 9px;" onclick="event.stopPropagation();grantCoachTokens('${c.email}',11000)">+11,000</button>
+            <input type="number" id="tok-inp-${c.id}" placeholder="קבע יתרה" min="0"
+              style="width:100px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:6px;color:#fff;font-family:'Heebo',sans-serif;font-size:0.78rem;padding:4px 8px;outline:none;"
+              onclick="event.stopPropagation()"/>
+            <button class="btn-sm btn-outline" style="font-size:0.7rem;padding:4px 9px;" onclick="event.stopPropagation();setCoachTokensDirect('${c.id}','${c.email}')">קבע</button>
+          </div>
+        </div>`;
+
         const pendingApproveHtml = r === 'pending' ? `
         <div style="padding:10px 14px;border-top:1px solid rgba(255,215,0,0.2);background:rgba(255,215,0,0.04);">
           <div style="font-size:0.72rem;color:#FFD700;font-weight:700;margin-bottom:8px;">⏳ ממתין לאישור תשלום</div>
@@ -969,6 +999,7 @@
           <button class="btn-sm btn-orange" style="font-size:0.73rem;padding:4px 12px;" onclick="event.stopPropagation();openAddModal('${esc(c.email)}')">+ הוסף מתאמן</button>
         </div>
         ${licenseHtml}
+        ${tokenHtml}
         <div style="padding:0 14px 14px;display:grid;grid-template-columns:1fr 1fr;gap:16px;">
           <div>
             <div style="font-size:0.72rem;font-weight:700;color:var(--orange);letter-spacing:1px;margin-bottom:8px;">מתאמנים (${count})</div>
@@ -1085,8 +1116,10 @@
     if (error) { toast('שגיאה באישור', 'err'); return; }
     const c = coachesList.find(c => c.id === id);
     if (c) { c.role = 'senior'; c.license_start = today; c.license_end = licEnd; }
+    // הענקת טוקנים חודשיים אוטומטית
+    await grantCoachTokens(c.email, months * 1000);
     renderCoachesTable();
-    toast(`✓ אושר! גישה פעילה עד ${licEnd}`, 'ok');
+    toast(`✓ אושר! גישה עד ${licEnd} · נוספו ${months*1000} טוקנים`, 'ok');
   }
 
   function setCoachLicense(id, months) {
@@ -1110,6 +1143,74 @@
     if (c) { c.license_start = startVal; c.license_end = endVal; }
     renderCoachesTable();
     toast('רישיון עודכן ✓', 'ok');
+  }
+
+  /* ── TOKEN MANAGEMENT ── */
+  async function loadCoachTokens() {
+    const { data } = await sb.from('coach_tokens').select('coach_email,balance');
+    coachTokensCache = {};
+    (data || []).forEach(r => { coachTokensCache[r.coach_email] = r.balance; });
+  }
+
+  async function loadTokenRequests() {
+    const { data } = await sb.from('token_requests').select('*').eq('status','pending').order('created_at');
+    tokenRequestsCache = data || [];
+  }
+
+  async function grantCoachTokens(email, amount) {
+    const cur = coachTokensCache[email] ?? 0;
+    const newBal = cur + amount;
+    const { error } = await sbAdmin.from('coach_tokens')
+      .upsert({ coach_email: email, balance: newBal, updated_at: new Date().toISOString() });
+    if (error) { toast('שגיאה בעדכון טוקנים', 'err'); return; }
+    coachTokensCache[email] = newBal;
+    toast(`✓ נוספו ${amount} טוקנים (סה"כ: ${newBal})`, 'ok');
+    renderCoachesTable();
+  }
+
+  async function setCoachTokensDirect(id, email) {
+    const inp = document.getElementById(`tok-inp-${id}`);
+    const val = parseInt(inp?.value);
+    if (isNaN(val) || val < 0) { toast('הכנס מספר תקין', 'err'); return; }
+    const { error } = await sbAdmin.from('coach_tokens')
+      .upsert({ coach_email: email, balance: val, updated_at: new Date().toISOString() });
+    if (error) { toast('שגיאה', 'err'); return; }
+    coachTokensCache[email] = val;
+    if (inp) inp.value = '';
+    toast(`✓ יתרה קבועה ל-${val} טוקנים`, 'ok');
+    renderCoachesTable();
+  }
+
+  async function approveTokenRequest(reqId, email, tokens) {
+    await grantCoachTokens(email, tokens);
+    await sbAdmin.from('token_requests').update({ status: 'approved' }).eq('id', reqId);
+    tokenRequestsCache = tokenRequestsCache.filter(r => r.id !== reqId);
+    renderTokenRequestsSection();
+    toast(`✓ ${tokens} טוקנים נוספו ואושרו`, 'ok');
+  }
+
+  async function rejectTokenRequest(reqId) {
+    await sbAdmin.from('token_requests').update({ status: 'rejected' }).eq('id', reqId);
+    tokenRequestsCache = tokenRequestsCache.filter(r => r.id !== reqId);
+    renderTokenRequestsSection();
+    toast('בקשה נדחתה', 'ok');
+  }
+
+  function renderTokenRequestsSection() {
+    const wrap = document.getElementById('token-requests-wrap');
+    if (!wrap) return;
+    if (!tokenRequestsCache.length) { wrap.innerHTML = '<div style="font-size:0.8rem;color:#555;">אין בקשות ממתינות</div>'; return; }
+    wrap.innerHTML = tokenRequestsCache.map(r => `
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 12px;border-radius:8px;background:rgba(255,107,0,0.05);border:1px solid rgba(255,107,0,0.2);margin-bottom:6px;flex-wrap:wrap;">
+        <div>
+          <div style="font-size:0.85rem;font-weight:700;">${esc(r.coach_name||r.coach_email)}</div>
+          <div style="font-size:0.72rem;color:var(--muted);">${r.tokens.toLocaleString()} טוקנים · ${r.price} ₪ · ${new Date(r.created_at).toLocaleDateString('he-IL')}</div>
+        </div>
+        <div style="display:flex;gap:6px;">
+          <button class="btn-sm btn-orange" style="font-size:0.72rem;" onclick="approveTokenRequest(${r.id},'${r.coach_email}',${r.tokens})">✓ אשר</button>
+          <button class="btn-sm btn-red"    style="font-size:0.72rem;" onclick="rejectTokenRequest(${r.id})">✕ דחה</button>
+        </div>
+      </div>`).join('');
   }
 
   async function loadClients() {
@@ -1635,7 +1736,7 @@
 ### 4 ראשי
 חובה (מורכב): סקוואט חופשי, סקוואט בסמית׳, פרונט סקוואט, לחיצת רגליים
 מבודד (כבל/מכונה): פשיטת ברכיים
-אופציונלי: האק סקוואט, בולגרי, מכרעים בהליכה
+אופציונלי: האק סקוואט, לאנץ בולגרי
 
 ### המסטרינג
 מורכב (חובה ראשון): דדליפט רומני, היפ טראסט, GHR
