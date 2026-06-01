@@ -1,0 +1,36 @@
+{
+  "name": "HF Online Coaching",
+  "short_name": "HF Coaching",
+  "description": "פלטפורמת ליווי כושר ותזונה אונליין — תוכניות אימון, תזונה וליווי אישי",
+  "start_url": "/login.html",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0a0a0a",
+  "theme_color": "#FF6B00",
+  "orientation": "portrait-primary",
+  "lang": "he",
+  "dir": "rtl",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ],
+  "screenshots": [],
+  "categories": ["health", "fitness", "sports"],
+  "shortcuts": [
+    {
+      "name": "כניסה",
+      "url": "/login.html",
+      "description": "כניסה למערכת"
+    }
+  ]
+}
