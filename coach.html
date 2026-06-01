@@ -849,16 +849,55 @@
     });
     return idx;
   }
+  /* יחיד / רבים ביחידות מידה */
+  const UNIT_PLURAL = {
+    'פרוסה':'פרוסות','פרוסה ארוזה':'פרוסות ארוזות','פרוסה דקה':'פרוסות דקות',
+    'כף':'כפות','כף שטוחה':'כפות שטוחות','כף גדושה':'כפות גדושות',
+    'כפית':'כפיות',
+    'כוס':'כוסות',
+    'יחידה':'יחידות','יחידה L':'יחידות L','יחידה בינונית':'יחידות בינוניות',
+    'גביע':'גביעים',
+    'קופסה':'קופסאות',
+    'חתיכה':'חתיכות','חתיכה ממוצעת':'חתיכות ממוצעות',
+    'קובייה':'קוביות',
+    'קציצה קטנה':'קציצות קטנות',
+    'המבורגר':'המבורגרים',
+    'סטייק':'סטייקים',
+    'שניצל בינוני':'שניצלים בינוניים',
+    'פילה':'פילטים',
+    'קטן':'קטנים','קטנה':'קטנות',
+    'בינוני':'בינוניים','בינונית':'בינוניות',
+    'דג שלם':'דגים שלמים',
+    'אבוקדו':'אבוקדו',
+    'חצי פיתה':'חצאי פיתה',
+    'חלבון אחד':'חלבונים',
+  };
+  function unitDisplay(name, qty) {
+    if (qty <= 1) return name;
+    return UNIT_PLURAL[name] || name;
+  }
+
   /* מחזיר כמות שוות ערך קלורי — מציג ביחידות טבעיות כשאפשר */
   function formatChipQty(foodName, refCalories) {
     if (!refCalories) return '';
     const af = getFoodList().find(f => f.name === foodName);
     if (!af || !af.calories) return '';
     const eqG = Math.round(refCalories / af.calories * 100);
-    const units = getUnitsForFood(foodName).filter(u => u.name !== 'גרם' && u.grams >= 5);
+    // יחידות ספציפיות בלבד — אפס generic fallback (מונע "6.5 כף לחם" ודומיהם)
+    let specific = FOOD_UNITS_MAP[foodName];
+    if (!specific) {
+      // partial prefix match: "גבינה לבנה 5%" → "גבינה לבנה", "יוגורט יווני 0%" → "יוגורט יווני"
+      const key = Object.keys(FOOD_UNITS_MAP).find(k => foodName.startsWith(k));
+      specific = key ? FOOD_UNITS_MAP[key] : null;
+    }
+    if (!specific) return `${eqG}g`;
+    const units = specific.filter(u => u.name !== 'גרם' && u.grams >= 5);
     for (const u of units) {
       const qty = eqG / u.grams;
-      if (qty >= 0.5 && qty <= 10) return `${Math.round(qty * 2) / 2} ${u.name}`;
+      if (qty >= 0.5 && qty <= 6) {
+        const n = Math.round(qty * 2) / 2;
+        return `${n} ${unitDisplay(u.name, n)}`;
+      }
     }
     return `${eqG}g`;
   }
@@ -898,9 +937,14 @@
     ['קינואה מבושלת','כף',15],['קינואה מבושלת','כוס',185],['בורגול מבושל','כף',15],['בורגול מבושל','כוס',180],
     ['שיבולת שועל','כף',10],['שיבולת שועל','כוס',80],
     ['תפוח אדמה','קטן',100],['תפוח אדמה','בינוני',180],['בטטה','קטנה',130],['בטטה','בינונית',250],
-    ['לחם','פרוסה',30],['פיתה','יחידה',80],['פיתה כוסמין','יחידה',75],['בננה','יחידה בינונית',120],['תמר מג׳הול','יחידה',24],
-    ['טחינה','כף',15],['טחינה','כפית',5],['חמאת בוטנים','כף',15],['חמאת בוטנים','כפית',5],
-    ['שמן זית','כף',10],['שמן זית','כפית',5],['אבוקדו','חצי אבוקדו',100],
+    ['לחם','פרוסה',30],['לחם מלא','פרוסה',30],['לחם שיפון','פרוסה',30],['לחם כוסמין','פרוסה',30],
+    ['פיתה','יחידה',80],['פיתה מלאה','יחידה',60],['פיתה מלאה','חצי פיתה',30],
+    ['פיתה כוסמין','יחידה',75],['בננה','יחידה בינונית',120],['תמר מג׳הול','יחידה',24],
+    ['טחינה','כף',15],['טחינה','כפית',5],['טחינה גולמית','כף',15],['טחינה גולמית','כפית',5],
+    ['חמאת בוטנים','כף',15],['חמאת בוטנים','כפית',5],
+    ['חמאת בוטנים טבעית','כף',15],['חמאת בוטנים טבעית','כפית',5],
+    ['שמן זית','כף',10],['שמן זית','כפית',5],
+    ['אבוקדו','אבוקדו',150],
     ['שקדים','יחידה',1.2],['אגוז מלך','יחידה',5],['קשיו','יחידה',1.5],['פיסטוק','יחידה',0.6],
   ];
   const FOOD_UNITS_MAP = {};
@@ -1216,9 +1260,11 @@
             <span class="ai-status" id="ai-status"></span>
           </div>
         </div>
-        <div style="display:flex;gap:6px;margin-bottom:8px;">
+        <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;">
           <button class="btn-sm btn-orange" onclick="addDay()">+ הוסף יום</button>
-          <button class="btn-sm btn-outline" id="btn-paste-day" style="display:none;border-color:rgba(255,215,0,0.4);color:#FFD700;" onclick="pasteDay()">📋 הדבק יום</button>
+          <button class="btn-sm btn-outline" onclick="copyPlan()" style="border-color:rgba(255,215,0,0.35);color:#FFD700;">📋 העתק תוכנית</button>
+          <button class="btn-sm btn-outline" id="btn-paste-day" style="display:none;border-color:rgba(255,215,0,0.4);color:#FFD700;" onclick="pasteDay()">📋 הדבק אימון</button>
+          <button class="btn-sm btn-outline" id="btn-paste-plan" style="display:none;border-color:rgba(74,222,128,0.4);color:#4ade80;" onclick="pastePlan()">📋 הדבק תוכנית</button>
         </div>
         <div id="training-editor"></div>
         <button class="btn-sm btn-orange" style="margin-top:14px;" onclick="saveTraining()">שמור תוכנית</button>
@@ -1226,9 +1272,11 @@
 
       <div class="sec-card">
         <div class="sec-card-title">🥗 תפריט תזונה
-          <div style="display:flex;gap:6px;align-items:center;">
+          <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
             <button class="btn-sm btn-orange" onclick="addMeal()">+ הוסף ארוחה</button>
-            <button class="btn-sm btn-outline" id="btn-paste-meal" style="display:none;" onclick="pasteMeal()">📋 הדבק</button>
+            <button class="btn-sm btn-outline" onclick="copyNutriDay()" style="border-color:rgba(255,215,0,0.35);color:#FFD700;">📋 העתק יום</button>
+            <button class="btn-sm btn-outline" id="btn-paste-meal" style="display:none;" onclick="pasteMeal()">📋 הדבק ארוחה</button>
+            <button class="btn-sm btn-outline" id="btn-paste-nutri-day" style="display:none;border-color:rgba(74,222,128,0.4);color:#4ade80;" onclick="pasteNutriDay()">📋 הדבק יום</button>
           </div>
         </div>
         <div id="nutrition-editor"></div>
@@ -1397,7 +1445,7 @@
       <div class="day-block">
         <div class="day-block-head">
           <input value="${esc(day.day)}" oninput="trainingPlan[${di}].day=this.value" placeholder="שם יום (יום א׳ — חזה)"/>
-          <button class="btn-sm btn-outline" onclick="copyDay(${di})" style="border-color:rgba(255,215,0,0.35);color:#FFD700;padding:5px 10px;">📋 העתק</button>
+          <button class="btn-sm btn-outline" onclick="copyDay(${di})" style="border-color:rgba(255,215,0,0.35);color:#FFD700;padding:5px 10px;">📋 העתק אימון</button>
           <button class="btn-sm btn-red" onclick="removeDay(${di})">הסר</button>
         </div>
         <div class="muscle-row">
@@ -1737,13 +1785,31 @@ Bro Split: 6-8 תרגילים לשריר, דגש על מבודדים, ניתן 2
     error ? toast('שגיאה בשמירה','err') : toast('תוכנית נשמרה ✓','ok');
   }
 
+  /* ── העתקות תוכנית אימון ── */
+  let trainingPlanClipboard = null;
+  function copyPlan() {
+    if (!trainingPlan.length) { toast('אין תוכנית להעתקה', 'err'); return; }
+    trainingPlanClipboard = JSON.parse(JSON.stringify(trainingPlan));
+    const btn = document.getElementById('btn-paste-plan');
+    if (btn) { btn.style.display = 'inline-block'; btn.textContent = `📋 הדבק תוכנית (${trainingPlanClipboard.length} ימים)`; }
+    toast(`תוכנית הועתקה ✓ (${trainingPlanClipboard.length} ימים)`, 'ok');
+  }
+  function pastePlan() {
+    if (!trainingPlanClipboard) return;
+    const copies = JSON.parse(JSON.stringify(trainingPlanClipboard));
+    copies.forEach(d => { d.day = (d.day || '') + ' (עותק)'; trainingPlan.push(d); });
+    renderTrainingEditor();
+    toast(`תוכנית הודבקה ✓ (${copies.length} ימים)`, 'ok');
+  }
+
+  /* ── העתקות תפריט תזונה ── */
+  let nutritionDayClipboard = null;
   function copyMeal(mi) {
     mealClipboard = JSON.parse(JSON.stringify(nutritionPlan[mi]));
     const btn = document.getElementById('btn-paste-meal');
-    if (btn) { btn.style.display = 'inline-block'; btn.textContent = `📋 הדבק — ${esc(mealClipboard.meal || 'ארוחה')}`; }
+    if (btn) { btn.style.display = 'inline-block'; btn.textContent = `📋 הדבק ארוחה — ${esc(mealClipboard.meal || 'ארוחה')}`; }
     toast('ארוחה הועתקה ✓', 'ok');
   }
-
   function pasteMeal() {
     if (!mealClipboard) return;
     const copy = JSON.parse(JSON.stringify(mealClipboard));
@@ -1751,6 +1817,20 @@ Bro Split: 6-8 תרגילים לשריר, דגש על מבודדים, ניתן 2
     nutritionPlan.push(copy);
     renderNutritionEditor();
     toast('ארוחה הודבקה ✓', 'ok');
+  }
+  function copyNutriDay() {
+    if (!nutritionPlan.length) { toast('אין תפריט להעתקה', 'err'); return; }
+    nutritionDayClipboard = JSON.parse(JSON.stringify(nutritionPlan));
+    const btn = document.getElementById('btn-paste-nutri-day');
+    if (btn) { btn.style.display = 'inline-block'; btn.textContent = `📋 הדבק יום (${nutritionDayClipboard.length} ארוחות)`; }
+    toast(`יום הועתק ✓ (${nutritionDayClipboard.length} ארוחות)`, 'ok');
+  }
+  function pasteNutriDay() {
+    if (!nutritionDayClipboard) return;
+    const copies = JSON.parse(JSON.stringify(nutritionDayClipboard));
+    copies.forEach(m => { m.meal = (m.meal || '') + ' (עותק)'; nutritionPlan.push(m); });
+    renderNutritionEditor();
+    toast(`יום הודבק ✓ (${copies.length} ארוחות)`, 'ok');
   }
 
   async function generateNutritionWithAI() {
@@ -1906,7 +1986,7 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
         <div class="meal-block-head">
           <input value="${esc(meal.meal)}" oninput="nutritionPlan[${mi}].meal=this.value" placeholder="שם ארוחה"/>
           <div style="display:flex;gap:5px;">
-            <button class="btn-sm btn-outline" style="padding:4px 9px;font-size:0.75rem;" onclick="copyMeal(${mi})">📋 העתק</button>
+            <button class="btn-sm btn-outline" style="padding:4px 9px;font-size:0.75rem;" onclick="copyMeal(${mi})">📋 העתק ארוחה</button>
             <button class="btn-sm btn-red" onclick="removeMeal(${mi})">הסר ארוחה</button>
           </div>
         </div>
