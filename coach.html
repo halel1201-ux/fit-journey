@@ -922,40 +922,65 @@
 
   /* ── showSwapPreview: מודל השוואה לפני החלפה ── */
   let _swapPending = null;
+  /* key-map for swap buttons — avoids all special-char issues in onclick attrs */
+  const _swapBtnMap = {};
+  let _swapBtnSeq = 0;
+  function showSwapPreviewKey(key) {
+    const p = _swapBtnMap[key];
+    if (!p) return;
+    showSwapPreview(p.mi, p.ii, p.afId, p.afName, p.eqG);
+  }
   function showSwapPreview(mi, ii, afId, afName, eqG) {
     const item = nutritionPlan[mi]?.items?.[ii];
     if (!item) return;
-    const af = findFood(afName) || allFoodItems.find(f => f.id === afId);
-    if (!af) { swapItemWithAlt(mi, ii, afId, afName, eqG); return; }
+    const af = findFood(afName) || (afId ? allFoodItems.find(f => f.id === afId) : null);
     _swapPending = {mi, ii, afId, afName, eqG};
-    const newProt = (af.protein * eqG / 100).toFixed(1);
-    const newCarb = (af.carbs   * eqG / 100).toFixed(1);
-    const newFat  = (af.fat     * eqG / 100).toFixed(1);
-    const newCal  = Math.round(af.calories * eqG / 100);
+    const newProt = af ? (af.protein * eqG / 100).toFixed(1) : '—';
+    const newCarb = af ? (af.carbs   * eqG / 100).toFixed(1) : '—';
+    const newFat  = af ? (af.fat     * eqG / 100).toFixed(1) : '—';
+    const newCal  = af ? Math.round(af.calories * eqG / 100) : '—';
     const newQtyStr = formatChipQty(afName, item.calories) || (eqG + 'g');
     const curQtyStr = ((item._qty||'')+' '+(item._unit||'גרם')).trim();
+    /* macro diff badges */
+    function diffBadge(before, after) {
+      if (before === '—' || after === '—' || isNaN(+before) || isNaN(+after)) return '';
+      const d = Math.round((+after - +before) * 10) / 10;
+      if (d === 0) return '';
+      const col = d > 0 ? '#4ade80' : '#f87171';
+      return `<span style="font-size:0.62rem;color:${col};margin-right:3px;">${d > 0 ? '+' : ''}${d}</span>`;
+    }
     let modal = document.getElementById('swap-preview-modal');
     if (!modal) { modal = document.createElement('div'); modal.id='swap-preview-modal'; document.body.appendChild(modal); }
-    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.78);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;';
-    modal.onclick = e => { if (e.target===modal) modal.style.display='none'; };
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.82);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;';
+    modal.onclick = e => { if (e.target===modal) { modal.style.display='none'; _swapPending=null; } };
     modal.innerHTML = `
-      <div style="background:#1a1a1a;border:1px solid rgba(255,107,0,0.45);border-radius:16px;padding:22px 24px;max-width:430px;width:100%;box-shadow:0 0 60px rgba(255,107,0,0.15);direction:rtl;">
-        <div style="font-size:1rem;font-weight:700;color:#FF6B00;margin-bottom:16px;text-align:center;">🔄 אישור החלפת פריט</div>
-        <div style="display:grid;grid-template-columns:1fr 28px 1fr;gap:8px;align-items:center;margin-bottom:20px;">
-          <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:14px;text-align:center;">
-            <div style="font-size:0.68rem;color:#888;margin-bottom:5px;">לפני</div>
-            <div style="font-weight:700;color:#fff;font-size:0.88rem;margin-bottom:6px;">${esc(item.food)}</div>
-            <div style="font-size:0.75rem;color:#aaa;margin-bottom:4px;">${curQtyStr}</div>
-            <div style="font-size:1rem;color:#FF6B00;font-weight:800;">${item.calories||'?'} קל׳</div>
-            <div style="font-size:0.68rem;color:#666;margin-top:6px;line-height:1.8;">חלבון: ${item.protein||0}g<br>פחמימה: ${item.carbs||0}g<br>שומן: ${item.fat||0}g</div>
+      <div style="background:#1a1a1a;border:1px solid rgba(255,107,0,0.45);border-radius:16px;padding:22px 24px;max-width:440px;width:100%;box-shadow:0 0 60px rgba(255,107,0,0.18);direction:rtl;">
+        <div style="font-size:1rem;font-weight:700;color:#FF6B00;margin-bottom:16px;text-align:center;">🔄 השוואת ערכים — אישור החלפה</div>
+        <div style="display:grid;grid-template-columns:1fr 24px 1fr;gap:8px;align-items:center;margin-bottom:16px;">
+          <!-- לפני -->
+          <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:14px;text-align:center;">
+            <div style="font-size:0.65rem;color:#888;letter-spacing:1px;margin-bottom:6px;">לפני</div>
+            <div style="font-weight:700;color:#fff;font-size:0.85rem;margin-bottom:4px;line-height:1.3;">${esc(item.food)}</div>
+            <div style="font-size:0.72rem;color:#aaa;margin-bottom:8px;">${curQtyStr}</div>
+            <div style="font-size:1.05rem;color:#FF6B00;font-weight:800;margin-bottom:8px;">${item.calories||'?'} קל׳</div>
+            <div style="font-size:0.72rem;color:#777;line-height:2;">
+              <div>חלבון: <b style="color:#ccc;">${item.protein||0}g</b></div>
+              <div>פחמימה: <b style="color:#ccc;">${item.carbs||0}g</b></div>
+              <div>שומן: <b style="color:#ccc;">${item.fat||0}g</b></div>
+            </div>
           </div>
-          <div style="font-size:1.3rem;color:#FF6B00;text-align:center;">→</div>
-          <div style="background:rgba(255,107,0,0.08);border:1px solid rgba(255,107,0,0.4);border-radius:12px;padding:14px;text-align:center;">
-            <div style="font-size:0.68rem;color:#FF6B00;margin-bottom:5px;">אחרי</div>
-            <div style="font-weight:700;color:#fff;font-size:0.88rem;margin-bottom:6px;">${esc(afName)}</div>
-            <div style="font-size:0.75rem;color:#aaa;margin-bottom:4px;">${newQtyStr}</div>
-            <div style="font-size:1rem;color:#FF6B00;font-weight:800;">${newCal} קל׳</div>
-            <div style="font-size:0.68rem;color:#666;margin-top:6px;line-height:1.8;">חלבון: ${newProt}g<br>פחמימה: ${newCarb}g<br>שומן: ${newFat}g</div>
+          <div style="font-size:1.4rem;color:#FF6B00;text-align:center;">→</div>
+          <!-- אחרי -->
+          <div style="background:rgba(255,107,0,0.07);border:2px solid rgba(255,107,0,0.45);border-radius:12px;padding:14px;text-align:center;">
+            <div style="font-size:0.65rem;color:#FF6B00;letter-spacing:1px;margin-bottom:6px;">אחרי</div>
+            <div style="font-weight:700;color:#fff;font-size:0.85rem;margin-bottom:4px;line-height:1.3;">${esc(afName)}</div>
+            <div style="font-size:0.72rem;color:#aaa;margin-bottom:8px;">${newQtyStr}</div>
+            <div style="font-size:1.05rem;color:#FF6B00;font-weight:800;margin-bottom:8px;">${newCal} קל׳ ${diffBadge(item.calories||0, newCal)}</div>
+            <div style="font-size:0.72rem;color:#777;line-height:2;">
+              <div>חלבון: <b style="color:#ccc;">${newProt}g</b> ${diffBadge(item.protein||0, newProt)}</div>
+              <div>פחמימה: <b style="color:#ccc;">${newCarb}g</b> ${diffBadge(item.carbs||0, newCarb)}</div>
+              <div>שומן: <b style="color:#ccc;">${newFat}g</b> ${diffBadge(item.fat||0, newFat)}</div>
+            </div>
           </div>
         </div>
         <div style="display:flex;gap:10px;">
@@ -2205,11 +2230,14 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
           const _af=findFood(a.name)||(a.food_id?allFoodItems.find(f=>f.id===a.food_id):null);
           const _eqG=(_af&&_af.calories&&item.calories)?Math.round(item.calories/_af.calories*100):null;
           const _qtyStr=_eqG?formatChipQty(a.name,item.calories)||(_eqG+'g'):null;
+          /* register swap params in key-map so onclick is always safe */
+          const _sk='sb'+(++_swapBtnSeq);
+          _swapBtnMap[_sk]={mi,ii,afId:_af?_af.id:0,afName:a.name,eqG:_eqG||0};
           return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;padding:6px 10px;background:rgba(255,255,255,0.03);border-radius:8px;border:1px solid rgba(255,255,255,0.05);">
             <span style="font-size:0.82rem;flex:1;color:#ccc;">${esc(a.name)}</span>
             ${_qtyStr?`<span style="font-size:0.75rem;color:var(--orange);font-weight:700;">${_qtyStr}</span>`:'<span style="font-size:0.72rem;color:#555;">?</span>'}
-            ${_eqG?`<button onmousedown="showSwapPreview(${mi},${ii},${_af?_af.id:0},'${(a.name||'').replace(/'/g,"\\'")}',${_eqG})" style="padding:3px 10px;background:rgba(255,107,0,0.15);border:1px solid rgba(255,107,0,0.4);border-radius:6px;color:var(--orange);cursor:pointer;font-size:0.75rem;font-weight:700;font-family:'Heebo',sans-serif;white-space:nowrap;">החלף ↙</button>`:''}
-            <button onmousedown="removeAlt(${mi},${ii},${ai})" style="padding:2px 7px;background:rgba(255,70,70,0.1);border:1px solid rgba(255,70,70,0.3);border-radius:4px;color:#ff7070;cursor:pointer;font-size:0.7rem;">✕</button>
+            ${_eqG?`<button onclick="showSwapPreviewKey('${_sk}')" style="padding:3px 10px;background:rgba(255,107,0,0.15);border:1px solid rgba(255,107,0,0.4);border-radius:6px;color:var(--orange);cursor:pointer;font-size:0.75rem;font-weight:700;font-family:'Heebo',sans-serif;white-space:nowrap;">החלף ↙</button>`:''}
+            <button onclick="removeAlt(${mi},${ii},${ai})" style="padding:2px 7px;background:rgba(255,70,70,0.1);border:1px solid rgba(255,70,70,0.3);border-radius:4px;color:#ff7070;cursor:pointer;font-size:0.7rem;">✕</button>
           </div>`;
         }).join(''):'<div style="color:#555;font-size:0.78rem;margin-bottom:8px;">אין חלופות עדיין — חפש מאכל מהמאגר</div>'}
         <div style="position:relative;margin-top:6px;">
