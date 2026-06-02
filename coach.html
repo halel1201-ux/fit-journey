@@ -806,8 +806,10 @@
     {id:0,name:'גבינה לבנה 5%',   calories:73,  protein:11,  carbs:3,    fat:1.5},
     {id:0,name:'גבינה לבנה 9%',   calories:95,  protein:10,  carbs:3,    fat:4  },
     {id:0,name:'קוטג\' 3%',        calories:73,  protein:11,  carbs:3,    fat:1.5},
-    {id:0,name:'יוגורט יווני 0%', calories:60,  protein:10,  carbs:4,    fat:0  },
-    {id:0,name:'יוגורט יווני 2%', calories:73,  protein:8.7, carbs:4,    fat:2  },
+    {id:0,name:'יוגורט יווני 0%',  calories:60,  protein:10,  carbs:4,    fat:0  },
+    {id:0,name:'יוגורט יווני 2%',  calories:73,  protein:8.7, carbs:4,    fat:2  },
+    {id:0,name:'מעדן חלבון 0%',   calories:65,  protein:11,  carbs:6,    fat:0  },
+    {id:0,name:'מעדן חלבון 1.5%', calories:80,  protein:10,  carbs:6.5,  fat:1.5},
     {id:0,name:'גבינה צהובה 28%', calories:321, protein:21.4,carbs:1.8,  fat:25 },
     {id:0,name:'אבקת חלבון ויי',  calories:400, protein:80,  carbs:10,   fat:6.7},
     {id:0,name:'טופו',             calories:76,  protein:8,   carbs:2,    fat:4  },
@@ -2044,6 +2046,7 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
           <input type="text" id="alt-inp-${mi}-${ii}" placeholder="הוסף חלופה — חפש מאכל..." autocomplete="off"
             style="width:100%;padding:7px 10px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:6px;color:#fff;font-family:'Heebo',sans-serif;font-size:0.8rem;outline:none;"
             oninput="showAltSuggCoach(this,${mi},${ii})"
+            onfocus="showAltSuggCoach(this,${mi},${ii})"
             onblur="setTimeout(hideAltSuggCoach,160)"/>
           <div id="alt-sugg-${mi}-${ii}" style="display:none;position:absolute;top:calc(100% + 2px);right:0;left:0;background:#1e1e1e;border:1px solid rgba(96,180,255,0.3);border-radius:8px;z-index:700;overflow:hidden;box-shadow:0 6px 20px rgba(0,0,0,0.7);max-height:220px;overflow-y:auto;"></div>
         </div>
@@ -2201,20 +2204,61 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
   }
   function showAltSuggCoach(input, mi, ii) {
     hideAltSuggCoach();
-    const q = input.value.trim();
-    if (!q) return;
-    const matches = getFoodList().filter(f => f.name.includes(q)).slice(0, 7);
+    const q    = input.value.trim();
+    const item = (nutritionPlan[mi]?.items || [])[ii];
+    const meal = nutritionPlan[mi];
+    const iCal = +(item?.calories || 0);
+
+    /* dominant macro of this item */
+    const p = +(item?.protein||0)*4, c = +(item?.carbs||0)*4, f = +(item?.fat||0)*9;
+    const cat = (p >= c && p >= f) ? 'protein' : (c >= f ? 'carbs' : 'fat');
+    const isBrkfst = /בוקר/.test(meal?.meal || '');
+    const all = getFoodList();
+    let matches;
+
+    if (!q) {
+      /* ── Smart defaults when input is empty ── */
+      if (isBrkfst && cat === 'protein') {
+        /* Breakfast protein → prefer airy protein snacks */
+        const BRKFST = ['מעדן חלבון','קוטג\'','יוגורט יווני','גבינה לבנה','ביצה שלמה','חלבון ביצה'];
+        matches = all.filter(fd => BRKFST.some(k => fd.name.includes(k)));
+        if (matches.length < 6) {
+          const extra = all.filter(fd => (fd.protein||0) > 8 && !matches.includes(fd))
+            .sort((a,b) => Math.abs(a.calories-100) - Math.abs(b.calories-100))
+            .slice(0, 7 - matches.length);
+          matches = [...matches, ...extra];
+        }
+      } else {
+        /* Same macro category, sorted by calorie proximity to current item */
+        matches = all.filter(fd => {
+          if (cat === 'protein') return (fd.protein||0) > 10;
+          if (cat === 'carbs')   return (fd.carbs||0)   > 20;
+          return                        (fd.fat||0)      > 10;
+        })
+        .sort((a,b) => iCal ? Math.abs(a.calories-iCal) - Math.abs(b.calories-iCal) : 0)
+        .slice(0, 7);
+      }
+    } else {
+      /* Search by name, rank by calorie proximity */
+      matches = all.filter(fd => fd.name.includes(q))
+        .sort((a,b) => iCal ? Math.abs(a.calories-iCal) - Math.abs(b.calories-iCal) : 0)
+        .slice(0, 7);
+    }
+
     const drop = document.getElementById(`alt-sugg-${mi}-${ii}`);
     if (!drop || !matches.length) return;
     drop.innerHTML = '';
     drop.style.display = 'block';
-    matches.forEach(f => {
+    matches.forEach(fd => {
       const el = document.createElement('div');
-      el.style.cssText = 'padding:8px 12px;cursor:pointer;font-size:0.82rem;border-bottom:1px solid rgba(255,255,255,0.04);color:#fff;';
-      el.innerHTML = `<span style="font-weight:700;">${esc(f.name)}</span> <span style="color:#888;font-size:0.75rem;">${f.calories} קל׳/100g</span>`;
-      el.onmouseover = () => el.style.background = 'rgba(96,180,255,0.1)';
+      el.style.cssText = 'padding:8px 12px;cursor:pointer;font-size:0.82rem;border-bottom:1px solid rgba(255,255,255,0.04);color:#fff;display:flex;align-items:center;gap:8px;';
+      const eqQty = iCal
+        ? (formatChipQty(fd.name, iCal) || (Math.round(iCal / fd.calories * 100) + 'g'))
+        : '';
+      el.innerHTML = `<span style="font-weight:700;flex:1;">${esc(fd.name)}</span>${eqQty ? `<span style="color:var(--orange);font-size:0.78rem;font-weight:700;">${eqQty}</span>` : ''}<span style="color:#666;font-size:0.72rem;">${fd.calories} קל׳</span>`;
+      el.onmouseover = () => el.style.background = 'rgba(255,107,0,0.08)';
       el.onmouseout  = () => el.style.background = '';
-      el.onmousedown = () => addAlt(mi, ii, f.id, f.name);
+      el.onmousedown = () => addAlt(mi, ii, fd.id, fd.name);
       drop.appendChild(el);
     });
   }
