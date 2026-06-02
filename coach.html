@@ -880,13 +880,10 @@
     const ref = getDominantItem(mi, category);
     if (!ref || !ref.calories) return [];
     const refName = ref.food || ref.name || '';
-    const aiOpts = (meal[category + '_options'] || [])
-      .filter(o => o !== refName && !!formatChipQty(o, ref.calories));
-    if (aiOpts.length >= 5) return aiOpts.slice(0, 5);
-    const used = new Set([refName, ...aiOpts]);
+    /* רק פריטים מהמאגר — מבטיח שיש ערכים תזונתיים לתצוגת ההשוואה */
     const autoFills = getMergedFoodList()
       .filter(fd => {
-        if (used.has(fd.name)) return false;
+        if (fd.name === refName) return false;
         if (category === 'protein') return (fd.protein||0) > 10;
         if (category === 'carbs')   return (fd.carbs||0)   > 20;
         return                             (fd.fat||0)      > 10;
@@ -894,9 +891,9 @@
       .map(fd => ({name: fd.name, score: macroScore(ref, fd)}))
       .filter(fd => fd.score > 0.35)
       .sort((a,b) => b.score - a.score)
-      .slice(0, 5 - aiOpts.length)
+      .slice(0, 5)
       .map(fd => fd.name);
-    return [...aiOpts, ...autoFills];
+    return autoFills;
   }
 
   /* ── renderChipsRow: שורת צ'יפים לקטגוריה ── */

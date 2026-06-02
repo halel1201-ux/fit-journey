@@ -693,22 +693,17 @@
     return Math.max(0, 1 - dist / 1.5);
   }
 
-  /* ── getChipOptions: 2-5 חלופות לקטגוריה (AI + מילוי אוטומטי) ── */
+  /* ── getChipOptions: עד 5 חלופות מהמאגר בלבד ── */
   function getChipOptions(mi, category) {
     const meal = nutritionPlan[mi];
     if (!meal || !(meal.items||[]).length) return [];
     const ref = getDominantItem(mi, category);
     if (!ref || !ref.calories) return [];
     const refName = ref.food || ref.name || '';
-    /* AI options that pass validation */
-    const aiOpts = (meal[category + '_options'] || [])
-      .filter(o => o !== refName && !!formatChipQty(o, ref.calories));
-    if (aiOpts.length >= 5) return aiOpts.slice(0, 5);
-    /* Auto-fill from merged DB */
-    const used = new Set([refName, ...aiOpts]);
-    const autoFills = getMergedFoodList()
+    /* רק פריטים מהמאגר — מבטיח שיש ערכים תזונתיים לתצוגת ההשוואה */
+    return getMergedFoodList()
       .filter(fd => {
-        if (used.has(fd.name)) return false;
+        if (fd.name === refName) return false;
         if (category === 'protein') return (fd.protein||0) > 10;
         if (category === 'carbs')   return (fd.carbs||0)   > 20;
         return                             (fd.fat||0)      > 10;
@@ -716,9 +711,8 @@
       .map(fd => ({name: fd.name, score: macroScore(ref, fd)}))
       .filter(fd => fd.score > 0.35)
       .sort((a,b) => b.score - a.score)
-      .slice(0, 5 - aiOpts.length)
+      .slice(0, 5)
       .map(fd => fd.name);
-    return [...aiOpts, ...autoFills];
   }
 
   /* ── renderChipsRow: שורת צ'יפים לקטגוריה ── */
