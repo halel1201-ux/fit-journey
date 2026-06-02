@@ -664,6 +664,34 @@
   ];
   function getFoodList() { return allFoodItems.length ? allFoodItems : FOOD_DB_LOCAL; }
 
+  /* ── findFood: Supabase ראשון, fallback ל-FOOD_DB_LOCAL ── */
+  function findFood(name) {
+    if (allFoodItems.length) {
+      const f = allFoodItems.find(fd => fd.name === name);
+      if (f && f.calories > 0) return f;
+    }
+    return FOOD_DB_LOCAL.find(fd => fd.name === name) || null;
+  }
+
+  /* ── getMergedFoodList: Supabase + מה שחסר מ-FOOD_DB_LOCAL ── */
+  function getMergedFoodList() {
+    if (!allFoodItems.length) return FOOD_DB_LOCAL;
+    const valid = allFoodItems.filter(f => f.calories > 0);
+    const names = new Set(valid.map(f => f.name));
+    return [...valid, ...FOOD_DB_LOCAL.filter(f => !names.has(f.name))];
+  }
+
+  /* ── macroScore: דמיון יחס מאקרו בין פריט קיים לאלטרנטיבה (0–1) ── */
+  function macroScore(refItem, cand) {
+    if (!cand || !cand.calories || !refItem) return 0;
+    const rp = +(refItem.protein||0)*4, rc = +(refItem.carbs||0)*4, rf = +(refItem.fat||0)*9;
+    const rT = rp + rc + rf || 1;
+    const cp = +(cand.protein||0)*4,  cc = +(cand.carbs||0)*4,  cf = +(cand.fat||0)*9;
+    const cT = cp + cc + cf || 1;
+    const dist = Math.abs(rp/rT - cp/cT) + Math.abs(rc/rT - cc/cT) + Math.abs(rf/rT - cf/cT);
+    return Math.max(0, 1 - dist / 1.5);
+  }
+
   /* ── עזרי חלופות ── */
   function getDominantItem(mi, category) {
     const items = (nutritionPlan[mi]?.items) || [];
@@ -713,7 +741,7 @@
 
   function formatChipQty(foodName, refCalories) {
     if (!refCalories) return '';
-    const af = getFoodList().find(f => f.name === foodName);
+    const af = findFood(foodName);
     if (!af || !af.calories) return '';
     const eqG = Math.round(refCalories / af.calories * 100);
     let specific = FOOD_UNITS_MAP[foodName];
@@ -740,7 +768,7 @@
     if (!item) return;
     if (!item.alternatives) item.alternatives = [];
     if (item.alternatives.some(a => a.name === foodName)) { toast(foodName + ' כבר בחלופות', 'err'); return; }
-    const af = getFoodList().find(f => f.name === foodName);
+    const af = findFood(foodName);
     item.alternatives.push({ food_id: af ? af.id : 0, name: foodName });
     item._altOpen = true;
     renderNutritionEditor();
@@ -853,7 +881,7 @@
   }
   function recalcItemMacros(mi, ii) {
     const item = nutritionPlan[mi].items[ii];
-    const food = getFoodList().find(f => f.name === item.food);
+    const food = findFood(item.food);
     if (!food) return;
     const units = getUnitsForFood(item.food);
     const unit = units.find(u => u.name === item._unit) || { grams: 1 };
@@ -2138,9 +2166,9 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
         ${(meal.protein_options && meal.protein_options.length) || (meal.carbs_options && meal.carbs_options.length) || (meal.fat_options && meal.fat_options.length) ? `
         <div class="meal-alts">
           <div style="font-size:0.78rem;font-weight:700;color:#60b4ff;margin-bottom:8px;">חלופות לארוחה זו:</div>
-          ${meal.protein_options && meal.protein_options.length ? `<div class="meal-alts-row"><span class="alt-label">חלבון:</span><span>${meal.protein_options.map(o=>{const ref=getDominantItem(mi,'protein');const qty=ref?formatChipQty(o,ref.calories):'';const so=(o||'').replace(/'/g,"\\'");return`<span class="alt-pill" onclick="addAltFromChip(${mi},'${so}','protein')" title="לחץ להוסיף לחלופות">${esc(o)}${qty?`<span style="color:var(--orange);font-size:0.72rem;"> (${qty})</span>`:''}</span>`;}).join('')}</span></div>` : ''}
-          ${meal.carbs_options && meal.carbs_options.length ? `<div class="meal-alts-row"><span class="alt-label">פחמימה:</span><span>${meal.carbs_options.map(o=>{const ref=getDominantItem(mi,'carbs');const qty=ref?formatChipQty(o,ref.calories):'';const so=(o||'').replace(/'/g,"\\'");return`<span class="alt-pill" onclick="addAltFromChip(${mi},'${so}','carbs')" title="לחץ להוסיף לחלופות">${esc(o)}${qty?`<span style="color:var(--orange);font-size:0.72rem;"> (${qty})</span>`:''}</span>`;}).join('')}</span></div>` : ''}
-          ${meal.fat_options && meal.fat_options.length ? `<div class="meal-alts-row"><span class="alt-label">שומן:</span><span>${meal.fat_options.map(o=>{const ref=getDominantItem(mi,'fat');const qty=ref?formatChipQty(o,ref.calories):'';const so=(o||'').replace(/'/g,"\\'");return`<span class="alt-pill" onclick="addAltFromChip(${mi},'${so}','fat')" title="לחץ להוסיף לחלופות">${esc(o)}${qty?`<span style="color:var(--orange);font-size:0.72rem;"> (${qty})</span>`:''}</span>`;}).join('')}</span></div>` : ''}
+          ${meal.protein_options && meal.protein_options.length ? `<div class="meal-alts-row"><span class="alt-label">חלבון:</span><span>${meal.protein_options.map(o=>{const ref=getDominantItem(mi,'protein');if(ref&&o===(ref.food||ref.name))return'';const qty=ref?formatChipQty(o,ref.calories):'';if(!qty)return'';const so=(o||'').replace(/'/g,"\\'");return`<span class="alt-pill" onclick="addAltFromChip(${mi},'${so}','protein')" title="לחץ להוסיף לחלופות">${esc(o)}<span style="color:var(--orange);font-size:0.72rem;"> (${qty})</span></span>`;}).join('')}</span></div>` : ''}
+          ${meal.carbs_options && meal.carbs_options.length ? `<div class="meal-alts-row"><span class="alt-label">פחמימה:</span><span>${meal.carbs_options.map(o=>{const ref=getDominantItem(mi,'carbs');if(ref&&o===(ref.food||ref.name))return'';const qty=ref?formatChipQty(o,ref.calories):'';if(!qty)return'';const so=(o||'').replace(/'/g,"\\'");return`<span class="alt-pill" onclick="addAltFromChip(${mi},'${so}','carbs')" title="לחץ להוסיף לחלופות">${esc(o)}<span style="color:var(--orange);font-size:0.72rem;"> (${qty})</span></span>`;}).join('')}</span></div>` : ''}
+          ${meal.fat_options && meal.fat_options.length ? `<div class="meal-alts-row"><span class="alt-label">שומן:</span><span>${meal.fat_options.map(o=>{const ref=getDominantItem(mi,'fat');if(ref&&o===(ref.food||ref.name))return'';const qty=ref?formatChipQty(o,ref.calories):'';if(!qty)return'';const so=(o||'').replace(/'/g,"\\'");return`<span class="alt-pill" onclick="addAltFromChip(${mi},'${so}','fat')" title="לחץ להוסיף לחלופות">${esc(o)}<span style="color:var(--orange);font-size:0.72rem;"> (${qty})</span></span>`;}).join('')}</span></div>` : ''}
         </div>` : ''}
       </div>
     `).join('');
@@ -2176,7 +2204,7 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
       <div style="background:rgba(96,180,255,0.04);border:1px solid rgba(96,180,255,0.2);border-radius:8px;padding:10px 12px;margin-top:5px;">
         <div style="font-size:0.75rem;color:#60b4ff;font-weight:700;margin-bottom:8px;">🔄 חלופות לפריט זה:</div>
         ${alts.length ? alts.map((a,ai) => {
-          const _af=getFoodList().find(f=>f.id===a.food_id||f.name===a.name);
+          const _af=findFood(a.name)||(a.food_id?allFoodItems.find(f=>f.id===a.food_id):null);
           const _eqG=(_af&&_af.calories&&item.calories)?Math.round(item.calories/_af.calories*100):null;
           const _qtyStr=_eqG?formatChipQty(a.name,item.calories)||(_eqG+'g'):null;
           return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;padding:6px 10px;background:rgba(255,255,255,0.03);border-radius:8px;border:1px solid rgba(255,255,255,0.05);">
@@ -2501,7 +2529,7 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
     hideFoodSuggAdmin();
     const q = input.value.trim();
     if (!q) return;
-    const matches = getFoodList().filter(f => f.name.includes(q)).slice(0, 8);
+    const matches = getMergedFoodList().filter(f => f.name.includes(q)).slice(0, 8);
     if (!matches.length) return;
 
     const rect = input.getBoundingClientRect();
@@ -2557,7 +2585,7 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
   }
 
   function swapItemWithAlt(mi, ii, foodId, foodName, eqG) {
-    const af = getFoodList().find(f => f.id === foodId || f.name === foodName);
+    const af = findFood(foodName) || (foodId ? allFoodItems.find(f => f.id === foodId) : null);
     if (!af || !af.calories) { toast('המזון לא נמצא במאגר הנתונים', 'err'); return; }
     const item = nutritionPlan[mi].items[ii];
     const r = eqG / 100;
@@ -2577,7 +2605,7 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
   function swapMealChip(mi, foodName, category) {
     const meal  = nutritionPlan[mi];
     const items = meal.items || [];
-    const af    = getFoodList().find(f => f.name === foodName);
+    const af    = findFood(foodName);
     if (!af || !af.calories) { toast('המזון לא נמצא במאגר: ' + foodName, 'err'); return; }
     let targetIdx = 0, maxVal = -1;
     items.forEach((item, i) => {
@@ -2601,7 +2629,8 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
     const p = +(item?.protein||0)*4, c = +(item?.carbs||0)*4, f = +(item?.fat||0)*9;
     const cat = (p >= c && p >= f) ? 'protein' : (c >= f ? 'carbs' : 'fat');
     const isBrkfst = /בוקר/.test(meal?.meal || '');
-    const all = getFoodList();
+    const currentFoodName = item?.food || item?.name || '';
+    const all = getMergedFoodList();
     let matches;
 
     if (!q) {
@@ -2609,27 +2638,36 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
       if (isBrkfst && cat === 'protein') {
         /* Breakfast protein → prefer airy protein snacks */
         const BRKFST = ['מעדן חלבון','קוטג\'','יוגורט יווני','גבינה לבנה','ביצה שלמה','חלבון ביצה'];
-        matches = all.filter(fd => BRKFST.some(k => fd.name.includes(k)));
+        matches = all.filter(fd => fd.name !== currentFoodName && BRKFST.some(k => fd.name.includes(k)));
         if (matches.length < 6) {
-          const extra = all.filter(fd => (fd.protein||0) > 8 && !matches.includes(fd))
-            .sort((a,b) => Math.abs(a.calories-100) - Math.abs(b.calories-100))
+          const extra = all
+            .filter(fd => fd.name !== currentFoodName && (fd.protein||0) > 8 && !matches.includes(fd))
+            .map(fd => ({...fd, _s: macroScore(item, fd)}))
+            .filter(fd => fd._s > 0.35)
+            .sort((a,b) => b._s - a._s)
             .slice(0, 7 - matches.length);
           matches = [...matches, ...extra];
         }
       } else {
-        /* Same macro category, sorted by calorie proximity to current item */
-        matches = all.filter(fd => {
-          if (cat === 'protein') return (fd.protein||0) > 10;
-          if (cat === 'carbs')   return (fd.carbs||0)   > 20;
-          return                        (fd.fat||0)      > 10;
-        })
-        .sort((a,b) => iCal ? Math.abs(a.calories-iCal) - Math.abs(b.calories-iCal) : 0)
-        .slice(0, 7);
+        /* Same macro category, sorted by macro similarity then calorie proximity */
+        matches = all
+          .filter(fd => {
+            if (fd.name === currentFoodName) return false;
+            if (cat === 'protein') return (fd.protein||0) > 10;
+            if (cat === 'carbs')   return (fd.carbs||0)   > 20;
+            return                        (fd.fat||0)      > 10;
+          })
+          .map(fd => ({...fd, _s: macroScore(item, fd)}))
+          .filter(fd => fd._s > 0.35)
+          .sort((a,b) => b._s - a._s)
+          .slice(0, 7);
       }
     } else {
-      /* Search by name, rank by calorie proximity */
-      matches = all.filter(fd => fd.name.includes(q))
-        .sort((a,b) => iCal ? Math.abs(a.calories-iCal) - Math.abs(b.calories-iCal) : 0)
+      /* Search by name, rank by macro similarity */
+      matches = all
+        .filter(fd => fd.name !== currentFoodName && fd.name.includes(q))
+        .map(fd => ({...fd, _s: macroScore(item, fd)}))
+        .sort((a,b) => b._s - a._s)
         .slice(0, 7);
     }
 
@@ -2643,7 +2681,8 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
       const eqQty = iCal
         ? (formatChipQty(fd.name, iCal) || (Math.round(iCal / fd.calories * 100) + 'g'))
         : '';
-      el.innerHTML = `<span style="font-weight:700;flex:1;">${esc(fd.name)}</span>${eqQty ? `<span style="color:var(--orange);font-size:0.78rem;font-weight:700;">${eqQty}</span>` : ''}<span style="color:#666;font-size:0.72rem;">${fd.calories} קל׳</span>`;
+      const pct = Math.round((fd._s||0)*100);
+      el.innerHTML = `<span style="font-weight:700;flex:1;">${esc(fd.name)}</span>${eqQty?`<span style="color:var(--orange);font-size:0.78rem;font-weight:700;">${eqQty}</span>`:''}<span style="color:#555;font-size:0.7rem;">${pct?pct+'%':''}</span>`;
       el.onmouseover = () => el.style.background = 'rgba(255,107,0,0.08)';
       el.onmouseout  = () => el.style.background = '';
       el.onmousedown = () => addAlt(mi, ii, fd.id, fd.name);
