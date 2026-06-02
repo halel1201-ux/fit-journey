@@ -808,6 +808,7 @@
     {id:0,name:'קוטג\' 3%',        calories:73,  protein:11,  carbs:3,    fat:1.5},
     {id:0,name:'יוגורט יווני 0%',  calories:60,  protein:10,  carbs:4,    fat:0  },
     {id:0,name:'יוגורט יווני 2%',  calories:73,  protein:8.7, carbs:4,    fat:2  },
+    {id:0,name:'מעדן GO אוורירי',  calories:62,  protein:11,  carbs:6,    fat:0  },
     {id:0,name:'מעדן חלבון 0%',   calories:65,  protein:11,  carbs:6,    fat:0  },
     {id:0,name:'מעדן חלבון 1.5%', calories:80,  protein:10,  carbs:6.5,  fat:1.5},
     {id:0,name:'גבינה צהובה 28%', calories:321, protein:21.4,carbs:1.8,  fat:25 },
@@ -865,6 +866,100 @@
     const cT = cp + cc + cf || 1;
     const dist = Math.abs(rp/rT - cp/cT) + Math.abs(rc/rT - cc/cT) + Math.abs(rf/rT - cf/cT);
     return Math.max(0, 1 - dist / 1.5);
+  }
+
+  /* ── getChipOptions: 2-5 חלופות לקטגוריה (AI + מילוי אוטומטי) ── */
+  function getChipOptions(mi, category) {
+    const meal = nutritionPlan[mi];
+    if (!meal || !(meal.items||[]).length) return [];
+    const ref = getDominantItem(mi, category);
+    if (!ref || !ref.calories) return [];
+    const refName = ref.food || ref.name || '';
+    const aiOpts = (meal[category + '_options'] || [])
+      .filter(o => o !== refName && !!formatChipQty(o, ref.calories));
+    if (aiOpts.length >= 5) return aiOpts.slice(0, 5);
+    const used = new Set([refName, ...aiOpts]);
+    const autoFills = getMergedFoodList()
+      .filter(fd => {
+        if (used.has(fd.name)) return false;
+        if (category === 'protein') return (fd.protein||0) > 10;
+        if (category === 'carbs')   return (fd.carbs||0)   > 20;
+        return                             (fd.fat||0)      > 10;
+      })
+      .map(fd => ({name: fd.name, score: macroScore(ref, fd)}))
+      .filter(fd => fd.score > 0.35)
+      .sort((a,b) => b.score - a.score)
+      .slice(0, 5 - aiOpts.length)
+      .map(fd => fd.name);
+    return [...aiOpts, ...autoFills];
+  }
+
+  /* ── renderChipsRow: שורת צ'יפים לקטגוריה ── */
+  function renderChipsRow(mi, category, label) {
+    const opts = getChipOptions(mi, category);
+    if (!opts.length) return '';
+    const ref = getDominantItem(mi, category);
+    const chips = opts.map(o => {
+      const qty = ref ? formatChipQty(o, ref.calories) : '';
+      if (!qty) return '';
+      const so = (o||'').replace(/'/g,"\\'");
+      return `<span class="alt-pill" onclick="addAltFromChip(${mi},'${so}','${category}')" title="לחץ להוסיף לחלופות">${esc(o)}<span style="color:var(--orange);font-size:0.72rem;"> (${qty})</span></span>`;
+    }).join('');
+    if (!chips.replace(/<[^>]+>/g,'').trim()) return '';
+    return `<div class="meal-alts-row"><span class="alt-label">${label}:</span><span>${chips}</span></div>`;
+  }
+
+  /* ── showSwapPreview: מודל השוואה לפני החלפה ── */
+  let _swapPending = null;
+  function showSwapPreview(mi, ii, afId, afName, eqG) {
+    const item = nutritionPlan[mi]?.items?.[ii];
+    if (!item) return;
+    const af = findFood(afName) || allFoodItems.find(f => f.id === afId);
+    if (!af) { swapItemWithAlt(mi, ii, afId, afName, eqG); return; }
+    _swapPending = {mi, ii, afId, afName, eqG};
+    const newProt = (af.protein * eqG / 100).toFixed(1);
+    const newCarb = (af.carbs   * eqG / 100).toFixed(1);
+    const newFat  = (af.fat     * eqG / 100).toFixed(1);
+    const newCal  = Math.round(af.calories * eqG / 100);
+    const newQtyStr = formatChipQty(afName, item.calories) || (eqG + 'g');
+    const curQtyStr = ((item._qty||'')+' '+(item._unit||'גרם')).trim();
+    let modal = document.getElementById('swap-preview-modal');
+    if (!modal) { modal = document.createElement('div'); modal.id='swap-preview-modal'; document.body.appendChild(modal); }
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.78);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;';
+    modal.onclick = e => { if (e.target===modal) modal.style.display='none'; };
+    modal.innerHTML = `
+      <div style="background:#1a1a1a;border:1px solid rgba(255,107,0,0.45);border-radius:16px;padding:22px 24px;max-width:430px;width:100%;box-shadow:0 0 60px rgba(255,107,0,0.15);direction:rtl;">
+        <div style="font-size:1rem;font-weight:700;color:#FF6B00;margin-bottom:16px;text-align:center;">🔄 אישור החלפת פריט</div>
+        <div style="display:grid;grid-template-columns:1fr 28px 1fr;gap:8px;align-items:center;margin-bottom:20px;">
+          <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:14px;text-align:center;">
+            <div style="font-size:0.68rem;color:#888;margin-bottom:5px;">לפני</div>
+            <div style="font-weight:700;color:#fff;font-size:0.88rem;margin-bottom:6px;">${esc(item.food)}</div>
+            <div style="font-size:0.75rem;color:#aaa;margin-bottom:4px;">${curQtyStr}</div>
+            <div style="font-size:1rem;color:#FF6B00;font-weight:800;">${item.calories||'?'} קל׳</div>
+            <div style="font-size:0.68rem;color:#666;margin-top:6px;line-height:1.8;">חלבון: ${item.protein||0}g<br>פחמימה: ${item.carbs||0}g<br>שומן: ${item.fat||0}g</div>
+          </div>
+          <div style="font-size:1.3rem;color:#FF6B00;text-align:center;">→</div>
+          <div style="background:rgba(255,107,0,0.08);border:1px solid rgba(255,107,0,0.4);border-radius:12px;padding:14px;text-align:center;">
+            <div style="font-size:0.68rem;color:#FF6B00;margin-bottom:5px;">אחרי</div>
+            <div style="font-weight:700;color:#fff;font-size:0.88rem;margin-bottom:6px;">${esc(afName)}</div>
+            <div style="font-size:0.75rem;color:#aaa;margin-bottom:4px;">${newQtyStr}</div>
+            <div style="font-size:1rem;color:#FF6B00;font-weight:800;">${newCal} קל׳</div>
+            <div style="font-size:0.68rem;color:#666;margin-top:6px;line-height:1.8;">חלבון: ${newProt}g<br>פחמימה: ${newCarb}g<br>שומן: ${newFat}g</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;">
+          <button onclick="document.getElementById('swap-preview-modal').style.display='none';_swapPending=null;"
+            style="flex:1;padding:11px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);border-radius:10px;color:#aaa;cursor:pointer;font-family:'Heebo',sans-serif;font-size:0.9rem;">ביטול</button>
+          <button onclick="document.getElementById('swap-preview-modal').style.display='none';confirmSwap();"
+            style="flex:1;padding:11px;background:linear-gradient(135deg,#FF6B00,#FF8C00);border:none;border-radius:10px;color:#fff;cursor:pointer;font-family:'Heebo',sans-serif;font-size:0.9rem;font-weight:700;">אשר החלפה ↙</button>
+        </div>
+      </div>`;
+  }
+  function confirmSwap() {
+    if (!_swapPending) return;
+    const {mi,ii,afId,afName,eqG} = _swapPending;
+    _swapPending = null;
+    swapItemWithAlt(mi, ii, afId, afName, eqG);
   }
 
   /* ── עזרי חלופות ── */
@@ -2030,12 +2125,12 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
         <div class="nutri-header"><span>מזון</span><span>כמות</span><span>קל׳</span><span>חלבון</span><span>פחמימה</span><span>שומן</span><span></span></div>
         <div>${(meal.items||[]).map((item,ii)=>itemRow(mi,ii,item)).join('')}</div>
         <button class="add-link" onclick="addItem(${mi})">+ הוסף מזון</button>
-        ${(meal.protein_options && meal.protein_options.length) || (meal.carbs_options && meal.carbs_options.length) || (meal.fat_options && meal.fat_options.length) ? `
+        ${(meal.items||[]).length ? `
         <div class="meal-alts">
           <div style="font-size:0.78rem;font-weight:700;color:#60b4ff;margin-bottom:8px;">חלופות לארוחה זו:</div>
-          ${meal.protein_options && meal.protein_options.length ? `<div class="meal-alts-row"><span class="alt-label">חלבון:</span><span>${meal.protein_options.map(o=>{const ref=getDominantItem(mi,'protein');if(ref&&o===(ref.food||ref.name))return'';const qty=ref?formatChipQty(o,ref.calories):'';if(!qty)return'';const so=(o||'').replace(/'/g,"\\'");return`<span class="alt-pill" onclick="addAltFromChip(${mi},'${so}','protein')" title="לחץ להוסיף לחלופות">${esc(o)}<span style="color:var(--orange);font-size:0.72rem;"> (${qty})</span></span>`;}).join('')}</span></div>` : ''}
-          ${meal.carbs_options && meal.carbs_options.length ? `<div class="meal-alts-row"><span class="alt-label">פחמימה:</span><span>${meal.carbs_options.map(o=>{const ref=getDominantItem(mi,'carbs');if(ref&&o===(ref.food||ref.name))return'';const qty=ref?formatChipQty(o,ref.calories):'';if(!qty)return'';const so=(o||'').replace(/'/g,"\\'");return`<span class="alt-pill" onclick="addAltFromChip(${mi},'${so}','carbs')" title="לחץ להוסיף לחלופות">${esc(o)}<span style="color:var(--orange);font-size:0.72rem;"> (${qty})</span></span>`;}).join('')}</span></div>` : ''}
-          ${meal.fat_options && meal.fat_options.length ? `<div class="meal-alts-row"><span class="alt-label">שומן:</span><span>${meal.fat_options.map(o=>{const ref=getDominantItem(mi,'fat');if(ref&&o===(ref.food||ref.name))return'';const qty=ref?formatChipQty(o,ref.calories):'';if(!qty)return'';const so=(o||'').replace(/'/g,"\\'");return`<span class="alt-pill" onclick="addAltFromChip(${mi},'${so}','fat')" title="לחץ להוסיף לחלופות">${esc(o)}<span style="color:var(--orange);font-size:0.72rem;"> (${qty})</span></span>`;}).join('')}</span></div>` : ''}
+          ${renderChipsRow(mi,'protein','חלבון')}
+          ${renderChipsRow(mi,'carbs','פחמימה')}
+          ${renderChipsRow(mi,'fat','שומן')}
         </div>` : ''}
       </div>`).join('');
   }
@@ -2066,7 +2161,7 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
           return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;padding:6px 10px;background:rgba(255,255,255,0.03);border-radius:8px;border:1px solid rgba(255,255,255,0.05);">
             <span style="font-size:0.82rem;flex:1;color:#ccc;">${esc(a.name)}</span>
             ${_qtyStr?`<span style="font-size:0.75rem;color:var(--orange);font-weight:700;">${_qtyStr}</span>`:'<span style="font-size:0.72rem;color:#555;">?</span>'}
-            ${_eqG?`<button onmousedown="swapItemWithAlt(${mi},${ii},${_af?_af.id:0},'${(a.name||'').replace(/'/g,"\\'")}',${_eqG})" style="padding:3px 10px;background:rgba(255,107,0,0.15);border:1px solid rgba(255,107,0,0.4);border-radius:6px;color:var(--orange);cursor:pointer;font-size:0.75rem;font-weight:700;font-family:'Heebo',sans-serif;white-space:nowrap;">החלף ↙</button>`:''}
+            ${_eqG?`<button onmousedown="showSwapPreview(${mi},${ii},${_af?_af.id:0},'${(a.name||'').replace(/'/g,"\\'")}',${_eqG})" style="padding:3px 10px;background:rgba(255,107,0,0.15);border:1px solid rgba(255,107,0,0.4);border-radius:6px;color:var(--orange);cursor:pointer;font-size:0.75rem;font-weight:700;font-family:'Heebo',sans-serif;white-space:nowrap;">החלף ↙</button>`:''}
             <button onmousedown="removeAlt(${mi},${ii},${ai})" style="padding:2px 7px;background:rgba(255,70,70,0.1);border:1px solid rgba(255,70,70,0.3);border-radius:4px;color:#ff7070;cursor:pointer;font-size:0.7rem;">✕</button>
           </div>`;
         }).join(''):'<div style="color:#555;font-size:0.78rem;margin-bottom:8px;">אין חלופות עדיין — חפש מאכל מהמאגר</div>'}
@@ -2240,17 +2335,17 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
     /* dominant macro of this item */
     const p = +(item?.protein||0)*4, c = +(item?.carbs||0)*4, f = +(item?.fat||0)*9;
     const cat = (p >= c && p >= f) ? 'protein' : (c >= f ? 'carbs' : 'fat');
-    const isBrkfst = /בוקר/.test(meal?.meal || '');
+    const isLightMeal = /בוקר|ערב|לילה/.test(meal?.meal || '');
     const currentFoodName = item?.food || item?.name || '';
     const all = getMergedFoodList();
     let matches;
 
     if (!q) {
       /* ── Smart defaults when input is empty ── */
-      if (isBrkfst && cat === 'protein') {
-        /* Breakfast protein → prefer airy protein snacks */
-        const BRKFST = ['מעדן חלבון','קוטג\'','יוגורט יווני','גבינה לבנה','ביצה שלמה','חלבון ביצה'];
-        matches = all.filter(fd => fd.name !== currentFoodName && BRKFST.some(k => fd.name.includes(k)));
+      if (isLightMeal && cat === 'protein') {
+        /* Breakfast/evening/late → prefer GO + airy protein snacks */
+        const LIGHT = ['מעדן GO','מעדן חלבון','קוטג\'','יוגורט יווני','גבינה לבנה','ביצה שלמה','חלבון ביצה'];
+        matches = all.filter(fd => fd.name !== currentFoodName && LIGHT.some(k => fd.name.includes(k)));
         if (matches.length < 6) {
           const extra = all
             .filter(fd => fd.name !== currentFoodName && (fd.protein||0) > 8 && !matches.includes(fd))
