@@ -722,6 +722,9 @@
   }
 
   /* ── renderChipsRow: שורת צ'יפים לקטגוריה ── */
+  /* chip options stored in a map so onclick uses an index — avoids ALL special-char issues */
+  const _chipMap = {};
+  let _chipSeq = 0;
   function renderChipsRow(mi, category, label) {
     const opts = getChipOptions(mi, category);
     if (!opts.length) return '';
@@ -729,11 +732,17 @@
     const chips = opts.map(o => {
       const qty = ref ? formatChipQty(o, ref.calories) : '';
       if (!qty) return '';
-      const so = (o||'').replace(/'/g,"\\'");
-      return `<span class="alt-pill" onclick="addAltFromChip(${mi},'${so}','${category}')" title="לחץ להוסיף לחלופות">${esc(o)}<span style="color:var(--orange);font-size:0.72rem;"> (${qty})</span></span>`;
+      const key = 'c' + (++_chipSeq);
+      _chipMap[key] = { mi, foodName: o, category };
+      return `<span class="alt-pill" onclick="addAltFromChipKey('${key}')" title="לחץ להוסיף לחלופות">${esc(o)}<span style="pointer-events:none;color:var(--orange);font-size:0.72rem;"> (${qty})</span></span>`;
     }).join('');
     if (!chips.replace(/<[^>]+>/g,'').trim()) return '';
     return `<div class="meal-alts-row"><span class="alt-label">${label}:</span><span>${chips}</span></div>`;
+  }
+  function addAltFromChipKey(key) {
+    const p = _chipMap[key];
+    if (!p) return;
+    addAltFromChip(p.mi, p.foodName, p.category);
   }
 
   /* ── showSwapPreview: מודל השוואה לפני החלפה ── */

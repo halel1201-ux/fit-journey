@@ -541,8 +541,12 @@
 <script>
   const URL_ = 'https://luwknflmhvcxgifzxgrk.supabase.co';
   const KEY  = 'sb_publishable_k3M7SfBeiBGs3rTKewBzWQ_7RHRskB9';
+  const SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx1d2tuZmxtaHZjeGdpZnp4Z3JrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODg1MDIxNSwiZXhwIjoyMDk0NDI2MjE1fQ.8M2WqqUUM5VJD53LXKYCoF_KPD6bbCiOI0h9Xv49AfA';
   const CLAUDE_KEY = atob('c2stYW50LWFwaTAzLVRFbWJWYk9YUHlTV2o1RVRnd2tCNmkwLWRWLUE2aUlSbzhCVE0xckJGaGxqUzE4V2hOOWdoOEhtVkgtOVYxUXlMSm01NE5QOTZGNTVBNF9GUS15NHlBLTViQXRnZ0FB');
-  const sb   = supabase.createClient(URL_, KEY);
+  const sb      = supabase.createClient(URL_, KEY);
+  const sbAdmin = supabase.createClient(URL_, SERVICE_KEY, {
+    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }
+  });
 
   // ─── TOKEN SYSTEM ────────────────────────────────────────────────────
   let coachTokens = 0;
@@ -896,6 +900,9 @@
   }
 
   /* ── renderChipsRow: שורת צ'יפים לקטגוריה ── */
+  /* chip options stored in a map so onclick uses an index — avoids ALL special-char issues */
+  const _chipMap = {};
+  let _chipSeq = 0;
   function renderChipsRow(mi, category, label) {
     const opts = getChipOptions(mi, category);
     if (!opts.length) return '';
@@ -903,11 +910,17 @@
     const chips = opts.map(o => {
       const qty = ref ? formatChipQty(o, ref.calories) : '';
       if (!qty) return '';
-      const so = (o||'').replace(/'/g,"\\'");
-      return `<span class="alt-pill" onclick="addAltFromChip(${mi},'${so}','${category}')" title="לחץ להוסיף לחלופות">${esc(o)}<span style="color:var(--orange);font-size:0.72rem;"> (${qty})</span></span>`;
+      const key = 'c' + (++_chipSeq);
+      _chipMap[key] = { mi, foodName: o, category };
+      return `<span class="alt-pill" onclick="addAltFromChipKey('${key}')" title="לחץ להוסיף לחלופות">${esc(o)}<span style="pointer-events:none;color:var(--orange);font-size:0.72rem;"> (${qty})</span></span>`;
     }).join('');
     if (!chips.replace(/<[^>]+>/g,'').trim()) return '';
     return `<div class="meal-alts-row"><span class="alt-label">${label}:</span><span>${chips}</span></div>`;
+  }
+  function addAltFromChipKey(key) {
+    const p = _chipMap[key];
+    if (!p) return;
+    addAltFromChip(p.mi, p.foodName, p.category);
   }
 
   /* ── showSwapPreview: מודל השוואה לפני החלפה ── */
@@ -1486,11 +1499,11 @@
     if (btn) { btn.disabled = true; btn.textContent = 'מוחק...'; }
 
     try {
-      /* מחק תוכניות אימון ותזונה */
-      await sb.from('training_plans').delete().eq('client_email', email);
-      await sb.from('nutrition_plans').delete().eq('client_email', email);
+      /* מחק תוכניות אימון ותזונה — דרך service role כדי לעקוף RLS */
+      await sbAdmin.from('training_plans').delete().eq('client_email', email);
+      await sbAdmin.from('nutrition_plans').delete().eq('client_email', email);
       /* מחק את הלקוח עצמו — רק אם שייך למאמן הנוכחי */
-      const { error } = await sb.from('clients').delete().eq('email', email).eq('coach_email', coachEmail);
+      const { error } = await sbAdmin.from('clients').delete().eq('email', email).eq('coach_email', coachEmail);
       if (error) throw error;
       closeClientCard();
       if (activeEmail === email) {
