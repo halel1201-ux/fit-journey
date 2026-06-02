@@ -525,6 +525,7 @@
       <a id="cc-wa" href="#" target="_blank" style="flex:1;text-align:center;padding:10px;background:rgba(37,211,102,0.1);border:1px solid rgba(37,211,102,0.3);border-radius:10px;color:#25d366;font-size:0.85rem;font-weight:700;text-decoration:none;">WhatsApp</a>
       <a id="cc-mail" href="#" style="flex:1;text-align:center;padding:10px;background:rgba(255,107,0,0.1);border:1px solid rgba(255,107,0,0.3);border-radius:10px;color:var(--orange);font-size:0.85rem;font-weight:700;text-decoration:none;">שלח מייל</a>
     </div>
+    <button id="cc-delete-btn" onclick="deleteClientCoach()" style="width:100%;margin-top:10px;padding:10px;background:rgba(255,60,60,0.08);border:1px solid rgba(255,60,60,0.3);border-radius:10px;color:#ff6b6b;font-size:0.85rem;font-weight:700;cursor:pointer;font-family:'Heebo',sans-serif;">🗑 מחק לקוח</button>
   </div>
 </div>
 
@@ -1467,6 +1468,42 @@
     document.getElementById('client-card-modal').classList.add('open');
   }
   function closeClientCard() { document.getElementById('client-card-modal').classList.remove('open'); }
+
+  async function deleteClientCoach() {
+    const emailEl = document.getElementById('cc-email');
+    const email = emailEl?.querySelector('a')?.textContent || emailEl?.textContent || '';
+    const name  = document.getElementById('cc-name')?.textContent || email;
+    if (!email) return;
+    /* ── וודא שהלקוח שייך למאמן הזה ── */
+    if (!clients.some(c => c.email === email)) {
+      toast('אין הרשאה למחוק לקוח זה', 'err'); return;
+    }
+    /* ── אישור כפול ── */
+    if (!confirm(`למחוק את ${name}?\n\nפעולה זו תמחק את הלקוח ואת כל התוכניות שלו לצמיתות. לא ניתן לשחזר.`)) return;
+    if (!confirm(`אישור סופי: למחוק את ${name}?`)) return;
+
+    const btn = document.getElementById('cc-delete-btn');
+    if (btn) { btn.disabled = true; btn.textContent = 'מוחק...'; }
+
+    try {
+      /* מחק תוכניות אימון ותזונה */
+      await sb.from('training_plans').delete().eq('client_email', email);
+      await sb.from('nutrition_plans').delete().eq('client_email', email);
+      /* מחק את הלקוח עצמו — רק אם שייך למאמן הנוכחי */
+      const { error } = await sb.from('clients').delete().eq('email', email).eq('coach_email', coachEmail);
+      if (error) throw error;
+      closeClientCard();
+      if (activeEmail === email) {
+        activeEmail = null;
+        document.getElementById('main-area').innerHTML = '<div style="padding:40px;color:#555;text-align:center;">← בחר לקוח מהרשימה</div>';
+      }
+      await loadClients();
+      toast(`${name} נמחק בהצלחה`, 'ok');
+    } catch (e) {
+      toast('שגיאה במחיקה: ' + (e.message || e), 'err');
+      if (btn) { btn.disabled = false; btn.textContent = '🗑 מחק לקוח'; }
+    }
+  }
 
   /* ── SAVE PROFILE ── */
   async function saveProfile() {
