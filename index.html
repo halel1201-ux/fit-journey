@@ -1000,6 +1000,35 @@
     .pricing-panel { display: none; }
     .pricing-panel.active { display: block; }
 
+    /* ─── WOMEN PINK THEME ─── */
+    :root { --pink:#FF3D85; --pink2:#FF6BAA; --pink-glow:0 0 18px rgba(255,61,133,0.55); --pink-glow-lg:0 0 40px rgba(255,61,133,0.45),0 0 80px rgba(255,61,133,0.15); }
+
+    /* tab */
+    #tab-women.active { background:rgba(255,61,133,0.12); border-color:var(--pink); color:var(--pink); box-shadow:0 0 14px rgba(255,61,133,0.18); }
+    #tab-women:hover:not(.active) { border-color:rgba(255,61,133,0.5); color:#ffb3ce; }
+
+    /* cards */
+    #panel-women .price-card { border-color:rgba(255,61,133,0.22); }
+    #panel-women .price-card::before { background:linear-gradient(90deg,var(--pink),var(--pink2),transparent); opacity:0.7; }
+    #panel-women .price-card:hover { box-shadow:var(--pink-glow); }
+    #panel-women .price-card.featured { border-color:var(--pink); box-shadow:var(--pink-glow-lg); background:rgba(255,61,133,0.06); }
+    #panel-women .price-card.featured::before { opacity:1; }
+    #panel-women .price-card.featured:hover { box-shadow:var(--pink-glow-lg),0 20px 60px rgba(255,61,133,0.2); }
+
+    /* badges */
+    #panel-women .price-badge { color:var(--pink); border-color:rgba(255,61,133,0.3); background:rgba(255,61,133,0.08); }
+    #panel-women .price-badge.featured-badge { background:linear-gradient(135deg,var(--pink),var(--pink2)); color:#fff; }
+
+    /* divider & features */
+    #panel-women .price-divider { background:rgba(255,61,133,0.18); }
+    #panel-women .price-features li svg { color:var(--pink); stroke:var(--pink); }
+
+    /* buttons */
+    #panel-women .btn-primary { background:linear-gradient(135deg,var(--pink),var(--pink2)); }
+    #panel-women .btn-primary:hover { box-shadow:var(--pink-glow-lg); }
+    #panel-women .btn-secondary { border-color:rgba(255,61,133,0.4); color:var(--pink); }
+    #panel-women .btn-secondary:hover { background:rgba(255,61,133,0.1); border-color:var(--pink); box-shadow:var(--pink-glow); }
+
     /* ─── TERMS CHECKBOX (modal) ─── */
     .terms-check-row {
       display: flex; align-items: center; gap: 10px;
