@@ -982,6 +982,39 @@
       .pricing-grid { grid-template-columns: 1fr; max-width: 420px; margin: 0 auto; }
     }
 
+    /* ─── GENDER TABS ─── */
+    .gender-tabs {
+      display: flex; justify-content: center; gap: 10px; margin-bottom: 44px;
+    }
+    .gender-tab {
+      padding: 10px 36px; border-radius: 10px;
+      font-family: 'Heebo', sans-serif; font-size: 1rem; font-weight: 700;
+      cursor: pointer; border: 1px solid rgba(255,107,0,0.3);
+      background: transparent; color: var(--muted); transition: all 0.22s;
+    }
+    .gender-tab:hover { border-color: rgba(255,107,0,0.6); color: #fff; }
+    .gender-tab.active {
+      background: rgba(255,107,0,0.12); border-color: var(--orange);
+      color: var(--orange); box-shadow: 0 0 14px rgba(255,107,0,0.18);
+    }
+    .pricing-panel { display: none; }
+    .pricing-panel.active { display: block; }
+
+    /* ─── TERMS CHECKBOX (modal) ─── */
+    .terms-check-row {
+      display: flex; align-items: center; gap: 10px;
+      padding: 12px 14px; margin: 14px 0 2px;
+      background: rgba(255,215,0,0.04); border: 1px solid rgba(255,215,0,0.2);
+      border-radius: 10px;
+    }
+    .terms-check-row input[type="checkbox"] {
+      width: 18px; height: 18px; cursor: pointer; flex-shrink: 0;
+      accent-color: var(--orange);
+    }
+    .terms-check-row label { font-size: 0.85rem; color: var(--muted); cursor: pointer; line-height: 1.4; }
+    .terms-check-row label a { color: var(--orange); font-weight: 700; text-decoration: underline; }
+    #pay-wa-confirm.disabled-btn { opacity: 0.38; pointer-events: none; cursor: not-allowed; }
+
     /* ─── TERMS ─── */
     #terms { background: var(--graphite); }
     .accordion { display: flex; flex-direction: column; gap: 8px; }
@@ -1952,6 +1985,14 @@
     <h2 class="section-title">מסלולי <span>ליווי</span></h2>
     <div class="title-line"></div>
 
+    <!-- Gender Tabs -->
+    <div class="gender-tabs">
+      <button class="gender-tab active" id="tab-men" onclick="switchGender('men')">גברים</button>
+      <button class="gender-tab" id="tab-women" onclick="switchGender('women')">נשים</button>
+    </div>
+
+    <!-- ── MEN'S PLANS ── -->
+    <div class="pricing-panel active" id="panel-men">
     <div class="pricing-grid">
 
       <!-- Monthly -->
@@ -2061,7 +2102,7 @@
 
     </div>
 
-    <!-- Bit payment info -->
+    <!-- Bit payment info (men) -->
     <div style="max-width:420px;margin:28px auto 0;text-align:center;padding:18px 22px;background:rgba(255,215,0,0.04);border:1px solid rgba(255,215,0,0.18);border-radius:14px;">
       <div style="font-size:0.78rem;color:#888;margin-bottom:8px;letter-spacing:0.5px;">ניתן לשלם גם בביט</div>
       <div style="display:flex;align-items:center;justify-content:center;gap:10px;">
@@ -2070,6 +2111,77 @@
       </div>
       <div style="font-size:0.72rem;color:#555;margin-top:8px;">לאחר התשלום שלח הודעה בוואצאפ לאישור</div>
     </div>
+    </div><!-- /panel-men -->
+
+    <!-- ── WOMEN'S PLANS ── -->
+    <div class="pricing-panel" id="panel-women">
+    <div class="pricing-grid">
+
+      <!-- Monthly (Women) -->
+      <div class="price-card">
+        <div class="price-badge">ללא התחייבות</div>
+        <div class="plan-name">ליווי חודשי</div>
+        <div class="price-amount"><span class="currency">₪</span>400</div>
+        <div class="price-period">לחודש · מתחדש אוטומטית</div>
+        <div class="price-divider"></div>
+        <ul class="price-features">
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>תוכנית אימונים אישית</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>תפריט תזונה מותאם</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>מעקב חודשי</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>עדכונים לפי צורך</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>ליווי אונליין</li>
+        </ul>
+        <button class="btn-secondary price-cta" onclick="openPayment('חודשי-נשים')">בחר מסלול</button>
+      </div>
+
+      <!-- 2 Months (Women) — Featured -->
+      <div class="price-card featured">
+        <div class="price-badge featured-badge">הכי פופולרי</div>
+        <div class="plan-name">ליווי 2 חודשים</div>
+        <div class="price-amount"><span class="currency">₪</span>700</div>
+        <div class="price-period">ל-2 חודשים · חסכון של 100₪</div>
+        <div class="price-divider"></div>
+        <ul class="price-features">
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>בניית תוכנית מלאה</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>תפריט תזונה אישי</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>מעקב התקדמות שוטף</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>שינויי תפריט ואימונים</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>ליווי אונליין מלא</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>ליווי לאורך 2 חודשים</li>
+        </ul>
+        <button class="btn-primary price-cta" onclick="openPayment('2 חודשים-נשים')">בחר מסלול</button>
+      </div>
+
+      <!-- 6 Months (Women) -->
+      <div class="price-card">
+        <div class="price-badge">הכי משתלם</div>
+        <div class="plan-name">ליווי חצי שנה</div>
+        <div class="price-amount"><span class="currency">₪</span>2,000</div>
+        <div class="price-period">ל-6 חודשים · חסכון של 400₪</div>
+        <div class="price-divider"></div>
+        <ul class="price-features">
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>ליווי מלא ל-6 חודשים</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>תוכנית אימונים מתקדמת</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>תפריט מותאם ומעודכן</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>מעקב רציף</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>התאמות לפי התקדמות</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>בניית תהליך מסודר לתוצאה</li>
+        </ul>
+        <button class="btn-secondary price-cta" onclick="openPayment('חצי שנה-נשים')">בחר מסלול</button>
+      </div>
+
+    </div>
+
+    <!-- Bit payment info (women) -->
+    <div style="max-width:420px;margin:28px auto 0;text-align:center;padding:18px 22px;background:rgba(255,215,0,0.04);border:1px solid rgba(255,215,0,0.18);border-radius:14px;">
+      <div style="font-size:0.78rem;color:#888;margin-bottom:8px;letter-spacing:0.5px;">ניתן לשלם גם בביט</div>
+      <div style="display:flex;align-items:center;justify-content:center;gap:10px;">
+        <img src="https://upload.wikimedia.org/wikipedia/he/thumb/3/32/Bit_logo.svg/200px-Bit_logo.svg.png" alt="Bit" style="height:22px;filter:brightness(1.1);" onerror="this.style.display='none'"/>
+        <span style="font-size:1.3rem;font-weight:900;color:#FFD700;letter-spacing:1px;direction:ltr;">058-693-1163</span>
+      </div>
+      <div style="font-size:0.72rem;color:#555;margin-top:8px;">לאחר התשלום שלחי הודעה בוואצאפ לאישור</div>
+    </div>
+    </div><!-- /panel-women -->
 
   </div>
 </section>
@@ -2403,8 +2515,17 @@
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#00b4ff" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 12h8M12 8v8"/></svg>
             שלם ישירות בביט
           </a>
+          <!-- Terms checkbox -->
+          <div class="terms-check-row">
+            <input type="checkbox" id="terms-check" onchange="onTermsCheck()"/>
+            <label for="terms-check">קראתי ואישרתי את
+              <a href="#" onclick="openTermsFromModal(); return false;">התקנון</a>
+            </label>
+          </div>
+
           <a id="pay-wa-confirm" href="#" target="_blank" rel="noopener"
-             style="display:inline-flex;align-items:center;gap:8px;margin-top:14px;padding:10px 20px;background:#25d366;border-radius:10px;color:#fff;font-weight:700;font-size:0.88rem;text-decoration:none;">
+             class="disabled-btn"
+             style="display:inline-flex;align-items:center;gap:8px;margin-top:14px;padding:10px 20px;background:#25d366;border-radius:10px;color:#fff;font-weight:700;font-size:0.88rem;text-decoration:none;transition:opacity 0.2s;">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413z"/></svg>
             שלחתי — שלח אישור בוואצאפ
           </a>
@@ -2575,17 +2696,40 @@
   const PAYPAL_EMAIL = 'halel1201@gmail.com';
 
   const plans = {
-    'חודשי':    { price: '400',   amount: '400.00',   sub: ' / חודש' },
-    '3 חודשים': { price: '1,100', amount: '1100.00',  sub: ' / 3 חודשים' },
-    'חצי שנה':  { price: '2,000', amount: '2000.00',  sub: ' / 6 חודשים' },
-
+    'חודשי':           { price: '400',   amount: '400.00',  sub: ' / חודש' },
+    '3 חודשים':        { price: '1,100', amount: '1100.00', sub: ' / 3 חודשים' },
+    'חצי שנה':         { price: '2,000', amount: '2000.00', sub: ' / 6 חודשים' },
+    /* נשים */
+    'חודשי-נשים':      { price: '400',   amount: '400.00',  sub: ' / חודש' },
+    '2 חודשים-נשים':   { price: '700',   amount: '700.00',  sub: ' / 2 חודשים' },
+    'חצי שנה-נשים':    { price: '2,000', amount: '2000.00', sub: ' / 6 חודשים' },
   };
+
+  /* ── gender tab switcher ── */
+  function switchGender(gender) {
+    ['men','women'].forEach(g => {
+      document.getElementById('panel-'+g).classList.toggle('active', g===gender);
+      document.getElementById('tab-'+g).classList.toggle('active', g===gender);
+    });
+  }
+
+  /* ── terms checkbox ── */
+  function onTermsCheck() {
+    const checked = document.getElementById('terms-check').checked;
+    document.getElementById('pay-wa-confirm').classList.toggle('disabled-btn', !checked);
+  }
+  function openTermsFromModal() {
+    closePayment();
+    setTimeout(() => goTo('terms'), 120);
+  }
 
   const PLAN_MAP = { 'חודשי': 'monthly', '3 חודשים': '3months', 'חצי שנה': '6months' };
   function openPayment(planName) {
     const plan = plans[planName];
     if (!plan) return;
-    document.getElementById('modal-plan-name').textContent = planName;
+    /* display name — strip gender suffix for modal header */
+    const displayName = planName.replace('-נשים','').replace('-גברים','');
+    document.getElementById('modal-plan-name').textContent = displayName;
     document.getElementById('modal-plan-price').textContent = plan.price;
     document.getElementById('modal-plan-sub').textContent = plan.sub;
     document.getElementById('bit-amount').textContent = plan.price + ' ₪';
@@ -2594,6 +2738,9 @@
     document.getElementById('bit-qr-img').src = 'bit-qr.png';
     const waMsg = encodeURIComponent(`שלום הלל, שילמתי בביט על מסלול ${planName} בסך ${plan.price}₪`);
     document.getElementById('pay-wa-confirm').href = `https://wa.me/972586931163?text=${waMsg}`;
+    /* reset terms checkbox */
+    const cb = document.getElementById('terms-check');
+    if (cb) { cb.checked = false; onTermsCheck(); }
     document.getElementById('payment-modal').classList.add('open');
     document.body.style.overflow = 'hidden';
   }
