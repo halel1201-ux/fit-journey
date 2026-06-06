@@ -3635,6 +3635,15 @@ difficulty: מתחיל | ביניים | מתקדם | כל הרמות
      DATABASE SETUP — צור טבלאות חדשות
   ══════════════════════════════════════════════════════ */
   const DB_SETUP_SQL = `
+-- Feature 4: White Label Branding (add columns to coaches)
+ALTER TABLE coaches ADD COLUMN IF NOT EXISTS logo_url  text;
+ALTER TABLE coaches ADD COLUMN IF NOT EXISTS cover_url text;
+ALTER TABLE coaches ADD COLUMN IF NOT EXISTS brand_color text;
+ALTER TABLE coaches ADD COLUMN IF NOT EXISTS tagline text;
+
+-- Storage bucket for coach assets (run in Supabase Storage UI or via API)
+-- Bucket name: coach-assets | Public: true | Max size: 5MB
+
 -- Feature 1: Cycle Management
 CREATE TABLE IF NOT EXISTS cycles (
   id uuid DEFAULT gen_random_uuid() PRIMARY KEY,

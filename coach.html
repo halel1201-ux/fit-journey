@@ -305,6 +305,24 @@
     .btn-tshop-req { width:100%; padding:12px; background:linear-gradient(135deg,#FF6B00,#FF8C00); border:none; border-radius:10px; color:#fff; font-family:'Heebo',sans-serif; font-size:0.95rem; font-weight:700; cursor:pointer; transition:opacity 0.2s; }
     .btn-tshop-req:hover { opacity:0.88; }
     .btn-tshop-req:disabled { opacity:0.45; cursor:not-allowed; }
+
+    /* ── BRANDING OVERLAY ── */
+    .brand-overlay { position:fixed; inset:0; z-index:420; background:var(--black); display:none; flex-direction:column; overflow:hidden; }
+    .brand-overlay.open { display:flex; }
+    .brand-hdr { flex-shrink:0; height:62px; padding:0 18px; background:rgba(9,9,9,0.97); backdrop-filter:blur(14px); border-bottom:1px solid rgba(255,215,0,0.2); display:flex; align-items:center; justify-content:space-between; }
+    .brand-hdr-title { font-size:1.1rem; font-weight:900; background:linear-gradient(135deg,#FFD700,#FF6B00); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+    .brand-body { flex:1; overflow-y:auto; padding:24px 20px 80px; max-width:640px; margin:0 auto; width:100%; }
+    .brand-preview-box { background:rgba(9,9,9,0.9); border:1px solid rgba(255,255,255,0.08); border-radius:12px; padding:16px 18px; margin-bottom:24px; }
+    .brand-preview-nav { display:flex; align-items:center; gap:10px; padding:10px 14px; border-radius:8px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.07); }
+    .brand-logo-thumb { width:40px; height:40px; border-radius:9px; object-fit:contain; background:rgba(255,255,255,0.06); display:flex; align-items:center; justify-content:center; font-weight:900; font-size:1rem; flex-shrink:0; overflow:hidden; }
+    .brand-logo-thumb img { width:100%; height:100%; object-fit:contain; }
+    .brand-upload-zone { border:2px dashed rgba(255,255,255,0.15); border-radius:12px; padding:24px; text-align:center; cursor:pointer; transition:border-color 0.2s,background 0.2s; margin-bottom:6px; }
+    .brand-upload-zone:hover { border-color:rgba(255,107,0,0.4); background:rgba(255,107,0,0.04); }
+    .brand-upload-zone.has-logo { border-color:rgba(74,222,128,0.4); background:rgba(74,222,128,0.04); }
+    .color-swatch-row { display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; }
+    .color-swatch { width:32px; height:32px; border-radius:8px; cursor:pointer; border:2px solid transparent; transition:transform 0.15s,border-color 0.15s; flex-shrink:0; }
+    .color-swatch:hover { transform:scale(1.15); }
+    .color-swatch.active { border-color:#fff; transform:scale(1.1); }
   </style>
 </head>
 <body>
@@ -333,6 +351,7 @@
     </div>
     <div class="topnav-desktop-btns" style="display:flex;gap:8px;align-items:center;">
       <button class="btn-mob-menu" onclick="toggleMobileSidebar()">☰ מתאמנים</button>
+      <button class="btn-sm btn-outline" onclick="openBranding()" style="border-color:rgba(255,215,0,0.35);color:#FFD700;">🎨 מיתוג</button>
       <button class="btn-sm btn-outline" onclick="openRecords()" style="border-color:rgba(255,215,0,0.35);color:#FFD700;">🏆 שיאים</button>
       <button class="btn-sm btn-outline" onclick="openPlans()" style="border-color:rgba(255,107,0,0.4);color:var(--orange);">💰 מסלולים</button>
       <button class="btn-sm btn-outline" onclick="openPushOverlay()" style="border-color:rgba(255,107,0,0.4);color:var(--orange);">📣 הודעות</button>
@@ -527,6 +546,100 @@
       <a id="cc-mail" href="#" style="flex:1;text-align:center;padding:10px;background:rgba(255,107,0,0.1);border:1px solid rgba(255,107,0,0.3);border-radius:10px;color:var(--orange);font-size:0.85rem;font-weight:700;text-decoration:none;">שלח מייל</a>
     </div>
     <button id="cc-delete-btn" onclick="deleteClientCoach()" style="width:100%;margin-top:10px;padding:10px;background:rgba(255,60,60,0.08);border:1px solid rgba(255,60,60,0.3);border-radius:10px;color:#ff6b6b;font-size:0.85rem;font-weight:700;cursor:pointer;font-family:'Heebo',sans-serif;">🗑 מחק לקוח</button>
+  </div>
+</div>
+
+<!-- BRANDING OVERLAY -->
+<div class="brand-overlay" id="brand-overlay">
+  <div class="brand-hdr">
+    <div class="brand-hdr-title">🎨 מיתוג אישי</div>
+    <button class="btn-close-rec" onclick="closeBranding()">✕</button>
+  </div>
+  <div class="brand-body">
+
+    <!-- LIVE PREVIEW -->
+    <div style="font-size:0.78rem;font-weight:700;color:var(--muted);margin-bottom:10px;">תצוגה מקדימה</div>
+    <div class="brand-preview-box" style="margin-bottom:24px;overflow:hidden;border-radius:14px;">
+      <!-- Cover/Background strip -->
+      <div id="prev-cover" style="height:90px;background:linear-gradient(135deg,rgba(255,107,0,0.18),rgba(0,0,0,0.6)),#111;background-size:cover;background-position:center;display:flex;align-items:flex-end;padding:0 14px 10px;position:relative;">
+        <div style="position:absolute;top:8px;left:0;right:0;display:flex;align-items:center;justify-content:flex-end;padding:0 12px;">
+          <!-- Simulated navbar logo position -->
+          <div class="brand-logo-thumb" id="prev-logo-thumb" style="width:34px;height:34px;font-size:0.85rem;">FJ</div>
+        </div>
+        <div style="position:absolute;bottom:10px;right:14px;">
+          <div id="prev-tagline" style="font-size:0.72rem;color:rgba(255,255,255,0.7);font-weight:700;letter-spacing:0.5px;">ליווי אישי</div>
+        </div>
+      </div>
+      <div style="padding:10px 14px;background:rgba(255,255,255,0.03);border-top:1px solid rgba(255,255,255,0.06);">
+        <div style="font-size:0.7rem;color:var(--muted);">← כך יראה הדשבורד של המתאמנים שלך</div>
+      </div>
+    </div>
+
+    <!-- SECTION 1: LOGO (navbar top-right) -->
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+      <div style="width:8px;height:8px;border-radius:50%;background:var(--orange);"></div>
+      <div style="font-size:0.85rem;font-weight:900;">לוגו (מופיע בנב-בר)</div>
+    </div>
+    <div style="font-size:0.75rem;color:var(--muted);margin-bottom:10px;">מחליף את "FJ" בפינה הימנית של הדשבורד. רקע שקוף מומלץ.</div>
+    <input type="file" id="brand-logo-file" accept="image/png,image/svg+xml,image/jpeg,image/webp" style="display:none;" onchange="onLogoFileChange()"/>
+    <div class="brand-upload-zone" id="brand-upload-zone" onclick="document.getElementById('brand-logo-file').click()">
+      <div id="brand-upload-content">
+        <div style="font-size:1.8rem;margin-bottom:5px;">🏷️</div>
+        <div style="font-size:0.84rem;font-weight:700;">לחץ להעלאת לוגו</div>
+        <div style="font-size:0.7rem;color:var(--muted);margin-top:3px;">PNG / SVG / JPG / WebP · עד 2MB</div>
+      </div>
+    </div>
+    <div id="brand-logo-actions" style="display:none;margin-top:6px;margin-bottom:4px;">
+      <button onclick="clearBrandAsset('logo')" style="font-size:0.75rem;color:#f87171;background:none;border:none;cursor:pointer;padding:0;">✕ הסר לוגו</button>
+    </div>
+    <div style="margin-bottom:28px;"></div>
+
+    <!-- SECTION 2: BACKGROUND / COVER IMAGE -->
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+      <div style="width:8px;height:8px;border-radius:50%;background:var(--gold);"></div>
+      <div style="font-size:0.85rem;font-weight:900;">תמונת רקע / באנר</div>
+    </div>
+    <div style="font-size:0.75rem;color:var(--muted);margin-bottom:10px;">מופיע כרקע הדשבורד של המתאמנים. תמונה כהה / טקסטורה / לוגו גדול.</div>
+    <input type="file" id="brand-cover-file" accept="image/png,image/jpeg,image/webp" style="display:none;" onchange="onCoverFileChange()"/>
+    <div class="brand-upload-zone" id="brand-cover-zone" onclick="document.getElementById('brand-cover-file').click()">
+      <div id="brand-cover-content">
+        <div style="font-size:1.8rem;margin-bottom:5px;">🌄</div>
+        <div style="font-size:0.84rem;font-weight:700;">לחץ להעלאת תמונת רקע</div>
+        <div style="font-size:0.7rem;color:var(--muted);margin-top:3px;">PNG / JPG / WebP · עד 5MB · מומלץ 1920×1080</div>
+      </div>
+    </div>
+    <div id="brand-cover-actions" style="display:none;margin-top:6px;margin-bottom:4px;">
+      <button onclick="clearBrandAsset('cover')" style="font-size:0.75rem;color:#f87171;background:none;border:none;cursor:pointer;padding:0;">✕ הסר רקע</button>
+    </div>
+    <div style="margin-bottom:28px;"></div>
+
+    <!-- SECTION 3: COLOR -->
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+      <div style="width:8px;height:8px;border-radius:50%;background:#60a5fa;"></div>
+      <div style="font-size:0.85rem;font-weight:900;">צבע מותג</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
+      <input type="color" id="brand-color-pick" value="#FF6B00" oninput="onColorChange(this.value)" style="width:44px;height:44px;border:none;border-radius:8px;cursor:pointer;background:none;padding:0;"/>
+      <div>
+        <div id="brand-color-hex" style="font-size:0.9rem;font-weight:700;direction:ltr;">#FF6B00</div>
+        <div style="font-size:0.7rem;color:var(--muted);">משפיע על כפתורים, הדגשות, כותרות</div>
+      </div>
+    </div>
+    <div class="color-swatch-row" id="color-swatches"></div>
+    <div style="margin-bottom:28px;"></div>
+
+    <!-- SECTION 4: TAGLINE -->
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+      <div style="width:8px;height:8px;border-radius:50%;background:#a78bfa;"></div>
+      <div style="font-size:0.85rem;font-weight:900;">סלוגן</div>
+    </div>
+    <input type="text" id="brand-tagline" maxlength="50"
+      placeholder="לדוגמה: Train Hard · Be Elite"
+      oninput="document.getElementById('prev-tagline').textContent=this.value||'ליווי אישי'"
+      style="width:100%;padding:10px 14px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:var(--white);font-family:'Heebo',sans-serif;font-size:0.9rem;outline:none;transition:border-color 0.2s;margin-bottom:28px;"/>
+
+    <button class="btn-sm btn-orange" style="width:100%;padding:13px;font-size:1rem;" id="brand-save-btn" onclick="saveBranding()">💾 שמור מיתוג</button>
+    <div id="brand-save-msg" style="display:none;text-align:center;margin-top:14px;font-size:0.88rem;color:#4ade80;font-weight:700;">✓ מיתוג נשמר והוחל!</div>
   </div>
 </div>
 
@@ -2853,6 +2966,192 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
     closeIncomeModal();
     loadStats();
     toast('✓ הכנסה נשמרה!', 'ok');
+  }
+
+  /* ══════════════════════════════════════════════════════
+     FEATURE 4 — WHITE LABEL BRANDING (מאמן)
+  ══════════════════════════════════════════════════════ */
+  const BRAND_SWATCHES = [
+    '#FF6B00','#FF3D85','#3B82F6','#8B5CF6','#10B981',
+    '#F59E0B','#EF4444','#06B6D4','#84CC16','#FFFFFF',
+  ];
+  let _brandLogoFile  = null;
+  let _brandCoverFile = null;
+  let _brandLogoUrl   = null;
+  let _brandCoverUrl  = null;
+  let _brandColor     = '#FF6B00';
+
+  function openBranding() {
+    document.getElementById('brand-overlay').classList.add('open');
+    document.body.style.overflow = 'hidden';
+    loadBranding();
+    // Render swatches
+    document.getElementById('color-swatches').innerHTML = BRAND_SWATCHES.map(c =>
+      `<div class="color-swatch${c===_brandColor?' active':''}" style="background:${c};" onclick="onColorChange('${c}')" title="${c}"></div>`
+    ).join('');
+  }
+
+  function closeBranding() {
+    document.getElementById('brand-overlay').classList.remove('open');
+    document.body.style.overflow = '';
+  }
+
+  async function loadBranding() {
+    const { data } = await sb.from('coaches').select('logo_url,cover_url,brand_color,tagline').eq('email', coachEmail).single();
+    if (!data) return;
+    _brandLogoUrl  = data.logo_url  || null;
+    _brandCoverUrl = data.cover_url || null;
+    _brandColor    = data.brand_color || '#FF6B00';
+
+    document.getElementById('brand-color-pick').value = _brandColor;
+    document.getElementById('brand-color-hex').textContent = _brandColor;
+    document.getElementById('brand-tagline').value = data.tagline || '';
+    document.getElementById('prev-tagline').textContent = data.tagline || 'ליווי אישי';
+
+    // Render swatches with active state
+    document.getElementById('color-swatches').innerHTML = BRAND_SWATCHES.map(c =>
+      `<div class="color-swatch${c===_brandColor?' active':''}" style="background:${c};" onclick="onColorChange('${c}')" title="${c}"></div>`
+    ).join('');
+
+    // Preview logo
+    if (_brandLogoUrl) {
+      const thumb = document.getElementById('prev-logo-thumb');
+      thumb.innerHTML = `<img src="${_brandLogoUrl}" alt="logo"/>`;
+      document.getElementById('brand-upload-zone').classList.add('has-logo');
+      document.getElementById('brand-upload-content').innerHTML = `<img src="${_brandLogoUrl}" style="height:50px;max-width:120px;object-fit:contain;border-radius:6px;"/><div style="font-size:0.7rem;color:#4ade80;margin-top:5px;">✓ לוגו מוגדר</div>`;
+      document.getElementById('brand-logo-actions').style.display = 'block';
+    }
+
+    // Preview cover
+    if (_brandCoverUrl) {
+      const prev = document.getElementById('prev-cover');
+      prev.style.backgroundImage = `linear-gradient(135deg,rgba(0,0,0,0.45),rgba(0,0,0,0.6)),url('${_brandCoverUrl}')`;
+      prev.style.backgroundSize = 'cover';
+      document.getElementById('brand-cover-zone').classList.add('has-logo');
+      document.getElementById('brand-cover-content').innerHTML = `<div style="font-size:0.7rem;color:#4ade80;font-weight:700;">✓ תמונת רקע מוגדרת</div>`;
+      document.getElementById('brand-cover-actions').style.display = 'block';
+    }
+
+    // Apply preview color
+    document.getElementById('prev-dot').style.background = _brandColor;
+    const thumb = document.getElementById('prev-logo-thumb');
+    thumb.style.background = `linear-gradient(135deg,${_brandColor},${_brandColor}99)`;
+    thumb.style.color = '#fff';
+  }
+
+  function onColorChange(hex) {
+    _brandColor = hex;
+    document.getElementById('brand-color-pick').value = hex;
+    document.getElementById('brand-color-hex').textContent = hex;
+    document.getElementById('prev-dot').style.background = hex;
+    const thumb = document.getElementById('prev-logo-thumb');
+    if (!_brandLogoUrl && !_brandLogoFile) {
+      thumb.style.background = `linear-gradient(135deg,${hex},${hex}99)`;
+    }
+    // Update active swatch
+    document.querySelectorAll('.color-swatch').forEach(s => {
+      s.classList.toggle('active', s.title === hex);
+    });
+  }
+
+  function onLogoFileChange() {
+    const file = document.getElementById('brand-logo-file').files[0];
+    if (!file || file.size > 2*1024*1024) { alert('קובץ גדול מדי — מקסימום 2MB'); return; }
+    _brandLogoFile = file;
+    const reader = new FileReader();
+    reader.onload = e => {
+      const url = e.target.result;
+      document.getElementById('brand-upload-zone').classList.add('has-logo');
+      document.getElementById('brand-upload-content').innerHTML = `<img src="${url}" style="height:54px;max-width:130px;object-fit:contain;border-radius:6px;"/><div style="font-size:0.7rem;color:#4ade80;margin-top:5px;">✓ ${file.name}</div>`;
+      document.getElementById('brand-logo-actions').style.display = 'block';
+      const thumb = document.getElementById('prev-logo-thumb');
+      thumb.innerHTML = `<img src="${url}" alt="logo"/>`;
+      thumb.style.background = 'transparent';
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function onCoverFileChange() {
+    const file = document.getElementById('brand-cover-file').files[0];
+    if (!file || file.size > 5*1024*1024) { alert('קובץ גדול מדי — מקסימום 5MB'); return; }
+    _brandCoverFile = file;
+    const reader = new FileReader();
+    reader.onload = e => {
+      const url = e.target.result;
+      const prev = document.getElementById('prev-cover');
+      prev.style.backgroundImage = `linear-gradient(135deg,rgba(0,0,0,0.45),rgba(0,0,0,0.6)),url('${url}')`;
+      prev.style.backgroundSize = 'cover';
+      document.getElementById('brand-cover-zone').classList.add('has-logo');
+      document.getElementById('brand-cover-content').innerHTML = `<div style="font-size:0.7rem;color:#4ade80;font-weight:700;">✓ ${file.name}</div>`;
+      document.getElementById('brand-cover-actions').style.display = 'block';
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function clearBrandAsset(type) {
+    if (type === 'logo') {
+      _brandLogoFile = null; _brandLogoUrl = null;
+      document.getElementById('brand-logo-file').value = '';
+      document.getElementById('brand-upload-zone').classList.remove('has-logo');
+      document.getElementById('brand-upload-content').innerHTML = `<div style="font-size:1.8rem;margin-bottom:5px;">🏷️</div><div style="font-size:0.84rem;font-weight:700;">לחץ להעלאת לוגו</div><div style="font-size:0.7rem;color:var(--muted);margin-top:3px;">PNG / SVG / JPG / WebP · עד 2MB</div>`;
+      document.getElementById('brand-logo-actions').style.display = 'none';
+      const thumb = document.getElementById('prev-logo-thumb');
+      thumb.innerHTML = 'FJ'; thumb.style.background = `linear-gradient(135deg,${_brandColor},${_brandColor}99)`;
+    } else {
+      _brandCoverFile = null; _brandCoverUrl = null;
+      document.getElementById('brand-cover-file').value = '';
+      document.getElementById('brand-cover-zone').classList.remove('has-logo');
+      document.getElementById('brand-cover-content').innerHTML = `<div style="font-size:1.8rem;margin-bottom:5px;">🌄</div><div style="font-size:0.84rem;font-weight:700;">לחץ להעלאת תמונת רקע</div><div style="font-size:0.7rem;color:var(--muted);margin-top:3px;">PNG / JPG / WebP · עד 5MB</div>`;
+      document.getElementById('brand-cover-actions').style.display = 'none';
+      document.getElementById('prev-cover').style.backgroundImage = `linear-gradient(135deg,rgba(255,107,0,0.18),rgba(0,0,0,0.6))`;
+    }
+  }
+
+  async function uploadBrandFile(file, path) {
+    const { data, error } = await sbAdmin.storage.from('coach-assets').upload(path, file, { upsert: true, contentType: file.type });
+    if (error) throw error;
+    const { data: pub } = sbAdmin.storage.from('coach-assets').getPublicUrl(path);
+    return pub.publicUrl + '?t=' + Date.now();
+  }
+
+  async function saveBranding() {
+    const btn = document.getElementById('brand-save-btn');
+    const msg = document.getElementById('brand-save-msg');
+    btn.disabled = true; btn.textContent = '⏳ שומר...';
+    msg.style.display = 'none';
+
+    try {
+      let logoUrl  = _brandLogoUrl;
+      let coverUrl = _brandCoverUrl;
+
+      if (_brandLogoFile) {
+        const ext = _brandLogoFile.name.split('.').pop();
+        logoUrl = await uploadBrandFile(_brandLogoFile, `${coachEmail}/logo.${ext}`);
+        _brandLogoFile = null; _brandLogoUrl = logoUrl;
+      }
+      if (_brandCoverFile) {
+        const ext = _brandCoverFile.name.split('.').pop();
+        coverUrl = await uploadBrandFile(_brandCoverFile, `${coachEmail}/cover.${ext}`);
+        _brandCoverFile = null; _brandCoverUrl = coverUrl;
+      }
+
+      const updates = {
+        brand_color: _brandColor,
+        tagline: document.getElementById('brand-tagline').value.trim() || null,
+      };
+      if (logoUrl  !== undefined) updates.logo_url  = logoUrl  || null;
+      if (coverUrl !== undefined) updates.cover_url = coverUrl || null;
+
+      const { error } = await sbAdmin.from('coaches').update(updates).eq('email', coachEmail);
+      if (error) throw error;
+
+      btn.disabled = false; btn.textContent = '💾 שמור מיתוג';
+      msg.style.display = 'block';
+      setTimeout(() => msg.style.display = 'none', 3000);
+    } catch(e) {
+      btn.disabled = false; btn.textContent = '💾 שמור מיתוג';
+      toast('שגיאה: ' + (e.message || e), 'err');
+    }
   }
 
   /* ══════════════════════════════════════════════════════

@@ -559,9 +559,11 @@
 
 <div id="loader"><div class="spin"></div></div>
 
-<nav>
+<div id="dashboard-cover" style="position:fixed;inset:0;pointer-events:none;z-index:0;opacity:0;transition:opacity 0.6s;background-size:cover;background-position:center;background-attachment:fixed;"></div>
+
+<nav style="position:relative;z-index:51;">
   <div class="nav-brand">
-    <div class="nav-hf">FJ</div>
+    <div class="nav-hf" id="nav-logo">FJ</div>
     <div class="nav-greeting">שלום, <span id="client-name">—</span></div>
   </div>
   <div style="display:flex;gap:8px;align-items:center;">
@@ -873,7 +875,7 @@
     renderHistory(logs || []);
     renderWeightRow();
     await loadWaterData();
-    await Promise.all([loadCycle(), loadProgressEntries()]);
+    await Promise.all([loadCycle(), loadProgressEntries(), loadCoachBranding(client.coach_email)]);
   }
 
   function fmt(d) {
@@ -2242,6 +2244,59 @@ ${foodList || 'אין פריטים'}
 
   function closeVolumeModal() {
     document.getElementById('volume-modal').style.display = 'none';
+  }
+
+  /* ══════════════════════════════════════════════════════
+     FEATURE 4 — WHITE LABEL BRANDING (לקוח — קריאה בלבד)
+  ══════════════════════════════════════════════════════ */
+  async function loadCoachBranding(coachEmail) {
+    if (!coachEmail) return;
+    try {
+      const { data } = await sb.from('coaches')
+        .select('logo_url,cover_url,brand_color,tagline')
+        .eq('email', coachEmail).single();
+      if (data) applyBranding(data);
+    } catch(e) { /* table columns may not exist yet — silent */ }
+  }
+
+  function applyBranding(b) {
+    if (!b) return;
+    const root = document.documentElement;
+
+    // 1. Brand color → override --orange everywhere
+    if (b.brand_color && b.brand_color !== '#FF6B00') {
+      root.style.setProperty('--orange', b.brand_color);
+      // Derive slightly lighter shade for gradients
+      root.style.setProperty('--orange2', b.brand_color);
+    }
+
+    // 2. Logo → replace "FJ" in navbar
+    const logoEl = document.getElementById('nav-logo');
+    if (logoEl && b.logo_url) {
+      logoEl.innerHTML = `<img src="${b.logo_url}" alt="logo" style="height:38px;max-width:100px;object-fit:contain;border-radius:6px;vertical-align:middle;"/>`;
+      logoEl.style.cssText += ';background:none;-webkit-text-fill-color:initial;';
+    }
+
+    // 3. Cover/Background → fixed overlay behind everything
+    if (b.cover_url) {
+      const cover = document.getElementById('dashboard-cover');
+      if (cover) {
+        cover.style.backgroundImage = `linear-gradient(to bottom, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.88) 100%), url('${b.cover_url}')`;
+        cover.style.opacity = '1';
+      }
+    }
+
+    // 4. Tagline → small subtitle under logo
+    if (b.tagline && logoEl) {
+      const existing = document.getElementById('coach-tagline');
+      if (!existing) {
+        const tag = document.createElement('div');
+        tag.id = 'coach-tagline';
+        tag.style.cssText = 'font-size:0.62rem;font-weight:700;color:var(--orange);letter-spacing:1px;text-transform:uppercase;margin-top:2px;';
+        tag.textContent = b.tagline;
+        logoEl.parentNode.insertBefore(tag, logoEl.nextSibling);
+      }
+    }
   }
 
   /* ══════════════════════════════════════
