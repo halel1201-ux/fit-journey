@@ -312,6 +312,7 @@
     <button class="btn-sm btn-outline" onclick="openRecords()" style="border-color:rgba(255,215,0,0.35);color:#FFD700;">🏆 שיאים</button>
     <a href="coach.html" class="btn-sm btn-outline" style="text-decoration:none;border-color:rgba(255,107,0,0.4);color:var(--orange);">🎓 מאמן</a>
     <a href="dashboard.html" class="btn-sm btn-outline" style="text-decoration:none;border-color:rgba(255,255,255,0.2);color:var(--white);">👤 מתאמן</a>
+    <button class="btn-sm btn-outline" onclick="showDbSetupModal()" style="border-color:rgba(74,222,128,0.3);color:#4ade80;" title="הגדרת טבלאות DB חדשות">🗄️ DB</button>
     <button class="btn-sm btn-outline" onclick="logout()">יציאה</button>
   </div>
 </div>
@@ -3628,6 +3629,85 @@ difficulty: מתחיל | ביניים | מתקדם | כל הרמות
     const idx = recSteps.findIndex(s => s.client_email === ADMIN);
     if (idx >= 0) recSteps[idx].steps = val; else recSteps.push({ client_email: ADMIN, steps: val });
     renderRecBody();
+  }
+
+  /* ══════════════════════════════════════════════════════
+     DATABASE SETUP — צור טבלאות חדשות
+  ══════════════════════════════════════════════════════ */
+  const DB_SETUP_SQL = `
+-- Feature 1: Cycle Management
+CREATE TABLE IF NOT EXISTS cycles (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  client_email text NOT NULL UNIQUE,
+  coach_email text NOT NULL,
+  status text NOT NULL DEFAULT 'natural',
+  goal text DEFAULT 'general',
+  details text DEFAULT '',
+  start_date date,
+  updated_at timestamptz DEFAULT now(),
+  created_at timestamptz DEFAULT now()
+);
+ALTER TABLE cycles ENABLE ROW LEVEL SECURITY;
+CREATE POLICY IF NOT EXISTS "auth_read_own_cycle" ON cycles FOR SELECT
+  USING (auth.jwt()->>'email' = client_email OR auth.jwt()->>'email' = coach_email);
+CREATE POLICY IF NOT EXISTS "service_manage_cycles" ON cycles FOR ALL USING (true);
+
+CREATE TABLE IF NOT EXISTS cycle_history (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  client_email text NOT NULL,
+  coach_email text NOT NULL,
+  status text NOT NULL,
+  goal text,
+  details text,
+  start_date date,
+  end_date timestamptz DEFAULT now(),
+  created_at timestamptz DEFAULT now()
+);
+ALTER TABLE cycle_history ENABLE ROW LEVEL SECURITY;
+CREATE POLICY IF NOT EXISTS "service_manage_cycle_history" ON cycle_history FOR ALL USING (true);
+
+-- Feature 2: Progress Tracking
+CREATE TABLE IF NOT EXISTS progress_entries (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  client_email text NOT NULL,
+  coach_email text NOT NULL,
+  date date NOT NULL,
+  weight numeric(5,2),
+  body_fat_pct numeric(5,2),
+  notes text,
+  created_at timestamptz DEFAULT now(),
+  UNIQUE(client_email, date)
+);
+ALTER TABLE progress_entries ENABLE ROW LEVEL SECURITY;
+CREATE POLICY IF NOT EXISTS "auth_read_own_progress" ON progress_entries FOR SELECT
+  USING (auth.jwt()->>'email' = client_email OR auth.jwt()->>'email' = coach_email);
+CREATE POLICY IF NOT EXISTS "auth_insert_own_progress" ON progress_entries FOR INSERT
+  WITH CHECK (auth.jwt()->>'email' = client_email);
+CREATE POLICY IF NOT EXISTS "auth_update_own_progress" ON progress_entries FOR UPDATE
+  USING (auth.jwt()->>'email' = client_email);
+CREATE POLICY IF NOT EXISTS "service_manage_progress" ON progress_entries FOR ALL USING (true);
+`;
+
+  function showDbSetupModal() {
+    const existing = document.getElementById('db-setup-modal');
+    if (existing) { existing.remove(); return; }
+    const modal = document.createElement('div');
+    modal.id = 'db-setup-modal';
+    modal.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.9);display:flex;align-items:center;justify-content:center;padding:20px;';
+    modal.innerHTML = `<div style="background:#161616;border:1px solid rgba(255,107,0,0.3);border-radius:16px;padding:24px;max-width:700px;width:100%;max-height:80vh;overflow-y:auto;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+        <div style="font-size:1rem;font-weight:900;color:var(--orange);">🗄️ הגדרת מסד נתונים — Features 1+2</div>
+        <button onclick="this.closest('#db-setup-modal').remove()" style="background:rgba(255,255,255,0.07);border:none;color:#888;width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:1rem;">✕</button>
+      </div>
+      <div style="font-size:0.82rem;color:var(--muted);margin-bottom:12px;line-height:1.6;">הרץ את ה-SQL הבא בדשבורד של Supabase → SQL Editor</div>
+      <textarea onclick="this.select()" style="width:100%;height:300px;background:#0e0e0e;border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:#4ade80;font-family:monospace;font-size:0.78rem;padding:14px;resize:vertical;outline:none;direction:ltr;">${DB_SETUP_SQL.trim()}</textarea>
+      <div style="margin-top:12px;display:flex;gap:8px;">
+        <button onclick="navigator.clipboard.writeText(document.querySelector('#db-setup-modal textarea').value).then(()=>{this.textContent='✓ הועתק!';setTimeout(()=>this.textContent='📋 העתק SQL',2000)})" style="padding:9px 18px;background:var(--orange);border:none;border-radius:8px;color:#fff;font-family:Heebo,sans-serif;font-size:0.88rem;font-weight:700;cursor:pointer;">📋 העתק SQL</button>
+        <a href="https://app.supabase.com" target="_blank" style="padding:9px 18px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:#fff;font-family:Heebo,sans-serif;font-size:0.88rem;font-weight:700;text-decoration:none;">פתח Supabase ↗</a>
+      </div>
+    </div>`;
+    document.body.appendChild(modal);
+    modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
   }
 
   init();

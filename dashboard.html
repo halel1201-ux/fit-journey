@@ -14,6 +14,7 @@
   <title>אזור אישי — HF Coaching</title>
   <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;700;900&display=swap" rel="stylesheet"/>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
   <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -541,6 +542,17 @@
     transition: opacity 0.2s;
   }
   .vol-btn-close:hover { opacity: 0.88; }
+
+  /* ── CYCLE CARD ── */
+  .cycle-card { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:18px 20px; margin-bottom:4px; }
+  .cycle-status-badge { display:inline-flex; align-items:center; gap:5px; padding:5px 14px; border-radius:20px; font-size:0.83rem; font-weight:700; }
+
+  /* ── PROGRESS SECTION ── */
+  .progress-stats { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:16px; }
+  .pstat { background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-radius:10px; padding:14px 8px; text-align:center; }
+  .pstat-val { font-size:1.3rem; font-weight:900; line-height:1; }
+  .pstat-lbl { font-size:0.68rem; color:var(--muted); margin-top:4px; font-weight:700; }
+  .chart-wrap { background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.07); border-radius:12px; padding:14px 10px; margin-bottom:16px; }
   </style>
 </head>
 <body>
@@ -568,6 +580,24 @@
       <h2 id="timer-label">ימים נותרו לליווי</h2>
       <p id="timer-dates">—</p>
       <span class="plan-badge" id="plan-badge"></span>
+    </div>
+  </div>
+
+  <!-- CYCLE SECTION -->
+  <div class="section" id="cycle-section" style="display:none;margin-bottom:20px;">
+    <div class="sec-title"><span class="icon">🔄</span> הסייקל שלי</div>
+    <div class="cycle-card">
+      <div id="cycle-status-wrap" style="margin-bottom:10px;"></div>
+      <div id="cycle-goal-wrap"></div>
+    </div>
+  </div>
+
+  <!-- PROGRESS SECTION -->
+  <div class="section" id="progress-section" style="display:none;">
+    <div class="sec-title"><span class="icon">📈</span> התקדמות</div>
+    <div class="progress-stats" id="progress-stats"></div>
+    <div class="chart-wrap" id="progress-chart-wrap" style="display:none;">
+      <canvas id="progress-chart" height="200"></canvas>
     </div>
   </div>
 
@@ -843,6 +873,7 @@
     renderHistory(logs || []);
     renderWeightRow();
     await loadWaterData();
+    await Promise.all([loadCycle(), loadProgressEntries()]);
   }
 
   function fmt(d) {
@@ -2029,19 +2060,35 @@ ${foodList || 'אין פריטים'}
   function renderWeightRow() {
     const el = document.getElementById('weight-display');
     if (!el) return;
-    el.textContent = clientData?.current_weight ? clientData.current_weight : '—';
+    const w = progressEntries[0]?.weight || clientData?.current_weight;
+    el.textContent = w ? w : '—';
   }
 
   async function updateWeight() {
-    const current = clientData?.current_weight;
+    const current = progressEntries[0]?.weight || clientData?.current_weight;
     const val = prompt(current ? `משקל נוכחי: ${current} ק"ג\nהזן משקל חדש (ק"ג):` : 'הזן את המשקל הנוכחי שלך (ק"ג):');
     if (val === null) return;
     const kg = parseFloat(val.replace(',', '.'));
     if (!kg || kg < 20 || kg > 500) { alert('משקל לא תקין'); return; }
-    const { error } = await sb.from('clients').update({ current_weight: kg }).eq('email', currentEmail);
-    if (error) { alert('שגיאה בשמירה'); return; }
+
+    const today = new Date().toISOString().split('T')[0];
+    // Update clients table (backward compat)
+    await sb.from('clients').update({ current_weight: kg }).eq('email', currentEmail);
+    // Upsert today's progress entry
+    await sb.from('progress_entries').upsert({
+      client_email: currentEmail,
+      coach_email: clientData?.coach_email || '',
+      date: today,
+      weight: kg,
+    }, { onConflict: 'client_email,date' });
+
     if (clientData) clientData.current_weight = kg;
+    const idx = progressEntries.findIndex(e => e.date === today);
+    if (idx >= 0) progressEntries[idx].weight = kg;
+    else progressEntries.unshift({ client_email: currentEmail, date: today, weight: kg });
+
     renderWeightRow();
+    renderProgressSection();
   }
 
   /* ── WATER ── */
@@ -2195,6 +2242,146 @@ ${foodList || 'אין פריטים'}
 
   function closeVolumeModal() {
     document.getElementById('volume-modal').style.display = 'none';
+  }
+
+  /* ══════════════════════════════════════
+     FEATURE 1 — הסייקל שלי (קריאה בלבד)
+  ══════════════════════════════════════ */
+  let cycleData = null;
+
+  const CYCLE_STATUS_STYLES = {
+    natural:   { label:'טבעי',      color:'#4ade80', bg:'rgba(74,222,128,0.12)',  border:'rgba(74,222,128,0.35)' },
+    enhanced:  { label:'משופר',     color:'#60a5fa', bg:'rgba(96,165,250,0.12)',  border:'rgba(96,165,250,0.35)' },
+    trt:       { label:'TRT',       color:'#a78bfa', bg:'rgba(167,139,250,0.12)', border:'rgba(167,139,250,0.35)' },
+    off_cycle: { label:'אוף סייקל', color:'#f87171', bg:'rgba(248,113,113,0.1)',  border:'rgba(248,113,113,0.3)' },
+    cruise:    { label:'קרוז',      color:'#fb923c', bg:'rgba(251,146,60,0.1)',   border:'rgba(251,146,60,0.3)' },
+    blast:     { label:'בלאסט',     color:'#fbbf24', bg:'rgba(251,191,36,0.1)',   border:'rgba(251,191,36,0.3)' },
+  };
+  const CYCLE_GOAL_LABELS = {
+    mass:'עלייה במסה', cut:'חיטוב', recomp:'ריקומפ',
+    performance:'ביצועים', competition:'הכנה לתחרות',
+    best_condition:'בסט קונדישן', general:'כללי',
+  };
+
+  async function loadCycle() {
+    try {
+      const { data } = await sb.from('cycles').select('status,goal').eq('client_email', currentEmail).single();
+      cycleData = data;
+    } catch(e) { cycleData = null; }
+    renderCycle();
+  }
+
+  function renderCycle() {
+    const sec = document.getElementById('cycle-section');
+    if (!cycleData || !sec) { if(sec) sec.style.display='none'; return; }
+    sec.style.display = 'block';
+    const s = CYCLE_STATUS_STYLES[cycleData.status] || { label: cycleData.status, color:'#aaa', bg:'rgba(255,255,255,0.06)', border:'rgba(255,255,255,0.15)' };
+    const goalLabel = CYCLE_GOAL_LABELS[cycleData.goal] || cycleData.goal || 'לא הוגדר';
+    document.getElementById('cycle-status-wrap').innerHTML = `
+      <div style="font-size:0.7rem;font-weight:700;color:var(--muted);margin-bottom:5px;">סטטוס</div>
+      <span class="cycle-status-badge" style="color:${s.color};background:${s.bg};border:1px solid ${s.border};">● ${s.label}</span>`;
+    document.getElementById('cycle-goal-wrap').innerHTML = `
+      <div style="font-size:0.7rem;font-weight:700;color:var(--muted);margin-bottom:5px;">מטרה</div>
+      <span style="font-size:0.92rem;font-weight:700;color:var(--white);">${goalLabel}</span>`;
+  }
+
+  /* ══════════════════════════════════════
+     FEATURE 2 — מעקב התקדמות (לקוח)
+  ══════════════════════════════════════ */
+  let progressEntries = [];
+  let progressChart   = null;
+
+  async function loadProgressEntries() {
+    try {
+      const { data } = await sb.from('progress_entries')
+        .select('date,weight,body_fat_pct').eq('client_email', currentEmail)
+        .order('date', { ascending: false }).limit(90);
+      progressEntries = data || [];
+    } catch(e) { progressEntries = []; }
+    renderProgressSection();
+  }
+
+  function renderProgressSection() {
+    const sec = document.getElementById('progress-section');
+    if (!progressEntries.length || !sec) { if(sec) sec.style.display='none'; return; }
+    sec.style.display = 'block';
+
+    const latest  = progressEntries[0];
+    const goal    = cycleData?.goal;
+    const isCut   = goal === 'cut' || goal === 'recomp';
+
+    // Personal best weight
+    let pbWeight = null;
+    progressEntries.forEach(e => {
+      if (!e.weight) return;
+      if (pbWeight === null) { pbWeight = e.weight; return; }
+      pbWeight = isCut ? Math.min(pbWeight, e.weight) : Math.max(pbWeight, e.weight);
+    });
+
+    // Best lean mass
+    let pbLean = null;
+    progressEntries.forEach(e => {
+      if (e.weight && e.body_fat_pct) {
+        const lean = +(e.weight * (1 - e.body_fat_pct/100)).toFixed(1);
+        if (pbLean === null || lean > pbLean) pbLean = lean;
+      }
+    });
+
+    const statsEl = document.getElementById('progress-stats');
+    statsEl.innerHTML = `
+      <div class="pstat">
+        <div class="pstat-val" style="color:var(--orange);">${latest?.weight || '—'}</div>
+        <div class="pstat-lbl">משקל נוכחי (ק"ג)</div>
+      </div>
+      <div class="pstat">
+        <div class="pstat-val" style="color:var(--gold);">${pbWeight !== null ? pbWeight : '—'}</div>
+        <div class="pstat-lbl">${isCut ? 'שפל אישי (ק"ג)' : 'שיא אישי (ק"ג)'}</div>
+      </div>
+      <div class="pstat">
+        <div class="pstat-val" style="color:#4ade80;">${latest?.body_fat_pct ? latest.body_fat_pct + '%' : '—'}</div>
+        <div class="pstat-lbl">% שומן</div>
+      </div>`;
+
+    renderProgressChart();
+  }
+
+  function renderProgressChart() {
+    const wrap = document.getElementById('progress-chart-wrap');
+    const withW = [...progressEntries].reverse().filter(e => e.weight);
+    if (!withW.length || !wrap) { if(wrap) wrap.style.display='none'; return; }
+    wrap.style.display = 'block';
+
+    const shown  = withW.slice(-12);
+    const labels = shown.map(e => new Date(e.date).toLocaleDateString('he-IL',{day:'2-digit',month:'2-digit'}));
+    const weights = shown.map(e => e.weight);
+    const bfArr   = shown.map(e => e.body_fat_pct ?? null);
+    const hasBF   = bfArr.some(v => v !== null);
+
+    if (progressChart) { progressChart.destroy(); progressChart = null; }
+    const ctx = document.getElementById('progress-chart').getContext('2d');
+    const datasets = [{
+      label: 'משקל (ק"ג)', data: weights,
+      borderColor:'#FF6B00', backgroundColor:'rgba(255,107,0,0.1)',
+      fill:true, tension:0.4, pointRadius:4, pointBackgroundColor:'#FF6B00',
+    }];
+    if (hasBF) datasets.push({
+      label: '% שומן', data: bfArr,
+      borderColor:'#4ade80', backgroundColor:'rgba(74,222,128,0.06)',
+      fill:false, tension:0.4, pointRadius:4, pointBackgroundColor:'#4ade80', yAxisID:'y2',
+    });
+
+    progressChart = new Chart(ctx, {
+      type: 'line', data: { labels, datasets },
+      options: {
+        responsive:true,
+        plugins:{ legend:{ labels:{ color:'#aaa', font:{ family:'Heebo', size:11 }, boxWidth:12 } } },
+        scales:{
+          x:{ ticks:{ color:'#666', font:{ family:'Heebo', size:10 } }, grid:{ color:'rgba(255,255,255,0.05)' } },
+          y:{ ticks:{ color:'#aaa', font:{ family:'Heebo', size:10 } }, grid:{ color:'rgba(255,255,255,0.06)' } },
+          ...(hasBF ? { y2:{ position:'left', ticks:{ color:'#4ade80', font:{ size:10 } }, grid:{ display:false } } } : {})
+        }
+      }
+    });
   }
 
   init();

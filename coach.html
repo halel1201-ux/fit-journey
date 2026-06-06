@@ -14,6 +14,7 @@
   <title>פאנל מאמן — HF Coaching</title>
   <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;700;900&display=swap" rel="stylesheet"/>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
   <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -1470,11 +1471,23 @@
         <div class="sec-card-title">📊 יומן אימונים</div>
         <div id="client-logs-wrap"><div style="color:#444;font-size:0.85rem;">טוען...</div></div>
       </div>
+
+      <div class="sec-card">
+        <div class="sec-card-title">🔄 הסייקל שלי</div>
+        <div id="cycle-editor"><div style="color:#444;font-size:0.85rem;padding:10px 0;">טוען...</div></div>
+      </div>
+
+      <div class="sec-card">
+        <div class="sec-card-title">📈 מעקב התקדמות</div>
+        <div id="progress-editor"><div style="color:#444;font-size:0.85rem;padding:10px 0;">טוען...</div></div>
+      </div>
     `;
     renderTrainingEditor();
     renderNutritionEditor();
     loadDefaultTemplate();
     loadClientLogs(client.email);
+    loadCycleForClient(client.email);
+    loadProgressForClient(client.email);
   }
 
   /* ── CLIENT CARD ── */
@@ -2840,6 +2853,302 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
     closeIncomeModal();
     loadStats();
     toast('✓ הכנסה נשמרה!', 'ok');
+  }
+
+  /* ══════════════════════════════════════════════════════
+     FEATURE 1 — ניהול סייקל (מאמן)
+  ══════════════════════════════════════════════════════ */
+  let clientCycle = null;
+
+  const STATUS_OPTS = [
+    { val:'natural',   label:'טבעי',      color:'#4ade80' },
+    { val:'enhanced',  label:'משופר',     color:'#60a5fa' },
+    { val:'trt',       label:'TRT',       color:'#a78bfa' },
+    { val:'off_cycle', label:'אוף סייקל', color:'#f87171' },
+    { val:'cruise',    label:'קרוז',      color:'#fb923c' },
+    { val:'blast',     label:'בלאסט',     color:'#fbbf24' },
+  ];
+  const GOAL_OPTS = [
+    { val:'mass',         label:'עלייה במסה'   },
+    { val:'cut',          label:'חיטוב'        },
+    { val:'recomp',       label:'ריקומפ'       },
+    { val:'performance',  label:'ביצועים'      },
+    { val:'competition',  label:'הכנה לתחרות'  },
+    { val:'best_condition',label:'בסט קונדישן' },
+    { val:'general',      label:'כללי'         },
+  ];
+
+  async function loadCycleForClient(email) {
+    try {
+      const { data } = await sb.from('cycles').select('*').eq('client_email', email).maybeSingle();
+      clientCycle = data;
+    } catch(e) { clientCycle = null; }
+    renderCycleEditor();
+  }
+
+  function renderCycleEditor() {
+    const wrap = document.getElementById('cycle-editor');
+    if (!wrap) return;
+    const cy = clientCycle;
+    const selStatus = cy?.status || 'natural';
+    const selGoal   = cy?.goal   || 'general';
+
+    wrap.innerHTML = `
+      <div class="form-grid" style="margin-bottom:12px;">
+        <div class="f-group">
+          <label>סטטוס</label>
+          <select id="cy-status">
+            ${STATUS_OPTS.map(o=>`<option value="${o.val}"${o.val===selStatus?' selected':''}>${o.label}</option>`).join('')}
+          </select>
+        </div>
+        <div class="f-group">
+          <label>מטרה</label>
+          <select id="cy-goal">
+            ${GOAL_OPTS.map(o=>`<option value="${o.val}"${o.val===selGoal?' selected':''}>${o.label}</option>`).join('')}
+          </select>
+        </div>
+        <div class="f-group">
+          <label>תאריך התחלה</label>
+          <input type="date" id="cy-start" value="${cy?.start_date||new Date().toISOString().split('T')[0]}"/>
+        </div>
+      </div>
+      <div class="f-group" style="margin-bottom:14px;">
+        <label>פרוטוקול / פרטים (גלויים למאמן בלבד)</label>
+        <textarea style="width:100%;padding:9px 12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:var(--white);font-family:'Heebo',sans-serif;font-size:0.86rem;resize:vertical;min-height:62px;outline:none;transition:border-color 0.2s;line-height:1.6;" id="cy-details" placeholder="מינונים, תרופות, הערות...">${esc(cy?.details||'')}</textarea>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <button class="btn-sm btn-orange" onclick="saveCycleForClient()">שמור סייקל</button>
+        ${cy?`<button class="btn-sm btn-red" onclick="endCycleForClient()">סיים & העבר להיסטוריה</button>`:''}
+      </div>
+      ${cy?`<div style="margin-top:8px;font-size:0.73rem;color:#555;">עודכן: ${new Date(cy.updated_at||cy.created_at).toLocaleDateString('he-IL')}</div>`:''}`;
+  }
+
+  async function saveCycleForClient() {
+    const email  = activeEmail; if (!email) return;
+    const status = document.getElementById('cy-status').value;
+    const goal   = document.getElementById('cy-goal').value;
+    const details= document.getElementById('cy-details').value.trim();
+    const sdate  = document.getElementById('cy-start').value || new Date().toISOString().split('T')[0];
+
+    // Archive if status/goal changed
+    if (clientCycle && (clientCycle.status!==status||clientCycle.goal!==goal)) {
+      await sbAdmin.from('cycle_history').insert({
+        client_email:email, coach_email:coachEmail,
+        status:clientCycle.status, goal:clientCycle.goal,
+        details:clientCycle.details, start_date:clientCycle.start_date,
+      });
+    }
+
+    const { data, error } = await sbAdmin.from('cycles').upsert({
+      client_email:email, coach_email:coachEmail,
+      status, goal, details, start_date:sdate,
+      updated_at:new Date().toISOString(),
+    },{ onConflict:'client_email' }).select().single();
+
+    if (error) { toast('שגיאה: '+error.message,'err'); return; }
+    clientCycle = data;
+    renderCycleEditor();
+    toast('סייקל נשמר ✓','ok');
+  }
+
+  async function endCycleForClient() {
+    if (!clientCycle || !activeEmail) return;
+    if (!confirm('לסיים את הסייקל הנוכחי ולהעביר להיסטוריה?')) return;
+    await sbAdmin.from('cycle_history').insert({
+      client_email:activeEmail, coach_email:coachEmail,
+      status:clientCycle.status, goal:clientCycle.goal,
+      details:clientCycle.details, start_date:clientCycle.start_date,
+    });
+    await sbAdmin.from('cycles').delete().eq('client_email',activeEmail);
+    clientCycle = null;
+    renderCycleEditor();
+    toast('סייקל הועבר להיסטוריה ✓','ok');
+  }
+
+  /* ══════════════════════════════════════════════════════
+     FEATURE 2 — מעקב התקדמות (מאמן)
+  ══════════════════════════════════════════════════════ */
+  let clientProgressEntries = [];
+  let clientProgressChart   = null;
+
+  async function loadProgressForClient(email) {
+    try {
+      const { data } = await sb.from('progress_entries')
+        .select('*').eq('client_email',email)
+        .order('date',{ ascending:false }).limit(90);
+      clientProgressEntries = data || [];
+    } catch(e) { clientProgressEntries = []; }
+    renderProgressEditor();
+  }
+
+  function renderProgressEditor() {
+    const wrap = document.getElementById('progress-editor');
+    if (!wrap) return;
+    const today   = new Date().toISOString().split('T')[0];
+    const entries = clientProgressEntries;
+    const latest  = entries[0];
+
+    // Lean mass best
+    let maxLean=null, maxLeanDate=null;
+    entries.forEach(e=>{
+      if(e.weight&&e.body_fat_pct){
+        const l=+(e.weight*(1-e.body_fat_pct/100)).toFixed(1);
+        if(maxLean===null||l>maxLean){maxLean=l;maxLeanDate=e.date;}
+      }
+    });
+
+    // Table (last 20)
+    let tableHTML='';
+    if(entries.length){
+      const rows=entries.slice(0,20).map(e=>{
+        const lean=(e.weight&&e.body_fat_pct)?+(e.weight*(1-e.body_fat_pct/100)).toFixed(1):null;
+        return `<tr style="border-bottom:1px solid rgba(255,255,255,0.04);">
+          <td style="padding:7px 8px;font-size:0.79rem;color:var(--muted);">${e.date}</td>
+          <td style="text-align:center;padding:7px 6px;font-weight:700;">${e.weight?e.weight+' ק"ג':'—'}</td>
+          <td style="text-align:center;padding:7px 6px;color:#4ade80;font-weight:700;">${e.body_fat_pct?e.body_fat_pct+'%':'—'}</td>
+          <td style="text-align:center;padding:7px 6px;color:var(--gold);font-weight:700;">${lean?lean:'—'}</td>
+          <td style="text-align:center;padding:4px 4px;">
+            ${!e.body_fat_pct?`<button class="btn-sm btn-outline" style="font-size:0.68rem;padding:2px 8px;" onclick="quickAddBF('${e.id}','${e.date}',${e.weight||0})">+ %שומן</button>`:''}
+          </td>
+        </tr>`;
+      }).join('');
+      tableHTML=`<div style="overflow-x:auto;margin-bottom:18px;">
+        <table style="width:100%;border-collapse:collapse;">
+          <thead><tr style="border-bottom:1px solid rgba(255,255,255,0.1);">
+            <th style="text-align:right;padding:7px 8px;font-size:0.7rem;color:var(--muted);">תאריך</th>
+            <th style="text-align:center;padding:7px 6px;font-size:0.7rem;color:var(--muted);">משקל</th>
+            <th style="text-align:center;padding:7px 6px;font-size:0.7rem;color:var(--muted);">% שומן</th>
+            <th style="text-align:center;padding:7px 6px;font-size:0.7rem;color:var(--muted);">מסה רזה</th>
+            <th></th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>`;
+    }
+
+    wrap.innerHTML=`
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;">
+        <div style="background:rgba(255,107,0,0.06);border:1px solid rgba(255,107,0,0.2);border-radius:10px;padding:12px;text-align:center;">
+          <div style="font-size:1.2rem;font-weight:900;color:var(--orange);">${latest?.weight?latest.weight+' ק"ג':'—'}</div>
+          <div style="font-size:0.68rem;color:var(--muted);margin-top:3px;">משקל נוכחי</div>
+        </div>
+        <div style="background:rgba(74,222,128,0.06);border:1px solid rgba(74,222,128,0.2);border-radius:10px;padding:12px;text-align:center;">
+          <div style="font-size:1.2rem;font-weight:900;color:#4ade80;">${latest?.body_fat_pct?latest.body_fat_pct+'%':'—'}</div>
+          <div style="font-size:0.68rem;color:var(--muted);margin-top:3px;">% שומן נוכחי</div>
+        </div>
+        <div style="background:rgba(255,215,0,0.06);border:1px solid rgba(255,215,0,0.2);border-radius:10px;padding:12px;text-align:center;">
+          <div style="font-size:1.2rem;font-weight:900;color:var(--gold);">${maxLean?maxLean+' ק"ג':'—'}</div>
+          <div style="font-size:0.68rem;color:var(--muted);margin-top:3px;">בסט קונדישן${maxLeanDate?'<br><span style="font-size:0.62rem;">'+maxLeanDate+'</span>':''}</div>
+        </div>
+      </div>
+
+      <div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:12px;margin-bottom:16px;">
+        <canvas id="client-prog-chart" height="150"></canvas>
+      </div>
+
+      ${tableHTML}
+
+      <div style="border-top:1px solid rgba(255,255,255,0.07);padding-top:14px;">
+        <div style="font-size:0.78rem;font-weight:700;color:var(--muted);margin-bottom:10px;">הוסף רשומה</div>
+        <div class="form-grid" style="grid-template-columns:1fr 1fr 1fr 1fr;margin-bottom:10px;">
+          <div class="f-group"><label>תאריך</label><input type="date" id="prog-date" value="${today}"/></div>
+          <div class="f-group"><label>משקל (ק"ג)</label><input type="number" id="prog-w" step="0.1" placeholder="—"/></div>
+          <div class="f-group"><label>% שומן</label><input type="number" id="prog-bf" step="0.1" min="3" max="65" placeholder="—"/></div>
+          <div class="f-group"><label>הערות</label><input type="text" id="prog-notes" placeholder="אופציונלי"/></div>
+        </div>
+        <button class="btn-sm btn-orange" onclick="saveProgressEntry()">שמור רשומה</button>
+      </div>`;
+
+    setTimeout(()=>renderClientProgressChart(), 50);
+  }
+
+  function renderClientProgressChart() {
+    const canvas = document.getElementById('client-prog-chart');
+    if (!canvas) return;
+    const entries = clientProgressEntries;
+    const withW   = [...entries].reverse().filter(e=>e.weight).slice(-12);
+    if (!withW.length) return;
+
+    const labels  = withW.map(e=>new Date(e.date).toLocaleDateString('he-IL',{day:'2-digit',month:'2-digit'}));
+    const weights = withW.map(e=>e.weight);
+    const bfArr   = withW.map(e=>e.body_fat_pct??null);
+    const leanArr = withW.map(e=>(e.weight&&e.body_fat_pct)?+(e.weight*(1-e.body_fat_pct/100)).toFixed(1):null);
+    const hasBF   = bfArr.some(v=>v!==null);
+
+    if (clientProgressChart) { clientProgressChart.destroy(); clientProgressChart=null; }
+    const ctx = canvas.getContext('2d');
+    const datasets=[{
+      label:'משקל', data:weights,
+      borderColor:'#FF6B00', backgroundColor:'rgba(255,107,0,0.1)',
+      fill:true, tension:0.4, pointRadius:4,
+    }];
+    if(hasBF){
+      datasets.push({ label:'% שומן', data:bfArr, borderColor:'#4ade80', backgroundColor:'rgba(74,222,128,0.06)', fill:false, tension:0.4, pointRadius:4, yAxisID:'y2' });
+      datasets.push({ label:'מסה רזה', data:leanArr, borderColor:'#fbbf24', backgroundColor:'rgba(251,191,36,0.06)', fill:false, tension:0.4, pointRadius:3, borderDash:[4,3] });
+    }
+    clientProgressChart = new Chart(ctx,{
+      type:'line', data:{ labels, datasets },
+      options:{
+        responsive:true,
+        plugins:{ legend:{ labels:{ color:'#aaa', font:{family:'Heebo',size:10}, boxWidth:10 } } },
+        scales:{
+          x:{ ticks:{ color:'#555', font:{size:10} }, grid:{ color:'rgba(255,255,255,0.04)' } },
+          y:{ ticks:{ color:'#aaa', font:{size:10} }, grid:{ color:'rgba(255,255,255,0.05)' } },
+          ...(hasBF?{y2:{ position:'left', ticks:{ color:'#4ade80', font:{size:10} }, grid:{ display:false } }}:{})
+        }
+      }
+    });
+  }
+
+  async function saveProgressEntry() {
+    const email = activeEmail; if(!email) return;
+    const date  = document.getElementById('prog-date').value;
+    const w     = parseFloat(document.getElementById('prog-w').value)||null;
+    const bf    = parseFloat(document.getElementById('prog-bf').value)||null;
+    const notes = document.getElementById('prog-notes').value.trim();
+    if(!date||(!w&&!bf)){ toast('יש להזין תאריך ולפחות משקל או % שומן','err'); return; }
+    if(w&&(w<20||w>500)){ toast('משקל לא תקין','err'); return; }
+    if(bf&&(bf<3||bf>65)){ toast('% שומן לא תקין','err'); return; }
+
+    const existing = clientProgressEntries.find(e=>e.date===date);
+    const payload = {
+      client_email:email, coach_email:coachEmail, date,
+      weight:w??existing?.weight??null,
+      body_fat_pct:bf??existing?.body_fat_pct??null,
+      notes:notes||existing?.notes||null,
+    };
+
+    const { data, error } = await sbAdmin.from('progress_entries')
+      .upsert(payload,{ onConflict:'client_email,date' }).select().single();
+    if(error){ toast('שגיאה: '+error.message,'err'); return; }
+
+    if(w){
+      await sbAdmin.from('clients').update({ current_weight:w }).eq('email',email);
+      const ci=clients.findIndex(c=>c.email===email);
+      if(ci>=0) clients[ci].current_weight=w;
+    }
+
+    const idx=clientProgressEntries.findIndex(e=>e.date===date);
+    if(idx>=0) clientProgressEntries[idx]=data;
+    else clientProgressEntries.unshift(data);
+    clientProgressEntries.sort((a,b)=>b.date.localeCompare(a.date));
+
+    renderProgressEditor();
+    toast('התקדמות נשמרה ✓','ok');
+  }
+
+  async function quickAddBF(id, date, weight) {
+    const bf = prompt(`הזן % שומן לתאריך ${date}:${weight?' (משקל: '+weight+' ק"ג)':''}`);
+    if(bf===null) return;
+    const val = parseFloat(bf.replace(',','.'));
+    if(!val||val<3||val>65){ alert('% שומן לא תקין'); return; }
+    const { data, error } = await sbAdmin.from('progress_entries')
+      .update({ body_fat_pct:val }).eq('id',id).select().single();
+    if(error){ toast('שגיאה: '+error.message,'err'); return; }
+    const idx=clientProgressEntries.findIndex(e=>e.id===id);
+    if(idx>=0) clientProgressEntries[idx]=data;
+    renderProgressEditor();
+    toast('% שומן נשמר ✓','ok');
   }
 
   init();
