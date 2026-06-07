@@ -1,0 +1,1262 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>HF Online Coaching — Creative Brief לפרסומת וידאו</title>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;700;900&display=swap" rel="stylesheet"/>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --orange: #FF6B00;
+    --gold:   #FFD700;
+    --black:  #0a0a0a;
+    --dark:   #111;
+    --white:  #fff;
+    --muted:  #888;
+    --border: rgba(255,107,0,0.3);
+  }
+
+  body {
+    font-family: 'Heebo', sans-serif;
+    background: #fff;
+    color: #111;
+    line-height: 1.7;
+    font-size: 14px;
+  }
+
+  /* ── PRINT ── */
+  @media print {
+    body { font-size: 12px; }
+    .page-break { page-break-before: always; }
+    .no-print { display: none !important; }
+    a { text-decoration: none; color: inherit; }
+    .cover { min-height: 100vh; }
+  }
+
+  /* ── COVER ── */
+  .cover {
+    background: linear-gradient(160deg, #0a0a0a 0%, #111 60%, #1a0a00 100%);
+    color: #fff;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 60px 40px;
+    position: relative;
+    overflow: hidden;
+  }
+  .cover::before {
+    content: '';
+    position: absolute;
+    bottom: -100px; left: 50%;
+    transform: translateX(-50%);
+    width: 700px; height: 400px;
+    background: radial-gradient(ellipse, rgba(255,107,0,0.2) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .cover-logo {
+    width: 100px; height: 100px;
+    background: linear-gradient(145deg, #FF6B00, #FF8C00 55%, #FFD700);
+    border-radius: 26px;
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 28px;
+    box-shadow: 0 0 60px rgba(255,107,0,0.5);
+    font-size: 2.8rem; font-weight: 900; color: #fff;
+    font-family: 'Arial Black', sans-serif;
+    letter-spacing: -2px;
+  }
+  .cover-title {
+    font-size: 3rem; font-weight: 900;
+    background: linear-gradient(135deg, #FF6B00, #FFD700);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 8px;
+    line-height: 1.2;
+  }
+  .cover-sub {
+    font-size: 1.2rem; color: #aaa; margin-bottom: 32px;
+    letter-spacing: 1px;
+  }
+  .cover-tag {
+    display: inline-block;
+    padding: 8px 24px;
+    border: 1px solid rgba(255,107,0,0.4);
+    border-radius: 30px;
+    font-size: 0.85rem; font-weight: 700;
+    color: #FF6B00;
+    letter-spacing: 2px;
+    margin-bottom: 48px;
+  }
+  .cover-meta {
+    display: flex; gap: 40px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .cover-meta-item {
+    text-align: center;
+  }
+  .cover-meta-num {
+    font-size: 2rem; font-weight: 900;
+    background: linear-gradient(135deg, #FF6B00, #FFD700);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .cover-meta-lbl {
+    font-size: 0.75rem; color: #666; letter-spacing: 1px;
+    margin-top: 2px;
+  }
+
+  /* ── PAGE ── */
+  .page {
+    max-width: 820px;
+    margin: 0 auto;
+    padding: 56px 48px;
+  }
+  .page + .page {
+    border-top: 3px solid #f0f0f0;
+  }
+
+  /* ── SECTION HEADING ── */
+  .sec-heading {
+    display: flex; align-items: center; gap: 14px;
+    margin-bottom: 28px;
+    padding-bottom: 14px;
+    border-bottom: 2px solid #f0f0f0;
+  }
+  .sec-num {
+    width: 40px; height: 40px; border-radius: 50%;
+    background: linear-gradient(135deg, #FF6B00, #FF8C00);
+    color: #fff; font-size: 1rem; font-weight: 900;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .sec-title {
+    font-size: 1.5rem; font-weight: 900; color: #111;
+  }
+  .sec-sub {
+    font-size: 0.82rem; color: #888; margin-top: 2px;
+  }
+
+  /* ── CONTENT BLOCKS ── */
+  h3 {
+    font-size: 1rem; font-weight: 900;
+    color: #FF6B00;
+    margin: 22px 0 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  p { margin-bottom: 12px; color: #333; }
+
+  /* ── GRID ── */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+  @media (max-width: 600px) {
+    .grid-2, .grid-3 { grid-template-columns: 1fr; }
+  }
+
+  /* ── CARDS ── */
+  .card {
+    background: #f9f9f9;
+    border: 1px solid #e8e8e8;
+    border-radius: 12px;
+    padding: 18px 20px;
+  }
+  .card.orange {
+    background: linear-gradient(135deg, rgba(255,107,0,0.06), rgba(255,215,0,0.03));
+    border-color: rgba(255,107,0,0.25);
+  }
+  .card.dark {
+    background: #111;
+    border-color: rgba(255,107,0,0.25);
+    color: #fff;
+  }
+  .card-title {
+    font-size: 0.95rem; font-weight: 900;
+    color: #FF6B00; margin-bottom: 8px;
+  }
+  .card-title.gold { color: #c8920a; }
+  .card .card-title { margin-bottom: 8px; }
+  .card p { font-size: 0.88rem; margin-bottom: 6px; }
+
+  /* ── FEATURE LIST ── */
+  .feat-list { list-style: none; }
+  .feat-list li {
+    padding: 6px 0;
+    border-bottom: 1px solid #f0f0f0;
+    font-size: 0.88rem; color: #444;
+    display: flex; align-items: flex-start; gap: 8px;
+  }
+  .feat-list li:last-child { border-bottom: none; }
+  .feat-list li::before {
+    content: '▸';
+    color: #FF6B00; font-size: 0.75rem;
+    margin-top: 3px; flex-shrink: 0;
+  }
+  .feat-list li strong { color: #111; }
+
+  /* ── COLOR SWATCHES ── */
+  .swatches { display: flex; gap: 12px; flex-wrap: wrap; margin: 12px 0; }
+  .swatch {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 0.78rem; color: #555;
+  }
+  .swatch-box {
+    width: 32px; height: 32px; border-radius: 8px;
+    border: 1px solid rgba(0,0,0,0.1);
+    flex-shrink: 0;
+  }
+
+  /* ── SCENE CARD ── */
+  .scene {
+    border-right: 4px solid #FF6B00;
+    padding: 14px 18px;
+    background: #f9f9f9;
+    border-radius: 0 10px 10px 0;
+    margin-bottom: 14px;
+  }
+  .scene-num {
+    font-size: 0.7rem; font-weight: 900; color: #FF6B00;
+    letter-spacing: 1px; text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  .scene-title {
+    font-size: 1rem; font-weight: 900; color: #111;
+    margin-bottom: 6px;
+  }
+  .scene p { font-size: 0.85rem; margin: 0; }
+
+  /* ── PERSONA ── */
+  .persona {
+    background: #111;
+    border-radius: 14px;
+    padding: 24px;
+    color: #fff;
+  }
+  .persona-avatar {
+    width: 56px; height: 56px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.6rem; font-weight: 900; color: #fff;
+    margin-bottom: 14px;
+  }
+  .persona-name { font-size: 1.1rem; font-weight: 900; margin-bottom: 4px; }
+  .persona-role { font-size: 0.75rem; color: #888; letter-spacing: 1px; margin-bottom: 14px; }
+  .persona p { font-size: 0.85rem; color: #aaa; margin-bottom: 6px; }
+  .persona-pain {
+    background: rgba(255,107,0,0.1);
+    border: 1px solid rgba(255,107,0,0.25);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 0.82rem;
+    color: #FF6B00;
+    margin-top: 12px;
+  }
+
+  /* ── VALUE PROP ── */
+  .vp {
+    background: #111;
+    color: #fff;
+    border-radius: 14px;
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+  .vp::before {
+    content: '';
+    position: absolute;
+    bottom: -20px; left: -20px;
+    width: 100px; height: 100px;
+    background: radial-gradient(circle, rgba(255,107,0,0.15), transparent);
+    border-radius: 50%;
+  }
+  .vp-icon { font-size: 1.6rem; margin-bottom: 10px; }
+  .vp-title { font-size: 0.95rem; font-weight: 900; color: #FF6B00; margin-bottom: 6px; }
+  .vp p { font-size: 0.82rem; color: #aaa; margin: 0; }
+
+  /* ── QUOTE ── */
+  .quote {
+    border-right: 4px solid #FFD700;
+    padding: 16px 22px;
+    background: rgba(255,215,0,0.04);
+    border-radius: 0 10px 10px 0;
+    font-size: 1rem;
+    font-style: italic;
+    color: #444;
+    margin: 20px 0;
+  }
+
+  /* ── TAG ── */
+  .tag {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 0.72rem; font-weight: 700;
+    background: rgba(255,107,0,0.1);
+    border: 1px solid rgba(255,107,0,0.25);
+    color: #FF6B00;
+    margin: 2px;
+  }
+  .tag.gold {
+    background: rgba(255,215,0,0.1);
+    border-color: rgba(255,215,0,0.3);
+    color: #c8920a;
+  }
+  .tag.blue {
+    background: rgba(59,130,246,0.1);
+    border-color: rgba(59,130,246,0.3);
+    color: #3B82F6;
+  }
+
+  /* ── TABLE ── */
+  table { width: 100%; border-collapse: collapse; font-size: 0.85rem; margin: 12px 0; }
+  th {
+    background: #111; color: #FF6B00;
+    padding: 10px 14px; text-align: right;
+    font-size: 0.78rem; letter-spacing: 0.5px;
+  }
+  td { padding: 9px 14px; border-bottom: 1px solid #f0f0f0; color: #333; }
+  tr:last-child td { border-bottom: none; }
+  tr:nth-child(even) td { background: #fafafa; }
+
+  /* ── TIMELINE ── */
+  .timeline { position: relative; padding-right: 24px; }
+  .timeline::before {
+    content: '';
+    position: absolute;
+    right: 0; top: 8px; bottom: 8px;
+    width: 2px;
+    background: linear-gradient(180deg, #FF6B00, #FFD700);
+  }
+  .tl-item {
+    position: relative;
+    padding-bottom: 20px;
+  }
+  .tl-dot {
+    position: absolute;
+    right: -30px; top: 4px;
+    width: 14px; height: 14px; border-radius: 50%;
+    background: #FF6B00;
+    border: 2px solid #fff;
+    box-shadow: 0 0 0 2px #FF6B00;
+  }
+  .tl-time { font-size: 0.7rem; font-weight: 900; color: #FF6B00; letter-spacing: 1px; margin-bottom: 4px; }
+  .tl-title { font-size: 0.92rem; font-weight: 900; color: #111; }
+  .tl-desc { font-size: 0.82rem; color: #666; margin-top: 3px; }
+
+  /* ── BADGE ── */
+  .badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: #111; color: #fff;
+    padding: 6px 14px; border-radius: 20px;
+    font-size: 0.78rem; font-weight: 700;
+    border: 1px solid rgba(255,107,0,0.3);
+    margin: 3px;
+  }
+  .badge .dot { width: 6px; height: 6px; border-radius: 50%; background: #FF6B00; }
+
+  /* ── FOOTER ── */
+  .doc-footer {
+    background: #111;
+    color: #555;
+    text-align: center;
+    padding: 28px;
+    font-size: 0.78rem;
+  }
+  .doc-footer strong { color: #FF6B00; }
+
+  hr { border: none; border-top: 2px solid #f0f0f0; margin: 32px 0; }
+
+  .highlight { color: #FF6B00; font-weight: 700; }
+  .gold-text { color: #c8920a; font-weight: 700; }
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════
+     COVER PAGE
+══════════════════════════════════════════ -->
+<div class="cover">
+  <div class="cover-logo">FJ</div>
+  <div class="cover-title">HF Online Coaching</div>
+  <div class="cover-sub">Fit Journey · פלטפורמת ליווי אונליין</div>
+  <div class="cover-tag">CREATIVE BRIEF — VIDEO AD PRODUCTION</div>
+  <div class="cover-meta">
+    <div class="cover-meta-item">
+      <div class="cover-meta-num">2</div>
+      <div class="cover-meta-lbl">פאנלים</div>
+    </div>
+    <div class="cover-meta-item">
+      <div class="cover-meta-num">20+</div>
+      <div class="cover-meta-lbl">פיצ'רים</div>
+    </div>
+    <div class="cover-meta-item">
+      <div class="cover-meta-num">PWA</div>
+      <div class="cover-meta-lbl">אפליקציה</div>
+    </div>
+    <div class="cover-meta-item">
+      <div class="cover-meta-num">100%</div>
+      <div class="cover-meta-lbl">מותאם נייד</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     PAGE 1 — BRAND IDENTITY
+══════════════════════════════════════════ -->
+<div class="page page-break">
+  <div class="sec-heading">
+    <div class="sec-num">1</div>
+    <div>
+      <div class="sec-title">זהות מותג</div>
+      <div class="sec-sub">Brand Identity — HF Online Coaching / Fit Journey</div>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div>
+      <h3>שמות המותג</h3>
+      <ul class="feat-list">
+        <li><strong>HF Online Coaching</strong> — השם המסחרי הרשמי</li>
+        <li><strong>Fit Journey</strong> — שם המוצר / האפליקציה</li>
+        <li><strong>FJ</strong> — לוגו ראשי (אותיות)</li>
+        <li><strong>HF</strong> — קיצור שמופיע בממשק</li>
+      </ul>
+
+      <h3>קונספט המותג</h3>
+      <p>
+        מותג כושר <span class="highlight">dark luxury</span> — שפה ויזואלית של תוצאות אמיתיות.
+        לא גימיקים, לא הבטחות ריקות. <strong>תוכנית מדויקת, מעקב נכון, התמדה.</strong>
+      </p>
+      <p>
+        האסתטיקה מדברת אל ספורטאים רציניים: אש כתומה, זהב, שחור עמוק —
+        כמו מלתחת מכון כושר בלילה, עם תאורת ניאון.
+      </p>
+
+      <h3>סלוגן</h3>
+      <div class="quote">
+        "הגוף שלך לא משתנה מניחושים.<br/>
+        הוא משתנה מתוכנית מדויקת, מעקב נכון והתמדה."
+      </div>
+    </div>
+
+    <div>
+      <h3>פלטת צבעים</h3>
+      <div class="swatches">
+        <div class="swatch">
+          <div class="swatch-box" style="background:#FF6B00;"></div>
+          <div>
+            <div style="font-weight:700;font-size:0.82rem;">Orange Fire</div>
+            <div style="color:#999;font-size:0.72rem;">#FF6B00 — Primary Accent</div>
+          </div>
+        </div>
+        <div class="swatch">
+          <div class="swatch-box" style="background:#FFD700;border-color:#e0c000;"></div>
+          <div>
+            <div style="font-weight:700;font-size:0.82rem;">Gold</div>
+            <div style="color:#999;font-size:0.72rem;">#FFD700 — Secondary Accent</div>
+          </div>
+        </div>
+        <div class="swatch">
+          <div class="swatch-box" style="background:#090909;"></div>
+          <div>
+            <div style="font-weight:700;font-size:0.82rem;">Obsidian Black</div>
+            <div style="color:#999;font-size:0.72rem;">#090909 — Background</div>
+          </div>
+        </div>
+        <div class="swatch">
+          <div class="swatch-box" style="background:#ffffff;"></div>
+          <div>
+            <div style="font-weight:700;font-size:0.82rem;">Pure White</div>
+            <div style="color:#999;font-size:0.72rem;">#FFFFFF — Text</div>
+          </div>
+        </div>
+        <div class="swatch">
+          <div class="swatch-box" style="background:#aaa;"></div>
+          <div>
+            <div style="font-weight:700;font-size:0.82rem;">Muted Grey</div>
+            <div style="color:#999;font-size:0.72rem;">#AAAAAA — Secondary Text</div>
+          </div>
+        </div>
+      </div>
+
+      <h3>טיפוגרפיה</h3>
+      <ul class="feat-list">
+        <li><strong>Heebo</strong> (Google Fonts) — גופן ראשי עברי/לטיני</li>
+        <li>משקלים: 300 / 400 / 700 / 900</li>
+        <li>כיוון: RTL (ימין לשמאל)</li>
+        <li>שימוש: Headlines bold-900, Body 400, Labels 700</li>
+      </ul>
+
+      <h3>אפקטים ויזואליים</h3>
+      <div>
+        <span class="tag">Glassmorphism</span>
+        <span class="tag">Orange Glow</span>
+        <span class="tag">Gradient Text</span>
+        <span class="tag">Dark Radial BG</span>
+        <span class="tag">Metallic Shimmer</span>
+        <span class="tag">Neon Border</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     PAGE 2 — APP OVERVIEW
+══════════════════════════════════════════ -->
+<div class="page page-break">
+  <div class="sec-heading">
+    <div class="sec-num">2</div>
+    <div>
+      <div class="sec-title">סקירת המוצר</div>
+      <div class="sec-sub">What Is Fit Journey — Product Overview</div>
+    </div>
+  </div>
+
+  <p>
+    <strong>Fit Journey</strong> היא פלטפורמת ליווי כושר ותזונה אונליין — אפליקציית PWA (Progressive Web App)
+    שפועלת ישירות מהדפדפן, ללא צורך בהורדה, עם חוויה מלאה כאפליקציה נייטיב.
+  </p>
+  <p>
+    הפלטפורמה מחברת בין <span class="highlight">מאמן כושר</span> לבין <span class="highlight">מתאמנים</span>
+    בממשק דו-צדדי: המאמן מנהל תוכניות, עוקב אחרי התקדמות ומתקשר —
+    והמתאמן מקבל את הכל ממקום אחד, בכל מקום, בכל זמן.
+  </p>
+
+  <div class="grid-2" style="margin-top:24px;">
+    <div class="card orange">
+      <div class="card-title">🏋️ פאנל מאמן</div>
+      <p>ניהול מלא של כל המתאמנים ממקום אחד — תוכניות, תזונה, מעקב, תקשורת.</p>
+      <div style="margin-top:8px;">
+        <span class="tag">Coach Panel</span>
+        <span class="tag">Management</span>
+        <span class="tag">Analytics</span>
+      </div>
+    </div>
+    <div class="card orange">
+      <div class="card-title">👤 פאנל מתאמן</div>
+      <p>חוויה אישית מלאה — תוכנית אימון, תזונה, מעקב עצמי, צ'אט ושיאים.</p>
+      <div style="margin-top:8px;">
+        <span class="tag">Client Panel</span>
+        <span class="tag">Personal</span>
+        <span class="tag">Real-time</span>
+      </div>
+    </div>
+  </div>
+
+  <h3 style="margin-top:28px;">ארכיטקטורה טכנית (לסגנון הוידאו)</h3>
+  <div class="grid-3">
+    <div class="card">
+      <div class="card-title">⚡ Real-time</div>
+      <p style="font-size:0.82rem;">הודעות, התראות ועדכונים מגיעים באופן מיידי — ללא רענון.</p>
+    </div>
+    <div class="card">
+      <div class="card-title">📱 PWA — אפליקציה</div>
+      <p style="font-size:0.82rem;">מותקן על מסך הבית של הטלפון, עובד כמו אפליקציה נייטיב.</p>
+    </div>
+    <div class="card">
+      <div class="card-title">🤖 AI מובנה</div>
+      <p style="font-size:0.82rem;">בניית תוכניות אימון ותזונה בעזרת בינה מלאכותית — תוך שניות.</p>
+    </div>
+    <div class="card">
+      <div class="card-title">🔔 Push Notifications</div>
+      <p style="font-size:0.82rem;">התראות למכשיר — גם כשהאפליקציה סגורה.</p>
+    </div>
+    <div class="card">
+      <div class="card-title">💬 Chat מובנה</div>
+      <p style="font-size:0.82rem;">צ'אט פרטי 1:1 וצ'אט קבוצתי — בסגנון WhatsApp.</p>
+    </div>
+    <div class="card">
+      <div class="card-title">🏆 לוח שיאים</div>
+      <p style="font-size:0.82rem;">דירוג מתאמנים בזמן אמת — תחרות פנים-נבחרת.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     PAGE 3 — TARGET AUDIENCE & PERSONAS
+══════════════════════════════════════════ -->
+<div class="page page-break">
+  <div class="sec-heading">
+    <div class="sec-num">3</div>
+    <div>
+      <div class="sec-title">קהל יעד ופרסונות</div>
+      <div class="sec-sub">Target Audience & User Personas</div>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="persona">
+      <div class="persona-avatar" style="background:linear-gradient(135deg,#FF6B00,#FF8C00);">🏋️</div>
+      <div class="persona-name">הלל — מאמן כושר אונליין</div>
+      <div class="persona-role">COACH PERSONA · גיל 25-40</div>
+      <p>מאמן כושר מוסמך שמלווה 10–50 מתאמנים אונליין במקביל.</p>
+      <p>עד היום ניהל בוואטסאפ, אקסל וגוגל דוקס — בלגן מוחלט.</p>
+      <p>רוצה מקצועיות, חיסכון בזמן ויכולת לגדול.</p>
+      <div class="persona-pain">
+        😤 כאב: "אני מבזבז 3 שעות ביום על ניהול — אני רוצה לאמן, לא לנהל."
+      </div>
+    </div>
+
+    <div class="persona">
+      <div class="persona-avatar" style="background:linear-gradient(135deg,#3B82F6,#8B5CF6);">💪</div>
+      <div class="persona-name">לירן — מתאמן ברמה גבוהה</div>
+      <div class="persona-role">CLIENT PERSONA · גיל 20-35</div>
+      <p>מתאמן ממוקד מטרה — בניית מסה, חיטוב, הכנה לתחרות.</p>
+      <p>רוצה תוכנית מדויקת שמותאמת אישית, לא תוכנית כללית מהאינטרנט.</p>
+      <p>אוהב להתחרות, לעקוב אחרי התקדמות, לראות תוצאות.</p>
+      <div class="persona-pain">
+        😤 כאב: "אני מתאמן קשה אבל לא יודע אם אני עושה את זה נכון."
+      </div>
+    </div>
+  </div>
+
+  <h3 style="margin-top:28px;">מאפייני קהל יעד</h3>
+  <table>
+    <tr>
+      <th>מאפיין</th>
+      <th>מאמנים</th>
+      <th>מתאמנים</th>
+    </tr>
+    <tr>
+      <td>גיל</td>
+      <td>24–45</td>
+      <td>18–40</td>
+    </tr>
+    <tr>
+      <td>מגדר</td>
+      <td>גברים ונשים</td>
+      <td>גברים ונשים</td>
+    </tr>
+    <tr>
+      <td>מיקום</td>
+      <td>ישראל (ישראלים בחו"ל)</td>
+      <td>ישראל בעיקר</td>
+    </tr>
+    <tr>
+      <td>מכשיר עיקרי</td>
+      <td>נייד + מחשב</td>
+      <td>נייד (90%)</td>
+    </tr>
+    <tr>
+      <td>מניע עיקרי</td>
+      <td>גדילה עסקית, מקצועיות</td>
+      <td>תוצאות, מוטיבציה, מעקב</td>
+    </tr>
+    <tr>
+      <td>נקודת כאב</td>
+      <td>בזבוז זמן על ניהול</td>
+      <td>חוסר כיוון, חוסר מעקב</td>
+    </tr>
+  </table>
+</div>
+
+<!-- ══════════════════════════════════════════
+     PAGE 4 — COACH FEATURES
+══════════════════════════════════════════ -->
+<div class="page page-break">
+  <div class="sec-heading">
+    <div class="sec-num">4</div>
+    <div>
+      <div class="sec-title">פיצ'רים — פאנל מאמן</div>
+      <div class="sec-sub">Coach Panel Features — Complete Overview</div>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div>
+      <h3>ניהול מתאמנים</h3>
+      <ul class="feat-list">
+        <li><strong>רשימת מתאמנים</strong> עם sidebar ניווט מהיר</li>
+        <li><strong>הוספת מתאמן</strong> עם כל פרטיו (שם, מייל, טלפון)</li>
+        <li><strong>כרטיס מתאמן</strong> — צפייה ועריכת כל הפרטים</li>
+        <li><strong>WhatsApp מהיר</strong> — פתיחת שיחה ישירה מהפאנל</li>
+        <li><strong>מחיקת מתאמן</strong> בטוחה עם אישור</li>
+        <li><strong>החלף מצב</strong> — מאמן שגם מתאמן יכול לעבור בין הפאנלים</li>
+      </ul>
+
+      <h3>תוכנית אימונים</h3>
+      <ul class="feat-list">
+        <li><strong>עורך ימי אימון</strong> — שם יום, שרירי מטרה, תרגילים</li>
+        <li><strong>AI Builder</strong> — יצירת תוכנית שלמה עם בינה מלאכותית</li>
+        <li><strong>Copy/Paste</strong> — העתקת תוכנית שלמה בין מתאמנים</li>
+        <li><strong>העתקת יום בודד</strong> — שכפול יום ספציפי</li>
+        <li><strong>צירוף קבצים</strong> — תמונות ו-PDF לתוכנית</li>
+        <li><strong>מאגר תרגילים</strong> — השלמה אוטומטית בהקלדה</li>
+      </ul>
+
+      <h3>תפריט תזונה</h3>
+      <ul class="feat-list">
+        <li><strong>AI Nutrition Builder</strong> — תפריט אישי בלחיצה</li>
+        <li><strong>חלופות מזון</strong> — הגדרת תחליפים לכל פריט</li>
+        <li><strong>מאגר מזון</strong> — מאגר עם ערכים תזונתיים</li>
+        <li><strong>מקרו אוטומטי</strong> — חישוב חלבון/פחמימות/שומן</li>
+        <li><strong>העתק/הדבק ארוחות</strong> בין מתאמנים</li>
+      </ul>
+    </div>
+
+    <div>
+      <h3>מעקב וניתוח</h3>
+      <ul class="feat-list">
+        <li><strong>צ'ק-אין שבועי</strong> — קריאת תשובות המתאמנים</li>
+        <li><strong>מעקב התקדמות</strong> — משקל, % שומן, מסה רזה לאורך זמן</li>
+        <li><strong>יומן אימונים</strong> — כל אימון שבוצע עם פרטים מלאים</li>
+        <li><strong>שיאים אישיים</strong> — PR tracker לכל תרגיל</li>
+        <li><strong>לוח שיאים</strong> — נבחרת vs כלל המשתמשים</li>
+      </ul>
+
+      <h3>ניהול סייקל</h3>
+      <ul class="feat-list">
+        <li><strong>סטטוס סייקל</strong> — טבעי / TRT / בלאסט / קרוז / אוף</li>
+        <li><strong>טבלת חומרים</strong> — שם, מינון, זריקות בשבוע</li>
+        <li><strong>הוספת חומרים</strong> בלחיצה ← שורות חדשות</li>
+        <li><strong>היסטוריית סייקלים</strong> — ארכיון מלא</li>
+      </ul>
+
+      <h3>תקשורת</h3>
+      <ul class="feat-list">
+        <li><strong>Push Notifications</strong> — שליחה לכולם או למתאמן ספציפי</li>
+        <li><strong>הודעות מתוזמנות</strong> — תזמון מראש</li>
+        <li><strong>צ'אט פרטי 1:1</strong> — שיחה אישית עם כל מתאמן</li>
+        <li><strong>קבוצת WhatsApp</strong> — הודעות לכל הנבחרת</li>
+        <li><strong>התראות אימון</strong> — קבלת עדכון כשמתאמן מסיים</li>
+      </ul>
+
+      <h3>עסק ומיתוג</h3>
+      <ul class="feat-list">
+        <li><strong>מסלולי ליווי</strong> — 3 תוכניות מחיר הניתנות לעריכה</li>
+        <li><strong>מעקב הכנסות</strong> — לידים, תשלומים, סטטיסטיקות</li>
+        <li><strong>White Label</strong> — לוגו + תמונת רקע אישיים</li>
+        <li><strong>מאמנת מצב</strong> — ממשק ורוד מותאם למאמנות נשים</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     PAGE 5 — CLIENT FEATURES
+══════════════════════════════════════════ -->
+<div class="page page-break">
+  <div class="sec-heading">
+    <div class="sec-num">5</div>
+    <div>
+      <div class="sec-title">פיצ'רים — פאנל מתאמן</div>
+      <div class="sec-sub">Client Panel Features — Complete Overview</div>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div>
+      <h3>אימון</h3>
+      <ul class="feat-list">
+        <li><strong>תוכנית אימונים</strong> — ימים עם תרגילים, סטים וחזרות</li>
+        <li><strong>הפעלת אימון</strong> — ממשק Session בזמן אמת עם טיימר</li>
+        <li><strong>סטים אינטראקטיביים</strong> — סימון כל סט כהושלם</li>
+        <li><strong>שעון מנוחה</strong> — טיימר מנוחה בין סטים</li>
+        <li><strong>הצעות התקדמות</strong> — AI מציע משקל/חזרות לשיפור</li>
+        <li><strong>יומן אימונים</strong> — היסטוריה מלאה עם PR ונפח</li>
+        <li><strong>שיא אישי</strong> — זיהוי PR אוטומטי בסיום אימון</li>
+      </ul>
+
+      <h3>תזונה</h3>
+      <ul class="feat-list">
+        <li><strong>תפריט מוצע</strong> — תפריט אישי שהמאמן בנה</li>
+        <li><strong>מעקב יומי</strong> — תיעוד מה נאכל בפועל</li>
+        <li><strong>חלופות מזון</strong> — החלפת פריט בחלופה שאושרה</li>
+        <li><strong>מאגר מזון</strong> — חיפוש וחישוב ערכים</li>
+        <li><strong>AI תזונה</strong> — המלצה לארוחה לפי מה שנשאר</li>
+        <li><strong>מאזן קלורי</strong> — עוגות גרפיות של מקרו</li>
+        <li><strong>מעקב מים</strong> — לחצני הוספה מהירה</li>
+      </ul>
+
+      <h3>מעקב עצמי</h3>
+      <ul class="feat-list">
+        <li><strong>עדכון משקל</strong> — לחיצה → הזנת משקל → שמירה</li>
+        <li><strong>גרף התקדמות</strong> — משקל, % שומן, מסה רזה לאורך זמן</li>
+        <li><strong>ספירת צעדים</strong> — מעקב יומי + לוח שיאים</li>
+      </ul>
+    </div>
+
+    <div>
+      <h3>קשר עם המאמן</h3>
+      <ul class="feat-list">
+        <li><strong>צ'ק-אין שבועי</strong> — דיווח על אנרגיה, שינה, מוטיבציה</li>
+        <li><strong>צ'אט פרטי</strong> — שיחה ישירה עם המאמן + קבצים</li>
+        <li><strong>קבוצת המתאמנים</strong> — WhatsApp-style לכל הנבחרת</li>
+        <li><strong>הודעות מערכת</strong> — שיאים שנשברים מופיעים בקבוצה</li>
+        <li><strong>Push Notifications</strong> — התראות מהמאמן למכשיר</li>
+      </ul>
+
+      <h3>גמיפיקציה וחברה</h3>
+      <ul class="feat-list">
+        <li><strong>לוח שיאי כוח</strong> — דירוג 1RM לכל תרגיל בנבחרת</li>
+        <li><strong>שיאים כלליים</strong> — השוואה עם כלל הפלטפורמה</li>
+        <li><strong>הודעות שיא</strong> — "לירן שבר את השיא של אופיר!" 🔥</li>
+        <li><strong>מדלי זהב/כסף/ארד</strong> — ב-Top 3</li>
+        <li><strong>PR Badge</strong> — "🏆 שיא אישי" בסיום אימון</li>
+      </ul>
+
+      <h3>UX ואדמין</h3>
+      <ul class="feat-list">
+        <li><strong>ספירה לאחור</strong> — ימים שנותרו בליווי</li>
+        <li><strong>חידוש מנוי</strong> — בחירת מסלול ישירות מהאפליקציה</li>
+        <li><strong>FAB Button</strong> — כפתור צף לצ'אט — תמיד נגיש</li>
+        <li><strong>Badge הודעות</strong> — ספירת הודעות שלא נקראו</li>
+        <li><strong>השאר מחובר</strong> — כניסה אחת לכל הזמן</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     PAGE 6 — VALUE PROPOSITIONS
+══════════════════════════════════════════ -->
+<div class="page page-break">
+  <div class="sec-heading">
+    <div class="sec-num">6</div>
+    <div>
+      <div class="sec-title">ערך מוסף מרכזי</div>
+      <div class="sec-sub">Core Value Propositions — What Makes It Different</div>
+    </div>
+  </div>
+
+  <div class="grid-3">
+    <div class="vp">
+      <div class="vp-icon">⚡</div>
+      <div class="vp-title">הכל במקום אחד</div>
+      <p>תוכנית אימון, תזונה, מעקב, צ'אט ושיאים — אפליקציה אחת, ללא בלגן.</p>
+    </div>
+    <div class="vp">
+      <div class="vp-icon">🎯</div>
+      <div class="vp-title">מותאם אישית 100%</div>
+      <p>לא תוכנית גנרית. כל מתאמן מקבל תוכנית שנבנתה בדיוק בשבילו.</p>
+    </div>
+    <div class="vp">
+      <div class="vp-icon">🔥</div>
+      <div class="vp-title">AI + מאמן אנושי</div>
+      <p>בינה מלאכותית לבניה מהירה. מאמן אנושי לדיוק, שיפוט ומוטיבציה.</p>
+    </div>
+    <div class="vp">
+      <div class="vp-icon">📊</div>
+      <div class="vp-title">מעקב אמיתי</div>
+      <p>נתונים אמיתיים, גרפים, PR tracking — רואים איפה גדלים ואיפה תקועים.</p>
+    </div>
+    <div class="vp">
+      <div class="vp-icon">👥</div>
+      <div class="vp-title">קהילה ותחרות</div>
+      <p>לוח שיאים נבחרת, הודעות שיא בקבוצה — מוטיבציה מהחברים.</p>
+    </div>
+    <div class="vp">
+      <div class="vp-icon">📱</div>
+      <div class="vp-title">אפליקציה אמיתית</div>
+      <p>PWA — מותקנת על הטלפון, עובדת כמו אפליקציה, ללא הורדה מה-Store.</p>
+    </div>
+  </div>
+
+  <hr/>
+
+  <h3>מה זה מחליף — השוואה</h3>
+  <table>
+    <tr>
+      <th>כלי ישן</th>
+      <th>הבעיה</th>
+      <th>הפתרון ב-Fit Journey</th>
+    </tr>
+    <tr>
+      <td>WhatsApp</td>
+      <td>הודעות אובדות, אין ניהול, אין מעקב</td>
+      <td>צ'אט מובנה + מעקב + תיעוד מלא</td>
+    </tr>
+    <tr>
+      <td>Excel / Google Sheets</td>
+      <td>מסורבל, לא נגיש ממובייל, לא ויזואלי</td>
+      <td>ממשק מובייל-פירסט, גרפים אוטומטיים</td>
+    </tr>
+    <tr>
+      <td>PDF / Word</td>
+      <td>לא ניתן לשנות ולשדר בזמן אמת</td>
+      <td>תוכנית חיה — שינויים מיידיים אצל המתאמן</td>
+    </tr>
+    <tr>
+      <td>אפליקציות כלליות</td>
+      <td>לא מקשרות מאמן-מתאמן, לא מותאמות</td>
+      <td>מערכת דו-צדדית — מאמן + מתאמן מחוברים</td>
+    </tr>
+  </table>
+</div>
+
+<!-- ══════════════════════════════════════════
+     PAGE 7 — USER JOURNEY
+══════════════════════════════════════════ -->
+<div class="page page-break">
+  <div class="sec-heading">
+    <div class="sec-num">7</div>
+    <div>
+      <div class="sec-title">מסע המשתמש</div>
+      <div class="sec-sub">User Journey — A Day in the Life</div>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div>
+      <h3>🏋️ יום של מאמן</h3>
+      <div class="timeline">
+        <div class="tl-item">
+          <div class="tl-dot"></div>
+          <div class="tl-time">בוקר — 07:00</div>
+          <div class="tl-title">קבלת התראה</div>
+          <div class="tl-desc">"לירן סיים אימון — חזה עליון — 75 דקות 🏆 שיא בלחיצת חזה!"</div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-dot"></div>
+          <div class="tl-time">בוקר — 07:10</div>
+          <div class="tl-title">פותח פאנל מאמן</div>
+          <div class="tl-desc">בוחר לירן, רואה הסיום, עונה בצ'אט הפרטי — "כל הכבוד! עלה ל-105 שבוע הבא"</div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-dot"></div>
+          <div class="tl-time">בוקר — 08:00</div>
+          <div class="tl-title">AI בונה תוכנית</div>
+          <div class="tl-desc">מוסיף מתאמן חדש, לוחץ "✨ צור תוכנית" — תוכנית מותאמת נבנית תוך 10 שניות</div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-dot"></div>
+          <div class="tl-time">ערב — 20:00</div>
+          <div class="tl-title">הודעה לנבחרת</div>
+          <div class="tl-desc">שולח Push לכל המתאמנים: "מחר שלא חסר אחד! 💪"</div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-dot"></div>
+          <div class="tl-time">ערב — 20:15</div>
+          <div class="tl-title">צ'ק-אינים שבועיים</div>
+          <div class="tl-desc">קורא את הצ'ק-אינים — מזהה שדניאל עייף, מקל עליו את האימון הבא</div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <h3>💪 יום של מתאמן</h3>
+      <div class="timeline">
+        <div class="tl-item">
+          <div class="tl-dot" style="background:#3B82F6;box-shadow:0 0 0 2px #3B82F6;"></div>
+          <div class="tl-time">בוקר — 06:00</div>
+          <div class="tl-title">Push "תזכורת אימון"</div>
+          <div class="tl-desc">המאמן שלח Push — "יום חזה היום — תצא עם שיא 💥"</div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-dot" style="background:#3B82F6;box-shadow:0 0 0 2px #3B82F6;"></div>
+          <div class="tl-time">צהריים — 12:30</div>
+          <div class="tl-title">פותח תפריט תזונה</div>
+          <div class="tl-desc">רואה מה לאכול, מחליף אורז בתפוח אדמה — החלופה מאושרת ✓</div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-dot" style="background:#3B82F6;box-shadow:0 0 0 2px #3B82F6;"></div>
+          <div class="tl-time">אחה"צ — 17:00</div>
+          <div class="tl-title">מפעיל אימון</div>
+          <div class="tl-desc">לוחץ "▶ החל אימון" — מתחיל Session עם טיימר, מסמן סטים</div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-dot" style="background:#FFD700;box-shadow:0 0 0 2px #FFD700;"></div>
+          <div class="tl-time">אחה"צ — 18:15</div>
+          <div class="tl-title">🏆 שיא חדש!</div>
+          <div class="tl-desc">"שיא אישי! לחיצת חזה" — בקבוצה מופיעה הודעה: "לירן שבר את השיא של אופיר!"</div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-dot" style="background:#3B82F6;box-shadow:0 0 0 2px #3B82F6;"></div>
+          <div class="tl-time">לילה — 22:00</div>
+          <div class="tl-title">שולח צ'ק-אין</div>
+          <div class="tl-desc">אנרגיה 8/10, שינה 7/10, מוטיבציה 10/10 — הערה: "מוכן לשבוע הבא"</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     PAGE 8 — APP SCREENS DESCRIPTION
+══════════════════════════════════════════ -->
+<div class="page page-break">
+  <div class="sec-heading">
+    <div class="sec-num">8</div>
+    <div>
+      <div class="sec-title">תיאור מסכים לצילום</div>
+      <div class="sec-sub">Screen Descriptions — For Video Production</div>
+    </div>
+  </div>
+
+  <h3>מסכי כניסה ו-Onboarding</h3>
+  <div class="grid-2" style="margin-bottom:20px;">
+    <div class="card">
+      <div class="card-title">🔐 מסך כניסה (Login)</div>
+      <p>רקע שחור עם זוהר כתום מטה. לוגו FJ מוזהב. כרטיס glassmorphic עם גבול כתום. כפתור "כניסה" בגרדיאנט כתום-אש.</p>
+    </div>
+    <div class="card">
+      <div class="card-title">⏱ ספירה לאחור</div>
+      <p>כרטיס ראשי בדשבורד עם מספר ענק (ימים נותרים) בגרדיאנט כתום-זהב. "X ימים נותרו לליווי".</p>
+    </div>
+  </div>
+
+  <h3>מסכי מתאמן (דשבורד)</h3>
+  <div class="grid-2" style="margin-bottom:20px;">
+    <div class="card">
+      <div class="card-title">🏋️ תוכנית אימונים</div>
+      <p>כרטיסי ימים עם חץ פתיחה. כל יום נפתח לרשימת תרגילים. כפתור "▶ החל אימון" בכתום.</p>
+    </div>
+    <div class="card">
+      <div class="card-title">⏱ Session אימון</div>
+      <p>מסך מלא עם סטים אינטראקטיביים. טיימר מנוחה. כפתורי ✓ לסימון סטים. בסיום — popup נפח אימון.</p>
+    </div>
+    <div class="card">
+      <div class="card-title">🥗 תפריט תזונה</div>
+      <p>רשימת ארוחות עם פירוט מקרו לכל פריט. כפתורי "🔄 החלף". גרפי עוגה לחלבון/פחמימות/שומן.</p>
+    </div>
+    <div class="card">
+      <div class="card-title">🏆 לוח שיאים</div>
+      <p>פודיום עם מדלי זהב/כסף/ארד. ציוני 1RM. סנן לפי קבוצת שריר ותרגיל. טאב "הנבחרת שלנו".</p>
+    </div>
+    <div class="card">
+      <div class="card-title">💬 צ'אט — WhatsApp Style</div>
+      <p>אוברליי מסך מלא. טאבים: "👤 המאמן שלי" + "👥 הקבוצה". בועות הודעה. Badge הודעות לא-נקראו.</p>
+    </div>
+    <div class="card">
+      <div class="card-title">🏅 הודעת שיא</div>
+      <p>בקבוצה — כרטיס זהוב מרכזי: "💥 לירן שבר את השיא של אופיר! לחיצת חזה — 100 ק"ג × 5 (1RM: 117)"</p>
+    </div>
+  </div>
+
+  <h3>מסכי מאמן</h3>
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">🏢 פאנל ראשי</div>
+      <p>Sidebar עם רשימת מתאמנים. תוכן מרכזי עם Quick Nav + כל עורכי התוכנית.</p>
+    </div>
+    <div class="card">
+      <div class="card-title">✨ AI Builder</div>
+      <p>שדה טקסט ל-prompt. כפתור "✨ צור תוכנית". Status bar טוען. תוכנית שלמה נוצרת.</p>
+    </div>
+    <div class="card">
+      <div class="card-title">📣 Push Notification</div>
+      <p>Overlay עם שדה הודעה. כפתור "📣 שלח לכולם". Badge עם מספר מתאמנים שיקבלו.</p>
+    </div>
+    <div class="card">
+      <div class="card-title">📊 צ'ק-אינים</div>
+      <p>כרטיסים לכל שבוע עם בארים צבעוניים — אנרגיה, שינה, מוטיבציה, עמידה ביעד.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     PAGE 9 — VIDEO AD BRIEF
+══════════════════════════════════════════ -->
+<div class="page page-break">
+  <div class="sec-heading">
+    <div class="sec-num">9</div>
+    <div>
+      <div class="sec-title">בריף פרסומת וידאו</div>
+      <div class="sec-sub">Video Ad Creative Brief — Scenes, Tone & Script Direction</div>
+    </div>
+  </div>
+
+  <h3>קהל יעד הוידאו</h3>
+  <div style="margin-bottom:20px;">
+    <span class="badge"><span class="dot"></span>מאמני כושר אונליין</span>
+    <span class="badge"><span class="dot"></span>מתאמנים רציניים 20-35</span>
+    <span class="badge"><span class="dot"></span>ספורטאי כוח ובבי</span>
+    <span class="badge"><span class="dot" style="background:#3B82F6;"></span>מכשיר: נייד (90%)</span>
+    <span class="badge"><span class="dot" style="background:#FFD700;"></span>ישראל</span>
+  </div>
+
+  <h3>טון ואווירה</h3>
+  <div class="grid-2" style="margin-bottom:20px;">
+    <div class="card orange">
+      <div class="card-title">🔥 האווירה הרצויה</div>
+      <ul class="feat-list" style="margin-top:8px;">
+        <li>Dark luxury — כמו Nike × Apple × BodyBuilding.com</li>
+        <li>אינטנסיבי, מהיר, אנרגטי — לא "רך" ולא "generic wellness"</li>
+        <li>תוצאות מדברות — לפני/אחרי, מספרים, שיאים</li>
+        <li>טכנולוגיה + אנושיות — AI עוזר, מאמן מכוון</li>
+      </ul>
+    </div>
+    <div class="card orange">
+      <div class="card-title">❌ מה להימנע</div>
+      <ul class="feat-list" style="margin-top:8px;">
+        <li>Wellness רך / ירוק / "מדיטציה"</li>
+        <li>Stock footage גנרי של אנשים מחייכים בחדר כושר</li>
+        <li>הבטחות מוגזמות ללא תוצאות</li>
+        <li>UI סטטי — הראה אנימציה, אינטראקציה</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>מבנה הוידאו המוצע — 60 שניות</h3>
+
+  <div class="scene">
+    <div class="scene-num">0:00 – 0:05 · HOOK</div>
+    <div class="scene-title">📱 "האפליקציה שכל מאמן כושר רצה"</div>
+    <p>טלפון בחדר כושר חשוך. מסך נדלק — אפליקציה נטענת עם לוגו FJ בזוהר כתום. מוזיקה אינטנסיבית מתחילה.</p>
+  </div>
+
+  <div class="scene">
+    <div class="scene-num">0:05 – 0:15 · PROBLEM</div>
+    <div class="scene-title">😤 הבעיה — הבלגן של היום</div>
+    <p>Screen recording: ווטסאפ עמוס, גיליון אקסל בלאגני, PDF תוכנית ישן. "ניהול כושר ב-2024 לא יכול להיראות ככה."</p>
+  </div>
+
+  <div class="scene">
+    <div class="scene-num">0:15 – 0:40 · FEATURES MONTAGE</div>
+    <div class="scene-title">⚡ הפתרון — מאמן + מתאמן</div>
+    <p>
+      <strong>מאמן:</strong> פאנל ניהול → AI בונה תוכנית תוך שניות → שולח Push לנבחרת → מקבל התראת אימון.<br/>
+      <strong>מתאמן:</strong> נכנס לאפליקציה → רואה תוכנית → מתחיל Session → מסמן סטים → שיא אישי מזוהה →
+      הקבוצה מקבלת "💥 לירן שבר את השיא של אופיר!"
+    </p>
+  </div>
+
+  <div class="scene">
+    <div class="scene-num">0:40 – 0:52 · SOCIAL PROOF</div>
+    <div class="scene-title">🏆 תוצאות + לוח שיאים</div>
+    <p>גרפי עלייה במסה, ירידה בשומן. לוח שיאים עם מדלי. הודעות שיא בקבוצה. מתאמנים מגיבים בקבוצה.</p>
+  </div>
+
+  <div class="scene">
+    <div class="scene-num">0:52 – 1:00 · CTA</div>
+    <div class="scene-title">🚀 Call to Action</div>
+    <p>לוגו FJ על רקע שחור עם זוהר כתום. "Fit Journey — ליווי אונליין שמביא תוצאות." קישור / QR Code.</p>
+  </div>
+
+  <h3 style="margin-top:24px;">אלמנטים ויזואליים חובה</h3>
+  <div>
+    <span class="tag gold">UI Animations</span>
+    <span class="tag gold">Screen Recording</span>
+    <span class="tag">Dark Theme</span>
+    <span class="tag">Orange Glow Effects</span>
+    <span class="tag">Gym Footage B-Roll</span>
+    <span class="tag gold">Push Notification Popup</span>
+    <span class="tag">PR Badge Animation</span>
+    <span class="tag">Chat Bubbles</span>
+    <span class="tag gold">Leaderboard Reveal</span>
+    <span class="tag">Timer Countdown</span>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     PAGE 10 — QUICK REFERENCE
+══════════════════════════════════════════ -->
+<div class="page page-break">
+  <div class="sec-heading">
+    <div class="sec-num">10</div>
+    <div>
+      <div class="sec-title">Quick Reference — לפיתוח הוידאו</div>
+      <div class="sec-sub">Key Messages, Taglines & Technical Notes for Production</div>
+    </div>
+  </div>
+
+  <h3>משפטי מפתח לסקריפט</h3>
+  <div class="grid-2">
+    <div class="quote" style="margin:0 0 12px 0;">
+      "תוכנית אימון שנבנתה בדיוק בשבילך — לא עוד תוכנית מהאינטרנט."
+    </div>
+    <div class="quote" style="margin:0 0 12px 0;">
+      "המאמן שלך שולח. הטלפון שלך מתעדכן. אתה מתאמן."
+    </div>
+    <div class="quote" style="margin:0 0 12px 0;">
+      "לירן שבר את השיא של אופיר — הקבוצה כולה ראתה."
+    </div>
+    <div class="quote" style="margin:0 0 12px 0;">
+      "AI בונה. מאמן מכוון. אתה מבצע."
+    </div>
+  </div>
+
+  <h3 style="margin-top:24px;">טבלת פיצ'רים לכתוביות</h3>
+  <table>
+    <tr>
+      <th>פיצ'ר</th>
+      <th>כותרת מסך</th>
+      <th>טקסט תחתון</th>
+    </tr>
+    <tr>
+      <td>AI Builder</td>
+      <td>✨ בניית תוכנית עם AI</td>
+      <td>תוכנית מותאמת אישית תוך שניות</td>
+    </tr>
+    <tr>
+      <td>Session אימון</td>
+      <td>▶ אימון חי בזמן אמת</td>
+      <td>טיימר, סטים, מעקב — כולל בשבילך</td>
+    </tr>
+    <tr>
+      <td>שיא אישי</td>
+      <td>🏆 שיא אישי!</td>
+      <td>המערכת מזהה ומחגיגת כל פריצה</td>
+    </tr>
+    <tr>
+      <td>לוח שיאים</td>
+      <td>🏋️ שיאי הנבחרת</td>
+      <td>תתחרה. תשפר. תוביל.</td>
+    </tr>
+    <tr>
+      <td>צ'אט</td>
+      <td>💬 ישיר מהמאמן</td>
+      <td>תמיד נגיש, תמיד ענה</td>
+    </tr>
+    <tr>
+      <td>Push Notification</td>
+      <td>📣 ישירות למכשיר</td>
+      <td>הודעות שמניעות, לא מטרידות</td>
+    </tr>
+    <tr>
+      <td>צ'ק-אין שבועי</td>
+      <td>📋 צ'ק-אין שבועי</td>
+      <td>המאמן יודע איך אתה — כל שבוע</td>
+    </tr>
+  </table>
+
+  <h3 style="margin-top:24px;">מידע טכני לפרודקשן</h3>
+  <div class="grid-3">
+    <div class="card">
+      <div class="card-title">🖥 רזולוציה UI</div>
+      <p style="font-size:0.82rem;">הממשק מותאם 375px–1440px. לצילום מסך — iPhone 14 Pro (390×844) או Pixel 8.</p>
+    </div>
+    <div class="card">
+      <div class="card-title">🎨 אנימציות</div>
+      <p style="font-size:0.82rem;">CSS transitions 150–300ms. Glow pulse על כפתורי CTA. Fade-in cards. Badge bounce.</p>
+    </div>
+    <div class="card">
+      <div class="card-title">📐 עיצוב</div>
+      <p style="font-size:0.82rem;">RTL layout. כל הטקסטים עברית. גופן Heebo. רדיוס border: 8–18px.</p>
+    </div>
+  </div>
+
+  <div style="margin-top:28px;padding:20px 24px;background:#111;border-radius:14px;color:#fff;">
+    <div style="font-size:0.75rem;color:#FF6B00;font-weight:900;letter-spacing:1px;margin-bottom:8px;">URLs & ASSETS</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:0.82rem;color:#aaa;">
+      <div><strong style="color:#fff;">GitHub Repo:</strong> halel1201-ux/fit-journey</div>
+      <div><strong style="color:#fff;">Stack:</strong> Supabase + Vanilla JS + OneSignal</div>
+      <div><strong style="color:#fff;">Primary Color:</strong> #FF6B00</div>
+      <div><strong style="color:#fff;">Secondary:</strong> #FFD700</div>
+      <div><strong style="color:#fff;">Font:</strong> Heebo (Google Fonts)</div>
+      <div><strong style="color:#fff;">Type:</strong> PWA — Progressive Web App</div>
+    </div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<div class="doc-footer">
+  <strong>HF Online Coaching · Fit Journey</strong> — Creative Brief for Video Ad Production<br/>
+  תאריך: יוני 2026 · גרסה 1.0 · כל הזכויות שמורות
+</div>
+
+<!-- PRINT BUTTON -->
+<div class="no-print" style="position:fixed;bottom:24px;left:24px;z-index:999;">
+  <button onclick="window.print()"
+    style="padding:12px 28px;background:linear-gradient(135deg,#FF6B00,#FF8C00);color:#fff;border:none;border-radius:10px;
+           font-family:'Heebo',sans-serif;font-size:1rem;font-weight:700;cursor:pointer;
+           box-shadow:0 4px 20px rgba(255,107,0,0.4);">
+    🖨 שמור כ-PDF
+  </button>
+</div>
+
+</body>
+</html>
