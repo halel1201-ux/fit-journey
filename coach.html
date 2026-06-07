@@ -1483,7 +1483,12 @@
       sb.from('training_plans').select('plan').eq('client_email', email).single(),
       sb.from('nutrition_plans').select('plan').eq('client_email', email).single()
     ]);
-    trainingPlan  = tr?.plan || [];
+    // נרמול: וודא שכל יום משתמש ב-day (לא name) כשדה הקנוני
+    trainingPlan = (tr?.plan || []).map(d => {
+      if (d.name !== undefined && !d.day) d.day = d.name;
+      if (d.name !== undefined) { const { name, ...rest } = d; return rest; }
+      return d;
+    });
     nutritionPlan = nu?.plan || [];
     renderMain(client);
   }
@@ -1807,7 +1812,7 @@
     el.innerHTML = trainingPlan.map((day, di) => `
       <div class="day-block">
         <div class="day-block-head">
-          <input value="${esc(day.day)}" oninput="trainingPlan[${di}].day=this.value" placeholder="שם יום (יום א׳ — חזה)"/>
+          <input value="${esc(day.day||day.name||'')}" oninput="trainingPlan[${di}].day=this.value;delete trainingPlan[${di}].name;" placeholder="שם יום (יום א׳ — חזה)"/>
           <button class="btn-sm btn-outline" onclick="copyDay(${di})" style="border-color:rgba(255,215,0,0.35);color:#FFD700;padding:5px 10px;">📋 העתק אימון</button>
           <button class="btn-sm btn-red" onclick="removeDay(${di})">הסר</button>
         </div>
@@ -1833,8 +1838,9 @@
   function pasteDay() {
     if (!dayClipboard) return;
     const copy = JSON.parse(JSON.stringify(dayClipboard));
-    copy.name = (copy.name || copy.day || '') + ' (עותק)';
-    copy.day  = copy.name;
+    const baseName = copy.day || copy.name || '';
+    copy.day = baseName + ' (עותק)';
+    delete copy.name; // השתמש רק ב-day
     trainingPlan.push(copy);
     renderTrainingEditor();
   }
@@ -2160,7 +2166,20 @@ Bro Split: 6-8 תרגילים לשריר, דגש על מבודדים, ניתן 2
   function pastePlan() {
     if (!trainingPlanClipboard) return;
     const copies = JSON.parse(JSON.stringify(trainingPlanClipboard));
-    copies.forEach(d => { d.day = (d.day || '') + ' (עותק)'; trainingPlan.push(d); });
+    // נרמול: מחק שדה name מיותר, השתמש רק ב-day
+    copies.forEach(d => {
+      if (d.name !== undefined) { d.day = d.name; delete d.name; }
+      // אם מדביקים על תוכנית קיימת ושם היום כבר קיים — הוסף סיומת
+      if (trainingPlan.length > 0 && trainingPlan.some(x => (x.day||x.name) === d.day)) {
+        d.day = d.day + ' (עותק)';
+      }
+    });
+    // אם המתאמן הנוכחי אין לו תוכנית — החלף; אחרת — הוסף
+    if (!trainingPlan.length) {
+      trainingPlan.splice(0, trainingPlan.length, ...copies);
+    } else {
+      copies.forEach(d => trainingPlan.push(d));
+    }
     renderTrainingEditor();
     toast(`תוכנית הודבקה ✓ (${copies.length} ימים)`, 'ok');
   }
