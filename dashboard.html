@@ -202,6 +202,14 @@
     .btn-renewal:hover { opacity: 0.9; transform: translateY(-1px); }
     .btn-renewal:disabled { opacity: 0.5; transform: none; cursor: not-allowed; }
     .renewal-sent { text-align: center; padding: 14px; background: rgba(60,200,60,0.08); border: 1px solid rgba(60,200,60,0.3); border-radius: 10px; color: #70dd70; font-weight: 700; font-size: 0.88rem; margin-top: 12px; display: none; }
+    /* PERIOD CARD */
+    .period-card { background: rgba(236,72,153,0.06); border: 1px solid rgba(236,72,153,0.25); border-radius: 14px; padding: 16px 18px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .period-info { flex: 1; min-width: 0; }
+    .period-title { font-size: 0.95rem; font-weight: 900; color: #f472b6; margin-bottom: 3px; }
+    .period-sub { font-size: 0.75rem; color: #888; line-height: 1.5; }
+    .btn-period { padding: 10px 18px; border-radius: 10px; font-family: 'Heebo', sans-serif; font-size: 0.88rem; font-weight: 700; border: none; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
+    .btn-period.active { background: rgba(236,72,153,0.2); border: 1.5px solid rgba(236,72,153,0.5); color: #f472b6; }
+    .btn-period.inactive { background: rgba(255,255,255,0.06); border: 1.5px solid rgba(255,255,255,0.12); color: #888; }
 
     /* LOADER */
     #loader {
@@ -685,6 +693,15 @@
     <div class="renewal-sent" id="renewal-sent">✓ הבקשה נשלחה! המאמן יצור איתך קשר בקרוב.</div>
   </div>
 
+  <!-- Period tracking (נשים בלבד) -->
+  <div class="period-card" id="period-card" style="display:none;">
+    <div class="period-info">
+      <div class="period-title">🔴 מחזור חודשי</div>
+      <div class="period-sub" id="period-sub-text">סמני כשמחזורך מתחיל ומסתיים — המאמן יראה את הסטטוס ויתאים את התוכנית בהתאם.</div>
+    </div>
+    <button class="btn-period inactive" id="btn-period" onclick="togglePeriod()">התחיל</button>
+  </div>
+
   <!-- Weight + Water -->
   <div class="weight-row" id="weight-row">
     <div class="weight-info">
@@ -961,6 +978,16 @@
     if (days <= 0) {
       numEl.classList.add('expired');
       document.getElementById('timer-label').textContent = 'הליווי הסתיים';
+      // הוסף כפתור חידוש בתוך כרטיס הטיימר
+      const timerInfo = document.getElementById('timer-card').querySelector('.timer-info');
+      if (timerInfo && !document.getElementById('btn-renew-inline')) {
+        const renewBtn = document.createElement('button');
+        renewBtn.id = 'btn-renew-inline';
+        renewBtn.textContent = '🔄 חדש ליווי';
+        renewBtn.style.cssText = 'margin-top:10px;padding:9px 22px;background:linear-gradient(135deg,var(--orange),#FF8C00);border:none;border-radius:8px;color:#fff;font-family:\'Heebo\',sans-serif;font-size:0.88rem;font-weight:700;cursor:pointer;box-shadow:0 0 14px rgba(255,107,0,0.4);animation:pulse-cta 2s ease-in-out infinite;';
+        renewBtn.onclick = () => document.getElementById('renewal-section')?.scrollIntoView({ behavior:'smooth', block:'start' });
+        timerInfo.appendChild(renewBtn);
+      }
       if (client.coach_email) showRenewal(client.coach_email);
     } else if (days <= 7) {
       numEl.style.cssText += ';background:linear-gradient(135deg,#ff4444,#ff8800);-webkit-background-clip:text;background-clip:text;';
@@ -984,6 +1011,7 @@
     renderWeightRow();
     await loadWaterData();
     await Promise.all([loadCycle(), loadProgressEntries(), loadCoachBranding(client.coach_email), loadMessages(), loadCheckin()]);
+    initPeriodCard(); // כרטיס מחזור לנשים
     showFab(); // תמיד הצג כפתור צ'אט
   }
 
@@ -994,8 +1022,10 @@
   /* ── RENEWAL ── */
   async function showRenewal(coachEmail) {
     const { data: coach } = await sb.from('coaches').select('plans,phone,name').eq('email', coachEmail).single();
-    const plans   = coach?.plans || {};
-    const phone   = (coach?.phone || '').replace(/\D/g, '') || '972586931163';
+    const plans    = coach?.plans || {};
+    const phone    = (coach?.phone || '').replace(/\D/g, '') || '972586931163';
+    const bitLink  = plans.bit_link || '';
+    const myGender = clientData?.gender || 'male';
     const planDefs = [
       { key: 'plan_1', months: 1, label: 'חודש אחד' },
       { key: 'plan_3', months: 3, label: '3 חודשים' },
@@ -1004,13 +1034,16 @@
     const cards = planDefs.map(pd => {
       const p = plans[pd.key] || {};
       if (!p.price) return '';
+      // סנן לפי מין: כולם / גבר / אישה
+      const pg = p.gender || 'all';
+      if (pg !== 'all' && pg !== myGender) return '';
       return `
         <div class="renewal-card${p.featured ? ' featured' : ''}">
           ${p.featured ? '<div class="renewal-featured-badge">הכי פופולרי</div>' : ''}
           <div class="renewal-price">${p.price} ₪</div>
           <div class="renewal-period">${pd.label}</div>
           ${p.desc ? `<div class="renewal-desc">${esc(p.desc)}</div>` : ''}
-          <button class="btn-renewal" onclick="selectRenewalPlan(${pd.months}, ${p.price}, '${coachEmail}', '${phone}', this)">בחר מסלול</button>
+          <button class="btn-renewal" onclick="selectRenewalPlan(${pd.months}, ${p.price}, '${coachEmail}', '${phone}', '${bitLink.replace(/'/g,'')}', this)">💳 בחר מסלול</button>
         </div>`;
     }).join('');
     document.getElementById('renewal-cards').innerHTML =
@@ -1018,16 +1051,22 @@
     document.getElementById('renewal-section').style.display = 'block';
   }
 
-  async function selectRenewalPlan(months, price, coachEmail, phone, btn) {
-    btn.disabled = true; btn.textContent = 'שולח...';
+  async function selectRenewalPlan(months, price, coachEmail, phone, bitLink, btn) {
+    btn.disabled = true; btn.textContent = 'מעבד...';
     const clientName = clientData?.name || currentEmail.split('@')[0];
     await sb.from('coach_sales').insert({
       coach_email: coachEmail, client_email: currentEmail, client_name: clientName,
       plan_months: months, plan_price: price, status: 'lead'
     });
     const labels = { 1: 'חודש אחד', 3: '3 חודשים', 6: '6 חודשים' };
-    const msg = encodeURIComponent(`שלום, אני ${clientName} ומעוניין לחדש מנוי ל${labels[months]} (${price} ₪). אשמח לתיאום 🙏`);
-    window.open(`https://wa.me/${phone}?text=${msg}`, '_blank');
+    if (bitLink && bitLink.startsWith('http')) {
+      // פתח קישור ביט לתשלום ישיר
+      window.open(bitLink, '_blank');
+    } else {
+      // fallback — WhatsApp
+      const msg = encodeURIComponent(`שלום, אני ${clientName} ומעוניין לחדש מנוי ל${labels[months]} (${price} ₪). אשמח לתיאום 🙏`);
+      window.open(`https://wa.me/${phone}?text=${msg}`, '_blank');
+    }
     btn.textContent = '✓ נשלח';
     document.getElementById('renewal-sent').style.display = 'block';
   }
@@ -2267,6 +2306,47 @@ ${foodList || 'אין פריטים'}
   }
 
   /* ── WEIGHT ── */
+  /* ── PERIOD TRACKING ── */
+  function initPeriodCard() {
+    if (clientData?.gender !== 'female') return;
+    const card = document.getElementById('period-card');
+    if (!card) return;
+    card.style.display = 'flex';
+    renderPeriodCard();
+  }
+  function renderPeriodCard() {
+    const isActive = !!clientData?.period_active;
+    const btn  = document.getElementById('btn-period');
+    const sub  = document.getElementById('period-sub-text');
+    if (!btn) return;
+    if (isActive) {
+      btn.textContent = '🟤 הסתיים';
+      btn.className   = 'btn-period active';
+      const since = clientData?.period_updated_at
+        ? ' מ-' + new Date(clientData.period_updated_at).toLocaleDateString('he-IL')
+        : '';
+      sub.textContent = `מחזור פעיל${since} — המאמן רואה את הסטטוס ומתאים.`;
+    } else {
+      btn.textContent = '🔴 התחיל';
+      btn.className   = 'btn-period inactive';
+      sub.textContent = 'סמני כשמחזורך מתחיל ומסתיים — המאמן יראה את הסטטוס ויתאים את התוכנית.';
+    }
+  }
+  async function togglePeriod() {
+    const btn = document.getElementById('btn-period');
+    if (btn) { btn.disabled = true; btn.textContent = '...'; }
+    const newActive = !clientData?.period_active;
+    const { error } = await sb.from('clients')
+      .update({ period_active: newActive, period_updated_at: new Date().toISOString() })
+      .eq('email', currentEmail);
+    if (error) { showDashToast('שגיאה בעדכון', 'err'); if (btn) btn.disabled = false; return; }
+    clientData.period_active     = newActive;
+    clientData.period_updated_at = new Date().toISOString();
+    if (btn) btn.disabled = false;
+    renderPeriodCard();
+    showDashToast(newActive ? '🔴 מחזור סומן כפעיל' : '✓ מחזור סומן כהסתיים', 'ok');
+  }
+
   function renderWeightRow() {
     const el = document.getElementById('weight-display');
     if (!el) return;

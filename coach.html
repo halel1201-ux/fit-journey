@@ -42,6 +42,14 @@
     .client-item.active { background: rgba(255,107,0,0.1); border-right: 3px solid var(--orange); }
     .client-item-name { font-size: 0.9rem; font-weight: 700; }
     .client-item-email { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
+    .gender-tag { display:inline-flex;align-items:center;gap:2px;padding:2px 7px;border-radius:10px;font-size:0.65rem;font-weight:700;line-height:1.4; }
+    .gender-tag.male   { background:rgba(59,130,246,0.15);border:1px solid rgba(59,130,246,0.3);color:#60a5fa; }
+    .gender-tag.female { background:rgba(236,72,153,0.13);border:1px solid rgba(236,72,153,0.3);color:#f472b6; }
+    .plan-gender-row { display:flex;gap:6px;margin-bottom:12px; }
+    .plan-gender-btn { flex:1;padding:7px 4px;border-radius:7px;font-family:'Heebo',sans-serif;font-size:0.78rem;font-weight:700;cursor:pointer;background:transparent;border:1px solid rgba(255,255,255,0.1);color:var(--muted);transition:all 0.15s; }
+    .plan-gender-btn.g-all.active    { background:rgba(255,107,0,0.12);border-color:var(--orange);color:var(--orange); }
+    .plan-gender-btn.g-male.active   { background:rgba(59,130,246,0.15);border-color:rgba(59,130,246,0.5);color:#60a5fa; }
+    .plan-gender-btn.g-female.active { background:rgba(236,72,153,0.12);border-color:rgba(236,72,153,0.4);color:#f472b6; }
     .main { flex: 1; overflow-y: auto; padding: 24px 28px 60px; }
     .no-select { display: flex; align-items: center; justify-content: center; height: 300px; color: #333; font-size: 1rem; }
     .sec-card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 22px 22px; margin-bottom: 24px; }
@@ -400,6 +408,13 @@
     <div id="ptab-editor-body">
       <p style="font-size:0.82rem;color:var(--muted);margin-bottom:18px;line-height:1.6;">הגדר מחיר ותיאור לכל מסלול. הלקוחות שלך יראו אותם כשהמנוי שלהם יסתיים.</p>
 
+      <!-- קישור ביט -->
+      <div class="plan-field" style="margin-bottom:20px;background:rgba(0,180,255,0.04);border:1px solid rgba(0,180,255,0.15);border-radius:12px;padding:14px 16px;">
+        <label style="color:#60c8ff;">🔗 קישור ביט לתשלום</label>
+        <input type="url" id="pbit-link" placeholder="https://www.bitpay.co.il/app/me/..." style="direction:ltr;text-align:right;margin-top:6px;"/>
+        <div style="font-size:0.72rem;color:#555;margin-top:5px;">הלקוחות יועברו לקישור זה לתשלום כשיבחרו מסלול לחידוש. אם ריק — יישלחו ל-WhatsApp.</div>
+      </div>
+
       <div class="plan-editor-card" id="pcard-1">
         <div class="plan-card-title">
           <span>📅 חודש אחד</span>
@@ -407,6 +422,14 @@
         </div>
         <div class="plan-field"><label>מחיר (₪)</label><input type="number" id="pprice-1" placeholder="0" min="0"/></div>
         <div class="plan-field"><label>מה הלקוח מקבל</label><textarea id="pdesc-1" placeholder="תאר מה כלול במסלול זה..."></textarea></div>
+        <div class="plan-field">
+          <label>מיועד ל</label>
+          <div class="plan-gender-row">
+            <button type="button" class="plan-gender-btn g-all active" id="pg-all-1" onclick="setPlanGender(1,'all')">👥 כולם</button>
+            <button type="button" class="plan-gender-btn g-male" id="pg-male-1" onclick="setPlanGender(1,'male')">♂ גברים</button>
+            <button type="button" class="plan-gender-btn g-female" id="pg-female-1" onclick="setPlanGender(1,'female')">♀ נשים</button>
+          </div>
+        </div>
       </div>
 
       <div class="plan-editor-card" id="pcard-3">
@@ -416,6 +439,14 @@
         </div>
         <div class="plan-field"><label>מחיר (₪)</label><input type="number" id="pprice-3" placeholder="0" min="0"/></div>
         <div class="plan-field"><label>מה הלקוח מקבל</label><textarea id="pdesc-3" placeholder="תאר מה כלול במסלול זה..."></textarea></div>
+        <div class="plan-field">
+          <label>מיועד ל</label>
+          <div class="plan-gender-row">
+            <button type="button" class="plan-gender-btn g-all active" id="pg-all-3" onclick="setPlanGender(3,'all')">👥 כולם</button>
+            <button type="button" class="plan-gender-btn g-male" id="pg-male-3" onclick="setPlanGender(3,'male')">♂ גברים</button>
+            <button type="button" class="plan-gender-btn g-female" id="pg-female-3" onclick="setPlanGender(3,'female')">♀ נשים</button>
+          </div>
+        </div>
       </div>
 
       <div class="plan-editor-card" id="pcard-6">
@@ -425,6 +456,14 @@
         </div>
         <div class="plan-field"><label>מחיר (₪)</label><input type="number" id="pprice-6" placeholder="0" min="0"/></div>
         <div class="plan-field"><label>מה הלקוח מקבל</label><textarea id="pdesc-6" placeholder="תאר מה כלול במסלול זה..."></textarea></div>
+        <div class="plan-field">
+          <label>מיועד ל</label>
+          <div class="plan-gender-row">
+            <button type="button" class="plan-gender-btn g-all active" id="pg-all-6" onclick="setPlanGender(6,'all')">👥 כולם</button>
+            <button type="button" class="plan-gender-btn g-male" id="pg-male-6" onclick="setPlanGender(6,'male')">♂ גברים</button>
+            <button type="button" class="plan-gender-btn g-female" id="pg-female-6" onclick="setPlanGender(6,'female')">♀ נשים</button>
+          </div>
+        </div>
       </div>
 
       <button class="btn-save-plans" id="btn-save-plans" onclick="savePlans()">💾 שמור מסלולים</button>
@@ -489,13 +528,22 @@
         <div class="f-group"><label>תחילת ליווי</label><input id="new-start" type="date"/></div>
         <div class="f-group"><label>סיום ליווי</label><input id="new-end" type="date"/></div>
       </div>
-      <div class="f-group">
-        <label>סוג מסלול</label>
-        <select id="new-plan">
-          <option value="ליווי חודשי">ליווי חודשי</option>
-          <option value="ליווי 3 חודשים">ליווי 3 חודשים</option>
-          <option value="ליווי חצי שנה">ליווי חצי שנה</option>
-        </select>
+      <div class="form-grid">
+        <div class="f-group">
+          <label>סוג מסלול</label>
+          <select id="new-plan">
+            <option value="ליווי חודשי">ליווי חודשי</option>
+            <option value="ליווי 3 חודשים">ליווי 3 חודשים</option>
+            <option value="ליווי חצי שנה">ליווי חצי שנה</option>
+          </select>
+        </div>
+        <div class="f-group">
+          <label>מין</label>
+          <select id="new-gender">
+            <option value="male">♂ גבר</option>
+            <option value="female">♀ אישה</option>
+          </select>
+        </div>
       </div>
     </div>
     <div id="add-err" style="margin-top:12px;font-size:0.82rem;color:#ff7070;display:none;"></div>
@@ -543,6 +591,14 @@
     <div class="client-card-row">
       <span class="client-card-label">ליווי עד</span>
       <span class="client-card-val" id="cc-end"></span>
+    </div>
+    <div class="client-card-row">
+      <span class="client-card-label">מין</span>
+      <span class="client-card-val" id="cc-gender"></span>
+    </div>
+    <div class="client-card-row" id="cc-period-row" style="display:none;">
+      <span class="client-card-label">מחזור</span>
+      <span class="client-card-val" id="cc-period"></span>
     </div>
     <div style="margin-top:18px;display:flex;gap:10px;">
       <a id="cc-wa" href="#" target="_blank" style="flex:1;text-align:center;padding:10px;background:rgba(37,211,102,0.1);border:1px solid rgba(37,211,102,0.3);border-radius:10px;color:#25d366;font-size:0.85rem;font-weight:700;text-decoration:none;">WhatsApp</a>
@@ -1386,17 +1442,18 @@
     document.getElementById('add-err').style.display = 'none';
   }
   async function addClient() {
-    const name  = document.getElementById('new-name').value.trim();
-    const email = document.getElementById('new-email').value.trim();
-    const start = document.getElementById('new-start').value;
-    const end   = document.getElementById('new-end').value;
-    const plan  = document.getElementById('new-plan').value;
-    const errEl = document.getElementById('add-err');
-    const btn   = document.getElementById('add-btn');
+    const name   = document.getElementById('new-name').value.trim();
+    const email  = document.getElementById('new-email').value.trim();
+    const start  = document.getElementById('new-start').value;
+    const end    = document.getElementById('new-end').value;
+    const plan   = document.getElementById('new-plan').value;
+    const gender = document.getElementById('new-gender').value;
+    const errEl  = document.getElementById('add-err');
+    const btn    = document.getElementById('add-btn');
     errEl.style.display = 'none';
     if (!name || !email || !start || !end) { errEl.textContent = 'יש למלא את כל השדות'; errEl.style.display = 'block'; return; }
     btn.disabled = true; btn.textContent = 'מוסיף...';
-    const { error } = await sb.from('clients').insert({ email, name, coaching_start: start, coaching_end: end, plan_type: plan, coach_email: coachEmail });
+    const { error } = await sb.from('clients').insert({ email, name, coaching_start: start, coaching_end: end, plan_type: plan, gender, coach_email: coachEmail });
     btn.disabled = false; btn.textContent = 'הוסף מתאמן';
     if (error) { errEl.textContent = error.message; errEl.style.display = 'block'; return; }
     closeAddModal();
@@ -1469,7 +1526,10 @@
     if (!clients.length) { el.innerHTML = '<div style="padding:16px;color:#444;font-size:0.82rem;text-align:center;">אין מתאמנים עדיין</div>'; return; }
     el.innerHTML = clients.map(c => `
       <div class="client-item ${c.email === activeEmail ? 'active' : ''}" onclick="selectClient('${c.email}')">
-        <div class="client-item-name">${esc(c.name)}</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;">
+          <div class="client-item-name">${esc(c.name)}</div>
+          <span class="gender-tag ${c.gender === 'female' ? 'female' : 'male'}">${c.gender === 'female' ? '♀' : '♂'}</span>
+        </div>
         <div class="client-item-email">${c.email}</div>
       </div>`).join('');
   }
@@ -1515,6 +1575,13 @@
           <div class="f-group"><label>טלפון</label><input id="e-phone" value="${esc(phone)}" placeholder="050-0000000" type="tel" style="direction:ltr;text-align:right;"/></div>
           <div class="f-group"><label>תחילת ליווי</label><input id="e-start" type="date" value="${client.coaching_start || ''}"/></div>
           <div class="f-group"><label>סיום ליווי</label><input id="e-end" type="date" value="${client.coaching_end || ''}"/></div>
+          <div class="f-group">
+            <label>מין</label>
+            <select id="e-gender">
+              <option value="male" ${(client.gender||'male') !== 'female' ? 'selected' : ''}>♂ גבר</option>
+              <option value="female" ${client.gender === 'female' ? 'selected' : ''}>♀ אישה</option>
+            </select>
+          </div>
         </div>
         <div style="margin-bottom:16px;">
           <div style="font-size:0.78rem;font-weight:700;color:var(--muted);margin-bottom:8px;">יעדי מאקרו יומיים</div>
@@ -1654,6 +1721,26 @@
     const end = c.coaching_end ? new Date(c.coaching_end+'T12:00:00').toLocaleDateString('he-IL') : '—';
     document.getElementById('cc-plan').textContent   = c.plan_type || '—';
     document.getElementById('cc-end').textContent    = end;
+    // Gender
+    const gender = c.gender || 'male';
+    document.getElementById('cc-gender').innerHTML =
+      gender === 'female'
+        ? '<span class="gender-tag female">♀ אישה</span>'
+        : '<span class="gender-tag male">♂ גבר</span>';
+    // Period (only for female)
+    const periodRow = document.getElementById('cc-period-row');
+    if (gender === 'female') {
+      periodRow.style.display = 'flex';
+      const pEl = document.getElementById('cc-period');
+      if (c.period_active) {
+        const pDate = c.period_updated_at ? ' מ-' + new Date(c.period_updated_at).toLocaleDateString('he-IL') : '';
+        pEl.innerHTML = `<span style="color:#f472b6;font-weight:700;">🔴 מחזור פעיל${pDate}</span>`;
+      } else {
+        pEl.innerHTML = `<span style="color:#666;">⚫ לא פעיל</span>`;
+      }
+    } else {
+      periodRow.style.display = 'none';
+    }
     const waNum = phone.replace(/\D/g,'');
     const waHref = waNum ? `https://wa.me/972${waNum.replace(/^0/,'')}` : '#';
     const waInline = document.getElementById('cc-wa-inline');
@@ -1706,20 +1793,21 @@
 
   /* ── SAVE PROFILE ── */
   async function saveProfile() {
-    const name  = document.getElementById('e-name').value.trim();
-    const phone = document.getElementById('e-phone').value.trim();
-    const start = document.getElementById('e-start').value;
-    const end   = document.getElementById('e-end').value;
+    const name   = document.getElementById('e-name').value.trim();
+    const phone  = document.getElementById('e-phone').value.trim();
+    const start  = document.getElementById('e-start').value;
+    const end    = document.getElementById('e-end').value;
     const cal    = parseInt(document.getElementById('e-cal').value)    || null;
     const prot   = parseInt(document.getElementById('e-prot').value)   || null;
     const carb   = parseInt(document.getElementById('e-carb').value)   || null;
     const fat    = parseInt(document.getElementById('e-fat').value)    || null;
     const water  = parseFloat(document.getElementById('e-water').value)  || null;
     const weight = parseFloat(document.getElementById('e-weight').value) || null;
+    const gender = document.getElementById('e-gender')?.value || 'male';
     const { error } = await sb.from('clients')
       .update({ name, phone, coaching_start: start, coaching_end: end,
                 target_calories: cal, target_protein: prot, target_carbs: carb, target_fat: fat,
-                target_water: water, current_weight: weight })
+                target_water: water, current_weight: weight, gender })
       .eq('email', activeEmail);
     if (error) { toast('שגיאה בשמירה', 'err'); return; }
     await loadClients();
@@ -2846,24 +2934,36 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
       document.getElementById(`pcard-${m}`).classList.toggle('featured-card', m === months && document.getElementById(`pfeat-${months}`).checked);
     });
   }
+  let planGenders = { 1: 'all', 3: 'all', 6: 'all' };
+  function setPlanGender(months, gender) {
+    planGenders[months] = gender;
+    ['all', 'male', 'female'].forEach(g => {
+      const el = document.getElementById(`pg-${g}-${months}`);
+      if (el) el.classList.toggle('active', g === gender);
+    });
+  }
   function loadPlansEditor() {
+    document.getElementById('pbit-link').value = coachPlans.bit_link || '';
     [1, 3, 6].forEach(m => {
       const p = coachPlans[`plan_${m}`] || {};
       document.getElementById(`pprice-${m}`).value    = p.price || '';
       document.getElementById(`pdesc-${m}`).value     = p.desc  || '';
       document.getElementById(`pfeat-${m}`).checked   = !!p.featured;
       document.getElementById(`pcard-${m}`).classList.toggle('featured-card', !!p.featured);
+      setPlanGender(m, p.gender || 'all');
     });
   }
   async function savePlans() {
     const btn = document.getElementById('btn-save-plans');
     btn.disabled = true; btn.textContent = 'שומר...';
     const plans = {};
+    plans.bit_link = document.getElementById('pbit-link').value.trim();
     [1, 3, 6].forEach(m => {
       plans[`plan_${m}`] = {
         price:    parseInt(document.getElementById(`pprice-${m}`).value) || 0,
         desc:     document.getElementById(`pdesc-${m}`).value.trim(),
-        featured: document.getElementById(`pfeat-${m}`).checked
+        featured: document.getElementById(`pfeat-${m}`).checked,
+        gender:   planGenders[m] || 'all'
       };
     });
     const { error } = await sb.from('coaches').update({ plans }).eq('email', coachEmail);
