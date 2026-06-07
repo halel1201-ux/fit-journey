@@ -96,6 +96,24 @@
     .msg.err { background: rgba(255,60,60,0.1); border: 1px solid rgba(255,60,60,0.3); color: #ff7070; }
     .msg.ok  { background: rgba(60,200,60,0.08); border: 1px solid rgba(60,200,60,0.3); color: #70dd70; text-align: center; }
     .hint { font-size: 0.77rem; color: #555; text-align: center; margin-top: 16px; line-height: 1.5; }
+    .remember-row {
+      display: flex; align-items: center; gap: 8px;
+      margin: 14px 0 2px; cursor: pointer; user-select: none;
+    }
+    .remember-row input[type=checkbox] { display: none; }
+    .remember-box {
+      width: 18px; height: 18px; border-radius: 5px; flex-shrink: 0;
+      border: 1.5px solid rgba(255,107,0,0.4); background: transparent;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.18s;
+    }
+    .remember-row input:checked + .remember-box {
+      background: var(--orange); border-color: var(--orange);
+    }
+    .remember-row input:checked + .remember-box::after {
+      content: '✓'; font-size: 0.75rem; font-weight: 900; color: #fff; line-height: 1;
+    }
+    .remember-label { font-size: 0.82rem; color: var(--muted); font-weight: 700; }
   </style>
 </head>
 <body>
@@ -126,6 +144,13 @@
         <input type="password" id="password" placeholder="הכנס סיסמה"/>
       </div>
 
+      <!-- Remember me — shown only in password mode -->
+      <label class="remember-row" id="remember-row">
+        <input type="checkbox" id="remember-me" checked/>
+        <span class="remember-box"></span>
+        <span class="remember-label">השאר אותי מחובר</span>
+      </label>
+
       <button class="btn-go" id="btn" onclick="handleSubmit()">כניסה</button>
       <p class="hint" id="hint">הסיסמה הוגדרה עבורך על ידי המאמן.</p>
     </div>
@@ -145,6 +170,7 @@
     document.getElementById('tab-pass').classList.toggle('active', mode === 'password');
     document.getElementById('tab-link').classList.toggle('active', mode === 'magic');
     document.getElementById('pass-field').style.display = mode === 'password' ? 'block' : 'none';
+    document.getElementById('remember-row').style.display = mode === 'password' ? 'flex' : 'none';
     document.getElementById('btn').textContent = mode === 'password' ? 'כניסה' : 'שלח קישור כניסה';
     document.getElementById('hint').textContent = mode === 'password'
       ? 'הסיסמה הוגדרה עבורך על ידי המאמן.'
@@ -182,12 +208,13 @@
   async function loginWithPassword() {
     const email    = document.getElementById('email').value.trim();
     const password = document.getElementById('password').value;
+    const remember = document.getElementById('remember-me').checked;
     const err = document.getElementById('err');
     const btn = document.getElementById('btn');
     err.style.display = 'none';
     if (!email || !password) { err.textContent = 'יש למלא אימייל וסיסמה'; err.style.display = 'block'; return; }
     btn.disabled = true; btn.textContent = 'נכנס...';
-    const { error } = await sb.auth.signInWithPassword({ email, password });
+    const { error } = await sb.auth.signInWithPassword({ email, password, options: { persistSession: remember } });
     btn.disabled = false; btn.textContent = 'כניסה';
     if (error) { err.textContent = 'אימייל או סיסמה שגויים'; err.style.display = 'block'; }
   }
