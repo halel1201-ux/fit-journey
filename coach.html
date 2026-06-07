@@ -3894,7 +3894,9 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
   }
 
   async function openGroupChat() {
-    document.getElementById('coach-grp-overlay').classList.add('open');
+    const _ov = document.getElementById('coach-grp-overlay');
+    _ov.style.display = 'flex';
+    _ov.classList.add('open');
     document.body.style.overflow='hidden';
     populateGrpTargetSelect();
     if (!coachGroupMessages.length) await loadCoachGroupMessages();
@@ -3905,7 +3907,9 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
     });
   }
   function closeGroupChat() {
-    document.getElementById('coach-grp-overlay').classList.remove('open');
+    const _ov = document.getElementById('coach-grp-overlay');
+    _ov.style.display = 'none';
+    _ov.classList.remove('open');
     document.body.style.overflow='';
     coachGroupLastSeen = Date.now();
   }
