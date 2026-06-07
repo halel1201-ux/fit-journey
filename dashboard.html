@@ -1412,7 +1412,11 @@
     const totalSets = exercises.reduce((a, ex) => a + (ex.sets?.length || 0), 0);
     showVolumeModal(totalVolume, prevVol || 0, totalSets, exercises.length, Math.floor(elapsed / 60));
 
-    if (prs.length) setTimeout(() => showDashToast('🏆 שיא אישי! ' + prs.map(p => p.exercise).join(' · ')), 4500);
+    if (prs.length) {
+      setTimeout(() => showDashToast('🏆 שיא אישי! ' + prs.map(p => p.exercise).join(' · ')), 4500);
+      // בדוק אם שיא הנבחרת נשבר ושלח הודעת מערכת לקבוצה
+      checkAndPostTeamRecords(prs, exercises, histLogs);
+    }
 
     recLogs = null;
     closeSession();
@@ -1965,6 +1969,101 @@ ${foodList || 'אין פריטים'}
     w = parseFloat(w); r = parseInt(r);
     if (!w || !r || r <= 0) return 0;
     return Math.round(w * (1 + r / 30) * 10) / 10;
+  }
+
+  // מחזיר את הסט הטוב ביותר (לפי 1RM) לתרגיל מסוים מתוך האימון הנוכחי
+  function getBestSetForExercise(exercises, exName) {
+    let best = null, bestOrm = 0;
+    for (const ex of exercises) {
+      if (ex.name !== exName) continue;
+      for (const s of (ex.sets || [])) {
+        const orm = calc1RM(s.weight, s.reps);
+        if (orm > bestOrm) { bestOrm = orm; best = s; }
+      }
+    }
+    return best ? { ...best, orm: bestOrm } : null;
+  }
+
+  // בודק אם PR חדש שובר/מוביל בנבחרת ומפרסם הודעת מערכת לקבוצה
+  async function checkAndPostTeamRecords(prs, exercises, histLogs) {
+    if (!prs.length || !clientData?.coach_email) return;
+    const coachEmail = clientData.coach_email;
+    const myName     = clientData.name || currentEmail.split('@')[0];
+
+    // טעינת כל לקוחות המאמן + שמותיהם
+    let otherEmails = [], clientNames = {};
+    try {
+      const { data: coachClients } = await sb.from('clients').select('email,name').eq('coach_email', coachEmail);
+      (coachClients || []).forEach(c => {
+        clientNames[c.email] = c.name || c.email.split('@')[0];
+        if (c.email !== currentEmail) otherEmails.push(c.email);
+      });
+    } catch(e) { return; }
+    clientNames[currentEmail] = myName;
+
+    // טעינת logs של שאר המתאמנים
+    let otherLogs = [];
+    if (otherEmails.length) {
+      try {
+        const { data } = await sb.from('workout_logs').select('client_email,exercises').in('client_email', otherEmails);
+        otherLogs = data || [];
+      } catch(e) {}
+    }
+
+    // בניית מצב הנבחרת לפני האימון הנוכחי:
+    // - לוגים היסטוריים שלי (histLogs) + לוגים של שאר המתאמנים
+    const prevBest = {}; // exName → { orm, weight, reps, email, name }
+    const allPrev = [
+      ...(histLogs || []).map(l => ({ ...l, client_email: currentEmail })),
+      ...otherLogs
+    ];
+    allPrev.forEach(log => {
+      (log.exercises || []).forEach(ex => {
+        (ex.sets || []).forEach(s => {
+          const orm = calc1RM(s.weight, s.reps);
+          if (orm > 0 && orm > (prevBest[ex.name]?.orm || 0)) {
+            prevBest[ex.name] = {
+              orm, weight: s.weight, reps: s.reps,
+              email: log.client_email,
+              name: clientNames[log.client_email] || log.client_email.split('@')[0]
+            };
+          }
+        });
+      });
+    });
+
+    // לכל PR — בדוק השפעה על נבחרת
+    for (const pr of prs) {
+      const bestSet = getBestSetForExercise(exercises, pr.exercise);
+      if (!bestSet) continue;
+      const prev = prevBest[pr.exercise];
+      let msg = null;
+
+      if (!prev) {
+        // תרגיל חדש לחלוטין בנבחרת
+        msg = `🏆 שיא נבחרת חדש!\n${myName} — ${pr.exercise}\n${bestSet.weight} ק"ג × ${bestSet.reps} חזרות (1RM: ${pr.orm} ק"ג)`;
+      } else if (pr.orm > prev.orm) {
+        if (prev.email === currentEmail) {
+          // שיפור שיא אישי שגם הוא שיא הנבחרת
+          msg = `🏆 ${myName} שיפר את שיא הנבחרת ב${pr.exercise}!\n${bestSet.weight} ק"ג × ${bestSet.reps} חזרות (1RM: ${pr.orm} ק"ג)`;
+        } else {
+          // שבירת שיא של מתאמן אחר!
+          msg = `💥 ${myName} שבר את השיא של ${prev.name}!\n${pr.exercise} — ${bestSet.weight} ק"ג × ${bestSet.reps} חזרות (1RM: ${pr.orm} ק"ג)`;
+        }
+      }
+      // pr.orm <= prev.orm → שיא אישי אך לא שיא נבחרת → אין הודעה
+
+      if (msg) {
+        try {
+          await sb.from('group_messages').insert({
+            coach_email:  coachEmail,
+            sender_email: 'system',
+            sender_name:  'מערכת',
+            content:      msg,
+          });
+        } catch(e) { /* silent */ }
+      }
+    }
   }
 
   async function openRecords() {
@@ -2522,6 +2621,19 @@ ${foodList || 'אין פריטים'}
         if (m.content) content += `<div style="margin-top:5px;white-space:pre-wrap;">${esc(m.content)}</div>`;
       } else {
         content = `<span style="white-space:pre-wrap;">${esc(m.content||'')}</span>`;
+      }
+      // הודעת מערכת (שיא נבחרת) — עיצוב מרכזי זהוב
+      if (m.sender_email === 'system') {
+        html += `<div style="text-align:center;padding:6px 0;">
+          <div style="display:inline-block;max-width:88%;padding:11px 18px;
+            background:linear-gradient(135deg,rgba(255,215,0,0.1),rgba(255,107,0,0.07));
+            border:1px solid rgba(255,215,0,0.3);border-radius:14px;
+            font-size:0.82rem;color:var(--gold);white-space:pre-wrap;text-align:center;line-height:1.75;">
+            ${esc(m.content)}
+          </div>
+          <div style="font-size:0.62rem;color:#555;margin-top:3px;">${time}</div>
+        </div>`;
+        return;
       }
       // In group — show sender name/avatar for others
       let senderRow = '';

@@ -3834,6 +3834,19 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
       let content='';
       if(m.file_url){ const isImg=/\.(jpg|jpeg|png|gif|webp)(\?.*)?$/i.test(m.file_url); content=isImg?`<a href="${m.file_url}" target="_blank"><img src="${m.file_url}" style="max-width:180px;max-height:130px;border-radius:6px;display:block;"/></a>`:`<a href="${m.file_url}" target="_blank" style="color:${isMe?'#fff':'var(--orange)'};text-decoration:none;">📎 ${esc(m.file_name||'קובץ')}</a>`; if(m.content)content+=`<div style="margin-top:4px;white-space:pre-wrap;">${esc(m.content)}</div>`; }
       else content=`<span style="white-space:pre-wrap;">${esc(m.content||'')}</span>`;
+      // הודעת מערכת — שיא נבחרת
+      if (m.sender_email === 'system') {
+        html += `<div style="text-align:center;padding:6px 0;">
+          <div style="display:inline-block;max-width:88%;padding:11px 18px;
+            background:linear-gradient(135deg,rgba(255,215,0,0.1),rgba(255,107,0,0.07));
+            border:1px solid rgba(255,215,0,0.3);border-radius:14px;
+            font-size:0.82rem;color:var(--gold);white-space:pre-wrap;text-align:center;line-height:1.75;">
+            ${esc(m.content)}
+          </div>
+          <div style="font-size:0.62rem;color:#555;margin-top:3px;">${time}</div>
+        </div>`;
+        return;
+      }
       const senderName = m.sender_name || m.sender_email.split('@')[0];
       const col = isMe ? 'var(--orange)' : coachAvatarColor(m.sender_email);
       const av = (senderName).slice(0,2).toUpperCase();
