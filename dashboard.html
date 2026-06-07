@@ -202,6 +202,21 @@
     .btn-renewal:hover { opacity: 0.9; transform: translateY(-1px); }
     .btn-renewal:disabled { opacity: 0.5; transform: none; cursor: not-allowed; }
     .renewal-sent { text-align: center; padding: 14px; background: rgba(60,200,60,0.08); border: 1px solid rgba(60,200,60,0.3); border-radius: 10px; color: #70dd70; font-weight: 700; font-size: 0.88rem; margin-top: 12px; display: none; }
+    /* LOCK OVERLAY */
+    .content-lock-overlay {
+      position: absolute; inset: 0; z-index: 20;
+      background: rgba(9,9,9,0.72);
+      backdrop-filter: blur(5px);
+      -webkit-backdrop-filter: blur(5px);
+      border-radius: 14px;
+      display: flex; align-items: center; justify-content: center;
+      flex-direction: column; gap: 8px; padding: 24px; text-align: center;
+      pointer-events: auto;
+    }
+    .content-lock-overlay .lock-icon { font-size: 2rem; }
+    .content-lock-overlay .lock-title { font-size: 0.95rem; font-weight: 900; color: #fff; }
+    .content-lock-overlay .lock-sub { font-size: 0.75rem; color: #888; max-width: 200px; line-height: 1.5; }
+    .btn-lock-renew { margin-top: 6px; padding: 10px 22px; background: linear-gradient(135deg,var(--orange),#FF8C00); border: none; border-radius: 8px; color: #fff; font-family: 'Heebo', sans-serif; font-size: 0.88rem; font-weight: 700; cursor: pointer; box-shadow: 0 0 16px rgba(255,107,0,0.35); }
     /* PERIOD CARD */
     .period-card { background: rgba(236,72,153,0.06); border: 1px solid rgba(236,72,153,0.25); border-radius: 14px; padding: 16px 18px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
     .period-info { flex: 1; min-width: 0; }
@@ -759,13 +774,13 @@
   </a>
 
   <!-- Training Plan -->
-  <div class="section">
+  <div class="section" id="plan-training-section" style="position:relative;">
     <div class="sec-title"><span class="icon">🏋️</span> תוכנית אימונים</div>
     <div id="training-wrap"></div>
   </div>
 
   <!-- Nutrition -->
-  <div class="lib-banner" onclick="openNutrition()" style="cursor:pointer;">
+  <div class="lib-banner" id="plan-nutrition-banner" onclick="openNutrition()" style="cursor:pointer;position:relative;">
     <div class="lib-icon">🥗</div>
     <div class="lib-text">
       <div class="lib-title">מעקב תזונה יומי</div>
@@ -989,6 +1004,8 @@
         timerInfo.appendChild(renewBtn);
       }
       if (client.coach_email) showRenewal(client.coach_email);
+      // נעל תוכנית ותפריט עד חידוש
+      setTimeout(lockExpiredContent, 400);
     } else if (days <= 7) {
       numEl.style.cssText += ';background:linear-gradient(135deg,#ff4444,#ff8800);-webkit-background-clip:text;background-clip:text;';
     }
@@ -2306,6 +2323,39 @@ ${foodList || 'אין פריטים'}
   }
 
   /* ── WEIGHT ── */
+  /* ── LOCK EXPIRED CONTENT ── */
+  function lockExpiredContent() {
+    // נעל תוכנית אימונים
+    const trainingSec = document.getElementById('plan-training-section');
+    if (trainingSec && !trainingSec.querySelector('.content-lock-overlay')) {
+      trainingSec.style.position = 'relative';
+      const ol = document.createElement('div');
+      ol.className = 'content-lock-overlay';
+      ol.innerHTML = `
+        <div class="lock-icon">🔒</div>
+        <div class="lock-title">תוכנית נעולה</div>
+        <div class="lock-sub">חדש את המנוי כדי לגשת לתוכנית האימונים</div>
+        <button class="btn-lock-renew" onclick="document.getElementById('renewal-section')?.scrollIntoView({behavior:'smooth',block:'start'})">🔄 לחידוש הליווי</button>`;
+      trainingSec.appendChild(ol);
+    }
+    // נעל כפתור תזונה
+    const nutBanner = document.getElementById('plan-nutrition-banner');
+    if (nutBanner && !nutBanner.querySelector('.content-lock-overlay')) {
+      nutBanner.style.position = 'relative';
+      nutBanner.onclick = null;
+      nutBanner.style.cursor = 'default';
+      const ol2 = document.createElement('div');
+      ol2.className = 'content-lock-overlay';
+      ol2.style.borderRadius = '14px';
+      ol2.innerHTML = `
+        <div class="lock-icon">🔒</div>
+        <div class="lock-title">תפריט נעול</div>
+        <div class="lock-sub">חדש את המנוי לגישה לתפריט התזונה</div>
+        <button class="btn-lock-renew" onclick="document.getElementById('renewal-section')?.scrollIntoView({behavior:'smooth',block:'start'})">🔄 לחידוש הליווי</button>`;
+      nutBanner.appendChild(ol2);
+    }
+  }
+
   /* ── PERIOD TRACKING ── */
   function initPeriodCard() {
     if (clientData?.gender !== 'female') return;

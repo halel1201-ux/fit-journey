@@ -3357,7 +3357,7 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
       <div class="form-grid" style="margin-bottom:12px;">
         <div class="f-group">
           <label>סטטוס</label>
-          <select id="cy-status">
+          <select id="cy-status" onchange="(function(v){const w=document.getElementById('cy-compounds-wrap');if(w)w.style.display=v==='natural'?'none':'block';})(this.value)">
             ${STATUS_OPTS.map(o=>`<option value="${o.val}"${o.val===selStatus?' selected':''}>${o.label}</option>`).join('')}
           </select>
         </div>
@@ -3377,8 +3377,8 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
         <textarea style="width:100%;padding:9px 12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:var(--white);font-family:'Heebo',sans-serif;font-size:0.86rem;resize:vertical;min-height:62px;outline:none;transition:border-color 0.2s;line-height:1.6;" id="cy-details" placeholder="הערות כלליות על הסייקל...">${esc(cy?.details||'')}</textarea>
       </div>
 
-      <!-- COMPOUNDS TABLE -->
-      <div style="margin-bottom:16px;">
+      <!-- COMPOUNDS TABLE — נסתר עבור "טבעי" -->
+      <div id="cy-compounds-wrap" style="margin-bottom:16px;${selStatus==='natural'?'display:none;':''}">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
           <label style="font-size:0.8rem;font-weight:700;color:var(--muted);">טבלת חומרים</label>
           <button class="add-link" onclick="addCompoundRow()">＋ הוסף חומר</button>
