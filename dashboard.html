@@ -2139,8 +2139,8 @@ ${foodList || 'אין פריטים'}
         try {
           const { error: insErr } = await sb.from('group_messages').insert({
             coach_email:  coachEmail,
-            sender_email: 'system',
-            sender_name:  'מערכת',
+            sender_email: currentEmail,
+            sender_name:  'SYSTEM',
             content:      msg,
           });
           if (!insErr) {
@@ -2784,7 +2784,7 @@ ${foodList || 'אין פריטים'}
         content = `<span style="white-space:pre-wrap;">${esc(m.content||'')}</span>`;
       }
       // הודעת מערכת (שיא נבחרת) — עיצוב מרכזי זהוב
-      if (m.sender_email === 'system') {
+      if (m.sender_email === 'system' || m.sender_name === 'SYSTEM') {
         html += `<div style="text-align:center;padding:6px 0;">
           <div style="display:inline-block;max-width:88%;padding:11px 18px;
             background:linear-gradient(135deg,rgba(255,215,0,0.1),rgba(255,107,0,0.07));
