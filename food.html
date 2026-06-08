@@ -161,7 +161,8 @@
     <div class="nav-hf">FJ</div>
   </div>
   <div class="nav-right">
-    <a href="dashboard.html" class="nav-back">← אזור אישי</a>
+    <a id="back-link" href="dashboard.html" class="nav-back">← אזור אישי</a>
+    <script>(function(){const p=new URLSearchParams(location.search);if(p.get('from')==='coach'){const a=document.getElementById('back-link');a.href='coach.html';a.textContent='✕ סגור';a.style.cssText='font-size:1.1rem;font-weight:900;color:var(--orange);text-decoration:none;padding:4px 10px;border:1px solid rgba(255,107,0,0.4);border-radius:8px;';} })();</script>
     <button class="btn-logout" onclick="logout()">יציאה</button>
   </div>
 </nav>

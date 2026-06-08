@@ -692,6 +692,13 @@
     <div class="chart-wrap" id="progress-chart-wrap" style="display:none;">
       <canvas id="progress-chart" height="200"></canvas>
     </div>
+
+    <!-- measurements collapse toggle -->
+    <button id="meas-toggle-btn" onclick="toggleMeasurements()" style="width:100%;margin-top:10px;padding:10px 14px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;color:var(--muted);font-family:'Heebo',sans-serif;font-size:0.88rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:space-between;">
+      <span>📏 מדידת היקפים</span>
+      <span id="meas-arrow" style="transition:transform 0.2s;display:inline-block;">▼</span>
+    </button>
+    <div id="meas-section" style="display:none;margin-top:2px;"></div>
   </div>
 
   <!-- chat moved to floating overlay below -->
@@ -3066,7 +3073,7 @@ ${foodList || 'אין פריטים'}
   async function loadProgressEntries() {
     try {
       const { data } = await sb.from('progress_entries')
-        .select('date,weight,body_fat_pct').eq('client_email', currentEmail)
+        .select('date,weight,body_fat_pct,measurements').eq('client_email', currentEmail)
         .order('date', { ascending: false }).limit(90);
       progressEntries = data || [];
     } catch(e) { progressEntries = []; }
@@ -3115,6 +3122,110 @@ ${foodList || 'אין פריטים'}
       </div>`;
 
     renderProgressChart();
+    renderMeasurementsSection();
+  }
+
+  /* ── MEASUREMENTS (מדידת היקפים) ── */
+  const MEAS_FIELDS = [
+    { key:'right_arm_relax',  label:'יד ימין — רפוי',      unit:'ס"מ' },
+    { key:'right_arm_flex',   label:'יד ימין — פלקס',       unit:'ס"מ' },
+    { key:'left_arm_relax',   label:'יד שמאל — רפוי',      unit:'ס"מ' },
+    { key:'left_arm_flex',    label:'יד שמאל — פלקס',       unit:'ס"מ' },
+    { key:'right_quad',       label:'רגל ימין 4 ראשי',      unit:'ס"מ' },
+    { key:'left_quad',        label:'רגל שמאל 4 ראשי',     unit:'ס"מ' },
+    { key:'right_ham',        label:'אמסטרינג ימין',        unit:'ס"מ' },
+    { key:'left_ham',         label:'אמסטרינג שמאל',       unit:'ס"מ' },
+    { key:'shoulders',        label:'היקף כתפיים',          unit:'ס"מ' },
+    { key:'waist',            label:'היקף מותן (בקו טבור)', unit:'ס"מ' },
+    { key:'hips',             label:'היקף ישבן',             unit:'ס"מ', femaleOnly:true },
+  ];
+  let measOpen = false;
+
+  function toggleMeasurements() {
+    measOpen = !measOpen;
+    const sec = document.getElementById('meas-section');
+    const arr = document.getElementById('meas-arrow');
+    if (!sec) return;
+    sec.style.display = measOpen ? 'block' : 'none';
+    if (arr) arr.style.transform = measOpen ? 'rotate(180deg)' : '';
+    if (measOpen) renderMeasurementsSection();
+  }
+
+  function renderMeasurementsSection() {
+    const sec = document.getElementById('meas-section');
+    if (!sec || !measOpen) return;
+    const isFemale = clientData?.gender === 'female';
+    const fields = MEAS_FIELDS.filter(f => !f.femaleOnly || isFemale);
+
+    // latest + peak per field
+    const latest = {};
+    const peak   = {};
+    progressEntries.forEach(e => {
+      const m = e.measurements;
+      if (!m) return;
+      fields.forEach(f => {
+        const v = parseFloat(m[f.key]);
+        if (!v) return;
+        if (latest[f.key] == null) latest[f.key] = v;
+        if (peak[f.key] == null || v > peak[f.key]) peak[f.key] = v;
+      });
+    });
+    const todayM = progressEntries[0]?.measurements || {};
+
+    const rows = fields.map(f => {
+      const cur = todayM[f.key] || '';
+      const lat = latest[f.key] != null ? latest[f.key] + ' ס"מ' : '—';
+      const pk  = peak[f.key]   != null ? peak[f.key]   + ' ס"מ' : '—';
+      return `<div style="display:grid;grid-template-columns:1fr 70px 70px 80px;gap:6px;align-items:center;padding:7px 0;border-bottom:1px solid rgba(255,255,255,0.05);">
+        <div style="font-size:0.83rem;font-weight:700;color:var(--white);">${f.label}</div>
+        <div style="text-align:center;font-size:0.78rem;color:#aaa;">${lat}</div>
+        <div style="text-align:center;font-size:0.78rem;color:#FFD700;">${pk}</div>
+        <input type="number" step="0.1" min="1" max="200" placeholder="—"
+          value="${cur}"
+          data-mkey="${f.key}"
+          style="width:100%;padding:5px 7px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:6px;color:var(--white);font-family:'Heebo',sans-serif;font-size:0.82rem;text-align:center;"
+          oninput="this.style.borderColor='rgba(255,107,0,0.5)'"
+        />
+      </div>`;
+    }).join('');
+
+    sec.innerHTML = `
+      <div style="background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.08);border-top:none;border-radius:0 0 10px 10px;padding:12px 14px;">
+        <div style="display:grid;grid-template-columns:1fr 70px 70px 80px;gap:6px;margin-bottom:4px;">
+          <div></div>
+          <div style="text-align:center;font-size:0.72rem;color:var(--muted);font-weight:700;">אחרון</div>
+          <div style="text-align:center;font-size:0.72rem;color:#FFD700;font-weight:700;">שיא</div>
+          <div style="text-align:center;font-size:0.72rem;color:var(--orange);font-weight:700;">עדכון</div>
+        </div>
+        ${rows}
+        <button onclick="saveMeasurements()" style="width:100%;margin-top:12px;padding:10px;background:linear-gradient(135deg,var(--orange),#FF8C00);border:none;border-radius:8px;color:#fff;font-family:'Heebo',sans-serif;font-size:0.9rem;font-weight:900;cursor:pointer;">
+          שמור מדידות
+        </button>
+      </div>`;
+  }
+
+  async function saveMeasurements() {
+    const inputs = document.querySelectorAll('[data-mkey]');
+    const m = {};
+    inputs.forEach(inp => {
+      const v = parseFloat(inp.value);
+      if (v > 0) m[inp.dataset.mkey] = v;
+    });
+    const today = new Date().toISOString().split('T')[0];
+    try {
+      const { error } = await sb.from('progress_entries').upsert({
+        client_email: currentEmail,
+        coach_email: clientData?.coach_email || '',
+        date: today,
+        measurements: m,
+      }, { onConflict: 'client_email,date' });
+      if (error) { showDashToast('שגיאה בשמירה — ודא שהוסיפו עמודת measurements', 'err'); return; }
+      const idx = progressEntries.findIndex(e => e.date === today);
+      if (idx >= 0) progressEntries[idx].measurements = m;
+      else { progressEntries.unshift({ client_email: currentEmail, date: today, measurements: m }); }
+      renderMeasurementsSection();
+      showDashToast('מדידות נשמרו ✓', 'ok');
+    } catch(e) { showDashToast('שגיאה בשמירה', 'err'); }
   }
 
   function renderProgressChart() {
