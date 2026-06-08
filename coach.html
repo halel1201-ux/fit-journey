@@ -19,7 +19,9 @@
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root { --orange:#FF6B00; --gold:#FFD700; --black:#090909; --graphite:#111; --white:#fff; --muted:#888; --card:rgba(255,255,255,0.04); --border:rgba(255,107,0,0.25); }
-    body { font-family: 'Heebo', sans-serif; background: var(--black); color: var(--white); min-height: 100vh; }
+    body { font-family: 'Heebo', sans-serif; background-color: var(--black); background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 130 80'%3E%3Ctext x='65' y='65' text-anchor='middle' font-family='Arial Black%2Csans-serif' font-weight='900' font-size='68' fill='%23FF6B00' opacity='0.08'%3EFJ%3C/text%3E%3C/svg%3E"); background-attachment: fixed; background-position: center center; background-repeat: no-repeat; background-size: 140px; color: var(--white); min-height: 100vh; }
+    /* FJ watermark on all full-screen overlays */
+    .plans-overlay, #coach-grp-overlay, #loader { background-color: var(--black); background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 130 80'%3E%3Ctext x='65' y='65' text-anchor='middle' font-family='Arial Black%2Csans-serif' font-weight='900' font-size='68' fill='%23FF6B00' opacity='0.08'%3EFJ%3C/text%3E%3C/svg%3E"); background-attachment: fixed; background-position: center center; background-repeat: no-repeat; background-size: 140px; }
     ::-webkit-scrollbar { width: 5px; } ::-webkit-scrollbar-track { background: #0e0e0e; } ::-webkit-scrollbar-thumb { background: var(--orange); border-radius: 3px; }
     .topnav { height: 58px; background: rgba(9,9,9,0.95); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(255,107,0,0.15); display: flex; align-items: center; justify-content: space-between; padding: 0 20px; position: sticky; top: 0; z-index: 100; }
     .topnav-brand { font-size: 1.2rem; font-weight: 900; background: linear-gradient(135deg, var(--orange), var(--gold)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
@@ -171,7 +173,7 @@
     .sched-badge.pending { background:rgba(255,107,0,0.1);color:var(--orange);border:1px solid rgba(255,107,0,0.3); }
     .sched-badge.done { background:rgba(60,200,60,0.08);color:#70dd70;border:1px solid rgba(60,200,60,0.25); }
     /* PLANS OVERLAY */
-    .plans-overlay { position: fixed; inset: 0; z-index: 400; background: var(--black); display: none; flex-direction: column; overflow: hidden; }
+    .plans-overlay { position: fixed; inset: 0; z-index: 400; background-color: var(--black); background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 130 80'%3E%3Ctext x='65' y='65' text-anchor='middle' font-family='Arial Black%2Csans-serif' font-weight='900' font-size='68' fill='%23FF6B00' opacity='0.08'%3EFJ%3C/text%3E%3C/svg%3E"); background-attachment: fixed; background-position: center center; background-repeat: no-repeat; background-size: 140px; display: none; flex-direction: column; overflow: hidden; }
     .plans-overlay.open { display: flex; }
     .plans-hdr { flex-shrink: 0; height: 62px; padding: 0 18px; background: rgba(9,9,9,0.97); backdrop-filter: blur(14px); border-bottom: 1px solid rgba(255,107,0,0.2); display: flex; align-items: center; justify-content: space-between; }
     .plans-hdr-title { font-size: 1.1rem; font-weight: 900; background: linear-gradient(135deg,var(--orange),var(--gold)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
@@ -1566,6 +1568,13 @@
   function renderMain(client) {
     const phone = client.phone || '';
     const endDate = client.coaching_end ? new Date(client.coaching_end + 'T12:00:00').toLocaleDateString('he-IL') : '—';
+    // Period status block (females only) — built outside template literal to avoid nesting issues
+    const periodUpdStr = client.period_updated_at ? ' · עודכן ' + new Date(client.period_updated_at).toLocaleDateString('he-IL') : '';
+    const periodStatusHtml = client.gender !== 'female' ? '' :
+      '<div class="f-group"><label>מצב מחזור</label>' +
+      '<div style="padding:9px 12px;border-radius:8px;border:1px solid ' + (client.period_active ? 'rgba(244,114,182,0.35)' : 'rgba(255,255,255,0.1)') + ';background:' + (client.period_active ? 'rgba(244,114,182,0.08)' : 'rgba(255,255,255,0.04)') + ';font-size:0.87rem;font-weight:700;color:' + (client.period_active ? '#f472b6' : '#777') + ';">' +
+      (client.period_active ? '🔴 מחזור פעיל' : '⚫ לא פעיל') + periodUpdStr +
+      '</div></div>';
     document.getElementById('main-area').innerHTML = `
       <!-- QUICK NAV -->
       <div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:20px;">
@@ -1592,13 +1601,7 @@
               <option value="female" ${client.gender === 'female' ? 'selected' : ''}>♀ אישה</option>
             </select>
           </div>
-          ${client.gender === 'female' ? `
-          <div class="f-group">
-            <label>מצב מחזור</label>
-            <div style="padding:9px 12px;border-radius:8px;border:1px solid ${client.period_active ? 'rgba(244,114,182,0.35)' : 'rgba(255,255,255,0.1)'};background:${client.period_active ? 'rgba(244,114,182,0.08)' : 'rgba(255,255,255,0.04)'};font-size:0.87rem;font-weight:700;color:${client.period_active ? '#f472b6' : '#777'};">
-              ${client.period_active ? '🔴 מחזור פעיל' : '⚫ לא פעיל'}${client.period_updated_at ? ' · עודכן ' + new Date(client.period_updated_at).toLocaleDateString('he-IL') : ''}
-            </div>
-          </div>` : ''}
+          ${periodStatusHtml}
         </div>
         <div style="margin-bottom:16px;">
           <div style="font-size:0.78rem;font-weight:700;color:var(--muted);margin-bottom:8px;">יעדי מאקרו יומיים</div>
@@ -4166,7 +4169,7 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
 </button>
 
 <!-- GROUP CHAT OVERLAY (coach) -->
-<div class="coach-grp-overlay" id="coach-grp-overlay" style="position:fixed;inset:0;z-index:310;background:var(--black);display:none;flex-direction:column;">
+<div class="coach-grp-overlay" id="coach-grp-overlay" style="position:fixed;inset:0;z-index:310;background-color:var(--black);background-image:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 130 80'%3E%3Ctext x='65' y='65' text-anchor='middle' font-family='Arial Black%2Csans-serif' font-weight='900' font-size='68' fill='%23FF6B00' opacity='0.08'%3EFJ%3C/text%3E%3C/svg%3E&quot;);background-attachment:fixed;background-position:center center;background-repeat:no-repeat;background-size:140px;display:none;flex-direction:column;">
   <div style="flex-shrink:0;height:58px;padding:0 14px;background:rgba(13,13,13,0.98);backdrop-filter:blur(14px);border-bottom:1px solid rgba(255,255,255,0.07);display:flex;align-items:center;gap:10px;">
     <button onclick="closeGroupChat()" style="background:none;border:none;color:var(--muted);font-size:1.3rem;cursor:pointer;padding:4px 8px;">←</button>
     <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#3B82F6,#8B5CF6);display:flex;align-items:center;justify-content:center;font-size:1rem;font-weight:900;flex-shrink:0;">👥</div>

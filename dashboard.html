@@ -20,7 +20,9 @@
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root { --orange:#FF6B00; --gold:#FFD700; --black:#090909; --graphite:#111; --white:#fff; --muted:#aaa; --card:rgba(255,255,255,0.04); --border:rgba(255,107,0,0.25); }
     html { scroll-behavior: smooth; }
-    body { font-family: 'Heebo', sans-serif; background: var(--black); color: var(--white); min-height: 100vh; }
+    body { font-family: 'Heebo', sans-serif; background-color: var(--black); background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 130 80'%3E%3Ctext x='65' y='65' text-anchor='middle' font-family='Arial Black%2Csans-serif' font-weight='900' font-size='68' fill='%23FF6B00' opacity='0.08'%3EFJ%3C/text%3E%3C/svg%3E"); background-attachment: fixed; background-position: center center; background-repeat: no-repeat; background-size: 140px; color: var(--white); min-height: 100vh; }
+    /* FJ watermark on all full-screen overlays */
+    .chat-overlay, .ai-chat-panel > *, #loader { background-color: var(--black); background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 130 80'%3E%3Ctext x='65' y='65' text-anchor='middle' font-family='Arial Black%2Csans-serif' font-weight='900' font-size='68' fill='%23FF6B00' opacity='0.08'%3EFJ%3C/text%3E%3C/svg%3E"); background-attachment: fixed; background-position: center center; background-repeat: no-repeat; background-size: 140px; }
     ::-webkit-scrollbar { width: 5px; } ::-webkit-scrollbar-track { background: var(--black); } ::-webkit-scrollbar-thumb { background: var(--orange); border-radius: 3px; }
 
     /* NAV */
@@ -603,7 +605,7 @@
     display:none; align-items:center; justify-content:center;
   }
   /* ── CHAT OVERLAY ── */
-  .chat-overlay { position:fixed; inset:0; z-index:310; background:var(--black); display:none; flex-direction:column; }
+  .chat-overlay { position:fixed; inset:0; z-index:310; background-color:var(--black); background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 130 80'%3E%3Ctext x='65' y='65' text-anchor='middle' font-family='Arial Black%2Csans-serif' font-weight='900' font-size='68' fill='%23FF6B00' opacity='0.08'%3EFJ%3C/text%3E%3C/svg%3E"); background-attachment:fixed; background-position:center center; background-repeat:no-repeat; background-size:140px; display:none; flex-direction:column; }
   .chat-overlay.open { display:flex; }
   .chat-ov-hdr {
     flex-shrink:0; height:58px; padding:0 14px;
@@ -662,7 +664,7 @@
   </div>
 </nav>
 
-<div class="container" id="main" style="display:none;">
+<div class="container" id="main" style="display:none;position:relative;z-index:1;">
 
   <!-- Timer -->
   <div class="timer-card" id="timer-card">
@@ -1185,7 +1187,7 @@
     const day = trainingPlanLocal[di];
     if (!day) return;
     const dayName = day.name || day.day || '';
-    const suggestions = calcProgressionSuggestions(dayName, day.exercises || []);
+    const suggestions = calcProgressionSuggestions(dayName);
     workoutSession = {
       dayName,
       startTime: Date.now(),
@@ -1194,20 +1196,33 @@
       restRemaining: 0,
       exercises: (day.exercises || []).map(ex => {
         const setsArr = parseSetsToArray(ex.sets);
-        const sugKg = suggestions[ex.name] || null;
+        const prevSetWeights = suggestions[ex.name] || []; // per-set weights from last session
         return {
           name: ex.name,
           description: ex.description || '',
           restTime: ex.rest_time || 90,
-          sets: setsArr.map((s, si) => ({
-            reps_min: s.reps_min || 0,
-            reps_max: s.reps_max || 0,
-            weight: sugKg && si < 4 ? String(sugKg) : (s.recommended_kg ? String(s.recommended_kg) : ''),
-            suggested_kg: sugKg && si < 4 ? sugKg : (s.recommended_kg || 0),
-            is_progression: !!(sugKg && si < 4),
-            reps: '',
-            completed: false
-          }))
+          sets: setsArr.map((s, si) => {
+            // Use this set's prev weight (or last set's weight if not enough sets)
+            const prevW = prevSetWeights[si] > 0
+              ? prevSetWeights[si]
+              : (prevSetWeights[prevSetWeights.length - 1] || 0);
+            const isProgression = prevW > 0;
+            // 1-2% increase, rounded to nearest 0.5kg
+            const sugLow  = isProgression ? Math.round(prevW * 1.01 * 2) / 2 : 0;
+            const sugHigh = isProgression ? Math.round(prevW * 1.02 * 2) / 2 : 0;
+            const sugKg   = sugLow; // pre-fill with lower bound
+            return {
+              reps_min: s.reps_min || 0,
+              reps_max: s.reps_max || 0,
+              weight: isProgression ? String(sugKg) : (s.recommended_kg ? String(s.recommended_kg) : ''),
+              suggested_kg:  sugKg || s.recommended_kg || 0,
+              suggested_high: sugHigh,
+              prev_weight:   prevW,
+              is_progression: isProgression,
+              reps: '',
+              completed: false
+            };
+          })
         };
       })
     };
@@ -1256,21 +1271,14 @@
     return [{reps_min:10,reps_max:15,recommended_kg:0},{reps_min:8,reps_max:12,recommended_kg:0},{reps_min:8,reps_max:12,recommended_kg:0},{reps_min:8,reps_max:12,recommended_kg:0}];
   }
 
-  function calcProgressionSuggestions(dayName, exercises) {
+  function calcProgressionSuggestions(dayName) {
+    // Returns per-exercise, per-set previous weights for 1-2% progression per set
     const prevLog = workoutLogs.find(l => l.day_name === dayName);
     if (!prevLog) return {};
-    const prevWeights = {};
+    const result = {}; // { exName: [w1, w2, w3, ...] }
     (prevLog.exercises || []).forEach(ex => {
-      const best = (ex.sets || []).reduce((max, s) => Math.max(max, parseFloat(s.weight) || 0), 0);
-      if (best > 0) prevWeights[ex.name] = best;
-    });
-    const candidates = exercises.filter(ex => prevWeights[ex.name] > 0);
-    const pickCount = Math.min(candidates.length, 1 + Math.floor(Math.random() * 3));
-    const chosen = new Set(candidates.slice(0, pickCount).map(ex => ex.name));
-    const result = {};
-    chosen.forEach(name => {
-      const rate = 1.01 + Math.random() * 0.01;
-      result[name] = Math.round(prevWeights[name] * rate * 2) / 2;
+      const setWeights = (ex.sets || []).map(s => parseFloat(s.weight) || 0);
+      if (setWeights.some(w => w > 0)) result[ex.name] = setWeights;
     });
     return result;
   }
@@ -1304,8 +1312,10 @@
   function sRowHtml(ei, si, s) {
     const hasRange = s.reps_min > 0 || s.reps_max > 0;
     const rangeDisplay = hasRange ? `${s.reps_min}–${s.reps_max}` : '';
-    const progLabel = s.is_progression && s.suggested_kg > 0
-      ? `<div style="font-size:0.62rem;color:var(--orange);text-align:center;margin-top:1px;">↑ +1-2%</div>` : '';
+    const progHigh = s.suggested_high || 0;
+    const progLow  = s.suggested_kg  || 0;
+    const progLabel = s.is_progression && progLow > 0
+      ? `<div style="font-size:0.62rem;color:var(--orange);text-align:center;margin-top:1px;">↑ ${progLow}${progHigh && progHigh !== progLow ? '–' + progHigh : ''} ק"ג</div>` : '';
     const rangeHint = hasRange
       ? `<div style="font-size:0.62rem;color:#888;text-align:center;margin-top:1px;">יעד: ${rangeDisplay}</div>` : '';
     return `<div class="s-row${s.completed ? ' done' : ''}" id="sr-${ei}-${si}">
@@ -2127,13 +2137,18 @@ ${foodList || 'אין פריטים'}
 
       if (msg) {
         try {
-          await sb.from('group_messages').insert({
+          const { error: insErr } = await sb.from('group_messages').insert({
             coach_email:  coachEmail,
             sender_email: 'system',
             sender_name:  'מערכת',
             content:      msg,
           });
-        } catch(e) { /* silent */ }
+          if (!insErr) {
+            setTimeout(() => showDashToast('💥 הודעת שיא נשלחה לקבוצה!', 'ok'), 6000);
+          } else {
+            console.warn('system msg insert error:', insErr);
+          }
+        } catch(e) { console.warn('checkAndPostTeamRecords:', e); }
       }
     }
   }
