@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Fit Journey — סרטון דמו</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%230a0a0a'/><rect x='1.5' y='1.5' width='29' height='29' rx='6.5' fill='none' stroke='%23FF6B00' stroke-width='1' stroke-opacity='0.5'/><text x='16' y='22' font-family='Arial Black,sans-serif' font-size='13' font-weight='900' fill='%23FF6B00' text-anchor='middle'>FJ</text></svg>"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;700;800;900&display=swap" rel="stylesheet"/>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;}
+  :root{
+    --orange:#FF6B00; --orange2:#FF8C00; --gold:#FFD700;
+    --black:#070707; --dark:#111; --card:#181818; --line:#262626;
+    --red:#E5484D; --muted:#8a8a8a; --white:#fff;
+  }
+  html,body{height:100%;background:#000;overflow:hidden;font-family:'Heebo',sans-serif;}
+
+  #viewport{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#000;}
+  #stage{
+    position:relative;width:1080px;height:1920px;flex:none;
+    transform-origin:center center;overflow:hidden;
+    background:radial-gradient(120% 80% at 50% 12%, #1a0d00 0%, #0c0c0c 42%, #050505 100%);
+    color:var(--white);
+  }
+
+  .grain{position:absolute;inset:0;opacity:.05;pointer-events:none;mix-blend-mode:overlay;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");}
+  .vignette{position:absolute;inset:0;pointer-events:none;
+    background:radial-gradient(80% 60% at 50% 45%, transparent 40%, rgba(0,0,0,.7) 100%);}
+  .glow-bottom{position:absolute;bottom:-280px;left:50%;transform:translateX(-50%);
+    width:1000px;height:600px;pointer-events:none;
+    background:radial-gradient(ellipse, rgba(255,107,0,.22) 0%, transparent 70%);
+    animation:breathe 6s ease-in-out infinite;}
+  @keyframes breathe{0%,100%{opacity:.7;}50%{opacity:1;}}
+
+  #progressWrap{position:absolute;left:0;right:0;bottom:0;height:6px;background:rgba(255,255,255,.08);z-index:60;opacity:0;transition:opacity .3s;}
+  #stage.playing #progressWrap{opacity:1;}
+  #progress{height:100%;width:0;background:linear-gradient(90deg,var(--orange),var(--gold));}
+
+  #start,#replay{
+    position:absolute;inset:0;z-index:80;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;gap:30px;cursor:pointer;
+    background:radial-gradient(circle at 50% 50%, rgba(20,12,0,.85), rgba(0,0,0,.96));
+    backdrop-filter:blur(2px);}
+  #replay{display:none;}
+  .play-btn{width:200px;height:200px;border-radius:50%;
+    background:linear-gradient(145deg,var(--orange),var(--orange2) 55%,var(--gold));
+    display:flex;align-items:center;justify-content:center;
+    box-shadow:0 0 90px rgba(255,107,0,.6);animation:breathe 2.4s ease-in-out infinite;}
+  .play-btn svg{width:88px;height:88px;fill:#0a0a0a;margin-right:-10px;}
+  .ctrl-title{font-size:54px;font-weight:900;letter-spacing:-1px;}
+  .ctrl-sub{font-size:30px;color:var(--muted);font-weight:500;text-align:center;max-width:760px;line-height:1.5;}
+  .ctrl-tag{font-size:24px;color:var(--orange);font-weight:700;letter-spacing:3px;
+    border:1px solid rgba(255,107,0,.4);padding:10px 28px;border-radius:40px;}
+
+  .beat{position:absolute;inset:0;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;opacity:0;pointer-events:none;
+    transition:opacity .45s ease;padding:120px 90px;text-align:center;}
+  .beat.is-active{opacity:1;}
+
+  .fj-logo{width:200px;height:200px;border-radius:46px;
+    background:linear-gradient(145deg,var(--orange),var(--orange2) 55%,var(--gold));
+    display:flex;align-items:center;justify-content:center;
+    font-family:'Heebo';font-weight:900;font-size:96px;color:#0a0a0a;letter-spacing:-4px;
+    box-shadow:0 0 0 rgba(255,107,0,0);}
+  .is-active .fj-logo.ignite{animation:ignite 1.4s cubic-bezier(.2,.8,.2,1) forwards;}
+  @keyframes ignite{
+    0%{transform:scale(.4);opacity:0;filter:brightness(.2);box-shadow:0 0 0 rgba(255,107,0,0);}
+    55%{opacity:1;filter:brightness(1.15);}
+    100%{transform:scale(1);opacity:1;filter:brightness(1);box-shadow:0 0 120px rgba(255,107,0,.65);}
+  }
+  .is-active .fj-logo.pulse{animation:logoPulse 2.6s ease-in-out infinite;}
+  @keyframes logoPulse{0%,100%{box-shadow:0 0 120px rgba(255,107,0,.5);}50%{box-shadow:0 0 170px rgba(255,140,0,.85);}}
+
+  .headline{font-size:92px;font-weight:900;line-height:1.08;letter-spacing:-2px;}
+  .headline .hl{background:linear-gradient(120deg,var(--orange),var(--gold));
+    -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;}
+  .sub{font-size:40px;font-weight:500;color:#cfcfcf;line-height:1.5;}
+  .kicker{font-size:30px;font-weight:800;color:var(--orange);letter-spacing:4px;}
+
+  .is-active .up{animation:up .9s cubic-bezier(.2,.8,.2,1) both;}
+  .is-active .up-2{animation:up .9s cubic-bezier(.2,.8,.2,1) .25s both;}
+  .is-active .up-3{animation:up .9s cubic-bezier(.2,.8,.2,1) .5s both;}
+  .is-active .up-4{animation:up .9s cubic-bezier(.2,.8,.2,1) .8s both;}
+  @keyframes up{from{opacity:0;transform:translateY(50px);}to{opacity:1;transform:translateY(0);}}
+  .is-active .pop{animation:pop .7s cubic-bezier(.2,1.5,.4,1) both;}
+  .is-active .pop-2{animation:pop .7s cubic-bezier(.2,1.5,.4,1) .25s both;}
+  .is-active .pop-3{animation:pop .7s cubic-bezier(.2,1.5,.4,1) .5s both;}
+  @keyframes pop{from{opacity:0;transform:scale(.6);}to{opacity:1;transform:scale(1);}}
+
+  .phone{width:520px;height:1040px;border-radius:64px;background:#0a0a0a;
+    border:14px solid #1c1c1c;box-shadow:0 0 120px rgba(255,107,0,.25),inset 0 0 60px rgba(0,0,0,.8);
+    position:relative;overflow:hidden;flex:none;}
+  .phone .notch{position:absolute;top:22px;left:50%;transform:translateX(-50%);
+    width:150px;height:32px;background:#000;border-radius:20px;z-index:5;}
+  .scr{position:absolute;inset:14px;border-radius:50px;overflow:hidden;
+    background:linear-gradient(180deg,#0e0e0e,#141414);padding:60px 36px 36px;display:flex;flex-direction:column;gap:22px;}
+  .scr-head{display:flex;align-items:center;gap:14px;}
+  .scr-logo{width:54px;height:54px;border-radius:14px;background:linear-gradient(145deg,var(--orange),var(--gold));
+    display:flex;align-items:center;justify-content:center;font-weight:900;font-size:26px;color:#0a0a0a;}
+  .scr-title{font-size:30px;font-weight:800;}
+  .scr-title small{display:block;font-size:18px;color:var(--muted);font-weight:500;}
+
+  .ui-card{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:24px;text-align:right;}
+  .ui-card .t{font-size:26px;font-weight:800;color:var(--orange);margin-bottom:6px;}
+  .ui-card .d{font-size:22px;color:#bdbdbd;line-height:1.4;}
+
+  .screen-fill{position:absolute;inset:0;border-radius:50px;background:#000;}
+  .is-active .screen-fill.ignite{animation:scrIgnite 1.6s ease forwards;}
+  @keyframes scrIgnite{0%{background:#000;}100%{background:radial-gradient(circle at 50% 42%,rgba(255,140,0,.5),rgba(20,8,0,.9));}}
+
+  .prompt-box{background:#0f0f0f;border:1px solid var(--line);border-radius:18px;padding:20px 24px;
+    font-size:24px;color:#e8e8e8;text-align:right;min-height:84px;line-height:1.5;}
+  .cta-btn{background:linear-gradient(135deg,var(--orange),var(--orange2));color:#0a0a0a;
+    font-weight:900;font-size:26px;border-radius:16px;padding:18px;text-align:center;
+    box-shadow:0 0 0 rgba(255,107,0,0);}
+  .is-active .cta-btn.flash{animation:btnFlash 1.6s ease 1.2s infinite;}
+  @keyframes btnFlash{0%,100%{box-shadow:0 0 0 rgba(255,107,0,0);}50%{box-shadow:0 0 50px rgba(255,140,0,.8);}}
+
+  .push{position:absolute;top:90px;left:50%;width:440px;transform:translateX(-50%) translateY(-200px);
+    background:rgba(28,28,28,.96);backdrop-filter:blur(10px);border:1px solid rgba(255,107,0,.3);
+    border-radius:24px;padding:22px 24px;display:flex;gap:16px;align-items:flex-start;text-align:right;z-index:10;
+    box-shadow:0 20px 60px rgba(0,0,0,.6);}
+  .is-active .push.drop{animation:pushDrop .9s cubic-bezier(.2,1.4,.4,1) .4s both;}
+  @keyframes pushDrop{to{transform:translateX(-50%) translateY(0);}}
+  .push .ico{width:52px;height:52px;border-radius:14px;background:linear-gradient(145deg,var(--orange),var(--gold));
+    display:flex;align-items:center;justify-content:center;font-size:26px;flex:none;}
+  .push .pt{font-size:22px;font-weight:800;}
+  .push .pd{font-size:20px;color:#c8c8c8;margin-top:4px;line-height:1.35;}
+
+  .set-row{display:flex;align-items:center;gap:16px;background:var(--card);border:1px solid var(--line);
+    border-radius:16px;padding:18px 22px;font-size:26px;font-weight:600;}
+  .set-row .chk{width:42px;height:42px;border-radius:50%;border:3px solid var(--orange);flex:none;
+    display:flex;align-items:center;justify-content:center;font-size:24px;color:var(--orange);}
+  .set-row.done .chk{background:var(--orange);color:#0a0a0a;}
+  .timer{font-size:64px;font-weight:900;font-variant-numeric:tabular-nums;letter-spacing:2px;
+    background:linear-gradient(120deg,var(--orange),var(--gold));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;}
+
+  .pr-badge{width:420px;height:420px;border-radius:50%;flex:none;
+    background:radial-gradient(circle at 50% 40%,#241400,#0a0a0a);
+    border:4px solid var(--gold);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;
+    box-shadow:0 0 100px rgba(255,215,0,.4);}
+  .pr-badge .em{font-size:130px;line-height:1;}
+  .pr-badge .tx{font-size:48px;font-weight:900;color:var(--gold);}
+  .is-active .pr-badge.burst{animation:burst .8s cubic-bezier(.2,1.6,.4,1) both;}
+  @keyframes burst{0%{transform:scale(0);opacity:0;}70%{transform:scale(1.08);}100%{transform:scale(1);opacity:1;}}
+
+  .group-card{width:760px;background:linear-gradient(135deg,rgba(255,107,0,.16),rgba(255,215,0,.08));
+    border:2px solid rgba(255,215,0,.5);border-radius:28px;padding:34px 38px;text-align:right;
+    box-shadow:0 0 70px rgba(255,140,0,.3);}
+  .group-card .gc-t{font-size:40px;font-weight:900;color:var(--gold);margin-bottom:12px;}
+  .group-card .gc-d{font-size:34px;font-weight:700;color:#fff;}
+  .group-card .gc-d b{color:var(--orange);}
+
+  .stat-row{display:flex;gap:48px;}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:24px;padding:30px 44px;text-align:center;}
+  .stat .n{font-size:84px;font-weight:900;line-height:1;
+    background:linear-gradient(120deg,var(--orange),var(--gold));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;}
+  .stat .l{font-size:28px;color:#c0c0c0;margin-top:10px;font-weight:600;}
+  svg .lineA,svg .lineB{stroke-dasharray:1400;stroke-dashoffset:1400;}
+  .is-active svg .lineA{animation:draw 1.8s ease .3s forwards;}
+  .is-active svg .lineB{animation:draw 1.8s ease .6s forwards;}
+  @keyframes draw{to{stroke-dashoffset:0;}}
+
+  .lb{display:flex;flex-direction:column;gap:24px;width:780px;}
+  .lb-row{display:flex;align-items:center;gap:28px;background:var(--card);border:1px solid var(--line);
+    border-radius:22px;padding:26px 34px;text-align:right;}
+  .lb-row.gold{border-color:rgba(255,215,0,.6);background:linear-gradient(120deg,rgba(255,215,0,.12),transparent);}
+  .lb-row .medal{font-size:64px;flex:none;}
+  .lb-row .nm{font-size:40px;font-weight:900;flex:1;}
+  .lb-row .kg{font-size:44px;font-weight:900;color:var(--gold);}
+  .lb-row .kg small{font-size:24px;color:var(--muted);font-weight:600;}
+
+  .chaos{position:absolute;border-radius:20px;padding:24px;width:380px;text-align:right;
+    background:#141414;border:1px solid #333;box-shadow:0 30px 60px rgba(0,0,0,.6);filter:saturate(.7);}
+  .chaos .ch-t{font-size:24px;font-weight:800;color:#bbb;margin-bottom:14px;display:flex;gap:8px;align-items:center;}
+  .chaos .bub{height:18px;background:#2a2a2a;border-radius:10px;margin:8px 0;}
+  .chaos .bub.s{width:55%;} .chaos .bub.m{width:80%;}
+  .chaos .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;}
+  .chaos .grid span{height:22px;background:#242424;border:1px solid #333;}
+
+  .cta-pill{font-size:42px;font-weight:900;color:#0a0a0a;padding:26px 64px;border-radius:60px;
+    background:linear-gradient(135deg,var(--orange),var(--gold));box-shadow:0 0 70px rgba(255,140,0,.55);}
+  .url{font-size:34px;color:var(--muted);letter-spacing:1px;font-weight:600;}
+  .big-fj{font-size:140px;font-weight:900;letter-spacing:-6px;line-height:1;
+    background:linear-gradient(120deg,var(--orange),var(--gold));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;}
+
+  .row{display:flex;align-items:center;justify-content:center;gap:40px;}
+  .stack{display:flex;flex-direction:column;align-items:center;gap:38px;}
+  .stack-r{display:flex;flex-direction:column;align-items:center;gap:24px;}
+</style>
+</head>
+<body>
+<div id="viewport">
+  <div id="stage">
+    <div class="grain"></div>
+    <div class="glow-bottom"></div>
+
+    <!-- BEAT 1 — HOOK 0-5 -->
+    <div class="beat" data-start="0" data-end="5">
+      <div class="stack">
+        <div class="phone">
+          <div class="screen-fill ignite"></div>
+          <div class="notch"></div>
+          <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;">
+            <div class="fj-logo ignite pulse">FJ</div>
+          </div>
+        </div>
+        <div class="kicker up-3" style="margin-top:20px;">FIT&nbsp;JOURNEY</div>
+        <div class="sub up-4" style="font-weight:700;">האפליקציה שלך בדיוק כמו שרצת</div>
+      </div>
+    </div>
+
+    <!-- BEAT 2 — PROBLEM 5-14 -->
+    <div class="beat" data-start="5" data-end="14">
+      <div class="chaos up" style="top:240px;right:120px;transform:rotate(-5deg);">
+        <div class="ch-t">💬 ווטסאפ עמוס</div>
+        <div class="bub m"></div><div class="bub s"></div><div class="bub m"></div><div class="bub s"></div>
+      </div>
+      <div class="chaos up-2" style="top:520px;left:110px;transform:rotate(6deg);">
+        <div class="ch-t">📋 אקסל מסורבל</div>
+        <div class="grid">
+          <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+          <span></span><span></span><span></span><span></span>
+        </div>
+      </div>
+      <div class="chaos up-3" style="top:760px;right:160px;transform:rotate(-3deg);">
+        <div class="ch-t">📄 PDF תוכניות ישנות</div>
+        <div class="bub m"></div><div class="bub m"></div><div class="bub s"></div>
+      </div>
+      <div style="position:absolute;bottom:300px;left:0;right:0;padding:0 90px;">
+        <div class="headline up-4">
+          ניהול כושר בלי <span class="hl">כאב ראש ישן</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- BEAT 3a — AI BUILDER 14-21 -->
+    <div class="beat" data-start="14" data-end="21">
+      <div class="stack">
+        <div class="kicker up">✨ בינה מלאכותית</div>
+        <div class="phone">
+          <div class="notch"></div>
+          <div class="scr">
+            <div class="scr-head">
+              <div class="scr-logo">FJ</div>
+              <div class="scr-title">בניית תוכנית<small>AI Builder</small></div>
+            </div>
+            <div class="prompt-box up-2"><span id="aiType"></span><span style="color:var(--orange)">▍</span></div>
+            <div class="cta-btn flash up-3">✨ צור תוכנית</div>
+            <div class="ui-card pop-3"><div class="t">יום A · חזה</div><div class="d">לחיצת חזה · 4 סטים · אנטרופי · התפתחות</div></div>
+            <div class="ui-card pop-3" style="animation-delay:.7s"><div class="t">יום B · גב/ביצפס</div><div class="d">מושכת גבוהה · שורות · ביצפס</div></div>
+          </div>
+        </div>
+        <div class="headline up-4" style="font-size:64px;"><span class="hl">AI בונה.</span> אתה מתאמן.</div>
+      </div>
+    </div>
+
+    <!-- BEAT 3b — PUSH 21-27 -->
+    <div class="beat" data-start="21" data-end="27">
+      <div class="stack">
+        <div class="phone">
+          <div class="notch"></div>
+          <div class="scr" style="justify-content:flex-start;padding-top:90px;opacity:.45;">
+            <div class="scr-head"><div class="scr-logo">FJ</div><div class="scr-title">הדשבורד שלי</div></div>
+            <div class="ui-card"><div class="t">אימון יומי</div><div class="d">ראשון · 5 תרגילים</div></div>
+          </div>
+          <div class="push drop">
+            <div class="ico">💣</div>
+            <div><div class="pt">Fit Journey</div><div class="pd">כושר רגיל מגיע ב-18:00 — אתה שומר שלך 💪</div></div>
+          </div>
+        </div>
+        <div class="headline up-3" style="font-size:62px;">תמיד שם.<br><span class="hl">תמיד מתעדכן.</span></div>
+      </div>
+    </div>
+
+    <!-- BEAT 3c — SESSION 27-34 -->
+    <div class="beat" data-start="27" data-end="34">
+      <div class="stack">
+        <div class="kicker up">▶ מתחיל אימון</div>
+        <div class="phone">
+          <div class="notch"></div>
+          <div class="scr">
+            <div class="scr-head"><div class="scr-logo">FJ</div><div class="scr-title">לחיצת חזה<small>סט 3 מתוך 4</small></div></div>
+            <div style="text-align:center;padding:10px 0;"><div class="timer" id="sessTimer">00:42</div></div>
+            <div class="set-row done pop"><div class="chk">✓</div><div>סט 1 · 100kg × 8</div></div>
+            <div class="set-row done pop-2"><div class="chk">✓</div><div>סט 2 · 100kg × 6</div></div>
+            <div class="set-row done pop-3"><div class="chk">✓</div><div>סט 3 · 100kg × 5</div></div>
+            <div class="set-row pop-3" style="animation-delay:.8s"><div class="chk"></div><div>סט 4 · ...</div></div>
+          </div>
+        </div>
+        <div class="headline up-4" style="font-size:62px;">כל סט נספר. <span class="hl">כל חזרה נשמרת.</span></div>
+      </div>
+    </div>
+
+    <!-- BEAT 3d — PR 34-40 -->
+    <div class="beat" data-start="34" data-end="40">
+      <div class="stack">
+        <div class="pr-badge burst"><div class="em">🏆</div><div class="tx">שיא אישי!</div></div>
+        <div class="group-card up-3">
+          <div class="gc-t">💥 שיא נבחרת חדש</div>
+          <div class="gc-d"><b>לירן</b> שבר את השיא של אופיר!<br>לחיצת חזה — 100 ק"ג × 5</div>
+        </div>
+        <div class="headline up-4" style="font-size:58px;">הקבוצה <span class="hl">מריעה לך.</span></div>
+      </div>
+    </div>
+
+    <!-- BEAT 4a — PROOF GRAPH 40-47 -->
+    <div class="beat" data-start="40" data-end="47">
+      <div class="stack">
+        <div class="kicker up">📈 תוצאות אמיתיות</div>
+        <svg width="820" height="460" viewBox="0 0 820 460">
+          <g stroke="#262626" stroke-width="2">
+            <line x1="60" y1="60" x2="60" y2="400"/><line x1="60" y1="400" x2="780" y2="400"/>
+          </g>
+          <path class="lineA" d="M80,360 C220,320 360,250 500,180 C600,130 700,95 760,80"
+            fill="none" stroke="var(--gold)" stroke-width="8" stroke-linecap="round"/>
+          <path class="lineB" d="M80,140 C220,170 360,230 500,280 C600,315 700,350 760,375"
+            fill="none" stroke="var(--orange)" stroke-width="8" stroke-linecap="round"/>
+        </svg>
+        <div class="stat-row up-3">
+          <div class="stat"><div class="n" id="statMass">+6.4</div><div class="l">ק"ג מסת שריר</div></div>
+          <div class="stat"><div class="n" id="statFat">-8%</div><div class="l">אחוז שומן</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- BEAT 4b — LEADERBOARD 47-52 -->
+    <div class="beat" data-start="47" data-end="52">
+      <div class="stack">
+        <div class="kicker up">🏋️ שיאי הנבחרת</div>
+        <div class="lb">
+          <div class="lb-row gold pop"><div class="medal">🥇</div><div class="nm">לירן</div><div class="kg">117<small> 1RM</small></div></div>
+          <div class="lb-row pop-2"><div class="medal">🥈</div><div class="nm">אופיר</div><div class="kg">110<small> 1RM</small></div></div>
+          <div class="lb-row pop-3"><div class="medal">🥉</div><div class="nm">יוסי</div><div class="kg">102<small> 1RM</small></div></div>
+        </div>
+        <div class="headline up-4" style="font-size:60px;">התחרה. תשפר. <span class="hl">תנצח.</span></div>
+      </div>
+    </div>
+
+    <!-- BEAT 5 — CTA 52-60 -->
+    <div class="beat" data-start="52" data-end="60">
+      <div class="stack">
+        <div class="fj-logo ignite pulse">FJ</div>
+        <div class="big-fj up-2">Fit Journey</div>
+        <div class="sub up-3" style="font-size:48px;font-weight:800;">הפלטפורמה שמביאה <span style="color:var(--orange)">תוצאות אמיתיות.</span></div>
+        <div class="cta-pill up-4">הצטרף עכשיו</div>
+        <div class="url up-4">fit-journey1.vercel.app</div>
+      </div>
+    </div>
+
+    <div class="vignette"></div>
+    <div id="progressWrap"><div id="progress"></div></div>
+
+    <!-- controls -->
+    <div id="start">
+      <div class="ctrl-tag">VIDEO AD · 9:16 · 60s</div>
+      <div class="play-btn"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div>
+      <div class="ctrl-title">Fit Journey</div>
+      <div class="ctrl-sub">🔊 עם רמקולים מופעלים. לחץ Play כדי להפעיל. מומלץ: פתח קווית רשם על המסך ואז לחץ Play.<br><span style="font-size:22px;opacity:.7;">(קריינות עובדת ב-Chrome / Edge עם קול ערבי מותקן)</span></div>
+    </div>
+    <div id="replay">
+      <div class="play-btn"><svg viewBox="0 0 24 24"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg></div>
+      <div class="ctrl-title">שוב</div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const stage=document.getElementById('stage');
+  const beats=[...document.querySelectorAll('.beat')];
+  const progress=document.getElementById('progress');
+  const startScreen=document.getElementById('start');
+  const replayScreen=document.getElementById('replay');
+  const TOTAL=60;
+
+  function fit(){
+    const vw=window.innerWidth, vh=window.innerHeight;
+    const s=Math.min(vw/1080, vh/1920);
+    stage.style.transform='scale('+s+')';
+  }
+  window.addEventListener('resize',fit); fit();
+
+  let startT=0, raf=null, current=-1, timers=[];
+  const aiText='בנה תוכנית Push / Pull / Legs ל-4 ימים, רמת מתקדם';
+
+  /* ══ VOICEOVER ══ */
+  const NARR=[
+    {t:0.6,  txt:'האפליקציה שלך בדיוק כמו שרצת'},
+    {t:5.6,  txt:'ניהול כושר בלי כאב ראש ישן'},
+    {t:14.5, txt:'תאמר את הפרוטוקול. בינה מלאכותית בונה תוכנית אישית ומדויקת, תוך שניות'},
+    {t:21.5, txt:'תמיד שם. תמיד מתעדכן. אתה מתמקד'},
+    {t:27.6, txt:'מתמקד באימון עצמו. כל סט נספר'},
+    {t:34.5, txt:'שברת שיא? כל הקבוצה רואה'},
+    {t:40.5, txt:'תוצאות אמיתיות. יותר מסה, פחות שומן'},
+    {t:47.5, txt:'התחרה. תשפר. תנצח'},
+    {t:52.8, txt:"פיט ג'רני. הפלטפורמה שמביאה תוצאות אמיתיות. הצטרף עכשיו"}
+  ];
+  let heVoice=null;
+  function pickVoice(){
+    const vs=window.speechSynthesis?window.speechSynthesis.getVoices():[];
+    heVoice=vs.find(v=>/^(he|iw)/i.test(v.lang))||null;
+  }
+  if(window.speechSynthesis){ pickVoice(); window.speechSynthesis.onvoiceschanged=pickVoice; }
+  function speak(txt){
+    if(!window.speechSynthesis)return;
+    const u=new SpeechSynthesisUtterance(txt);
+    u.lang='he-IL'; u.rate=0.98; u.pitch=1.0; u.volume=1;
+    if(heVoice)u.voice=heVoice;
+    u.onstart=()=>duck(0.22);
+    u.onend=()=>duck(0.55);
+    window.speechSynthesis.speak(u);
+  }
+
+  /* ══ MUSIC ══ */
+  let actx=null, master=null, noiseBuf=null, padStarted=false;
+  let schedId=null, nextStep=0, stepNum=0;
+  const BPM=126, STEP=60/BPM/4;
+
+  function duck(v){ if(master) master.gain.setTargetAtTime(v, actx.currentTime, 0.12); }
+
+  function initAudio(){
+    if(actx)return;
+    actx=new (window.AudioContext||window.webkitAudioContext)();
+    master=actx.createGain(); master.gain.value=0; master.connect(actx.destination);
+    const n=actx.sampleRate*1; noiseBuf=actx.createBuffer(1,n,actx.sampleRate);
+    const d=noiseBuf.getChannelData(0); for(let i=0;i<n;i++)d[i]=Math.random()*2-1;
+  }
+  function startPad(){
+    if(padStarted)return; padStarted=true;
+    const lp=actx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=420; lp.Q.value=6;
+    lp.connect(master);
+    const g=actx.createGain(); g.gain.value=0.05; g.connect(lp);
+    [110,164.81,220].forEach((f,i)=>{
+      const o=actx.createOscillator(); o.type='sawtooth'; o.frequency.value=f; o.detune.value=(i-1)*7;
+      o.connect(g); o.start();
+    });
+    lp.frequency.setValueAtTime(360,actx.currentTime);
+    lp.frequency.linearRampToValueAtTime(1100,actx.currentTime+34);
+  }
+  function kick(time){
+    const o=actx.createOscillator(), g=actx.createGain();
+    o.type='sine'; o.frequency.setValueAtTime(150,time);
+    o.frequency.exponentialRampToValueAtTime(45,time+0.12);
+    g.gain.setValueAtTime(0.9,time); g.gain.exponentialRampToValueAtTime(0.001,time+0.18);
+    o.connect(g); g.connect(master); o.start(time); o.stop(time+0.2);
+  }
+  function hat(time,gv,hp){
+    const s=actx.createBufferSource(); s.buffer=noiseBuf;
+    const f=actx.createBiquadFilter(); f.type='highpass'; f.frequency.value=hp||7000;
+    const g=actx.createGain(); g.gain.setValueAtTime(gv,time); g.gain.exponentialRampToValueAtTime(0.001,time+0.05);
+    s.connect(f); f.connect(g); g.connect(master); s.start(time); s.stop(time+0.06);
+  }
+  function clap(time){
+    const s=actx.createBufferSource(); s.buffer=noiseBuf;
+    const f=actx.createBiquadFilter(); f.type='bandpass'; f.frequency.value=1800; f.Q.value=1.2;
+    const g=actx.createGain(); g.gain.setValueAtTime(0.5,time); g.gain.exponentialRampToValueAtTime(0.001,time+0.16);
+    s.connect(f); f.connect(g); g.connect(master); s.start(time); s.stop(time+0.18);
+  }
+  function sub(time,freq){
+    const o=actx.createOscillator(), g=actx.createGain();
+    o.type='triangle'; o.frequency.value=freq;
+    g.gain.setValueAtTime(0.0001,time); g.gain.linearRampToValueAtTime(0.32,time+0.02);
+    g.gain.exponentialRampToValueAtTime(0.001,time+STEP*1.4);
+    o.connect(g); g.connect(master); o.start(time); o.stop(time+STEP*1.6);
+  }
+  function impact(time){
+    const o=actx.createOscillator(), g=actx.createGain();
+    o.type='sine'; o.frequency.setValueAtTime(120,time); o.frequency.exponentialRampToValueAtTime(35,time+0.9);
+    g.gain.setValueAtTime(1.0,time); g.gain.exponentialRampToValueAtTime(0.001,time+1.4);
+    o.connect(g); g.connect(master); o.start(time); o.stop(time+1.5);
+    const s=actx.createBufferSource(); s.buffer=noiseBuf;
+    const f=actx.createBiquadFilter(); f.type='lowpass'; f.frequency.value=2500;
+    const ng=actx.createGain(); ng.gain.setValueAtTime(0.6,time); ng.gain.exponentialRampToValueAtTime(0.001,time+0.5);
+    s.connect(f); f.connect(ng); ng.connect(master); s.start(time); s.stop(time+0.6);
+  }
+  const BASS={0:55,4:82.41,8:55,12:73.42};
+  function scheduler(){
+    while(nextStep < actx.currentTime + 0.12){
+      const b=stepNum%16;
+      if(b===0||b===4||b===8||b===12) kick(nextStep);
+      if(b===4||b===12) clap(nextStep);
+      hat(nextStep, b%4===2?0.18:0.08);
+      if(b in BASS) sub(nextStep, BASS[b]);
+      nextStep+=STEP; stepNum++;
+    }
+  }
+
+  function startMusic(){
+    initAudio();
+    if(actx.state==='suspended')actx.resume();
+    startPad();
+    nextStep=actx.currentTime+0.05; stepNum=0;
+    master.gain.cancelScheduledValues(actx.currentTime);
+    master.gain.setValueAtTime(0.0001,actx.currentTime);
+    master.gain.linearRampToValueAtTime(0.55,actx.currentTime+1.6);
+    impact(actx.currentTime+0.05);
+    schedId=setInterval(scheduler,25);
+    timers.push(setTimeout(()=>{ if(actx) impact(actx.currentTime); duck(0.6); },52000));
+  }
+  function stopMusic(){
+    if(schedId){clearInterval(schedId);schedId=null;}
+    if(master){ master.gain.cancelScheduledValues(actx.currentTime);
+      master.gain.setTargetAtTime(0,actx.currentTime,0.25); }
+    if(window.speechSynthesis)window.speechSynthesis.cancel();
+  }
+
+  /* ══ TIMELINE ══ */
+  function clearTimers(){ timers.forEach(t=>{clearInterval(t);clearTimeout(t);}); timers=[]; }
+
+  function onEnter(i){
+    const b=beats[i];
+    if(b.querySelector('#aiType')){
+      const el=b.querySelector('#aiType'); el.textContent='';
+      let n=0; const iv=setInterval(()=>{ el.textContent=aiText.slice(0,n++); if(n>aiText.length)clearInterval(iv); },45);
+      timers.push(iv);
+    }
+    if(b.querySelector('#sessTimer')){
+      const el=b.querySelector('#sessTimer'); let s=42;
+      const iv=setInterval(()=>{ s++; el.textContent='00:'+String(s).padStart(2,'0'); },300);
+      timers.push(iv);
+    }
+  }
+  function setBeat(i){
+    if(i===current)return;
+    beats.forEach((b,k)=>b.classList.toggle('is-active',k===i));
+    current=i;
+    if(i>=0)onEnter(i);
+  }
+  function frame(now){
+    const t=(now-startT)/1000;
+    progress.style.width=Math.min(t/TOTAL*100,100)+'%';
+    let idx=-1;
+    for(let k=0;k<beats.length;k++){
+      const s=+beats[k].dataset.start, e=+beats[k].dataset.end;
+      if(t>=s && t<e){idx=k;break;}
+    }
+    setBeat(idx);
+    if(t<TOTAL){ raf=requestAnimationFrame(frame); } else { stop(); }
+  }
+
+  function play(){
+    startScreen.style.display='none';
+    replayScreen.style.display='none';
+    stage.classList.add('playing');
+    current=-1;
+    clearTimers();
+    if(window.speechSynthesis)window.speechSynthesis.cancel();
+    startMusic();
+    NARR.forEach(n=>{ timers.push(setTimeout(()=>speak(n.txt), n.t*1000)); });
+    startT=performance.now();
+    raf=requestAnimationFrame(frame);
+  }
+  function stop(){
+    cancelAnimationFrame(raf);
+    stopMusic();
+    clearTimers();
+    stage.classList.remove('playing');
+    replayScreen.style.display='flex';
+  }
+
+  startScreen.addEventListener('click',play);
+  replayScreen.addEventListener('click',play);
+})();
+</script>
+</body>
+</html>

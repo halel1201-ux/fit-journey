@@ -466,6 +466,16 @@
         </div>
       </div>
 
+      <!-- Extra custom plans added dynamically -->
+      <div id="extra-plans-container"></div>
+
+      <button type="button" onclick="addExtraPlan()"
+        style="width:100%;margin-bottom:14px;padding:12px;border-radius:12px;border:2px dashed rgba(255,107,0,0.35);background:rgba(255,107,0,0.05);color:var(--orange);font-family:'Heebo',sans-serif;font-size:0.9rem;font-weight:700;cursor:pointer;transition:all 0.2s;"
+        onmouseover="this.style.background='rgba(255,107,0,0.12)';this.style.borderColor='rgba(255,107,0,0.6)'"
+        onmouseout="this.style.background='rgba(255,107,0,0.05)';this.style.borderColor='rgba(255,107,0,0.35)'">
+        + הוסף מסלול
+      </button>
+
       <button class="btn-save-plans" id="btn-save-plans" onclick="savePlans()">💾 שמור מסלולים</button>
     </div>
 
@@ -1582,6 +1592,13 @@
               <option value="female" ${client.gender === 'female' ? 'selected' : ''}>♀ אישה</option>
             </select>
           </div>
+          ${client.gender === 'female' ? `
+          <div class="f-group">
+            <label>מצב מחזור</label>
+            <div style="padding:9px 12px;border-radius:8px;border:1px solid ${client.period_active ? 'rgba(244,114,182,0.35)' : 'rgba(255,255,255,0.1)'};background:${client.period_active ? 'rgba(244,114,182,0.08)' : 'rgba(255,255,255,0.04)'};font-size:0.87rem;font-weight:700;color:${client.period_active ? '#f472b6' : '#777'};">
+              ${client.period_active ? '🔴 מחזור פעיל' : '⚫ לא פעיל'}${client.period_updated_at ? ' · עודכן ' + new Date(client.period_updated_at).toLocaleDateString('he-IL') : ''}
+            </div>
+          </div>` : ''}
         </div>
         <div style="margin-bottom:16px;">
           <div style="font-size:0.78rem;font-weight:700;color:var(--muted);margin-bottom:8px;">יעדי מאקרו יומיים</div>
@@ -2933,6 +2950,13 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
       if (m !== months) document.getElementById(`pfeat-${m}`).checked = false;
       document.getElementById(`pcard-${m}`).classList.toggle('featured-card', m === months && document.getElementById(`pfeat-${months}`).checked);
     });
+    // uncheck extra plans
+    Object.keys(extraPlansData || {}).forEach(id => {
+      const cb = document.getElementById(`extra-pfeat-${id}`);
+      if (cb) cb.checked = false;
+      const card = document.getElementById(`extra-pcard-${id}`);
+      if (card) card.classList.remove('featured-card');
+    });
   }
   let planGenders = { 1: 'all', 3: 'all', 6: 'all' };
   function setPlanGender(months, gender) {
@@ -2942,6 +2966,82 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
       if (el) el.classList.toggle('active', g === gender);
     });
   }
+
+  /* ── EXTRA PLANS (dynamic) ── */
+  let extraPlansData = {};
+  let extraPlanIdCounter = 0;
+
+  function buildExtraPlanCard(id, data) {
+    const { months = '', price = '', desc = '', featured = false, gender = 'all' } = data || {};
+    return `<div class="plan-editor-card" id="extra-pcard-${id}" style="border-style:dashed;">
+      <div class="plan-card-title">
+        <div style="display:flex;align-items:center;gap:8px;flex:1;">
+          <span>📅</span>
+          <input type="number" id="extra-months-${id}" placeholder="חודשים" min="1" max="36" value="${months}"
+            style="width:70px;padding:5px 8px;font-size:0.85rem;border-radius:7px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.06);color:#fff;font-family:'Heebo',sans-serif;text-align:center;"/>
+          <span style="font-size:0.78rem;color:var(--muted);">חודשים</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <label class="plan-featured-toggle"><input type="checkbox" id="extra-pfeat-${id}" ${featured?'checked':''} onchange="updateFeaturedExtra('${id}')"/> מומלץ</label>
+          <button type="button" onclick="removeExtraPlan('${id}')"
+            style="background:rgba(255,60,60,0.1);border:1px solid rgba(255,60,60,0.3);color:#f77;font-size:0.78rem;cursor:pointer;padding:3px 9px;border-radius:7px;font-family:'Heebo',sans-serif;">✕ הסר</button>
+        </div>
+      </div>
+      <div class="plan-field"><label>מחיר (₪)</label><input type="number" id="extra-pprice-${id}" placeholder="0" min="0" value="${price}"/></div>
+      <div class="plan-field"><label>מה הלקוח מקבל</label><textarea id="extra-pdesc-${id}" placeholder="תאר מה כלול במסלול זה...">${desc}</textarea></div>
+      <div class="plan-field">
+        <label>מיועד ל</label>
+        <div class="plan-gender-row">
+          <button type="button" class="plan-gender-btn g-all ${gender==='all'?'active':''}" onclick="setExtraPlanGender('${id}','all')">👥 כולם</button>
+          <button type="button" class="plan-gender-btn g-male ${gender==='male'?'active':''}" onclick="setExtraPlanGender('${id}','male')">♂ גברים</button>
+          <button type="button" class="plan-gender-btn g-female ${gender==='female'?'active':''}" onclick="setExtraPlanGender('${id}','female')">♀ נשים</button>
+        </div>
+      </div>
+    </div>`;
+  }
+  function addExtraPlan(data) {
+    const id = `ep${++extraPlanIdCounter}`;
+    extraPlansData[id] = { gender: (data && data.gender) || 'all' };
+    const container = document.getElementById('extra-plans-container');
+    if (!container) return;
+    const div = document.createElement('div');
+    div.innerHTML = buildExtraPlanCard(id, data || {});
+    container.appendChild(div.firstElementChild);
+  }
+  function removeExtraPlan(id) {
+    delete extraPlansData[id];
+    const el = document.getElementById(`extra-pcard-${id}`);
+    if (el) el.remove();
+  }
+  function setExtraPlanGender(id, gender) {
+    if (extraPlansData[id]) extraPlansData[id].gender = gender;
+    const card = document.getElementById(`extra-pcard-${id}`);
+    if (!card) return;
+    card.querySelectorAll('.plan-gender-btn').forEach(btn => {
+      const g = btn.classList.contains('g-all') ? 'all' : btn.classList.contains('g-male') ? 'male' : 'female';
+      btn.classList.toggle('active', g === gender);
+    });
+  }
+  function updateFeaturedExtra(id) {
+    // uncheck all fixed plans
+    [1, 3, 6].forEach(m => {
+      document.getElementById(`pfeat-${m}`).checked = false;
+      document.getElementById(`pcard-${m}`).classList.remove('featured-card');
+    });
+    // uncheck all other extra plans
+    Object.keys(extraPlansData || {}).forEach(eid => {
+      if (eid !== id) {
+        const cb = document.getElementById(`extra-pfeat-${eid}`);
+        if (cb) cb.checked = false;
+        const card = document.getElementById(`extra-pcard-${eid}`);
+        if (card) card.classList.remove('featured-card');
+      }
+    });
+    const card = document.getElementById(`extra-pcard-${id}`);
+    const checked = !!document.getElementById(`extra-pfeat-${id}`)?.checked;
+    if (card) card.classList.toggle('featured-card', checked);
+  }
+
   function loadPlansEditor() {
     document.getElementById('pbit-link').value = coachPlans.bit_link || '';
     [1, 3, 6].forEach(m => {
@@ -2952,6 +3052,12 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
       document.getElementById(`pcard-${m}`).classList.toggle('featured-card', !!p.featured);
       setPlanGender(m, p.gender || 'all');
     });
+    // Load extra plans
+    const container = document.getElementById('extra-plans-container');
+    if (container) container.innerHTML = '';
+    extraPlansData = {};
+    extraPlanIdCounter = 0;
+    (coachPlans.extra_plans || []).forEach(ep => addExtraPlan(ep));
   }
   async function savePlans() {
     const btn = document.getElementById('btn-save-plans');
@@ -2966,6 +3072,14 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
         gender:   planGenders[m] || 'all'
       };
     });
+    // Collect extra plans
+    plans.extra_plans = Object.keys(extraPlansData).map(id => ({
+      months:   parseInt(document.getElementById(`extra-months-${id}`)?.value) || 0,
+      price:    parseInt(document.getElementById(`extra-pprice-${id}`)?.value) || 0,
+      desc:     document.getElementById(`extra-pdesc-${id}`)?.value.trim() || '',
+      featured: !!document.getElementById(`extra-pfeat-${id}`)?.checked,
+      gender:   extraPlansData[id]?.gender || 'all'
+    })).filter(ep => ep.months > 0 && ep.price > 0);
     const { error } = await sb.from('coaches').update({ plans }).eq('email', coachEmail);
     btn.disabled = false; btn.textContent = '💾 שמור מסלולים';
     if (error) { toast('שגיאה בשמירה', 'err'); return; }

@@ -1063,8 +1063,24 @@
           <button class="btn-renewal" onclick="selectRenewalPlan(${pd.months}, ${p.price}, '${coachEmail}', '${phone}', '${bitLink.replace(/'/g,'')}', this)">💳 בחר מסלול</button>
         </div>`;
     }).join('');
+    // Extra custom plans
+    const extraCards = (plans.extra_plans || []).map(ep => {
+      if (!ep.price || !ep.months) return '';
+      const pg = ep.gender || 'all';
+      if (pg !== 'all' && pg !== myGender) return '';
+      const label = ep.months === 1 ? 'חודש אחד' : `${ep.months} חודשים`;
+      return `
+        <div class="renewal-card${ep.featured ? ' featured' : ''}">
+          ${ep.featured ? '<div class="renewal-featured-badge">הכי פופולרי</div>' : ''}
+          <div class="renewal-price">${ep.price} ₪</div>
+          <div class="renewal-period">${label}</div>
+          ${ep.desc ? `<div class="renewal-desc">${esc(ep.desc)}</div>` : ''}
+          <button class="btn-renewal" onclick="selectRenewalPlan(${ep.months}, ${ep.price}, '${coachEmail}', '${phone}', '${bitLink.replace(/'/g,'')}', this)">💳 בחר מסלול</button>
+        </div>`;
+    }).join('');
+    const allCards = cards + extraCards;
     document.getElementById('renewal-cards').innerHTML =
-      cards || '<div class="empty" style="padding:20px 0;">המאמן עדיין לא הגדיר מסלולים — צור קשר ישירות.</div>';
+      allCards || '<div class="empty" style="padding:20px 0;">המאמן עדיין לא הגדיר מסלולים — צור קשר ישירות.</div>';
     document.getElementById('renewal-section').style.display = 'block';
   }
 
