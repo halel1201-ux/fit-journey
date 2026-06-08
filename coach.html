@@ -334,6 +334,18 @@
     .color-swatch { width:32px; height:32px; border-radius:8px; cursor:pointer; border:2px solid transparent; transition:transform 0.15s,border-color 0.15s; flex-shrink:0; }
     .color-swatch:hover { transform:scale(1.15); }
     .color-swatch.active { border-color:#fff; transform:scale(1.1); }
+
+    /* collapse arrows for training days + meal blocks */
+    .block-toggle { background:none;border:none;cursor:pointer;color:var(--orange);font-size:0.95rem;padding:2px 4px;flex-shrink:0;transition:transform 0.18s;line-height:1; }
+    .day-collapsed .block-toggle, .meal-collapsed .block-toggle { transform:rotate(-90deg); }
+    .day-collapsed .day-body, .meal-collapsed .meal-body { display:none; }
+    .day-block-head { margin-bottom:0; }
+    .day-body { padding-top:10px; }
+
+    /* scroll-to-top button */
+    #scroll-top-btn { position:fixed;bottom:80px;left:18px;z-index:8000;width:38px;height:38px;border-radius:50%;background:rgba(255,107,0,0.15);border:1px solid rgba(255,107,0,0.4);color:var(--orange);font-size:1.1rem;display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:0;transition:opacity 0.25s,background 0.2s;pointer-events:none; }
+    #scroll-top-btn.visible { opacity:1;pointer-events:auto; }
+    #scroll-top-btn:hover { background:rgba(255,107,0,0.3); }
   </style>
 </head>
 <body>
@@ -990,6 +1002,8 @@
   let trainingPlan  = [];
   let nutritionPlan = [];
   let dayClipboard  = null;
+  const collapsedDays  = new Set();
+  const collapsedMeals = new Set();
   let mealClipboard = null;
   let exerciseLibrary = [];
   let allFoodItems = [];
@@ -1931,23 +1945,27 @@
     if (!el) return;
     if (!trainingPlan.length) { el.innerHTML='<div style="color:#444;font-size:0.85rem;padding:8px 0;">אין ימים עדיין — לחץ + הוסף יום</div>'; return; }
     el.innerHTML = trainingPlan.map((day, di) => `
-      <div class="day-block">
+      <div class="day-block${collapsedDays.has(di)?' day-collapsed':''}">
         <div class="day-block-head">
+          <button class="block-toggle" onclick="toggleDayCollapse(${di})" title="הצג/הסתר יום">▼</button>
           <input value="${esc(day.day||day.name||'')}" oninput="trainingPlan[${di}].day=this.value;delete trainingPlan[${di}].name;" placeholder="שם יום (יום א׳ — חזה)"/>
           <button class="btn-sm btn-outline" onclick="copyDay(${di})" style="border-color:rgba(255,215,0,0.35);color:#FFD700;padding:5px 10px;">📋 העתק אימון</button>
           <button class="btn-sm btn-red" onclick="removeDay(${di})">הסר</button>
         </div>
-        <div class="muscle-row">
-          ${MUSCLES.map(m=>`<button class="muscle-pill${(day.muscles||[]).includes(m)?' muscle-active':''}" onclick="toggleMuscle(${di},'${m}',this)">${m}</button>`).join('')}
+        <div class="day-body">
+          <div class="muscle-row">
+            ${MUSCLES.map(m=>`<button class="muscle-pill${(day.muscles||[]).includes(m)?' muscle-active':''}" onclick="toggleMuscle(${di},'${m}',this)">${m}</button>`).join('')}
+          </div>
+          ${(day.exercises||[]).map((ex,ei)=>exRow(di,ei,ex)).join('')}
+          <button class="add-link" onclick="addExercise(${di})">+ הוסף תרגיל</button>
         </div>
-        ${(day.exercises||[]).map((ex,ei)=>exRow(di,ei,ex)).join('')}
-        <button class="add-link" onclick="addExercise(${di})">+ הוסף תרגיל</button>
       </div>`).join('');
     if (dayClipboard) {
       const btn = document.getElementById('btn-paste-day');
       if (btn) { btn.style.display = 'block'; btn.textContent = `📋 הדבק — ${esc(dayClipboard.name || dayClipboard.day || 'יום')}`; }
     }
   }
+  function toggleDayCollapse(di) { collapsedDays.has(di)?collapsedDays.delete(di):collapsedDays.add(di); renderTrainingEditor(); }
   function addDay() { trainingPlan.push({day:'',muscles:[],exercises:[]}); renderTrainingEditor(); }
   function removeDay(i) { trainingPlan.splice(i,1); renderTrainingEditor(); }
   function copyDay(di) {
@@ -2485,24 +2503,27 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
       </div>`;
 
     el.innerHTML = macroBar + nutritionPlan.map((meal,mi)=>`
-      <div class="meal-block">
+      <div class="meal-block${collapsedMeals.has(mi)?' meal-collapsed':''}">
         <div class="meal-block-head">
+          <button class="block-toggle" onclick="toggleMealCollapse(${mi})" title="הצג/הסתר ארוחה">▼</button>
           <input value="${esc(meal.meal)}" oninput="nutritionPlan[${mi}].meal=this.value" placeholder="שם ארוחה"/>
           <div style="display:flex;gap:5px;">
             <button class="btn-sm btn-outline" style="padding:4px 9px;font-size:0.75rem;" onclick="copyMeal(${mi})">📋 העתק ארוחה</button>
             <button class="btn-sm btn-red" onclick="removeMeal(${mi})">הסר ארוחה</button>
           </div>
         </div>
-        <div class="nutri-header"><span>מזון</span><span>כמות</span><span>קל׳</span><span>חלבון</span><span>פחמימה</span><span>שומן</span><span></span></div>
-        <div>${(meal.items||[]).map((item,ii)=>itemRow(mi,ii,item)).join('')}</div>
-        <button class="add-link" onclick="addItem(${mi})">+ הוסף מזון</button>
-        ${(meal.items||[]).length ? `
-        <div class="meal-alts">
-          <div style="font-size:0.78rem;font-weight:700;color:#60b4ff;margin-bottom:8px;">חלופות לארוחה זו:</div>
-          ${renderChipsRow(mi,'protein','חלבון')}
-          ${renderChipsRow(mi,'carbs','פחמימה')}
-          ${renderChipsRow(mi,'fat','שומן')}
-        </div>` : ''}
+        <div class="meal-body">
+          <div class="nutri-header"><span>מזון</span><span>כמות</span><span>קל׳</span><span>חלבון</span><span>פחמימה</span><span>שומן</span><span></span></div>
+          <div>${(meal.items||[]).map((item,ii)=>itemRow(mi,ii,item)).join('')}</div>
+          <button class="add-link" onclick="addItem(${mi})">+ הוסף מזון</button>
+          ${(meal.items||[]).length ? `
+          <div class="meal-alts">
+            <div style="font-size:0.78rem;font-weight:700;color:#60b4ff;margin-bottom:8px;">חלופות לארוחה זו:</div>
+            ${renderChipsRow(mi,'protein','חלבון')}
+            ${renderChipsRow(mi,'carbs','פחמימה')}
+            ${renderChipsRow(mi,'fat','שומן')}
+          </div>` : ''}
+        </div>
       </div>`).join('');
   }
   function itemRow(mi, ii, item) {
@@ -2565,6 +2586,7 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
       ${unitPicker}${altPanel}
     </div>`;
   }
+  function toggleMealCollapse(mi) { collapsedMeals.has(mi)?collapsedMeals.delete(mi):collapsedMeals.add(mi); renderNutritionEditor(); }
   function addMeal()       { nutritionPlan.push({meal:'',items:[]}); renderNutritionEditor(); }
   function removeMeal(i)   { nutritionPlan.splice(i,1); renderNutritionEditor(); }
   function addItem(mi)     { nutritionPlan[mi].items.push({food:'',quantity:'',calories:0,protein:0,carbs:0,fat:0}); renderNutritionEditor(); }
@@ -4390,5 +4412,17 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js').catch(e => console.warn('SW:', e));
     }
-  </script></body>
+  </script>
+
+  <!-- scroll-to-top -->
+  <button id="scroll-top-btn" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="חזור למעלה">▲</button>
+  <script>
+    (function() {
+      const btn = document.getElementById('scroll-top-btn');
+      window.addEventListener('scroll', function() {
+        btn.classList.toggle('visible', window.scrollY > 220);
+      }, {passive:true});
+    })();
+  </script>
+</body>
 </html>
