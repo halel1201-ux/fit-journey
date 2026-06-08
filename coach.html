@@ -1592,6 +1592,13 @@
         <div class="form-grid" style="margin-bottom:14px;">
           <div class="f-group"><label>שם</label><input id="e-name" value="${esc(client.name)}"/></div>
           <div class="f-group"><label>טלפון</label><input id="e-phone" value="${esc(phone)}" placeholder="050-0000000" type="tel" style="direction:ltr;text-align:right;"/></div>
+          <div class="f-group" style="grid-column:1/-1;">
+            <label style="display:flex;align-items:center;gap:6px;">
+              מייל
+              <span style="font-size:0.67rem;color:#f87171;font-weight:700;padding:2px 7px;background:rgba(248,113,113,0.1);border-radius:6px;border:1px solid rgba(248,113,113,0.25);">⚠ שינוי משפיע על התחברות</span>
+            </label>
+            <input id="e-email" type="email" value="${esc(client.email)}" style="direction:ltr;text-align:right;"/>
+          </div>
           <div class="f-group"><label>תחילת ליווי</label><input id="e-start" type="date" value="${client.coaching_start || ''}"/></div>
           <div class="f-group"><label>סיום ליווי</label><input id="e-end" type="date" value="${client.coaching_end || ''}"/></div>
           <div class="f-group">
@@ -1815,6 +1822,7 @@
   async function saveProfile() {
     const name   = document.getElementById('e-name').value.trim();
     const phone  = document.getElementById('e-phone').value.trim();
+    const newEmail = document.getElementById('e-email')?.value.trim().toLowerCase() || activeEmail;
     const start  = document.getElementById('e-start').value;
     const end    = document.getElementById('e-end').value;
     const cal    = parseInt(document.getElementById('e-cal').value)    || null;
@@ -1824,12 +1832,17 @@
     const water  = parseFloat(document.getElementById('e-water').value)  || null;
     const weight = parseFloat(document.getElementById('e-weight').value) || null;
     const gender = document.getElementById('e-gender')?.value || 'male';
+    if (newEmail !== activeEmail) {
+      const { data: existing } = await sb.from('clients').select('email').eq('email', newEmail).maybeSingle();
+      if (existing) { toast('כבר קיים לקוח עם המייל הזה', 'err'); return; }
+    }
     const { error } = await sb.from('clients')
-      .update({ name, phone, coaching_start: start, coaching_end: end,
+      .update({ name, phone, email: newEmail, coaching_start: start, coaching_end: end,
                 target_calories: cal, target_protein: prot, target_carbs: carb, target_fat: fat,
                 target_water: water, current_weight: weight, gender })
       .eq('email', activeEmail);
     if (error) { toast('שגיאה בשמירה', 'err'); return; }
+    if (newEmail !== activeEmail) { activeEmail = newEmail; }
     await loadClients();
     toast('פרטים נשמרו ✓', 'ok');
   }
