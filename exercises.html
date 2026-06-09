@@ -1,270 +1,338 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="he" dir="rtl">
 <head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no"/>
-<title>מאגר תרגילים — Fit Journey</title>
-<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;700;900&display=swap" rel="stylesheet"/>
-<style>
-  :root {
-    --bg:#0a0a0a; --card:#111; --border:rgba(255,255,255,0.08);
-    --orange:#FF6B00; --gold:#FFD700; --muted:#777; --text:#fff;
-  }
-  *{margin:0;padding:0;box-sizing:border-box;}
-  body{background:var(--bg);color:var(--text);font-family:'Heebo',sans-serif;min-height:100vh;}
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%230a0a0a'/><rect x='1.5' y='1.5' width='29' height='29' rx='6.5' fill='none' stroke='%23FF6B00' stroke-width='1' stroke-opacity='0.5'/><text x='16' y='22' font-family='Arial Black,sans-serif' font-size='13' font-weight='900' fill='%23FF6B00' text-anchor='middle'>FJ</text></svg>"/>
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#FF6B00">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="HF Coaching">
+  <link rel="apple-touch-icon" href="/icon-192.png">
+  <title>מאגר תרגילים — HF Coaching</title>
+  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;700;900&display=swap" rel="stylesheet"/>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --orange:#FF6B00; --gold:#FFD700; --black:#090909; --white:#fff; --muted:#aaa; --card:rgba(255,255,255,0.04); --border:rgba(255,107,0,0.25); }
+    html { scroll-behavior: smooth; }
+    body { font-family: 'Heebo', sans-serif; background: var(--black); color: var(--white); min-height: 100vh; }
+    ::-webkit-scrollbar { width: 5px; } ::-webkit-scrollbar-track { background: var(--black); } ::-webkit-scrollbar-thumb { background: var(--orange); border-radius: 3px; }
 
-  /* HEADER */
-  .header{background:#111;border-bottom:1px solid var(--border);padding:14px 20px;position:sticky;top:0;z-index:100;box-shadow:0 2px 20px rgba(0,0,0,0.5);}
-  .header-inner{max-width:1200px;margin:0 auto;display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
-  .logo{font-size:1.3rem;font-weight:900;color:var(--orange);white-space:nowrap;}
-  .logo span{color:#fff;font-weight:300;font-size:1rem;}
-  .search-wrap{flex:1;min-width:160px;position:relative;}
-  .search-wrap input{width:100%;background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:9px;color:#fff;font-family:'Heebo',sans-serif;font-size:0.88rem;padding:8px 12px 8px 34px;outline:none;transition:border-color .2s;}
-  .search-wrap input:focus{border-color:rgba(255,107,0,0.5);}
-  .search-wrap input::placeholder{color:#444;}
-  .s-icon{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:#444;pointer-events:none;font-size:0.85rem;}
-  .count{background:rgba(255,107,0,0.12);border:1px solid rgba(255,107,0,0.25);color:var(--orange);border-radius:7px;padding:4px 11px;font-size:0.76rem;font-weight:700;white-space:nowrap;}
+    /* NAV */
+    nav {
+      position: sticky; top: 0; z-index: 50;
+      background: rgba(9,9,9,0.92); backdrop-filter: blur(14px);
+      border-bottom: 1px solid rgba(255,107,0,0.15);
+      padding: 0 24px; height: 62px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .nav-brand { display: flex; align-items: center; gap: 10px; }
+    .nav-hf { font-size: 1.4rem; font-weight: 900; background: linear-gradient(135deg, var(--orange), var(--gold)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .nav-right { display: flex; align-items: center; gap: 12px; }
+    .nav-back { font-size: 0.85rem; color: var(--muted); text-decoration: none; font-weight: 700; transition: color 0.2s; }
+    .nav-back:hover { color: var(--orange); }
+    .btn-logout { padding: 7px 18px; background: transparent; border: 1px solid rgba(255,107,0,0.4); border-radius: 6px; color: var(--orange); font-family: 'Heebo', sans-serif; font-size: 0.85rem; font-weight: 700; cursor: pointer; transition: background 0.2s; }
+    .btn-logout:hover { background: rgba(255,107,0,0.1); }
 
-  /* FILTERS */
-  .filters{max-width:1200px;margin:14px auto 0;padding:0 16px;display:flex;gap:8px;flex-wrap:wrap;}
-  .fsel{background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:8px;color:#bbb;font-family:'Heebo',sans-serif;font-size:0.8rem;padding:6px 10px;outline:none;cursor:pointer;}
-  .fsel:focus{border-color:rgba(255,107,0,0.4);}
-  .fsel option{background:#1a1a1a;}
-  .btn-rst{background:none;border:1px solid rgba(255,107,0,0.3);border-radius:8px;color:var(--orange);font-family:'Heebo',sans-serif;font-size:0.8rem;padding:6px 12px;cursor:pointer;}
-  .btn-rst:hover{background:rgba(255,107,0,0.08);}
+    /* LAYOUT */
+    .container { max-width: 1100px; margin: 0 auto; padding: 36px 20px 60px; }
 
-  /* GRID */
-  .wrap{max-width:1200px;margin:18px auto;padding:0 16px 50px;}
-  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:13px;}
+    /* PAGE TITLE */
+    .page-header { margin-bottom: 28px; }
+    .page-title { font-size: 1.9rem; font-weight: 900; margin-bottom: 6px; }
+    .page-title span { background: linear-gradient(135deg, var(--orange), var(--gold)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .page-sub { font-size: 0.88rem; color: var(--muted); }
 
-  /* CARD */
-  .card{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;cursor:pointer;transition:transform .18s,border-color .18s,box-shadow .18s;}
-  .card:hover{transform:translateY(-3px);border-color:rgba(255,107,0,0.4);box-shadow:0 6px 20px rgba(255,107,0,0.1);}
-  .card-img{position:relative;width:100%;padding-top:75%;background:#0d0d0d;overflow:hidden;}
-  .card-img img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}
-  .card-img .f2{opacity:0;}
-  .card-img.play .f1{animation:fr1 1.4s steps(1) infinite;}
-  .card-img.play .f2{animation:fr2 1.4s steps(1) infinite;}
-  @keyframes fr1{0%,49%{opacity:1}50%,100%{opacity:0}}
-  @keyframes fr2{0%,49%{opacity:0}50%,100%{opacity:1}}
-  .no-img{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#2a2a2a;font-size:2.5rem;}
-  .card-body{padding:9px 11px 11px;}
-  .card-name{font-size:0.8rem;font-weight:700;color:#eee;margin-bottom:5px;line-height:1.3;text-transform:capitalize;}
-  .card-tags{display:flex;flex-wrap:wrap;gap:3px;}
-  .tag{font-size:0.62rem;padding:2px 6px;border-radius:5px;font-weight:700;}
-  .tm{background:rgba(255,107,0,0.1);color:var(--orange);border:1px solid rgba(255,107,0,0.22);}
-  .te{background:rgba(255,255,255,0.04);color:#666;border:1px solid rgba(255,255,255,0.07);}
-  .tl{background:rgba(255,215,0,0.07);color:#cc9900;border:1px solid rgba(255,215,0,0.18);}
+    /* SEARCH */
+    .search-input {
+      width: 100%; padding: 12px 16px; margin-bottom: 18px;
+      background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 10px; color: var(--white); font-family: 'Heebo', sans-serif;
+      font-size: 0.95rem; outline: none; transition: border-color 0.2s;
+    }
+    .search-input:focus { border-color: var(--orange); }
+    .search-input::placeholder { color: #444; }
 
-  /* LOADER */
-  #ldr{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:35vh;gap:12px;}
-  .spin{width:36px;height:36px;border:3px solid rgba(255,107,0,0.15);border-top-color:var(--orange);border-radius:50%;animation:sp .7s linear infinite;}
-  @keyframes sp{to{transform:rotate(360deg)}}
-  #ldr-txt{color:#444;font-size:0.82rem;}
-  #empty{display:none;text-align:center;padding:50px;color:#444;}
-  #empty div{font-size:2rem;margin-bottom:8px;}
+    /* FILTER TABS */
+    .filter-tabs { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 10px; scrollbar-width: none; }
+    .filter-tabs::-webkit-scrollbar { display: none; }
+    .filter-subtabs { display: none; gap: 6px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 18px; scrollbar-width: none; }
+    .filter-subtabs::-webkit-scrollbar { display: none; }
+    .tab-btn {
+      padding: 8px 18px; border-radius: 20px; font-family: 'Heebo', sans-serif;
+      font-size: 0.85rem; font-weight: 700; cursor: pointer; white-space: nowrap;
+      border: 1px solid rgba(255,107,0,0.25); background: transparent; color: var(--muted);
+      transition: all 0.2s;
+    }
+    .tab-btn:hover { color: var(--white); border-color: rgba(255,107,0,0.5); }
+    .tab-btn.active { background: linear-gradient(135deg, var(--orange), #FF8C00); border-color: transparent; color: var(--white); }
+    .tab-btn-sub {
+      padding: 5px 13px; border-radius: 16px; font-family: 'Heebo', sans-serif;
+      font-size: 0.78rem; font-weight: 700; cursor: pointer; white-space: nowrap;
+      border: 1px solid rgba(255,255,255,0.12); background: transparent; color: var(--muted);
+      transition: all 0.2s;
+    }
+    .tab-btn-sub:hover { color: var(--white); border-color: rgba(255,107,0,0.4); }
+    .tab-btn-sub.active { background: rgba(255,107,0,0.15); border-color: var(--orange); color: var(--orange); }
 
-  /* PAGINATION */
-  .pag{display:flex;justify-content:center;gap:6px;margin-top:22px;flex-wrap:wrap;}
-  .pb{background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:7px;color:#999;font-family:'Heebo',sans-serif;font-size:0.8rem;padding:6px 12px;cursor:pointer;transition:all .15s;}
-  .pb:hover,.pb.on{background:rgba(255,107,0,0.12);border-color:rgba(255,107,0,0.35);color:var(--orange);}
-  .pb:disabled{opacity:.25;cursor:default;}
+    /* COUNT */
+    .results-count { font-size: 0.82rem; color: var(--muted); margin-bottom: 16px; }
+    .results-count strong { color: var(--orange); }
 
-  /* MODAL */
-  .ov{position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:200;display:none;align-items:flex-start;justify-content:center;padding:16px;overflow-y:auto;}
-  .ov.open{display:flex;}
-  .modal{background:#111;border:1px solid rgba(255,107,0,0.2);border-radius:14px;width:100%;max-width:680px;overflow:hidden;margin:auto;box-shadow:0 0 50px rgba(255,107,0,0.12);}
-  .m-imgs{display:flex;gap:3px;background:#0a0a0a;min-height:180px;}
-  .m-imgs img{flex:1;object-fit:cover;max-height:260px;min-width:0;}
-  .m-top{position:relative;}
-  .m-close{position:absolute;top:10px;left:10px;background:rgba(0,0,0,0.75);border:1px solid rgba(255,255,255,0.12);border-radius:50%;color:#fff;width:32px;height:32px;font-size:0.9rem;cursor:pointer;display:flex;align-items:center;justify-content:center;}
-  .m-close:hover{background:rgba(255,107,0,0.3);}
-  .m-body{padding:18px 20px 22px;}
-  .m-name{font-size:1.2rem;font-weight:900;text-transform:capitalize;margin-bottom:10px;}
-  .m-tags{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:16px;}
-  .mt{font-size:0.73rem;padding:3px 9px;border-radius:6px;font-weight:700;}
-  .mt-p{background:rgba(255,107,0,0.1);color:var(--orange);border:1px solid rgba(255,107,0,0.25);}
-  .mt-s{background:rgba(255,255,255,0.04);color:#666;border:1px solid rgba(255,255,255,0.08);}
-  .mt-e{background:rgba(100,180,255,0.07);color:#64b4ff;border:1px solid rgba(100,180,255,0.18);}
-  .mt-l{background:rgba(255,215,0,0.07);color:#cc9900;border:1px solid rgba(255,215,0,0.18);}
-  .m-sec-title{font-size:0.7rem;font-weight:700;color:var(--orange);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;}
-  .m-steps{list-style:none;display:flex;flex-direction:column;gap:7px;}
-  .m-steps li{font-size:0.83rem;color:#bbb;line-height:1.55;padding-right:24px;position:relative;}
-  .m-steps li::before{content:attr(data-n);position:absolute;right:0;top:2px;width:16px;height:16px;background:rgba(255,107,0,0.18);border-radius:50%;font-size:0.62rem;font-weight:700;color:var(--orange);text-align:center;line-height:16px;}
-</style>
+    /* GRID */
+    .exercises-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; }
+
+    /* CARD */
+    .ex-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 14px; padding: 16px 14px 12px;
+      transition: box-shadow 0.2s, border-color 0.2s;
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .ex-card:hover { box-shadow: 0 8px 28px rgba(255,107,0,0.12); border-color: rgba(255,107,0,0.4); }
+    .ex-muscle-badge {
+      display: inline-block; padding: 3px 10px; border-radius: 12px;
+      background: rgba(255,107,0,0.1); border: 1px solid rgba(255,107,0,0.25);
+      font-size: 0.72rem; font-weight: 700; color: var(--orange); align-self: flex-start;
+    }
+    .ex-card-name { font-size: 0.95rem; font-weight: 700; line-height: 1.4; flex: 1; color: var(--white); text-decoration: none; display: block; }
+    .ex-card-name.clickable { color: var(--orange); cursor: pointer; }
+    .ex-card-name.clickable:hover { text-decoration: underline; }
+    /* URL input row on card */
+    .card-url-row { display: flex; gap: 6px; margin-top: 4px; }
+    .card-url-input {
+      flex: 1; padding: 6px 10px; background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08); border-radius: 7px;
+      color: var(--white); font-family: 'Heebo', sans-serif;
+      font-size: 0.75rem; outline: none; direction: ltr; min-width: 0;
+    }
+    .card-url-input:focus { border-color: var(--orange); }
+    .card-url-input::placeholder { color: #444; }
+    .card-url-btn {
+      padding: 6px 11px; background: var(--orange); border: none; border-radius: 7px;
+      color: #fff; font-family: 'Heebo', sans-serif; font-size: 0.75rem;
+      font-weight: 700; cursor: pointer; white-space: nowrap; transition: opacity 0.2s;
+      flex-shrink: 0;
+    }
+    .card-url-btn:hover { opacity: 0.85; }
+    .card-url-btn:disabled { opacity: 0.5; cursor: default; }
+    .has-video { color: var(--orange); }
+    .no-video { color: #444; }
+
+    /* EMPTY */
+    .empty { grid-column: 1 / -1; text-align: center; padding: 60px 20px; color: #444; }
+    .empty-icon { font-size: 3rem; margin-bottom: 12px; }
+
+    /* LOADER */
+    #loader { position: fixed; inset: 0; background: var(--black); display: flex; align-items: center; justify-content: center; z-index: 999; transition: opacity 0.3s; }
+    .spin { width: 40px; height: 40px; border: 3px solid rgba(255,107,0,0.2); border-top-color: var(--orange); border-radius: 50%; animation: spin 0.7s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    @media (max-width: 480px) {
+      .exercises-grid { grid-template-columns: repeat(auto-fill, minmax(155px, 1fr)); }
+      .page-title { font-size: 1.5rem; }
+    }
+  </style>
 </head>
 <body>
 
-<div class="header">
-  <div class="header-inner">
-    <div class="logo">FJ <span>מאגר תרגילים</span></div>
-    <div class="search-wrap">
-      <span class="s-icon">🔍</span>
-      <input id="q" type="text" placeholder="חיפוש תרגיל..."/>
-    </div>
-    <div class="count" id="cnt">טוען...</div>
+<div id="loader"><div class="spin"></div></div>
+
+<nav>
+  <div class="nav-brand">
+    <div class="nav-hf">FJ</div>
   </div>
-</div>
-
-<div class="filters" id="filters" style="display:none;">
-  <select class="fsel" id="f-cat"><option value="">כל הקטגוריות</option></select>
-  <select class="fsel" id="f-mus"><option value="">כל השרירים</option></select>
-  <select class="fsel" id="f-eq"><option value="">כל הציוד</option></select>
-  <select class="fsel" id="f-lv"><option value="">כל הרמות</option></select>
-  <button class="btn-rst" onclick="reset()">איפוס</button>
-</div>
-
-<div class="wrap">
-  <div id="ldr"><div class="spin"></div><div id="ldr-txt">טוען 870 תרגילים...</div></div>
-  <div id="empty"><div>🔍</div>לא נמצאו תרגילים</div>
-  <div class="grid" id="grid"></div>
-  <div class="pag" id="pag"></div>
-</div>
-
-<div class="ov" id="ov" onclick="if(event.target===this)close()">
-  <div class="modal">
-    <div class="m-top">
-      <div class="m-imgs" id="m-imgs"></div>
-      <button class="m-close" onclick="close()">✕</button>
-    </div>
-    <div class="m-body">
-      <div class="m-name" id="m-name"></div>
-      <div class="m-tags" id="m-tags"></div>
-      <div id="m-inst-wrap"><div class="m-sec-title">הוראות ביצוע</div><ol class="m-steps" id="m-steps"></ol></div>
-    </div>
+  <div class="nav-right">
+    <a id="back-link" href="dashboard.html" class="nav-back">← אזור אישי</a>
+    <script>(function(){const p=new URLSearchParams(location.search);if(p.get('from')==='coach'){const a=document.getElementById('back-link');a.href='coach.html';a.textContent='✕ סגור';a.style.cssText='font-size:1.1rem;font-weight:900;color:var(--orange);text-decoration:none;padding:4px 10px;border:1px solid rgba(255,107,0,0.4);border-radius:8px;';} })();</script>
+    <button class="btn-logout" onclick="logout()">יציאה</button>
   </div>
+</nav>
+
+<div class="container" id="main" style="display:none;">
+  <div class="page-header">
+    <div class="page-title">מאגר <span>תרגילים</span></div>
+    <p class="page-sub">חפש תרגיל, סנן לפי קבוצת שריר וצפה בסרטון הסבר</p>
+  </div>
+
+  <input class="search-input" id="search" placeholder="חיפוש תרגיל..." oninput="filterExercises()"/>
+
+  <div class="filter-tabs" id="filter-tabs"></div>
+  <div class="filter-subtabs" id="filter-subtabs"></div>
+  <div class="results-count" id="results-count"></div>
+  <div class="exercises-grid" id="exercises-grid"></div>
 </div>
+
+<!-- (modal removed — video URL editing is now inline on each card) -->
 
 <script>
-const BASE = 'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/';
-const LVL  = {beginner:'מתחיל',intermediate:'ביניים',expert:'מתקדם'};
-const CAT  = {strength:'כוח',cardio:'קרדיו',stretching:'מתיחות',plyometrics:'פליומטריקס',powerlifting:'פאוורליפטינג','olympic weightlifting':'הרמת משקולות',strongman:'סטרונגמן'};
-const PG   = 60;
-let all=[], flt=[], pg=0;
+  const URL_ = 'https://luwknflmhvcxgifzxgrk.supabase.co';
+  const KEY  = 'sb_publishable_k3M7SfBeiBGs3rTKewBzWQ_7RHRskB9';
+  const sb   = supabase.createClient(URL_, KEY);
 
-async function init(){
-  const K='fj_exdb3';
-  let data=null;
-  try{const c=localStorage.getItem(K);if(c)data=JSON.parse(c);}catch(e){}
-  if(!data){
-    const r=await fetch(BASE+'dist/exercises.json');
-    data=await r.json();
-    try{localStorage.setItem(K,JSON.stringify(data));}catch(e){}
+  const MUSCLE_HIERARCHY = {
+    'חזה':        ['חזה עליון','חזה אמצעי','חזה תחתון','חזה פנימי'],
+    'גב':         ['רוחב גב','גב עליון','טרפזים','גב תחתון','זוקפי גב'],
+    'כתפיים':    ['כתף קדמית','כתף צידית','כתף אחורית'],
+    'יד קדמית':  ['ראש ארוך','ראש קצר','ברכיאליס'],
+    'יד אחורית': ['ראש ארוך','ראש לטרלי','ראש מדיאלי'],
+    'אמות':      ['כופפי אמה','פושטי אמה','כוח אחיזה'],
+    '4 ראשי':    ['קוואדס חיצוני','קוואדס פנימי','קוואדס אמצעי'],
+    'המסטרינג':  ['חלק פנימי','חלק חיצוני'],
+    'ישבן':      ['גלוטס מקסימוס','גלוטס מדיוס'],
+    'עגל':       ['תאומים','סולאוס','טיביאליס'],
+    'ליבה':      ['בטן עליונה','בטן תחתונה','אלכסונים','עומק ליבה']
+  };
+  let allExercises = [];
+  let activeTab    = 'הכל';
+  let activeSubTab = null;
+
+  async function init() {
+    let { data: { session } } = await sb.auth.getSession();
+
+    if (!session) {
+      await new Promise(resolve => {
+        const { data: { subscription } } = sb.auth.onAuthStateChange((event, s) => {
+          if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
+            session = s; subscription.unsubscribe(); resolve();
+          }
+        });
+        setTimeout(resolve, 3000);
+      });
+    }
+
+    if (!session) { window.location.href = 'login.html'; return; }
+
+    const { data, error } = await sb.from('exercises').select('*').order('muscle_group').order('name');
+    allExercises = data || [];
+
+    document.getElementById('loader').style.opacity = '0';
+    setTimeout(() => document.getElementById('loader').style.display = 'none', 300);
+    document.getElementById('main').style.display = 'block';
+
+    renderTabs();
+    filterExercises();
   }
-  all=data;
-  buildFilters(data);
-  document.getElementById('filters').style.display='flex';
-  apply();
-}
 
-function buildFilters(d){
-  const add=(id,arr,fn)=>{const el=document.getElementById(id);arr.sort().forEach(v=>{const o=document.createElement('option');o.value=v;o.textContent=fn?fn(v):v;el.appendChild(o);});};
-  add('f-cat',[...new Set(d.map(e=>e.category).filter(Boolean))],v=>CAT[v]||v);
-  add('f-mus',[...new Set(d.flatMap(e=>e.primaryMuscles||[]))]);
-  add('f-eq', [...new Set(d.map(e=>e.equipment).filter(Boolean))]);
-  add('f-lv', [...new Set(d.map(e=>e.level).filter(Boolean))],v=>LVL[v]||v);
-  ['q','f-cat','f-mus','f-eq','f-lv'].forEach(id=>document.getElementById(id).addEventListener(id==='q'?'input':'change',()=>{pg=0;apply();}));
-}
+  function renderTabs() {
+    const mainGroups = ['הכל', ...Object.keys(MUSCLE_HIERARCHY)];
+    document.getElementById('filter-tabs').innerHTML = mainGroups.map(m =>
+      `<button class="tab-btn${m === activeTab ? ' active' : ''}" onclick="setTab('${m}')">${m}</button>`
+    ).join('');
 
-function reset(){['q','f-cat','f-mus','f-eq','f-lv'].forEach(id=>{const el=document.getElementById(id);if(el.tagName==='INPUT')el.value='';else el.value='';});pg=0;apply();}
+    const subWrap = document.getElementById('filter-subtabs');
+    const subs = activeTab !== 'הכל' ? (MUSCLE_HIERARCHY[activeTab] || []) : [];
+    if (subs.length) {
+      subWrap.style.display = 'flex';
+      subWrap.innerHTML =
+        `<button class="tab-btn-sub${!activeSubTab ? ' active' : ''}" onclick="setSubTab(null)">הכל</button>` +
+        subs.map(s => `<button class="tab-btn-sub${s === activeSubTab ? ' active' : ''}" onclick="setSubTab('${s}')">${s}</button>`).join('');
+    } else {
+      subWrap.style.display = 'none';
+      subWrap.innerHTML = '';
+    }
+  }
 
-function apply(){
-  const q=document.getElementById('q').value.trim().toLowerCase();
-  const cat=document.getElementById('f-cat').value;
-  const mus=document.getElementById('f-mus').value;
-  const eq=document.getElementById('f-eq').value;
-  const lv=document.getElementById('f-lv').value;
-  flt=all.filter(e=>{
-    if(q&&!e.name.toLowerCase().includes(q))return false;
-    if(cat&&e.category!==cat)return false;
-    if(mus&&!(e.primaryMuscles||[]).includes(mus))return false;
-    if(eq&&e.equipment!==eq)return false;
-    if(lv&&e.level!==lv)return false;
-    return true;
-  });
-  document.getElementById('cnt').textContent=flt.length+' תרגילים';
-  document.getElementById('empty').style.display=flt.length?'none':'block';
-  render();
-}
+  function setTab(muscle) {
+    activeTab = muscle;
+    activeSubTab = null;
+    renderTabs();
+    filterExercises();
+  }
 
-function render(){
-  document.getElementById('ldr').style.display='none';
-  const slice=flt.slice(pg*PG,(pg+1)*PG);
-  document.getElementById('grid').innerHTML=slice.map(ex=>{
-    const imgs=ex.images||[];
-    const i0=imgs[0]?BASE+'exercises/'+imgs[0]:null;
-    const i1=imgs[1]?BASE+'exercises/'+imgs[1]:null;
-    const m=(ex.primaryMuscles||[])[0]||'';
-    return `<div class="card" onclick="openEx(${JSON.stringify(ex.id)})">
-      <div class="card-img" id="ci${ex.id.replace(/\W/g,'_')}">
-        ${i0?`<img class="f1" src="${i0}" loading="lazy"/>${i1?`<img class="f2" src="${i1}" loading="lazy"/>`:''}`:
-        '<div class="no-img">💪</div>'}
-      </div>
-      <div class="card-body">
-        <div class="card-name">${ex.name}</div>
-        <div class="card-tags">
-          ${m?`<span class="tag tm">${m}</span>`:''}
-          ${ex.equipment?`<span class="tag te">${ex.equipment}</span>`:''}
-          ${ex.level?`<span class="tag tl">${LVL[ex.level]||ex.level}</span>`:''}
-        </div>
-      </div>
-    </div>`;
-  }).join('');
+  function setSubTab(sub) {
+    activeSubTab = sub;
+    renderTabs();
+    filterExercises();
+  }
 
-  document.getElementById('grid').querySelectorAll('.card').forEach(card=>{
-    const img=card.querySelector('.card-img');
-    if(!img||!img.querySelector('.f2'))return;
-    card.addEventListener('mouseenter',()=>img.classList.add('play'));
-    card.addEventListener('mouseleave',()=>img.classList.remove('play'));
-  });
+  function filterExercises() {
+    const q = document.getElementById('search').value.trim().toLowerCase();
+    let list = allExercises;
+    if (activeTab !== 'הכל') list = list.filter(e => e.muscle_group === activeTab);
+    if (activeSubTab) list = list.filter(e => e.sub_muscle_group === activeSubTab);
+    if (q) list = list.filter(e => e.name.toLowerCase().includes(q));
+    renderGrid(list);
+    document.getElementById('results-count').innerHTML =
+      `מוצגים <strong>${list.length}</strong> תרגילים`;
+  }
 
-  renderPag();
-  window.scrollTo({top:0,behavior:'smooth'});
-}
+  function renderGrid(list) {
+    const grid = document.getElementById('exercises-grid');
+    if (!list.length) {
+      grid.innerHTML = '<div class="empty"><div class="empty-icon">🔍</div><div>לא נמצאו תרגילים</div></div>';
+      return;
+    }
+    grid.innerHTML = list.map(ex => {
+      const hasVideo = !!ex.video_url;
+      const nameHtml = hasVideo
+        ? `<a class="ex-card-name clickable" href="${esc(ex.video_url)}" target="_blank" rel="noopener">${esc(ex.name)} ▶</a>`
+        : `<div class="ex-card-name">${esc(ex.name)}</div>`;
+      return `
+        <div class="ex-card" data-id="${ex.id}">
+          <span class="ex-muscle-badge">${ex.sub_muscle_group || ex.muscle_group}</span>
+          ${nameHtml}
+          <div class="card-url-row">
+            <input class="card-url-input" id="url-${ex.id}" value="${esc(ex.video_url || '')}"
+              placeholder="הדבק לינק לסרטון..." dir="ltr"
+              onkeydown="if(event.key==='Enter')saveUrl('${ex.id}')"/>
+            <button class="card-url-btn" onclick="saveUrl('${ex.id}')">שמור</button>
+          </div>
+        </div>`;
+    }).join('');
+  }
 
-function renderPag(){
-  const tot=Math.ceil(flt.length/PG);
-  const el=document.getElementById('pag');
-  if(tot<=1){el.innerHTML='';return;}
-  let h=`<button class="pb" onclick="go(${pg-1})" ${pg===0?'disabled':''}>◀</button>`;
-  const s=Math.max(0,pg-2),e=Math.min(tot-1,pg+2);
-  if(s>0)h+=`<button class="pb" onclick="go(0)">1</button>${s>1?'<span style="color:#333;padding:0 3px">…</span>':''}`;
-  for(let i=s;i<=e;i++)h+=`<button class="pb ${i===pg?'on':''}" onclick="go(${i})">${i+1}</button>`;
-  if(e<tot-1)h+=`${e<tot-2?'<span style="color:#333;padding:0 3px">…</span>':''}<button class="pb" onclick="go(${tot-1})">${tot}</button>`;
-  h+=`<button class="pb" onclick="go(${pg+1})" ${pg===tot-1?'disabled':''}>▶</button>`;
-  el.innerHTML=h;
-}
+  async function saveUrl(id) {
+    const input = document.getElementById(`url-${id}`);
+    if (!input) return;
+    const url = input.value.trim();
+    const btn = input.nextElementSibling;
+    btn.disabled = true; btn.textContent = '...';
+    const { error } = await sb.from('exercises').update({ video_url: url || null }).eq('id', id);
+    btn.disabled = false; btn.textContent = 'שמור';
+    if (error) { btn.textContent = '✗'; setTimeout(() => btn.textContent = 'שמור', 2000); return; }
+    const ex = allExercises.find(e => String(e.id) === String(id));
+    if (ex) ex.video_url = url || null;
+    // update name link
+    const card = document.querySelector(`[data-id="${id}"]`);
+    if (card) {
+      const nameEl = card.querySelector('.ex-card-name');
+      if (nameEl) {
+        if (url) {
+          const a = document.createElement('a');
+          a.className = 'ex-card-name clickable';
+          a.href = url; a.target = '_blank'; a.rel = 'noopener';
+          a.textContent = (ex?.name || '') + ' ▶';
+          nameEl.replaceWith(a);
+        } else {
+          const d = document.createElement('div');
+          d.className = 'ex-card-name';
+          d.textContent = ex?.name || '';
+          nameEl.replaceWith(d);
+        }
+      }
+    }
+    btn.textContent = '✓'; setTimeout(() => btn.textContent = 'שמור', 2000);
+  }
 
-function go(p){pg=p;render();}
+  function esc(s) {
+    return (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
 
-function openEx(id){
-  const ex=all.find(e=>e.id===id);
-  if(!ex)return;
-  const imgs=ex.images||[];
-  document.getElementById('m-imgs').innerHTML=imgs.map(p=>`<img src="${BASE+'exercises/'+p}" loading="lazy" alt="${ex.name}"/>`).join('')||`<div style="height:180px;display:flex;align-items:center;justify-content:center;color:#222;font-size:3rem;width:100%;">💪</div>`;
-  document.getElementById('m-name').textContent=ex.name;
-  const tags=[
-    ...(ex.primaryMuscles||[]).map(m=>`<span class="mt mt-p">${m}</span>`),
-    ...(ex.secondaryMuscles||[]).map(m=>`<span class="mt mt-s">${m}</span>`),
-    ex.equipment?`<span class="mt mt-e">${ex.equipment}</span>`:'',
-    ex.level?`<span class="mt mt-l">${LVL[ex.level]||ex.level}</span>`:'',
-    ex.category?`<span class="mt" style="background:rgba(255,255,255,0.04);color:#555;border:1px solid rgba(255,255,255,0.07);">${CAT[ex.category]||ex.category}</span>`:'',
-  ].filter(Boolean).join('');
-  document.getElementById('m-tags').innerHTML=tags;
-  const steps=ex.instructions||[];
-  document.getElementById('m-steps').innerHTML=steps.map((s,i)=>`<li data-n="${i+1}">${s}</li>`).join('');
-  document.getElementById('m-inst-wrap').style.display=steps.length?'block':'none';
-  document.getElementById('ov').classList.add('open');
-  document.body.style.overflow='hidden';
-}
+  async function logout() {
+    await sb.auth.signOut();
+    window.location.href = 'login.html';
+  }
 
-function close(){
-  document.getElementById('ov').classList.remove('open');
-  document.body.style.overflow='';
-}
 
-document.addEventListener('keydown',e=>{if(e.key==='Escape')close();});
-init().catch(err=>{document.getElementById('ldr').innerHTML=`<div style="color:#f87171">שגיאה: ${err.message}</div>`;});
+  init();
 </script>
-</body>
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch(e => console.warn('SW:', e));
+    }
+  </script></body>
 </html>
