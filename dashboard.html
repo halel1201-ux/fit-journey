@@ -2064,17 +2064,86 @@ ${foodList || 'אין פריטים'}
     'כתפיים':    ['לחיצת כתפיים במוט חופשי','לחיצת כתפיים בסמית','לחיצת כתפיים בדאמבלים','הרחקת כתפיים'],
   };
 
-  // שינויי שמות: מיפוי שם ישן → שם חדש בטבלת שיאים
-  const RECORD_EX_RENAMES = {
-    'בולגרי ארבע ראשי':  'לאנץ בולגרי',
-    'לאנץ בולגרי גלוטס': 'לאנץ בולגרי',
-    'בולגרי':            'לאנץ בולגרי',
+  // ── Exercise Identity Layer ──
+  // aliases: כל וריאציה אפשרית (עברית + אנגלית) → canonical label
+  const EX_ALIASES = {
+    // ── חזה ──
+    'לחיצת חזה במשקולות':                    ['לחיצת חזה דאמבלים','לחיצת דאמבלים שטוח','dumbbell bench press','dumbbell flat bench','db bench press','db flat press'],
+    'לחיצת חזה במוט חופשי':                  ['לחיצת חזה','לחיצת בנץ','bench press','barbell bench press','flat bench press','flat bench','חזה מוט'],
+    'לחיצת חזה בסמית':                       ['סמית חזה','smith bench press','smith machine bench','smith flat bench','לחיצת חזה סמית'],
+    'לחיצת חזה בשיפוע חיובי במוט חופשי':    ['שיפוע חיובי מוט','incline bench press','incline barbell press','incline barbell bench','incline bench'],
+    'לחיצת חזה בשיפוע חיובי בסמית':         ['שיפוע חיובי סמית','incline smith press','smith incline bench','smith incline press','incline smith machine'],
+    'לחיצת חזה בשיפוע חיובי במשקולות':      ['שיפוע חיובי דאמבלים','incline dumbbell press','incline dumbbell bench','incline db press'],
+    // ── 4 ראשי ──
+    'סקוואט חופשי':   ['סקוואט','squat','barbell squat','back squat','free squat'],
+    'סקוואט בסמית':   ['סמית סקוואט','smith squat','smith machine squat'],
+    'לחיצת רגליים':   ['לג פרס','leg press','leg press machine'],
+    'האק סקוואט':     ['hack squat','hack squat machine'],
+    'לאנץ בולגרי':    ['בולגרי','בולגרי ארבע ראשי','לאנץ בולגרי גלוטס','לאנץ בולגרי ישבן','bulgarian split squat','split squat','bulgarian squat'],
+    // ── המסטרינג ──
+    'דדליפט קונבנציונלי': ['דדליפט','deadlift','barbell deadlift','conventional deadlift'],
+    'דדליפט רומני':        ['rdl','romanian deadlift','romanian rdl','stiff leg deadlift'],
+    'דדליפט רומני רגל רגל':['רומני רגל אחת','single leg rdl','single leg romanian deadlift','single leg deadlift'],
+    'היפ טראסט':           ['hip thrust','barbell hip thrust','glute bridge barbell','היפ תראסט'],
+    // ── גב ──
+    'פולי עליון לגב':  ['פולי גב','lat pulldown','pull down','cable pulldown','wide grip pulldown'],
+    'חתירה במוט חופשי':['חתירה','bent over row','barbell row','barbell bent over row'],
+    'חתירה בסמית':     ['סמית חתירה','smith row','smith machine row','smith bent over row'],
+    // ── יד קדמית ──
+    'יד קדמית במוט':     ['כפיפת מרפק מוט','barbell curl','bicep curl','bicep barbell curl','ez bar curl'],
+    'יד קדמית בדאמבלים': ['כפיפת מרפק דאמבלים','dumbbell curl','hammer curl','alternating curl'],
+    // ── יד אחורית ──
+    'לחיצה צרה במוט':   ['לחיצה צרה','close grip bench','close grip bench press','tricep press','tricep barbell press'],
+    'לחיצה צרה בסמית':  ['סמית לחיצה צרה','close grip smith','smith close grip bench'],
+    // ── כתפיים ──
+    'לחיצת כתפיים במוט חופשי': ['לחיצת כתפיים','לחיצה מעל ראש','overhead press','ohp','military press','barbell overhead press','barbell ohp'],
+    'לחיצת כתפיים בסמית':      ['סמית כתפיים','smith shoulder press','smith ohp','smith overhead press'],
+    'לחיצת כתפיים בדאמבלים':   ['לחיצת כתפיים דאמבלים','dumbbell shoulder press','dumbbell ohp','db shoulder press'],
+    'הרחקת כתפיים':             ['הרחקות','lateral raise','side raise','side lateral raise','dumbbell lateral raise'],
   };
+
+  // בנה מפה הפוכה: alias → canonical
+  const _aliasMap = {};
+  Object.entries(EX_ALIASES).forEach(([canonical, aliases]) => {
+    _aliasMap[_normStr(canonical)] = canonical;
+    aliases.forEach(a => { _aliasMap[_normStr(a)] = canonical; });
+  });
+
+  function _normStr(s) {
+    return (s||'').toLowerCase()
+      .replace(/['"״׳]/g,'')
+      .replace(/[\s\-_]+/g,' ')
+      .trim();
+  }
+
+  // similarity score: word overlap / max-words
+  function _similarity(a, b) {
+    const wa = new Set(_normStr(a).split(' ').filter(Boolean));
+    const wb = new Set(_normStr(b).split(' ').filter(Boolean));
+    let common = 0;
+    wa.forEach(w => { if(wb.has(w)) common++; });
+    return common / Math.max(wa.size, wb.size, 1);
+  }
+
+  function normalizeRecEx(name) {
+    const key = _normStr(name);
+    if (_aliasMap[key]) return _aliasMap[key];
+    // fallback: best similarity match among canonical keys
+    let best = name, bestScore = 0;
+    const canonicals = Object.values(_aliasMap);
+    const seen = new Set();
+    canonicals.forEach(c => {
+      if (seen.has(c)) return; seen.add(c);
+      const sc = _similarity(name, c);
+      if (sc > bestScore && sc >= 0.5) { bestScore = sc; best = c; }
+    });
+    return best;
+  }
+
   // כפייה: תרגיל יופיע רק בקבוצה המוגדרת כאן
   const RECORD_EX_FORCE_GROUP = {
     'לאנץ בולגרי': '4 ראשי',
   };
-  function normalizeRecEx(name) { return RECORD_EX_RENAMES[name] || name; }
 
   const MEDALS = ['🥇','🥈','🥉'];
 
@@ -2141,10 +2210,11 @@ ${foodList || 'אין פריטים'}
     ];
     allPrev.forEach(log => {
       (log.exercises || []).forEach(ex => {
+        const normName = normalizeRecEx(ex.name);
         (ex.sets || []).forEach(s => {
           const orm = calc1RM(s.weight, s.reps);
-          if (orm > 0 && orm > (prevBest[ex.name]?.orm || 0)) {
-            prevBest[ex.name] = {
+          if (orm > 0 && orm > (prevBest[normName]?.orm || 0)) {
+            prevBest[normName] = {
               orm, weight: s.weight, reps: s.reps,
               email: log.client_email,
               name: clientNames[log.client_email] || log.client_email.split('@')[0]
@@ -2154,11 +2224,11 @@ ${foodList || 'אין פריטים'}
       });
     });
 
-    // לכל PR — בדוק השפעה על נבחרת
+    // לכל PR — בדוק השפעה על נבחרת (השוואה לפי שם תרגיל מנורמל - Exercise Identity)
     for (const pr of prs) {
       const bestSet = getBestSetForExercise(exercises, pr.exercise);
       if (!bestSet) continue;
-      const prev = prevBest[pr.exercise];
+      const prev = prevBest[normalizeRecEx(pr.exercise)];
       let msg = null;
 
       if (!prev) {
@@ -2238,8 +2308,12 @@ ${foodList || 'אין פריטים'}
     (allExs || []).forEach(e => { if (e.compound) addEx(normalizeRecEx(e.name), e.muscle_group || 'אחר'); });
     inLogs.forEach(name => { const info = exNameToGroup[name]; addEx(normalizeRecEx(name), info ? info.mg : 'אחר'); });
     if (Object.keys(built).length) {
-      RECORD_EXERCISES = built;
-      recMuscle   = Object.keys(RECORD_EXERCISES)[0] || recMuscle;
+      // מיזוג: הוסף תרגילים מה-DB לקבוצות הקיימות, אל תמחק קבוצות ברירת מחדל (כמו חזה)
+      Object.entries(built).forEach(([mg, exs]) => {
+        if (!RECORD_EXERCISES[mg]) RECORD_EXERCISES[mg] = [];
+        exs.forEach(ex => { if (!RECORD_EXERCISES[mg].includes(ex)) RECORD_EXERCISES[mg].push(ex); });
+      });
+      recMuscle   = Object.keys(RECORD_EXERCISES).includes(recMuscle) ? recMuscle : Object.keys(RECORD_EXERCISES)[0];
       recExercise = (RECORD_EXERCISES[recMuscle] || [])[0] || recExercise;
     }
     renderRecBody();
