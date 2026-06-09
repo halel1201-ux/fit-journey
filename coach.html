@@ -98,8 +98,12 @@
     .toast.show { opacity: 1; }
     /* AI BOX */
     .sets-coach-wrap { margin:8px 0; }
-    .sets-coach-head { display:grid; grid-template-columns:28px 72px 1fr 22px; gap:6px; padding:3px 8px; font-size:0.68rem; font-weight:700; color:var(--muted); }
-    .sets-coach-row { display:grid; grid-template-columns:28px 72px 1fr 22px; gap:6px; align-items:center; padding:4px 8px; background:rgba(255,255,255,0.02); border-radius:6px; margin-bottom:3px; }
+    .sets-coach-head { display:grid; grid-template-columns:22px 64px 58px 1fr 22px; gap:5px; padding:3px 8px; font-size:0.68rem; font-weight:700; color:var(--muted); }
+    .sets-coach-row { display:grid; grid-template-columns:22px 64px 58px 1fr 22px; gap:5px; align-items:center; padding:4px 8px; background:rgba(255,255,255,0.02); border-radius:6px; margin-bottom:3px; }
+    .set-type-sel { background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); border-radius:5px; color:#aaa; font-family:'Heebo',sans-serif; font-size:0.75rem; padding:3px 2px; outline:none; width:100%; cursor:pointer; text-align:center; }
+    .set-type-sel:focus { border-color:var(--orange); }
+    .set-type-sel.type-warm { border-color:rgba(100,180,255,0.4); color:#64b4ff; }
+    .set-type-sel.type-failure { border-color:rgba(255,107,0,0.4); color:var(--orange); }
     .sets-coach-row input { background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); border-radius:5px; color:#fff; font-family:'Heebo',sans-serif; font-size:0.82rem; padding:4px 6px; outline:none; width:100%; text-align:center; }
     .sets-coach-row input:focus { border-color:var(--orange); }
     .sets-coach-range { display:flex; align-items:center; gap:4px; }
@@ -346,6 +350,30 @@
     #scroll-top-btn { position:fixed;bottom:80px;left:18px;z-index:8000;width:38px;height:38px;border-radius:50%;background:rgba(255,107,0,0.15);border:1px solid rgba(255,107,0,0.4);color:var(--orange);font-size:1.1rem;display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:0;transition:opacity 0.25s,background 0.2s;pointer-events:none; }
     #scroll-top-btn.visible { opacity:1;pointer-events:auto; }
     #scroll-top-btn:hover { background:rgba(255,107,0,0.3); }
+    /* MEASUREMENTS */
+    .meas-modal-overlay { position:fixed;inset:0;z-index:400;background:rgba(0,0,0,0.82);backdrop-filter:blur(6px);display:none;align-items:flex-start;justify-content:center;padding:16px;overflow-y:auto; }
+    .meas-modal-overlay.open { display:flex; }
+    .meas-modal-inner { background:#161616;border:1px solid rgba(255,107,0,0.35);border-radius:16px;padding:22px 20px;width:100%;max-width:580px;box-shadow:0 0 60px rgba(255,107,0,0.13);margin:auto; }
+    .meas-modal-title { font-size:1rem;font-weight:900;color:var(--orange);margin-bottom:16px;display:flex;align-items:center;justify-content:space-between; }
+    .meas-form-grid { display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:12px; }
+    .meas-f { display:flex;flex-direction:column;gap:3px; }
+    .meas-f label { font-size:0.72rem;font-weight:700;color:var(--muted); }
+    .meas-f input { padding:7px 10px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:7px;color:var(--white);font-family:'Heebo',sans-serif;font-size:0.85rem;direction:ltr;text-align:center; }
+    .meas-f input:focus { outline:none;border-color:rgba(255,107,0,0.5); }
+    .meas-table-wrap { overflow-x:auto;border-radius:8px; }
+    .meas-table { width:100%;border-collapse:collapse;min-width:900px;font-size:0.76rem; }
+    .meas-table th { background:rgba(255,107,0,0.08);color:var(--orange);font-size:0.7rem;padding:8px 9px;text-align:center;white-space:nowrap;border-bottom:1px solid rgba(255,107,0,0.2); }
+    .meas-table td { padding:7px 9px;text-align:center;border-bottom:1px solid rgba(255,255,255,0.04);color:var(--white);white-space:nowrap;vertical-align:middle; }
+    .meas-table tr:last-child td { border-bottom:none; }
+    .meas-table tbody tr:hover td { background:rgba(255,255,255,0.03); }
+    .meas-td-date { font-weight:700;color:var(--muted);font-size:0.72rem;min-width:80px; }
+    .meas-val { display:flex;flex-direction:column;align-items:center;line-height:1.1; }
+    .meas-delta { font-size:0.62rem;font-weight:800;margin-top:1px; }
+    .meas-pos { color:#4ade80; }
+    .meas-neg { color:#f87171; }
+    .meas-chart-ctrl { display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap; }
+    .meas-chart-ctrl label { font-size:0.75rem;color:var(--muted);font-weight:700; }
+    .meas-chart-ctrl select { padding:5px 10px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:7px;color:var(--white);font-family:'Heebo',sans-serif;font-size:0.8rem;cursor:pointer; }
   </style>
 </head>
 <body>
@@ -932,16 +960,30 @@
     btn.disabled = true; btn.textContent = 'שולח...';
     const clientEmails = clients.map(c => c.email);
     if (!clientEmails.length) { toast('אין מתאמנים', 'err'); btn.disabled = false; btn.textContent = '📣 שלח לכולם'; return; }
-    const { data: tokens } = await sb.from('push_tokens').select('onesignal_player_id').in('user_email', clientEmails);
-    const ids = (tokens || []).map(t => t.onesignal_player_id);
-    if (!ids.length) { toast('אף מתאמן עדיין לא אישר התראות', 'err'); btn.disabled = false; btn.textContent = '📣 שלח לכולם'; return; }
-    await sendPush(ids, 'הודעה ממאמנך', msg);
+
+    // שלח תמיד לצ'אט הקבוצה (ללא צורך באישור Push)
+    const { data: newMsg } = await sb.from('group_messages').insert({
+      coach_email: coachEmail, sender_email: coachEmail, sender_name: 'מאמן',
+      content: msg,
+    }).select().single();
+    if (newMsg && !coachGroupMessages.find(m => m.id === newMsg.id)) {
+      coachGroupMessages.push(newMsg);
+      if (document.getElementById('coach-grp-overlay')?.classList.contains('open')) renderCoachGroupMsgs();
+    }
+
+    // נסה גם Push לכל מי שאישר התראות
+    try {
+      const { data: tokens } = await sb.from('push_tokens').select('onesignal_player_id').in('user_email', clientEmails);
+      const ids = (tokens || []).map(t => t.onesignal_player_id).filter(Boolean);
+      if (ids.length) await sendPush(ids, 'הודעה ממאמנך', msg);
+    } catch(e) {}
+
     btn.disabled = false; btn.textContent = '📣 שלח לכולם';
     document.getElementById('push-msg').value = '';
     const sentEl = document.getElementById('push-sent-msg');
     sentEl.style.display = 'inline';
     setTimeout(() => sentEl.style.display = 'none', 3000);
-    toast('ההודעה נשלחה ל-' + ids.length + ' מתאמנים', 'ok');
+    toast('ההודעה נשלחה לכל המתאמנים ✓', 'ok');
   }
 
   async function loadScheduledMessages() {
@@ -1547,17 +1589,35 @@
     selectClient(clientEmail);
   }
 
+  function fmtLastSeen(ts) {
+    if (!ts) return null;
+    const diff = Date.now() - new Date(ts).getTime();
+    const mins = Math.floor(diff / 60000);
+    const hours = Math.floor(diff / 3600000);
+    const days = Math.floor(diff / 86400000);
+    if (mins < 2) return 'עכשיו';
+    if (mins < 60) return `לפני ${mins} דק׳`;
+    if (hours < 24) return `לפני ${hours} שע׳`;
+    if (days === 1) return 'אתמול';
+    if (days < 14) return `לפני ${days} ימים`;
+    return new Date(ts).toLocaleDateString('he-IL');
+  }
+
   function renderSidebar() {
     const el = document.getElementById('client-list');
     if (!clients.length) { el.innerHTML = '<div style="padding:16px;color:#444;font-size:0.82rem;text-align:center;">אין מתאמנים עדיין</div>'; return; }
-    el.innerHTML = clients.map(c => `
+    el.innerHTML = clients.map(c => {
+      const lastSeen = fmtLastSeen(c.last_seen);
+      return `
       <div class="client-item ${c.email === activeEmail ? 'active' : ''}" onclick="selectClient('${c.email}')">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;">
           <div class="client-item-name">${esc(c.name)}</div>
           <span class="gender-tag ${c.gender === 'female' ? 'female' : 'male'}">${c.gender === 'female' ? '♀' : '♂'}</span>
         </div>
         <div class="client-item-email">${c.email}</div>
-      </div>`).join('');
+        ${lastSeen ? `<div style="font-size:0.68rem;color:#555;margin-top:2px;">👁 ${lastSeen}</div>` : ''}
+      </div>`;
+    }).join('');
   }
 
   async function selectClient(email) {
@@ -1592,7 +1652,7 @@
     document.getElementById('main-area').innerHTML = `
       <!-- QUICK NAV -->
       <div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:20px;">
-        ${[['🏋️ אימון','#training-editor'],['🥗 תזונה','#nutrition-editor'],['🔄 סייקל','#cycle-editor'],['📈 התקדמות','#progress-editor'],['💬 צ\'אט','#sec-chat'],['📋 צ\'ק-אין','#sec-checkin']].map(([l,t])=>
+        ${[['🏋️ אימון','#training-editor'],['🥗 תזונה','#nutrition-editor'],['🔄 סייקל','#cycle-editor'],['📈 התקדמות','#progress-editor'],['📏 היקפים','#measurements-editor'],['💬 צ\'אט','#sec-chat'],['📋 צ\'ק-אין','#sec-checkin']].map(([l,t])=>
           `<button onclick="document.querySelector('${t}')?.scrollIntoView({behavior:'smooth',block:'start'})" style="padding:6px 12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:20px;color:var(--muted);font-family:'Heebo',sans-serif;font-size:0.78rem;font-weight:700;cursor:pointer;transition:all 0.15s;white-space:nowrap;" onmouseover="this.style.borderColor='rgba(255,107,0,0.4)';this.style.color='var(--orange)'" onmouseout="this.style.borderColor='rgba(255,255,255,0.1)';this.style.color='var(--muted)'">${l}</button>`
         ).join('')}
       </div>
@@ -1729,6 +1789,11 @@
         <div id="progress-editor"><div style="color:#444;font-size:0.85rem;padding:10px 0;">טוען...</div></div>
       </div>
 
+      <div class="sec-card" id="measurements-editor-card">
+        <div class="sec-card-title">📏 מדידות היקפים</div>
+        <div id="measurements-editor"><div style="color:#444;font-size:0.85rem;padding:10px 0;">טוען...</div></div>
+      </div>
+
       <div class="sec-card" id="sec-chat">
         <div class="sec-card-title">💬 צ'אט פרטי עם ${esc(client.name)}</div>
         <div id="chat-editor"><div style="color:#444;font-size:0.85rem;padding:10px 0;">טוען...</div></div>
@@ -1745,6 +1810,7 @@
     loadClientLogs(client.email);
     loadCycleForClient(client.email);
     loadProgressForClient(client.email);
+    loadMeasurementsForClient(client.email);
     loadMessagesForClient(client.email);
     loadCheckinsForClient(client.email);
   }
@@ -1991,7 +2057,7 @@
     btn.classList.toggle('muscle-active');
   }
   function parseSetsToArray(spec) {
-    if (Array.isArray(spec)) return spec;
+    if (Array.isArray(spec)) return spec.map(s => ({ set_type: 'working', ...s }));
     const s = String(spec || '').trim();
     let m = s.match(/^(\d+)[x×X]([\d\/]+)/);
     if (m) {
@@ -1999,27 +2065,28 @@
       const parts = m[2].split('/');
       return Array.from({length: count}, (_, i) => {
         const r = parseInt(parts[i] || parts[parts.length-1]) || 10;
-        return { reps_min: r, reps_max: r, recommended_kg: 0 };
+        return { reps_min: r, reps_max: r, recommended_kg: 0, set_type: 'working' };
       });
     }
     m = s.match(/^(\d+)[x×X](\d+)-(\d+)/);
-    if (m) return Array.from({length: parseInt(m[1])}, () => ({ reps_min: parseInt(m[2]), reps_max: parseInt(m[3]), recommended_kg: 0 }));
+    if (m) return Array.from({length: parseInt(m[1])}, () => ({ reps_min: parseInt(m[2]), reps_max: parseInt(m[3]), recommended_kg: 0, set_type: 'working' }));
     m = s.match(/^(\d+)$/);
-    if (m) return Array.from({length: Math.min(parseInt(m[1]),10)}, () => ({ reps_min: 8, reps_max: 12, recommended_kg: 0 }));
-    return [{reps_min:10,reps_max:15,recommended_kg:0},{reps_min:8,reps_max:12,recommended_kg:0},{reps_min:8,reps_max:12,recommended_kg:0},{reps_min:8,reps_max:12,recommended_kg:0}];
+    if (m) return Array.from({length: Math.min(parseInt(m[1]),10)}, () => ({ reps_min: 8, reps_max: 12, recommended_kg: 0, set_type: 'working' }));
+    return [{reps_min:10,reps_max:15,recommended_kg:0,set_type:'working'},{reps_min:8,reps_max:12,recommended_kg:0,set_type:'working'},{reps_min:8,reps_max:12,recommended_kg:0,set_type:'working'},{reps_min:8,reps_max:12,recommended_kg:0,set_type:'working'}];
   }
 
   function updateCoachSet(di, ei, si, field, val) {
     if (!Array.isArray(trainingPlan[di].exercises[ei].sets))
       trainingPlan[di].exercises[ei].sets = parseSetsToArray(trainingPlan[di].exercises[ei].sets);
-    trainingPlan[di].exercises[ei].sets[si][field] = +val;
+    const numFields = ['reps_min', 'reps_max', 'recommended_kg'];
+    trainingPlan[di].exercises[ei].sets[si][field] = numFields.includes(field) ? +val : val;
   }
 
   function addCoachSet(di, ei) {
     if (!Array.isArray(trainingPlan[di].exercises[ei].sets))
       trainingPlan[di].exercises[ei].sets = parseSetsToArray(trainingPlan[di].exercises[ei].sets);
     const arr = trainingPlan[di].exercises[ei].sets;
-    const last = arr[arr.length-1] || {reps_min:8,reps_max:12,recommended_kg:0};
+    const last = arr[arr.length-1] || {reps_min:8,reps_max:12,recommended_kg:0,set_type:'working'};
     arr.push({...last});
     renderTrainingEditor();
   }
@@ -2031,14 +2098,19 @@
 
   function addExercise(di) {
     trainingPlan[di].exercises.push({
-      name: '', sets: [{reps_min:10,reps_max:15,recommended_kg:0},{reps_min:8,reps_max:12,recommended_kg:0},{reps_min:8,reps_max:12,recommended_kg:0},{reps_min:8,reps_max:12,recommended_kg:0}],
+      name: '', sets: [
+        {reps_min:12,reps_max:15,recommended_kg:0,set_type:'warm_up'},
+        {reps_min:8,reps_max:12,recommended_kg:0,set_type:'working'},
+        {reps_min:8,reps_max:12,recommended_kg:0,set_type:'failure'},
+        {reps_min:8,reps_max:12,recommended_kg:0,set_type:'failure'}
+      ],
       video_url: '', description: '', rest_time: 90
     });
     renderTrainingEditor();
   }
 
   function exRow(di, ei, ex) {
-    if (!Array.isArray(ex.sets)) ex.sets = parseSetsToArray(ex.sets || ex.sets_reps);
+    ex.sets = parseSetsToArray(ex.sets || ex.sets_reps);
     const sets = ex.sets;
     const total = trainingPlan[di].exercises.length;
     const restOpts = [30,45,60,75,90,105,120,150,180,240,300];
@@ -2058,10 +2130,18 @@
         <button class="btn-sm btn-red" onclick="removeExercise(${di},${ei})">✕</button>
       </div>
       <div class="sets-coach-wrap">
-        <div class="sets-coach-head"><span>סט</span><span style="text-align:center;">ק"ג מומלץ</span><span>טווח חזרות</span><span></span></div>
-        ${sets.map((s, si) => `
+        <div class="sets-coach-head"><span>סט</span><span style="text-align:center;">סוג</span><span style="text-align:center;">ק"ג מומלץ</span><span>טווח חזרות</span><span></span></div>
+        ${sets.map((s, si) => {
+          const st = s.set_type || 'working';
+          const stClass = st === 'warm_up' ? 'type-warm' : st === 'failure' ? 'type-failure' : '';
+          return `
           <div class="sets-coach-row">
             <span style="font-size:0.8rem;font-weight:700;color:var(--muted);text-align:center;">${si+1}</span>
+            <select class="set-type-sel ${stClass}" onchange="updateCoachSet(${di},${ei},${si},'set_type',this.value);this.className='set-type-sel '+(this.value==='warm_up'?'type-warm':this.value==='failure'?'type-failure':'')">
+              <option value="warm_up" ${st==='warm_up'?'selected':''}>חמ׳</option>
+              <option value="working" ${st==='working'?'selected':''}>עב׳</option>
+              <option value="failure" ${st==='failure'?'selected':''}>כשל</option>
+            </select>
             <input type="number" step="0.5" min="0" value="${s.recommended_kg||0}" oninput="updateCoachSet(${di},${ei},${si},'recommended_kg',this.value)" placeholder="0"/>
             <div class="sets-coach-range">
               <input type="number" min="1" value="${s.reps_min||8}" oninput="updateCoachSet(${di},${ei},${si},'reps_min',this.value)"/>
@@ -2069,7 +2149,8 @@
               <input type="number" min="1" value="${s.reps_max||12}" oninput="updateCoachSet(${di},${ei},${si},'reps_max',this.value)"/>
             </div>
             <button onclick="removeCoachSet(${di},${ei},${si})" style="background:none;border:none;color:#555;cursor:pointer;font-size:0.9rem;padding:0;line-height:1;">✕</button>
-          </div>`).join('')}
+          </div>`;
+        }).join('')}
         <button class="btn-add-set" onclick="addCoachSet(${di},${ei})">+ הוסף סט</button>
       </div>
       <div style="display:flex;align-items:center;gap:10px;margin-top:8px;margin-bottom:7px;">
@@ -2880,8 +2961,12 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
     (allExs||[]).forEach(e=>{ if(e.compound) addEx(normalizeRecEx(e.name),e.muscle_group||'אחר'); });
     inLogs.forEach(name=>{ const info=exNameToGroup[name]; addEx(normalizeRecEx(name),info?info.mg:'אחר'); });
     if(Object.keys(built).length){
-      RECORD_EXERCISES=built;
-      recMuscle=Object.keys(RECORD_EXERCISES)[0]||recMuscle;
+      // מיזוג: הוסף תרגילים מה-DB לקבוצות הקיימות, אל תמחק קבוצות ברירת מחדל (כמו חזה)
+      Object.entries(built).forEach(([mg, exs]) => {
+        if(!RECORD_EXERCISES[mg]) RECORD_EXERCISES[mg] = [];
+        exs.forEach(ex => { if(!RECORD_EXERCISES[mg].includes(ex)) RECORD_EXERCISES[mg].push(ex); });
+      });
+      recMuscle=Object.keys(RECORD_EXERCISES).includes(recMuscle)?recMuscle:Object.keys(RECORD_EXERCISES)[0];
       recExercise=(RECORD_EXERCISES[recMuscle]||[])[0]||recExercise;
     }
     renderRecBody();
@@ -4057,6 +4142,8 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
     ['grp-coach-badge','grp-mob-badge','grp-fab-badge'].forEach(id => {
       const b = document.getElementById(id); if (b) b.style.display = 'none';
     });
+    initGrpInputListener();
+    checkAndSendWeeklySummary();
   }
   function closeGroupChat() {
     const _ov = document.getElementById('coach-grp-overlay');
@@ -4109,14 +4196,17 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
       let content='';
       if(m.file_url){ const isImg=/\.(jpg|jpeg|png|gif|webp)(\?.*)?$/i.test(m.file_url); content=isImg?`<a href="${m.file_url}" target="_blank"><img src="${m.file_url}" style="max-width:180px;max-height:130px;border-radius:6px;display:block;"/></a>`:`<a href="${m.file_url}" target="_blank" style="color:${isMe?'#fff':'var(--orange)'};text-decoration:none;">📎 ${esc(m.file_name||'קובץ')}</a>`; if(m.content)content+=`<div style="margin-top:4px;white-space:pre-wrap;">${esc(m.content)}</div>`; }
       else content=`<span style="white-space:pre-wrap;">${esc(m.content||'')}</span>`;
-      // הודעת מערכת — שיא נבחרת
-      if (m.sender_email === 'system') {
-        html += `<div style="text-align:center;padding:6px 0;">
-          <div style="display:inline-block;max-width:88%;padding:11px 18px;
-            background:linear-gradient(135deg,rgba(255,215,0,0.1),rgba(255,107,0,0.07));
-            border:1px solid rgba(255,215,0,0.3);border-radius:14px;
-            font-size:0.82rem;color:var(--gold);white-space:pre-wrap;text-align:center;line-height:1.75;">
-            ${esc(m.content)}
+      // הודעת בוט — שיא נבחרת / סיכום שבועי
+      if (m.sender_email === 'system' || m.sender_name === 'SYSTEM' || m.sender_name === 'טבלת השיאים') {
+        const botContent = (m.content||'').replace(/@(\S+)/g, '<span style="color:#FF6B00;font-weight:900;">@$1</span>');
+        html += `<div style="text-align:center;padding:8px 0;">
+          <div style="display:inline-block;max-width:90%;border-radius:14px;overflow:hidden;box-shadow:0 2px 14px rgba(255,215,0,0.1);">
+            <div style="background:linear-gradient(135deg,rgba(255,215,0,0.12),rgba(255,107,0,0.08));border:1px solid rgba(255,215,0,0.3);border-bottom:none;padding:5px 14px;display:flex;align-items:center;justify-content:center;gap:6px;">
+              <span style="font-size:0.88rem;">🏆</span>
+              <span style="font-size:0.7rem;font-weight:900;color:#FFD700;letter-spacing:0.03em;">טבלת השיאים</span>
+              <span style="font-size:0.88rem;">🏆</span>
+            </div>
+            <div style="background:linear-gradient(135deg,rgba(255,215,0,0.06),rgba(255,107,0,0.04));border:1px solid rgba(255,215,0,0.2);padding:11px 18px;font-size:0.84rem;color:var(--white);white-space:pre-wrap;text-align:center;line-height:1.8;">${botContent}</div>
           </div>
           <div style="font-size:0.62rem;color:#555;margin-top:3px;">${time}</div>
         </div>`;
@@ -4184,7 +4274,391 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
     } catch(e) {}
   }
 
+  /* ── @ MENTION IN GROUP CHAT ── */
+  let atMentionStart = -1;
+  let grpInputListenerAdded = false;
+
+  function initGrpInputListener() {
+    if (grpInputListenerAdded) return;
+    const inp = document.getElementById('coach-grp-inp');
+    if (!inp) return;
+    grpInputListenerAdded = true;
+
+    function scanAt() {
+      const text = inp.value;
+      const pos  = (inp.selectionStart != null) ? inp.selectionStart : text.length;
+      let atIdx = -1;
+      for (let i = pos - 1; i >= 0; i--) {
+        if (text[i] === '@' && (i === 0 || /\s/.test(text[i-1]))) { atIdx = i; break; }
+        if (/\s/.test(text[i])) break;
+      }
+      if (atIdx >= 0) {
+        const query = text.slice(atIdx + 1, pos).toLowerCase();
+        const matches = clients.filter(c => (c.name||'').toLowerCase().includes(query) || c.email.toLowerCase().includes(query));
+        showAtDrop(matches, atIdx);
+      } else {
+        hideAtDrop();
+      }
+    }
+
+    inp.addEventListener('input', scanAt);
+    inp.addEventListener('keyup', scanAt);
+    document.addEventListener('click', e => {
+      if (!e.target.closest('#at-mention-drop') && !e.target.closest('#coach-grp-inp')) hideAtDrop();
+    });
+  }
+
+  function showAtDrop(matches, atIdx) {
+    atMentionStart = atIdx;
+    let drop = document.getElementById('at-mention-drop');
+    if (!drop) {
+      drop = document.createElement('div');
+      drop.id = 'at-mention-drop';
+      drop.style.cssText = 'position:fixed;z-index:1500;background:#1c1c1c;border:1px solid rgba(255,107,0,0.45);border-radius:10px;overflow:hidden;box-shadow:0 -4px 20px rgba(0,0,0,0.7);min-width:170px;max-height:200px;overflow-y:auto;';
+      document.body.appendChild(drop);
+    }
+    if (!matches.length) { drop.style.display='none'; return; }
+    const inp = document.getElementById('coach-grp-inp');
+    const r   = inp.getBoundingClientRect();
+    drop.style.bottom = (window.innerHeight - r.top + 6) + 'px';
+    drop.style.right  = (window.innerWidth  - r.right) + 'px';
+    drop.innerHTML = matches.slice(0, 8).map(c => {
+      const name = c.name || c.email.split('@')[0];
+      const safe = name.replace(/'/g,"\\'");
+      return `<div onclick="insertAtMention('${safe}')" ontouchstart="insertAtMention('${safe}');event.preventDefault();"
+        style="padding:10px 14px;cursor:pointer;font-family:'Heebo',sans-serif;font-size:0.88rem;color:#fff;border-bottom:1px solid rgba(255,255,255,0.05);"
+        onmouseover="this.style.background='rgba(255,107,0,0.12)'"
+        onmouseout="this.style.background='transparent'">
+        <span style="color:var(--orange);font-weight:900;">@</span>${name}
+      </div>`;
+    }).join('');
+    drop.style.display = 'block';
+  }
+
+  function hideAtDrop() {
+    const d = document.getElementById('at-mention-drop');
+    if (d) d.style.display = 'none';
+  }
+
+  function insertAtMention(name) {
+    const inp = document.getElementById('coach-grp-inp');
+    if (!inp) return;
+    const pos    = inp.selectionStart;
+    const text   = inp.value;
+    const before = text.slice(0, atMentionStart);
+    const after  = text.slice(pos);
+    inp.value    = before + '@' + name + ' ' + after;
+    inp.focus();
+    const np = atMentionStart + name.length + 2;
+    inp.setSelectionRange(np, np);
+    hideAtDrop();
+  }
+
+  /* ── SATURDAY WEEKLY SUMMARY BOT ── */
+  function calcVolForCoach(exercises) {
+    return (exercises || []).reduce((sum, ex) =>
+      sum + (ex.sets || []).reduce((s2, s) => s2 + (parseFloat(s.weight)||0) * (parseInt(s.reps)||0), 0), 0);
+  }
+
+  async function checkAndSendWeeklySummary() {
+    if (new Date().getDay() !== 6) return; // רק בשבת (6)
+    const today   = new Date().toISOString().split('T')[0];
+    // האם כבר נשלח היום?
+    try {
+      const { data: existing } = await sb.from('group_messages')
+        .select('id').eq('coach_email', coachEmail).eq('sender_name', 'טבלת השיאים')
+        .gte('created_at', today + 'T00:00:00').limit(1);
+      if (existing?.length) return;
+    } catch(e) { return; }
+
+    // טווח שבוע — שני עד שבת
+    const now = new Date();
+    const monday = new Date(now);
+    monday.setDate(now.getDate() - ((now.getDay() + 6) % 7));
+    const weekStart = monday.toISOString().split('T')[0];
+
+    const clientEmails = clients.map(c => c.email);
+    if (!clientEmails.length) return;
+
+    try {
+      const { data: logs } = await sb.from('workout_logs')
+        .select('client_email,exercises,total_volume')
+        .in('client_email', clientEmails)
+        .gte('log_date', weekStart).lte('log_date', today);
+      if (!logs?.length) return;
+
+      const volByClient = {};
+      logs.forEach(log => {
+        const vol = parseFloat(log.total_volume) > 0 ? parseFloat(log.total_volume) : calcVolForCoach(log.exercises);
+        volByClient[log.client_email] = (volByClient[log.client_email] || 0) + vol;
+      });
+
+      const top = Object.entries(volByClient).sort((a,b) => b[1]-a[1]).slice(0, 3);
+      if (!top.length) return;
+
+      const getName = email => clients.find(c=>c.email===email)?.name || email.split('@')[0];
+      const [e1, v1] = top[0];
+      let msg = `📊 סיכום שבוע — ${weekStart} עד ${today}\n\n`;
+      msg += `🥇 אלוף נפח האימון השבועי:\n@${getName(e1)} עם ${Math.round(v1).toLocaleString()} ק"ג נפח כולל! 💪`;
+      if (top[1]) msg += `\n🥈 @${getName(top[1][0])} — ${Math.round(top[1][1]).toLocaleString()} ק"ג`;
+      if (top[2]) msg += `\n🥉 @${getName(top[2][0])} — ${Math.round(top[2][1]).toLocaleString()} ק"ג`;
+
+      const { data: botMsg } = await sb.from('group_messages').insert({
+        coach_email: coachEmail, sender_email: coachEmail,
+        sender_name: 'טבלת השיאים', content: msg,
+      }).select().single();
+      if (botMsg && !coachGroupMessages.find(m=>m.id===botMsg.id)) {
+        coachGroupMessages.push(botMsg);
+        renderCoachGroupMsgs();
+      }
+    } catch(e) {}
+  }
+
   init();
+
+  /* ══════════════════════════════════════════════════════
+     FEATURE — מדידות היקפים (מאמן)
+  ══════════════════════════════════════════════════════ */
+  const MEAS_COLS = [
+    { key:'shoulders',       label:'כתפיים' },
+    { key:'chest',           label:'חזה' },
+    { key:'right_arm_relax', label:'יד ימין רפויה' },
+    { key:'right_arm_flex',  label:'יד ימין לחוצה' },
+    { key:'left_arm_relax',  label:'יד שמאל רפויה' },
+    { key:'left_arm_flex',   label:'יד שמאל לחוצה' },
+    { key:'right_quad',      label:'ירך ימין 4 ראשי' },
+    { key:'left_quad',       label:'ירך שמאל 4 ראשי' },
+    { key:'right_ham',       label:'המסטרינג ימין' },
+    { key:'left_ham',        label:'המסטרינג שמאל' },
+    { key:'waist',           label:'מותן' },
+    { key:'hips',            label:'ישבן', femaleOnly:true },
+  ];
+  let clientMeasurements   = [];
+  let measChartInstance    = null;
+  let measChartField       = 'waist';
+  let measEditId           = null;
+
+  async function loadMeasurementsForClient(email) {
+    const wrap = document.getElementById('measurements-editor');
+    if (wrap) wrap.innerHTML = '<div style="color:#444;font-size:0.85rem;padding:10px 0;">טוען...</div>';
+    try {
+      const { data } = await sbAdmin.from('body_measurements')
+        .select('*').eq('client_email', email)
+        .order('date', { ascending: false });
+      clientMeasurements = data || [];
+    } catch(e) { clientMeasurements = []; }
+    renderMeasurementsEditor();
+  }
+
+  function getMeasCols() {
+    const client = clients.find(c => c.email === activeEmail);
+    const isFemale = client?.gender === 'female';
+    return MEAS_COLS.filter(c => !c.femaleOnly || isFemale);
+  }
+
+  function renderMeasurementsEditor() {
+    const wrap = document.getElementById('measurements-editor');
+    if (!wrap) return;
+    const cols = getMeasCols();
+    const entries = clientMeasurements;
+
+    // Build chart options
+    const chartOpts = cols.map(c =>
+      `<option value="${c.key}" ${c.key === measChartField ? 'selected' : ''}>${c.label}</option>`
+    ).join('');
+
+    // Build table rows
+    let tableRows = '';
+    entries.forEach((e, idx) => {
+      const prev = entries[idx + 1];
+      const dateFmt = e.date
+        ? new Date(e.date + 'T12:00:00').toLocaleDateString('he-IL', { day:'2-digit', month:'2-digit', year:'2-digit' })
+        : '—';
+      const cells = cols.map(c => {
+        const val = e[c.key];
+        if (val == null || val === '') return '<td class="meas-table-td">—</td>';
+        const prevVal = prev?.[c.key];
+        let delta = '';
+        if (prevVal != null && prevVal !== '') {
+          const diff = +(val - prevVal).toFixed(1);
+          if (diff > 0) delta = `<div class="meas-delta meas-pos">▲ +${diff}</div>`;
+          else if (diff < 0) delta = `<div class="meas-delta meas-neg">▼ ${diff}</div>`;
+        }
+        return `<td><div class="meas-val">${val}${delta}</div></td>`;
+      }).join('');
+      tableRows += `<tr>
+        <td class="meas-td-date">${dateFmt}</td>
+        ${cells}
+        <td style="color:#888;font-size:0.72rem;max-width:100px;text-align:right;">${e.notes ? esc(e.notes) : ''}</td>
+        <td>
+          <div style="display:flex;gap:4px;justify-content:center;">
+            <button onclick="openMeasModal('${e.id}')" title="ערוך" style="background:rgba(255,107,0,0.1);border:1px solid rgba(255,107,0,0.25);border-radius:6px;padding:3px 8px;color:var(--orange);font-size:0.8rem;cursor:pointer;">✏️</button>
+            <button onclick="deleteMeasurement('${e.id}')" title="מחק" style="background:rgba(248,113,113,0.08);border:1px solid rgba(248,113,113,0.2);border-radius:6px;padding:3px 8px;color:#f87171;font-size:0.8rem;cursor:pointer;">🗑️</button>
+          </div>
+        </td>
+      </tr>`;
+    });
+
+    const theadCells = cols.map(c => `<th>${c.label}</th>`).join('');
+    const emptyMsg = entries.length === 0
+      ? '<div style="padding:20px;text-align:center;color:#444;font-size:0.85rem;">אין מדידות עדיין — הוסף את הראשונה</div>'
+      : '';
+
+    wrap.innerHTML = `
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+        <div style="font-size:0.78rem;color:var(--muted);">
+          ${entries.length ? entries.length + ' מדידות' : 'אין מדידות עדיין'}
+        </div>
+        <button onclick="openMeasModal(null)" style="padding:7px 16px;background:linear-gradient(135deg,var(--orange),#FF8C00);border:none;border-radius:8px;color:#fff;font-family:'Heebo',sans-serif;font-size:0.82rem;font-weight:900;cursor:pointer;">+ הוסף מדידה</button>
+      </div>
+      ${entries.length >= 2 ? `
+      <div style="background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:12px 14px;margin-bottom:12px;">
+        <div class="meas-chart-ctrl">
+          <label>גרף התקדמות:</label>
+          <select onchange="measChartField=this.value;renderMeasChart()" style="padding:5px 10px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:7px;color:var(--white);font-family:'Heebo',sans-serif;font-size:0.8rem;cursor:pointer;">
+            ${chartOpts}
+          </select>
+        </div>
+        <div style="position:relative;height:160px;"><canvas id="meas-chart-canvas"></canvas></div>
+      </div>` : ''}
+      ${emptyMsg}
+      ${entries.length ? `
+      <div class="meas-table-wrap">
+        <table class="meas-table">
+          <thead><tr>
+            <th>תאריך</th>
+            ${theadCells}
+            <th>הערות</th>
+            <th></th>
+          </tr></thead>
+          <tbody>${tableRows}</tbody>
+        </table>
+      </div>` : ''}
+    `;
+
+    if (entries.length >= 2) renderMeasChart();
+  }
+
+  function renderMeasChart() {
+    const canvas = document.getElementById('meas-chart-canvas');
+    if (!canvas) return;
+    const entries = [...clientMeasurements].reverse();
+    const labels  = entries.map(e => new Date(e.date + 'T12:00:00').toLocaleDateString('he-IL', { day:'2-digit', month:'2-digit' }));
+    const data    = entries.map(e => e[measChartField] ?? null);
+    const col = getMeasCols().find(c => c.key === measChartField);
+
+    if (measChartInstance) { measChartInstance.destroy(); measChartInstance = null; }
+    measChartInstance = new Chart(canvas.getContext('2d'), {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [{
+          label: col?.label || measChartField,
+          data,
+          borderColor: '#FF6B00',
+          backgroundColor: 'rgba(255,107,0,0.08)',
+          fill: true,
+          tension: 0.4,
+          pointRadius: 4,
+          spanGaps: true,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { ticks: { color:'#555', font:{size:9} }, grid: { color:'rgba(255,255,255,0.04)' } },
+          y: { ticks: { color:'#aaa', font:{size:9} }, grid: { color:'rgba(255,255,255,0.05)' } },
+        }
+      }
+    });
+  }
+
+  function openMeasModal(id) {
+    measEditId = id || null;
+    const overlay = document.getElementById('meas-modal-overlay');
+    if (!overlay) return;
+    const cols = getMeasCols();
+    const existing = id ? clientMeasurements.find(e => e.id === id) : null;
+    const today = new Date().toISOString().split('T')[0];
+    const dateVal = existing?.date || today;
+
+    const fields = cols.map(c => `
+      <div class="meas-f">
+        <label>${c.label} (ס"מ)</label>
+        <input type="number" step="0.1" min="10" max="250" placeholder="—"
+          id="mf-${c.key}" value="${existing?.[c.key] ?? ''}"/>
+      </div>`).join('');
+
+    document.getElementById('meas-modal-inner').innerHTML = `
+      <div class="meas-modal-title">
+        <span>${id ? '✏️ עריכת מדידה' : '+ מדידה חדשה'}</span>
+        <button onclick="closeMeasModal()" style="background:none;border:none;color:var(--muted);font-size:1.2rem;cursor:pointer;line-height:1;">✕</button>
+      </div>
+      <div class="meas-f" style="margin-bottom:12px;">
+        <label>תאריך</label>
+        <input type="date" id="mf-date" value="${dateVal}" style="padding:7px 10px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:7px;color:var(--white);font-family:'Heebo',sans-serif;font-size:0.85rem;width:100%;"/>
+      </div>
+      <div class="meas-form-grid">${fields}</div>
+      <div class="meas-f" style="margin-bottom:14px;">
+        <label>הערות</label>
+        <input type="text" id="mf-notes" value="${esc(existing?.notes || '')}" placeholder="הערה אופציונלית..."
+          style="padding:7px 10px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:7px;color:var(--white);font-family:'Heebo',sans-serif;font-size:0.85rem;"/>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;">
+        <button onclick="closeMeasModal()" style="padding:8px 18px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:var(--muted);font-family:'Heebo',sans-serif;font-size:0.85rem;font-weight:700;cursor:pointer;">ביטול</button>
+        <button onclick="saveMeasurement()" style="padding:8px 18px;background:linear-gradient(135deg,var(--orange),#FF8C00);border:none;border-radius:8px;color:#fff;font-family:'Heebo',sans-serif;font-size:0.85rem;font-weight:900;cursor:pointer;">שמור מדידה</button>
+      </div>
+    `;
+    overlay.classList.add('open');
+  }
+
+  function closeMeasModal() {
+    document.getElementById('meas-modal-overlay')?.classList.remove('open');
+    measEditId = null;
+  }
+
+  async function saveMeasurement() {
+    const email = activeEmail; if (!email) return;
+    const date = document.getElementById('mf-date')?.value;
+    if (!date) { toast('יש לבחור תאריך', 'err'); return; }
+    const cols = getMeasCols();
+    const payload = { client_email: email, coach_email: coachEmail, date, notes: document.getElementById('mf-notes')?.value.trim() || null };
+    cols.forEach(c => {
+      const v = parseFloat(document.getElementById(`mf-${c.key}`)?.value);
+      payload[c.key] = isNaN(v) ? null : v;
+    });
+    // Also include non-visible female-only fields as null to avoid RLS issues
+    MEAS_COLS.forEach(c => { if (!(c.key in payload)) payload[c.key] = null; });
+
+    try {
+      let data, error;
+      if (measEditId) {
+        ({ data, error } = await sbAdmin.from('body_measurements').update(payload).eq('id', measEditId).select().single());
+      } else {
+        ({ data, error } = await sbAdmin.from('body_measurements').upsert(payload, { onConflict: 'client_email,date' }).select().single());
+      }
+      if (error) { toast('שגיאה: ' + error.message, 'err'); return; }
+      const idx = clientMeasurements.findIndex(e => e.id === (measEditId || data.id));
+      if (idx >= 0) clientMeasurements[idx] = data;
+      else { clientMeasurements.unshift(data); clientMeasurements.sort((a,b) => b.date.localeCompare(a.date)); }
+      closeMeasModal();
+      renderMeasurementsEditor();
+      toast('מדידה נשמרה ✓', 'ok');
+    } catch(e) { toast('שגיאה בשמירה', 'err'); }
+  }
+
+  async function deleteMeasurement(id) {
+    if (!confirm('למחוק את המדידה הזו?')) return;
+    try {
+      const { error } = await sbAdmin.from('body_measurements').delete().eq('id', id);
+      if (error) { toast('שגיאה: ' + error.message, 'err'); return; }
+      clientMeasurements = clientMeasurements.filter(e => e.id !== id);
+      renderMeasurementsEditor();
+      toast('מדידה נמחקה', 'ok');
+    } catch(e) { toast('שגיאה במחיקה', 'err'); }
+  }
 </script>
 
 <!-- COACH CHAT FAB -->
@@ -4424,5 +4898,10 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
       }, {passive:true});
     })();
   </script>
+
+<!-- MEASUREMENTS MODAL -->
+<div class="meas-modal-overlay" id="meas-modal-overlay" onclick="if(event.target===this)closeMeasModal()">
+  <div class="meas-modal-inner" id="meas-modal-inner"></div>
+</div>
 </body>
 </html>

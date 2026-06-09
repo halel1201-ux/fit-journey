@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no"/>
+<title>Fit Journey</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html,body{width:100%;height:100%;background:#000;overflow:hidden;}
+
+  #stage{
+    position:fixed;inset:0;
+    display:flex;align-items:center;justify-content:center;
+    background:#000;
+  }
+
+  /* ─── Logo wrapper ─── */
+  #logo-wrap{
+    position:relative;
+    width:260px;height:220px;
+    opacity:0;
+    transform:scale(0.75);
+    transition:opacity .5s ease, transform .5s ease;
+  }
+  #logo-wrap.show{opacity:1;transform:scale(1);}
+
+  /* ─── Each shard = same FJ text, different clip-path ─── */
+  .shard{
+    position:absolute;inset:0;
+    display:flex;align-items:center;justify-content:center;
+    font-family:'Arial Black',Arial,sans-serif;
+    font-size:140px;font-weight:900;
+    color:#FF6B00;
+    text-shadow:0 0 40px rgba(255,107,0,0.9),0 0 80px rgba(255,107,0,0.4);
+    will-change:transform,opacity;
+    transition:none;
+  }
+  /* 9 polygons that tile the container */
+  .s1{clip-path:polygon(0% 0%, 48% 0%, 40% 52%, 0% 44%);}
+  .s2{clip-path:polygon(48% 0%, 72% 0%, 67% 46%, 40% 52%);}
+  .s3{clip-path:polygon(72% 0%,100% 0%,100% 38%, 67% 46%);}
+  .s4{clip-path:polygon(0% 44%, 40% 52%, 30% 76%, 0% 70%);}
+  .s5{clip-path:polygon(40% 52%, 67% 46%, 74% 74%, 30% 76%);}
+  .s6{clip-path:polygon(67% 46%,100% 38%,100% 68%, 74% 74%);}
+  .s7{clip-path:polygon(0% 70%, 30% 76%, 22% 100%, 0% 100%);}
+  .s8{clip-path:polygon(30% 76%, 74% 74%, 82% 100%, 22% 100%);}
+  .s9{clip-path:polygon(74% 74%,100% 68%,100% 100%, 82% 100%);}
+
+  /* ─── Crack SVG ─── */
+  #cracks{
+    position:absolute;inset:0;
+    width:100%;height:100%;
+    pointer-events:none;
+    opacity:0;
+    transition:opacity .15s;
+  }
+  #cracks.show{opacity:1;}
+  .crack-line{
+    fill:none;
+    stroke:rgba(255,255,255,0.85);
+    stroke-width:1.2;
+    stroke-dasharray:300;
+    stroke-dashoffset:300;
+  }
+  .crack-glow{
+    fill:none;
+    stroke:rgba(255,160,0,0.5);
+    stroke-width:3;
+    stroke-dasharray:300;
+    stroke-dashoffset:300;
+    filter:blur(1px);
+  }
+
+  /* ─── Shatter keyframes — 9 directions ─── */
+  @keyframes fly1{to{transform:translate(-120px,-90px) rotate(-22deg) scale(0.5);opacity:0;}}
+  @keyframes fly2{to{transform:translate(  10px,-130px) rotate( 8deg) scale(0.55);opacity:0;}}
+  @keyframes fly3{to{transform:translate( 130px,-80px) rotate( 25deg) scale(0.5);opacity:0;}}
+  @keyframes fly4{to{transform:translate(-150px,  20px) rotate(-30deg) scale(0.45);opacity:0;}}
+  @keyframes fly5{to{transform:translate(   0px,  30px) rotate(  5deg) scale(0.3);opacity:0;}}
+  @keyframes fly6{to{transform:translate( 160px,  30px) rotate( 35deg) scale(0.45);opacity:0;}}
+  @keyframes fly7{to{transform:translate(-100px, 110px) rotate(-18deg) scale(0.5);opacity:0;}}
+  @keyframes fly8{to{transform:translate(  20px, 140px) rotate( 12deg) scale(0.4);opacity:0;}}
+  @keyframes fly9{to{transform:translate( 120px,100px) rotate( 28deg) scale(0.5);opacity:0;}}
+
+  .shard.shatter{animation-duration:.6s;animation-fill-mode:forwards;animation-timing-function:cubic-bezier(.4,0,.6,1);}
+  .s1.shatter{animation-name:fly1;}
+  .s2.shatter{animation-name:fly2;}
+  .s3.shatter{animation-name:fly3;}
+  .s4.shatter{animation-name:fly4;}
+  .s5.shatter{animation-name:fly5;}
+  .s6.shatter{animation-name:fly6;}
+  .s7.shatter{animation-name:fly7;}
+  .s8.shatter{animation-name:fly8;}
+  .s9.shatter{animation-name:fly9;}
+
+  /* ─── Screen flash on shatter ─── */
+  #flash{
+    position:fixed;inset:0;
+    background:rgba(255,140,0,0);
+    pointer-events:none;
+    transition:background .08s;
+    z-index:10;
+  }
+  #flash.pop{background:rgba(255,140,0,0.25);}
+
+  /* ─── Fade out entire stage ─── */
+  #stage.fadeout{
+    animation:fadeStage .4s ease forwards;
+  }
+  @keyframes fadeStage{to{opacity:0;}}
+</style>
+</head>
+<body>
+<div id="flash"></div>
+<div id="stage">
+  <div id="logo-wrap">
+    <div class="shard s1">FJ</div>
+    <div class="shard s2">FJ</div>
+    <div class="shard s3">FJ</div>
+    <div class="shard s4">FJ</div>
+    <div class="shard s5">FJ</div>
+    <div class="shard s6">FJ</div>
+    <div class="shard s7">FJ</div>
+    <div class="shard s8">FJ</div>
+    <div class="shard s9">FJ</div>
+
+    <!-- SVG crack lines — drawn from center outward -->
+    <svg id="cracks" viewBox="0 0 260 220" xmlns="http://www.w3.org/2000/svg">
+      <!-- glow layer -->
+      <path class="crack-glow" id="cg1" d="M130,110 L 52, 28"/>
+      <path class="crack-glow" id="cg2" d="M130,110 L190, 22"/>
+      <path class="crack-glow" id="cg3" d="M130,110 L248, 95"/>
+      <path class="crack-glow" id="cg4" d="M130,110 L 15,175"/>
+      <path class="crack-glow" id="cg5" d="M130,110 L135,210"/>
+      <path class="crack-glow" id="cg6" d="M130,110 L255,175"/>
+      <!-- sharp white layer -->
+      <path class="crack-line" id="cl1" d="M130,110 L 52, 28"/>
+      <path class="crack-line" id="cl2" d="M130,110 L190, 22"/>
+      <path class="crack-line" id="cl3" d="M130,110 L248, 95"/>
+      <path class="crack-line" id="cl4" d="M130,110 L 15,175"/>
+      <path class="crack-line" id="cl5" d="M130,110 L135,210"/>
+      <path class="crack-line" id="cl6" d="M130,110 L255,175"/>
+      <!-- small branching cracks -->
+      <path class="crack-line" id="cl7" d="M90,65  L 60, 42"/>
+      <path class="crack-line" id="cl8" d="M165,70  L188, 50"/>
+      <path class="crack-line" id="cl9" d="M68,148  L 30,160"/>
+      <path class="crack-line" id="cl10" d="M195,148 L225,165"/>
+    </svg>
+  </div>
+</div>
+
+<script>
+(function(){
+  const logoWrap = document.getElementById('logo-wrap');
+  const cracksEl = document.getElementById('cracks');
+  const flash    = document.getElementById('flash');
+  const stage    = document.getElementById('stage');
+
+  // ── Animate a crack path (dashoffset 300→0) ──
+  function animateCrack(id, delay, dur){
+    const el = document.getElementById(id);
+    if(!el) return;
+    const len = el.getTotalLength ? el.getTotalLength() : 160;
+    el.style.strokeDasharray = len;
+    el.style.strokeDashoffset = len;
+    el.style.transition = `stroke-dashoffset ${dur}ms ease ${delay}ms`;
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{ el.style.strokeDashoffset = 0; }));
+  }
+
+  // ── STEP 1: Logo appears ──
+  setTimeout(()=>{ logoWrap.classList.add('show'); }, 100);
+
+  // ── STEP 2: Cracks grow ──
+  setTimeout(()=>{
+    cracksEl.classList.add('show');
+    // main cracks
+    animateCrack('cl1',  0,  220);
+    animateCrack('cg1',  0,  220);
+    animateCrack('cl2',  40, 200);
+    animateCrack('cg2',  40, 200);
+    animateCrack('cl3',  80, 210);
+    animateCrack('cg3',  80, 210);
+    animateCrack('cl4',  20, 230);
+    animateCrack('cg4',  20, 230);
+    animateCrack('cl5',  60, 190);
+    animateCrack('cg5',  60, 190);
+    animateCrack('cl6',  10, 215);
+    animateCrack('cg6',  10, 215);
+    // branches
+    animateCrack('cl7',  180, 120);
+    animateCrack('cl8',  200, 110);
+    animateCrack('cl9',  220, 130);
+    animateCrack('cl10', 210, 120);
+  }, 900);
+
+  // ── STEP 3: Shatter ──
+  setTimeout(()=>{
+    // flash
+    flash.classList.add('pop');
+    setTimeout(()=>flash.classList.remove('pop'), 80);
+
+    document.querySelectorAll('.shard').forEach(s => s.classList.add('shatter'));
+  }, 1500);
+
+  // ── STEP 4: Fade out → login ──
+  setTimeout(()=>{ stage.classList.add('fadeout'); }, 2050);
+  setTimeout(()=>{ window.location.replace('login.html'); }, 2450);
+})();
+</script>
+</body>
+</html>
