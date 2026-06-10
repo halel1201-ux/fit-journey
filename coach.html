@@ -111,6 +111,12 @@
     .sets-coach-range span { color:var(--muted); font-size:0.75rem; white-space:nowrap; }
     .btn-add-set { font-size:0.75rem; color:var(--orange); background:none; border:1px dashed rgba(255,107,0,0.3); border-radius:6px; padding:4px 12px; cursor:pointer; margin-top:4px; font-family:'Heebo',sans-serif; }
     .btn-add-set:hover { background:rgba(255,107,0,0.08); }
+    /* ── Superset / Triset linking ── */
+    .btn-link-next { font-size:0.78rem; font-weight:700; padding:2px 8px; border-radius:5px; border:1px solid rgba(255,255,255,0.14); background:rgba(255,255,255,0.05); color:#666; cursor:pointer; white-space:nowrap; transition:all 0.15s; }
+    .btn-link-next:hover { border-color:rgba(255,107,0,0.4); color:var(--orange); }
+    .btn-link-next.linked { border-color:rgba(255,215,0,0.45); background:rgba(255,215,0,0.1); color:var(--gold); }
+    .superset-group { border:1px dashed rgba(255,215,0,0.35); border-radius:10px; padding:10px 8px 0; margin-bottom:10px; }
+    .superset-label { font-size:0.74rem; font-weight:900; color:var(--gold); margin-bottom:6px; padding:0 4px; }
     .ai-box { background: rgba(255,215,0,0.04); border: 1px solid rgba(255,215,0,0.2); border-radius: 10px; padding: 14px 16px; margin-bottom: 18px; }
     .ai-box-title { font-size: 0.82rem; font-weight: 700; color: var(--gold); margin-bottom: 10px; }
     .ai-textarea { width: 100%; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: var(--white); font-family: 'Heebo', sans-serif; font-size: 0.88rem; padding: 10px 12px; resize: vertical; min-height: 72px; outline: none; transition: border-color 0.2s; line-height: 1.6; }
@@ -849,27 +855,43 @@
   }
 
   // ─── AI file-attachment utilities ─────────────────────────────────────
-  let _pendingPlanFile  = null;
-  let _pendingNutriFile = null;
+  let _pendingPlanFiles  = [];
+  let _pendingNutriFiles = [];
 
   async function _doAttach(inputId, btnId, nameId, clrId) {
     const input = document.getElementById(inputId);
-    const f = input && input.files[0];
-    if (!f) return null;
-    if (f.size > 20 * 1024 * 1024) { alert('הקובץ גדול מ-20MB — יש לדחוס לפני העלאה'); input.value=''; return null; }
-    const b64 = await new Promise((res,rej) => { const r=new FileReader(); r.onload=e=>res(e.target.result.split(',')[1]); r.onerror=rej; r.readAsDataURL(f); });
-    const mt = f.type;
-    let block;
-    if (mt === 'application/pdf') {
-      block = { type:'document', source:{ type:'base64', media_type:'application/pdf', data:b64 } };
-    } else if (['image/jpeg','image/png','image/webp','image/gif'].includes(mt)) {
-      block = { type:'image', source:{ type:'base64', media_type:mt, data:b64 } };
-    } else { alert('נתמכים: PDF, JPG, PNG, WEBP, GIF'); input.value=''; return null; }
+    const files = input && Array.from(input.files || []);
+    if (!files || !files.length) return null;
+
+    const isPdf = f => f.type === 'application/pdf';
+    const isImg = f => ['image/jpeg','image/png','image/webp','image/gif'].includes(f.type);
+
+    if (files.some(f => !isPdf(f) && !isImg(f))) {
+      alert('נתמכים: PDF, JPG, PNG, WEBP, GIF'); input.value=''; return null;
+    }
+    if (files.some(isPdf) && files.length > 1) {
+      alert('ניתן לצרף קובץ PDF אחד בלבד, או עד 5 תמונות'); input.value=''; return null;
+    }
+    if (!files.some(isPdf) && files.length > 5) {
+      alert('ניתן לצרף עד 5 תמונות, או קובץ PDF אחד'); input.value=''; return null;
+    }
+    if (files.some(f => f.size > 20 * 1024 * 1024)) {
+      alert('כל קובץ חייב להיות קטן מ-20MB'); input.value=''; return null;
+    }
+
+    const blocks = [];
+    for (const f of files) {
+      const b64 = await new Promise((res,rej) => { const r=new FileReader(); r.onload=e=>res(e.target.result.split(',')[1]); r.onerror=rej; r.readAsDataURL(f); });
+      blocks.push(isPdf(f)
+        ? { type:'document', source:{ type:'base64', media_type:'application/pdf', data:b64 } }
+        : { type:'image', source:{ type:'base64', media_type:f.type, data:b64 } });
+    }
+
     const btn=document.getElementById(btnId), nm=document.getElementById(nameId), clr=document.getElementById(clrId);
     if (btn) btn.classList.add('has-file');
-    if (nm)  { nm.textContent=f.name; nm.style.display='inline'; }
+    if (nm)  { nm.textContent = files.length===1 ? files[0].name : `${files.length} קבצים מצורפים`; nm.style.display='inline'; }
     if (clr) clr.style.display='inline';
-    return block;
+    return blocks;
   }
   function _clearAttach(inputId, btnId, nameId, clrId) {
     const el=document.getElementById(inputId); if(el) el.value='';
@@ -889,12 +911,12 @@
       body: JSON.stringify(body)
     });
   }
-  async function attachPlanFile()  { _pendingPlanFile  = await _doAttach('plan-file','btn-plan-attach','plan-fname','plan-fclr'); }
-  function  clearPlanAttach()      { _clearAttach('plan-file','btn-plan-attach','plan-fname','plan-fclr'); _pendingPlanFile=null; }
-  async function attachNutriFile() { _pendingNutriFile = await _doAttach('nutri-file','btn-nutri-attach','nutri-fname','nutri-fclr'); }
-  function  clearNutriAttach()     { _clearAttach('nutri-file','btn-nutri-attach','nutri-fname','nutri-fclr'); _pendingNutriFile=null; }
-  /** Wraps text + optional file block into Claude content (string or array) */
-  function _withFile(text, block) { return block ? [block, { type:'text', text }] : text; }
+  async function attachPlanFile()  { _pendingPlanFiles  = await _doAttach('plan-file','btn-plan-attach','plan-fname','plan-fclr') || []; }
+  function  clearPlanAttach()      { _clearAttach('plan-file','btn-plan-attach','plan-fname','plan-fclr'); _pendingPlanFiles=[]; }
+  async function attachNutriFile() { _pendingNutriFiles = await _doAttach('nutri-file','btn-nutri-attach','nutri-fname','nutri-fclr') || []; }
+  function  clearNutriAttach()     { _clearAttach('nutri-file','btn-nutri-attach','nutri-fname','nutri-fclr'); _pendingNutriFiles=[]; }
+  /** Wraps text + optional file blocks into Claude content (string or array) */
+  function _withFile(text, blocks) { return (blocks && blocks.length) ? [...blocks, { type:'text', text }] : text; }
   // ──────────────────────────────────────────────────────────────────────
 
   const ONESIGNAL_APP_ID   = 'fe16a494-b8de-47e9-8a29-de052e048ec8';
@@ -1725,8 +1747,8 @@
           <div class="ai-box-title">✨ בנה תוכנית עם AI</div>
           <textarea class="ai-textarea" id="ai-prompt" placeholder="תאר את התוכנית: ימי אימון, מטרה, ציוד, רמה, מוקד שרירים...&#10;דוגמה: 3 ימי אימון בשבוע, חדר כושר מלא, מטרת מסה, רמת ביניים, A/B/C split"></textarea>
           <div class="ai-attach-row">
-            <input type="file" id="plan-file" accept=".pdf,image/jpeg,image/png,image/webp,image/gif" style="display:none;" onchange="attachPlanFile()"/>
-            <button class="btn-attach" id="btn-plan-attach" type="button" onclick="document.getElementById('plan-file').click()">📎 צרף תוכנית / תמונה</button>
+            <input type="file" id="plan-file" accept=".pdf,image/jpeg,image/png,image/webp,image/gif" multiple style="display:none;" onchange="attachPlanFile()"/>
+            <button class="btn-attach" id="btn-plan-attach" type="button" onclick="document.getElementById('plan-file').click()">📎 צרף תוכנית / תמונות (עד 5)</button>
             <span class="attach-filename" id="plan-fname" style="display:none;"></span>
             <button class="btn-attach-clr" id="plan-fclr" type="button" onclick="clearPlanAttach()" style="display:none;" title="הסר קובץ">✕</button>
           </div>
@@ -1760,8 +1782,8 @@
           <div class="ai-box-title">✨ בניית תפריט עם AI</div>
           <textarea class="ai-textarea" id="nutri-ai-prompt" placeholder='תאר את המטרה: לדוגמה "בניית מסה לגבר 3 ארוחות ביום" — הבינה תבנה תפריט מלא עם חלופות למקורות חלבון, פחמימה ושומן בכל ארוחה'></textarea>
           <div class="ai-attach-row">
-            <input type="file" id="nutri-file" accept=".pdf,image/jpeg,image/png,image/webp,image/gif" style="display:none;" onchange="attachNutriFile()"/>
-            <button class="btn-attach" id="btn-nutri-attach" type="button" onclick="document.getElementById('nutri-file').click()">📎 צרף תפריט / תמונה</button>
+            <input type="file" id="nutri-file" accept=".pdf,image/jpeg,image/png,image/webp,image/gif" multiple style="display:none;" onchange="attachNutriFile()"/>
+            <button class="btn-attach" id="btn-nutri-attach" type="button" onclick="document.getElementById('nutri-file').click()">📎 צרף תפריט / תמונות (עד 5)</button>
             <span class="attach-filename" id="nutri-fname" style="display:none;"></span>
             <button class="btn-attach-clr" id="nutri-fclr" type="button" onclick="clearNutriAttach()" style="display:none;" title="הסר קובץ">✕</button>
           </div>
@@ -2022,7 +2044,7 @@
           <div class="muscle-row">
             ${MUSCLES.map(m=>`<button class="muscle-pill${(day.muscles||[]).includes(m)?' muscle-active':''}" onclick="toggleMuscle(${di},'${m}',this)">${m}</button>`).join('')}
           </div>
-          ${(day.exercises||[]).map((ex,ei)=>exRow(di,ei,ex)).join('')}
+          ${renderExGroups(di, day.exercises||[])}
           <button class="add-link" onclick="addExercise(${di})">+ הוסף תרגיל</button>
         </div>
       </div>`).join('');
@@ -2109,6 +2131,41 @@
     renderTrainingEditor();
   }
 
+  function renderExGroups(di, exercises) {
+    let html = '';
+    let i = 0;
+    while (i < exercises.length) {
+      let end = i;
+      while (exercises[end]?.linked_next && end < exercises.length - 1) end++;
+      const size = end - i + 1;
+      if (size >= 2) {
+        const label = size === 2 ? '🔗 סופר-סט' : '🔗 טריפל-סט';
+        html += `<div class="superset-group"><div class="superset-label">${label}</div>`;
+        for (let j = i; j <= end; j++) html += exRow(di, j, exercises[j]);
+        html += `</div>`;
+      } else {
+        html += exRow(di, i, exercises[i]);
+      }
+      i = end + 1;
+    }
+    return html;
+  }
+
+  function toggleLinkNext(di, ei) {
+    const exs = trainingPlan[di].exercises;
+    if (ei >= exs.length - 1) return;
+    const cur = !!exs[ei].linked_next;
+    if (!cur) {
+      let start = ei;
+      while (start > 0 && exs[start-1].linked_next) start--;
+      let end = ei + 1;
+      while (end < exs.length - 1 && exs[end].linked_next) end++;
+      if (end - start + 1 > 3) { toast('מקסימום 3 תרגילים בקבוצת סופר-סט/טריפל-סט', 'err'); return; }
+    }
+    exs[ei].linked_next = !cur;
+    renderTrainingEditor();
+  }
+
   function exRow(di, ei, ex) {
     ex.sets = parseSetsToArray(ex.sets || ex.sets_reps);
     const sets = ex.sets;
@@ -2123,6 +2180,7 @@
       <div class="ex-row" style="margin-bottom:7px;">
         <input value="${esc(ex.name)}" oninput="trainingPlan[${di}].exercises[${ei}].name=this.value;showExSugg(this,${di},${ei})" onblur="setTimeout(hideExSugg,160)" autocomplete="off" placeholder="שם תרגיל" style="flex:2;"/>
         <input value="${esc(ex.video_url||'')}" oninput="trainingPlan[${di}].exercises[${ei}].video_url=this.value" placeholder="קישור לסרטון" style="direction:ltr;text-align:right;flex:1;"/>
+        ${ei < total-1 ? `<button class="btn-link-next${ex.linked_next?' linked':''}" onclick="toggleLinkNext(${di},${ei})" title="חבר לתרגיל הבא לסופר-סט / טריפל-סט">🔗</button>` : ''}
         <div style="display:flex;flex-direction:column;gap:2px;">
           <button onclick="moveExercise(${di},${ei},-1)" ${ei===0?'disabled':''} style="padding:2px 6px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:4px;color:${ei===0?'#444':'#ccc'};cursor:${ei===0?'default':'pointer'};font-size:0.65rem;line-height:1;">▲</button>
           <button onclick="moveExercise(${di},${ei},1)"  ${ei===total-1?'disabled':''} style="padding:2px 6px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:4px;color:${ei===total-1?'#444':'#ccc'};cursor:${ei===total-1?'default':'pointer'};font-size:0.65rem;line-height:1;">▼</button>
@@ -2338,7 +2396,7 @@ Bro Split: 6-8 תרגילים לשריר, דגש על מבודדים, ניתן 2
 
 ## ═══ פורמט תשובה ═══
 החזר אך ורק JSON תקני ללא markdown ללא הסבר:
-[{"day":"יום א׳ — PUSH","muscles":["חזה","כתפיים","יד אחורית"],"exercises":[{"name":"לחיצת חזה במוט","sets_reps":"5×20/15/12/10/8","notes":""},{"name":"פרפר חזה במכונה","sets_reps":"4×12-20","notes":""}]}]`, _pendingPlanFile) }]
+[{"day":"יום א׳ — PUSH","muscles":["חזה","כתפיים","יד אחורית"],"exercises":[{"name":"לחיצת חזה במוט","sets_reps":"5×20/15/12/10/8","notes":""},{"name":"פרפר חזה במכונה","sets_reps":"4×12-20","notes":""}]}]`, _pendingPlanFiles) }]
         })
       });
       if (!res.ok) { const e = await res.json(); throw new Error(e.error?.message || `HTTP ${res.status}`); }
@@ -2451,7 +2509,7 @@ Bro Split: 6-8 תרגילים לשריר, דגש על מבודדים, ניתן 2
       ? `יעדי מאקרו: ${targetCal||'—'} קל׳ | חלבון ${targetProt||'—'}ג׳ | פחמימה ${targetCarb||'—'}ג׳ | שומן ${targetFat||'—'}ג׳` : '';
     btn.disabled = true; btn.textContent = '⏳ בונה...';
     statusEl.style.color = 'var(--muted)'; statusEl.textContent = 'Claude בונה תפריט...';
-    const hasFile = !!_pendingNutriFile;
+    const hasFile = _pendingNutriFiles.length > 0;
     try {
       const res = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
@@ -2528,7 +2586,7 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
 פלפל אדום|100|31|1|6|0.3
 
 ## פורמט — החזר JSON בלבד ללא markdown, ללא הסברים:
-[{"meal":"ארוחת בוקר","items":[{"food":"שיבולת שועל","quantity":"80 גרם","calories":296,"protein":10,"carbs":52,"fat":5.6}],"protein_options":["יוגורט יווני 0%","גבינה לבנה 5%","חלבון ביצה"],"carbs_options":["שיבולת שועל","לחם מלא","פיתה מלאה"],"fat_options":["שקדים","אבוקדו","טחינה גולמית"]}]`, _pendingNutriFile) }]
+[{"meal":"ארוחת בוקר","items":[{"food":"שיבולת שועל","quantity":"80 גרם","calories":296,"protein":10,"carbs":52,"fat":5.6}],"protein_options":["יוגורט יווני 0%","גבינה לבנה 5%","חלבון ביצה"],"carbs_options":["שיבולת שועל","לחם מלא","פיתה מלאה"],"fat_options":["שקדים","אבוקדו","טחינה גולמית"]}]`, _pendingNutriFiles) }]
         })
       });
       if (!res.ok) { const e = await res.json(); throw new Error(e.error?.message || `HTTP ${res.status}`); }

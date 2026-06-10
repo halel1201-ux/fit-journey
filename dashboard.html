@@ -273,6 +273,10 @@
     .session-ex-num { font-size: 0.7rem; font-weight: 700; color: var(--orange); letter-spacing: 1.5px; margin-bottom: 4px; }
     .session-ex-title { font-size: 1.05rem; font-weight: 900; margin-bottom: 10px; }
     .session-ex-desc { font-size: 0.82rem; color: var(--muted); background: rgba(255,255,255,0.03); border-right: 2px solid rgba(255,107,0,0.35); padding: 8px 12px; margin-bottom: 14px; border-radius: 0 7px 7px 0; line-height: 1.6; }
+    .session-superset { border: 1px dashed rgba(255,215,0,0.35); border-radius: 16px; padding: 14px 12px 0; margin-bottom: 18px; }
+    .session-superset-label { font-size: 0.8rem; font-weight: 900; color: var(--gold); margin-bottom: 8px; padding: 0 4px; }
+    .session-superset .session-ex-block { margin-bottom: 14px; }
+    .ex-link-badge { font-size: 0.68rem; font-weight: 900; color: var(--gold); border: 1px solid rgba(255,215,0,0.35); border-radius: 5px; padding: 0 5px; margin-right: 6px; }
     .rest-ctrl { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
     .rest-ctrl-lbl { font-size: 0.78rem; font-weight: 700; color: var(--muted); }
     .rest-ctrl-val { font-size: 0.88rem; font-weight: 700; min-width: 72px; text-align: center; }
@@ -1131,6 +1135,7 @@
           ${(day.exercises || []).map(ex => `
             <div class="exercise-row">
               <span class="ex-name">${ex.name}</span>
+              ${ex.linked_next ? `<span class="ex-link-badge">🔗</span>` : ''}
               ${ex.sets ? `<span class="ex-sets">${formatSetsDisplay(ex.sets)}</span>` : ''}
               ${ex.video_url ? `<a class="ex-video" href="${ex.video_url}" target="_blank" rel="noopener">▶ צפה</a>` : ''}
             </div>
@@ -1209,6 +1214,7 @@
           name: ex.name,
           description: ex.description || '',
           restTime: ex.rest_time || 90,
+          linked_next: !!ex.linked_next,
           sets: setsArr.map((s, si) => {
             const setType = s.set_type || 'working';
             // Use this set's prev weight (or last set's weight if not enough sets)
@@ -1321,8 +1327,8 @@
     document.getElementById('session-clock').textContent = m + ':' + sec;
   }
 
-  function renderSession() {
-    document.getElementById('session-body').innerHTML = workoutSession.exercises.map((ex, ei) => `
+  function renderExBlock(ex, ei) {
+    return `
       <div class="session-ex-block">
         <div class="session-ex-num">תרגיל ${ei + 1}</div>
         <div class="session-ex-title">${esc(ex.name)}</div>
@@ -1335,8 +1341,28 @@
           <span></span><span>ק"ג</span><span>חזרות</span><span></span>
         </div>
         ${ex.sets.map((s, si) => sRowHtml(ei, si, s)).join('')}
-      </div>
-    `).join('');
+      </div>`;
+  }
+
+  function renderSession() {
+    const exs = workoutSession.exercises;
+    let html = '';
+    let i = 0;
+    while (i < exs.length) {
+      let end = i;
+      while (exs[end]?.linked_next && end < exs.length - 1) end++;
+      const size = end - i + 1;
+      if (size >= 2) {
+        const label = size === 2 ? '🔗 סופר-סט' : '🔗 טריפל-סט';
+        html += `<div class="session-superset"><div class="session-superset-label">${label}</div>`;
+        for (let j = i; j <= end; j++) html += renderExBlock(exs[j], j);
+        html += `</div>`;
+      } else {
+        html += renderExBlock(exs[i], i);
+      }
+      i = end + 1;
+    }
+    document.getElementById('session-body').innerHTML = html;
   }
 
   const SET_TYPE_LABEL = { warm_up: 'חמ׳', working: '', failure: 'כשל' };
