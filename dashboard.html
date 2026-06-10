@@ -823,6 +823,10 @@
       <div class="sec-title"><span class="icon">📊</span> יומן אימונים</div>
       <div id="history-wrap"></div>
     </div>
+    <div class="section">
+      <div class="sec-title"><span class="icon">📏</span> היסטוריית מדידות והיקפים</div>
+      <div id="meas-history-wrap"></div>
+    </div>
   </div>
 
 </div>
@@ -1626,6 +1630,7 @@
     window.scrollTo({ top: 0, behavior: 'instant' });
     if (name === 'records') openRecords();
     if (name === 'nutrition') openNutrition();
+    if (name === 'history') loadMeasurementsHistory();
     if (name === 'measurements' && progressChart) {
       requestAnimationFrame(() => progressChart.resize());
     }
@@ -3297,6 +3302,18 @@ ${foodList || 'אין פריטים'}
   let measOpen = false;
   let measurementsEntries = null; // null = לא נטען עדיין
 
+  async function ensureMeasurementsEntries() {
+    if (measurementsEntries === null) {
+      try {
+        const { data } = await sb.from('progress_entries')
+          .select('date,weight,body_fat_pct,measurements').eq('client_email', currentEmail)
+          .order('date', { ascending: false }).limit(90);
+        measurementsEntries = data || [];
+      } catch(e) { measurementsEntries = []; }
+    }
+    return measurementsEntries;
+  }
+
   async function toggleMeasurements() {
     measOpen = !measOpen;
     const sec = document.getElementById('meas-section');
@@ -3307,15 +3324,61 @@ ${foodList || 'אין פריטים'}
     if (measOpen) {
       if (measurementsEntries === null) {
         sec.innerHTML = '<div style="text-align:center;padding:16px;color:var(--muted);">טוען...</div>';
-        try {
-          const { data } = await sb.from('progress_entries')
-            .select('date,measurements').eq('client_email', currentEmail)
-            .order('date', { ascending: false }).limit(90);
-          measurementsEntries = data || [];
-        } catch(e) { measurementsEntries = []; }
+        await ensureMeasurementsEntries();
       }
       renderMeasurementsSection();
     }
+  }
+
+  async function loadMeasurementsHistory() {
+    const wrap = document.getElementById('meas-history-wrap');
+    if (wrap) wrap.innerHTML = '<div class="empty">טוען...</div>';
+    await ensureMeasurementsEntries();
+    renderMeasurementsHistory();
+  }
+
+  function renderMeasurementsHistory() {
+    const wrap = document.getElementById('meas-history-wrap');
+    if (!wrap) return;
+    const isFemale = clientData?.gender === 'female';
+    const fields = MEAS_FIELDS.filter(f => !f.femaleOnly || isFemale);
+    const entries = (measurementsEntries || []).filter(e =>
+      e.weight || e.body_fat_pct || (e.measurements && Object.keys(e.measurements).length));
+
+    if (!entries.length) {
+      wrap.innerHTML = '<div class="empty">עדיין לא נשמרו מדידות</div>';
+      return;
+    }
+
+    wrap.innerHTML = entries.map((e, i) => {
+      const d = new Date(e.date + 'T12:00:00');
+      const dateStr = d.toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit', year: 'numeric' });
+      const m = e.measurements || {};
+      const rows = fields
+        .filter(f => m[f.key])
+        .map(f => `
+          <div class="hist-ex">
+            <div class="hist-ex-name">${f.label}</div>
+            <div class="hist-ex-sets">${m[f.key]} ${f.unit}</div>
+          </div>`).join('');
+      const sub = [
+        e.weight ? `משקל: ${e.weight} ק"ג` : '',
+        e.body_fat_pct ? `שומן: ${e.body_fat_pct}%` : ''
+      ].filter(Boolean).join(' · ');
+      return `
+        <div class="hist-card" id="mhc-${i}">
+          <div class="hist-head" onclick="document.getElementById('mhc-${i}').classList.toggle('open')">
+            <div>
+              <div class="hist-date">${dateStr}</div>
+              ${sub ? `<div class="hist-day">${sub}</div>` : ''}
+            </div>
+            <span class="hist-arr">▼</span>
+          </div>
+          <div class="hist-body">
+            ${rows || '<div class="hist-note">אין נתוני היקפים לתאריך זה</div>'}
+          </div>
+        </div>`;
+    }).join('');
   }
 
   function renderMeasurementsSection() {
@@ -3393,6 +3456,7 @@ ${foodList || 'אין פריטים'}
       if (idx >= 0) measurementsEntries[idx].measurements = m;
       else { measurementsEntries.unshift({ date: today, measurements: m }); }
       renderMeasurementsSection();
+      renderMeasurementsHistory();
       showDashToast('מדידות נשמרו ✓', 'ok');
     } catch(e) { showDashToast('שגיאה בשמירה', 'err'); }
   }
