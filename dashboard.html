@@ -45,32 +45,60 @@
     .btn-logout:hover { background: rgba(255,107,0,0.1); }
 
     /* LAYOUT */
-    .container { max-width: 900px; margin: 0 auto; padding: 36px 20px 60px; }
+    .container { max-width: 900px; margin: 0 auto; padding: 36px 20px 100px; }
 
-    /* TIMER CARD */
+    /* HERO — ימים לליווי */
     .timer-card {
-      background: linear-gradient(135deg, rgba(255,107,0,0.1), rgba(255,215,0,0.04));
+      text-align: center;
+      margin-bottom: 24px; padding: 24px 20px;
+      border-radius: 20px; position: relative; overflow: hidden;
+      background: radial-gradient(circle at 50% 130%, rgba(255,107,0,0.35), transparent 60%), linear-gradient(160deg, rgba(255,255,255,0.05), rgba(255,255,255,0.01));
       border: 1px solid rgba(255,107,0,0.4);
-      border-radius: 18px; padding: 32px 28px;
-      display: flex; align-items: center; gap: 28px;
-      margin-bottom: 32px;
-      box-shadow: 0 0 40px rgba(255,107,0,0.1);
+      box-shadow: 0 0 40px rgba(255,107,0,0.12) inset;
+    }
+    .hero-ring {
+      width: 116px; height: 116px; margin: 0 auto 10px; border-radius: 50%;
+      background: conic-gradient(var(--orange) calc(var(--pct, 70) * 1%), rgba(255,255,255,0.08) 0);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .hero-ring-inner {
+      width: 96px; height: 96px; border-radius: 50%; background: #0c0c0c;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
     }
     .timer-num {
-      font-size: clamp(3rem, 8vw, 5rem); font-weight: 900; line-height: 1;
+      font-size: 2.3rem; font-weight: 900; line-height: 1;
       background: linear-gradient(135deg, var(--orange), var(--gold));
       -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
-      flex-shrink: 0;
     }
     .timer-num.expired { background: #555; -webkit-background-clip: text; background-clip: text; }
-    .timer-info h2 { font-size: 1.2rem; font-weight: 900; margin-bottom: 4px; }
-    .timer-info p  { font-size: 0.85rem; color: var(--muted); line-height: 1.6; }
+    .hero-num-lbl { font-size: 0.62rem; color: var(--muted); margin-top: 2px; font-weight: 700; }
+    .timer-info h2 { font-size: 1rem; font-weight: 900; margin-bottom: 4px; }
+    .timer-info p  { font-size: 0.8rem; color: var(--muted); line-height: 1.6; }
     .timer-info .plan-badge {
-      display: inline-block; margin-top: 8px; padding: 3px 12px;
-      background: rgba(255,107,0,0.12); border: 1px solid rgba(255,107,0,0.3);
-      border-radius: 20px; font-size: 0.78rem; font-weight: 700; color: var(--orange);
+      display: inline-block; margin-top: 8px; padding: 4px 14px;
+      background: rgba(255,215,0,0.06); border: 1px solid rgba(255,215,0,0.35);
+      border-radius: 20px; font-size: 0.75rem; font-weight: 700; color: var(--gold);
     }
-    @media (max-width: 480px) { .timer-card { flex-direction: column; text-align: center; gap: 16px; } }
+
+    /* TAB PAGES + BOTTOM TAB BAR */
+    .tab-page { display: none; }
+    .tab-page.active { display: block; }
+    .tabbar {
+      position: fixed; bottom: 0; left: 0; right: 0; z-index: 120;
+      display: flex; background: rgba(17,17,17,0.95); backdrop-filter: blur(12px);
+      border-top: 1px solid rgba(255,255,255,0.08);
+      padding: 8px 4px calc(8px + env(safe-area-inset-bottom));
+    }
+    .tab-btn {
+      flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px;
+      padding: 4px 0; color: #666; font-size: 0.65rem; font-weight: 700;
+      background: none; border: none; font-family: 'Heebo', sans-serif; cursor: pointer;
+      transition: color 0.2s;
+    }
+    .tab-btn .tab-ic { font-size: 1.3rem; }
+    .tab-btn.active { color: var(--orange); }
+    .tab-btn.active .tab-ic { filter: drop-shadow(0 0 6px rgba(255,107,0,0.6)); }
+    .tab-btn.locked { color: #444; }
 
     /* SECTION */
     .section { margin-bottom: 36px; }
@@ -146,18 +174,9 @@
     .lib-sub { font-size: 0.82rem; color: var(--muted); margin-top: 2px; }
     .lib-arrow { color: var(--orange); font-size: 1.1rem; font-weight: 900; }
 
-    /* RECORDS OVERLAY */
-    .records-overlay { position: fixed; inset: 0; z-index: 300; background: var(--black); display: none; flex-direction: column; overflow: hidden; }
-    .records-overlay.open { display: flex; }
-    .rec-hdr {
-      flex-shrink: 0; height: 62px; padding: 0 18px;
-      background: rgba(9,9,9,0.97); backdrop-filter: blur(14px);
-      border-bottom: 1px solid rgba(255,215,0,0.2);
-      display: flex; align-items: center; justify-content: space-between;
-    }
-    .rec-hdr-title { font-size: 1.1rem; font-weight: 900; background: linear-gradient(135deg,#FFD700,#FF6B00); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+    /* RECORDS TAB */
     .btn-close-rec { background: rgba(255,255,255,0.07); border: none; color: var(--muted); width: 34px; height: 34px; border-radius: 50%; cursor: pointer; font-size: 1rem; }
-    .rec-body { flex: 1; overflow-y: auto; padding: 20px 16px 40px; }
+    .rec-body { padding: 4px 0 20px; }
     .rec-mode-tabs { display: flex; gap: 8px; margin-bottom: 12px; }
     .rec-tab { padding: 8px 18px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.04); color: var(--muted); font-family:'Heebo',sans-serif; font-size:0.85rem; font-weight:700; cursor:pointer; transition:all 0.2s; }
     .rec-tab.active { background: rgba(255,215,0,0.12); border-color: var(--gold); color: var(--gold); }
@@ -324,12 +343,8 @@
     .btn-del-log { font-size: 0.72rem; color: #555; background: none; border: none; cursor: pointer; padding: 2px 6px; transition: color 0.2s; }
     .btn-del-log:hover { color: #ff7070; }
 
-    /* NUTRITION OVERLAY */
-    .nutri-overlay { position: fixed; inset: 0; z-index: 300; background: var(--black); display: none; flex-direction: column; overflow: hidden; }
-    .nutri-overlay.open { display: flex; }
-    .nutri-hdr { flex-shrink: 0; height: 62px; padding: 0 18px; background: rgba(9,9,9,0.97); backdrop-filter: blur(14px); border-bottom: 1px solid rgba(74,222,128,0.2); display: flex; align-items: center; justify-content: space-between; }
-    .nutri-hdr-title { font-size: 1.1rem; font-weight: 900; background: linear-gradient(135deg,#4ade80,#FFD700); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
-    .nutri-body { flex: 1; overflow-y: auto; padding: 20px 16px 40px; max-width: 700px; margin: 0 auto; width: 100%; }
+    /* NUTRITION TAB */
+    .nutri-body { padding: 4px 0 20px; max-width: 700px; margin: 0 auto; width: 100%; }
     .nutri-mode-tabs { display: flex; gap: 8px; margin-bottom: 20px; }
     .nutri-tab { padding: 8px 18px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.04); color: var(--muted); font-family:'Heebo',sans-serif; font-size:0.85rem; font-weight:700; cursor:pointer; transition:all 0.2s; }
     .nutri-tab.active { background: rgba(74,222,128,0.1); border-color: #4ade80; color: #4ade80; }
@@ -593,7 +608,7 @@
   .chat-meta { font-size:0.62rem; color:#555; margin-top:3px; }
   /* ── CHAT FAB ── */
   .chat-fab {
-    position:fixed; bottom:28px; left:20px; z-index:200;
+    position:fixed; bottom:84px; left:20px; z-index:200;
     width:54px; height:54px; border-radius:50%; border:none; cursor:pointer;
     background:linear-gradient(135deg,var(--orange),#FF8C00);
     display:none; align-items:center; justify-content:center; font-size:1.3rem;
@@ -670,9 +685,14 @@
 
 <div class="container" id="main" style="display:none;position:relative;z-index:1;">
 
-  <!-- Timer -->
+  <!-- HERO: ימים לליווי -->
   <div class="timer-card" id="timer-card">
-    <div class="timer-num" id="timer-num">—</div>
+    <div class="hero-ring" id="hero-ring">
+      <div class="hero-ring-inner">
+        <div class="timer-num" id="timer-num">—</div>
+        <div class="hero-num-lbl">ימים נותרו</div>
+      </div>
+    </div>
     <div class="timer-info">
       <h2 id="timer-label">ימים נותרו לליווי</h2>
       <p id="timer-dates">—</p>
@@ -680,135 +700,150 @@
     </div>
   </div>
 
-  <!-- CYCLE SECTION -->
-  <div class="section" id="cycle-section" style="display:none;margin-bottom:20px;">
-    <div class="sec-title"><span class="icon">🔄</span> הסייקל שלי</div>
-    <div class="cycle-card">
-      <div id="cycle-status-wrap" style="margin-bottom:10px;"></div>
-      <div id="cycle-goal-wrap"></div>
-    </div>
-  </div>
+  <!-- TAB: אימונים -->
+  <div class="tab-page active" id="tab-workouts">
 
-  <!-- PROGRESS SECTION -->
-  <div class="section" id="progress-section" style="display:none;">
-    <div class="sec-title"><span class="icon">📈</span> התקדמות</div>
-    <div class="progress-stats" id="progress-stats"></div>
-    <div class="chart-wrap" id="progress-chart-wrap" style="display:none;">
-      <canvas id="progress-chart" height="200"></canvas>
-    </div>
-
-    <!-- measurements collapse toggle -->
-    <button id="meas-toggle-btn" onclick="toggleMeasurements()" style="width:100%;margin-top:10px;padding:10px 14px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;color:var(--muted);font-family:'Heebo',sans-serif;font-size:0.88rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:space-between;">
-      <span>📏 מדידת היקפים</span>
-      <span id="meas-arrow" style="transition:transform 0.2s;display:inline-block;">▼</span>
-    </button>
-    <div id="meas-section" style="display:none;margin-top:2px;"></div>
-  </div>
-
-  <!-- chat moved to floating overlay below -->
-
-  <!-- CHECKIN SECTION -->
-  <div class="section" id="checkin-section" style="display:none;">
-    <div class="sec-title"><span class="icon">📋</span> צ'ק-אין שבועי</div>
-    <div class="checkin-card" id="checkin-wrap"></div>
-  </div>
-
-  <!-- RENEWAL SECTION -->
-  <div class="section" id="renewal-section" style="display:none;">
-    <div class="sec-title"><span class="icon">🔄</span> חידוש מנוי</div>
-    <p style="font-size:0.85rem;color:var(--muted);margin-bottom:16px;margin-top:-8px;">תקופת הליווי הסתיימה — בחר מסלול להמשך:</p>
-    <div class="renewal-grid" id="renewal-cards"></div>
-    <div class="renewal-sent" id="renewal-sent">✓ הבקשה נשלחה! המאמן יצור איתך קשר בקרוב.</div>
-  </div>
-
-  <!-- Period tracking (נשים בלבד) -->
-  <div class="period-card" id="period-card" style="display:none;">
-    <div class="period-info">
-      <div class="period-title">🔴 מחזור חודשי</div>
-      <div class="period-sub" id="period-sub-text">סמני כשמחזורך מתחיל ומסתיים — המאמן יראה את הסטטוס ויתאים את התוכנית בהתאם.</div>
-    </div>
-    <button class="btn-period inactive" id="btn-period" onclick="togglePeriod()">התחיל</button>
-  </div>
-
-  <!-- Weight + Water -->
-  <div class="weight-row" id="weight-row">
-    <div class="weight-info">
-      <div class="wlbl">משקל עדכני</div>
-      <div class="wval"><span id="weight-display">—</span> <span>ק"ג</span></div>
-    </div>
-    <button class="btn-weight" onclick="updateWeight()">⚖️ עדכן משקל</button>
-  </div>
-
-  <div class="water-card" id="water-card">
-    <div style="display:flex;align-items:center;justify-content:space-between;">
-      <div style="font-size:1rem;font-weight:900;">💧 מעקב שתייה</div>
-      <div style="display:flex;align-items:center;gap:10px;">
-        <span id="water-amount" style="font-size:0.88rem;color:#60a5fa;font-weight:700;">0 מ"ל</span>
-        <button onclick="undoLastWater()" title="בטל הוספה אחרונה" style="background:none;border:none;color:#555;cursor:pointer;font-size:0.8rem;padding:2px 4px;border-radius:4px;transition:color 0.2s;" onmouseover="this.style.color='#ff7070'" onmouseout="this.style.color='#555'">↩</button>
+    <!-- CYCLE SECTION -->
+    <div class="section" id="cycle-section" style="display:none;margin-bottom:20px;">
+      <div class="sec-title"><span class="icon">🔄</span> הסייקל שלי</div>
+      <div class="cycle-card">
+        <div id="cycle-status-wrap" style="margin-bottom:10px;"></div>
+        <div id="cycle-goal-wrap"></div>
       </div>
     </div>
-    <div id="water-target-label" style="font-size:0.73rem;color:var(--muted);margin-top:2px;"></div>
-    <div class="water-track"><div class="water-fill" id="water-fill" style="width:0%"></div></div>
-    <div class="water-btn-row">
-      <button class="water-btn" onclick="addWater(150)">כוס<span>150 מ"ל</span></button>
-      <button class="water-btn" onclick="addWater(500)">בקבוק קטן<span>500 מ"ל</span></button>
-      <button class="water-btn" onclick="addWater(1500)">בקבוק גדול<span>1.5 ל׳</span></button>
+
+    <!-- CHECKIN SECTION -->
+    <div class="section" id="checkin-section" style="display:none;">
+      <div class="sec-title"><span class="icon">📋</span> צ'ק-אין שבועי</div>
+      <div class="checkin-card" id="checkin-wrap"></div>
+    </div>
+
+    <!-- RENEWAL SECTION -->
+    <div class="section" id="renewal-section" style="display:none;">
+      <div class="sec-title"><span class="icon">🔄</span> חידוש מנוי</div>
+      <p style="font-size:0.85rem;color:var(--muted);margin-bottom:16px;margin-top:-8px;">תקופת הליווי הסתיימה — בחר מסלול להמשך:</p>
+      <div class="renewal-grid" id="renewal-cards"></div>
+      <div class="renewal-sent" id="renewal-sent">✓ הבקשה נשלחה! המאמן יצור איתך קשר בקרוב.</div>
+    </div>
+
+    <!-- Training Plan -->
+    <div class="section" id="plan-training-section" style="position:relative;">
+      <div class="sec-title"><span class="icon">🏋️</span> תוכנית אימונים</div>
+      <div id="training-wrap"></div>
+    </div>
+
+    <!-- Exercise Library -->
+    <a href="exercises.html" class="lib-banner">
+      <div class="lib-icon">🏋️</div>
+      <div class="lib-text">
+        <div class="lib-title">מאגר תרגילים</div>
+        <div class="lib-sub">סרטוני אנטומיה והסבר לכל תרגיל לפי קבוצת שריר</div>
+      </div>
+      <div class="lib-arrow">←</div>
+    </a>
+  </div>
+
+  <!-- TAB: שיאים -->
+  <div class="tab-page" id="tab-records">
+    <div class="rec-body" id="rec-body"></div>
+  </div>
+
+  <!-- TAB: תזונה -->
+  <div class="tab-page" id="tab-nutrition">
+    <!-- Food Library -->
+    <a href="food.html" class="lib-banner">
+      <div class="lib-icon">🥗</div>
+      <div class="lib-text">
+        <div class="lib-title">מאגר מזון</div>
+        <div class="lib-sub">ערכים תזונתיים לכל 100 גרם, מחולקים לקטגוריות</div>
+      </div>
+      <div class="lib-arrow">←</div>
+    </a>
+    <div class="nutri-body" id="nutri-body"></div>
+  </div>
+
+  <!-- TAB: מדידות -->
+  <div class="tab-page" id="tab-measurements">
+
+    <!-- PROGRESS SECTION -->
+    <div class="section" id="progress-section" style="display:none;">
+      <div class="sec-title"><span class="icon">📈</span> התקדמות</div>
+      <div class="progress-stats" id="progress-stats"></div>
+      <div class="chart-wrap" id="progress-chart-wrap" style="display:none;">
+        <canvas id="progress-chart" height="200"></canvas>
+      </div>
+
+      <!-- measurements collapse toggle -->
+      <button id="meas-toggle-btn" onclick="toggleMeasurements()" style="width:100%;margin-top:10px;padding:10px 14px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;color:var(--muted);font-family:'Heebo',sans-serif;font-size:0.88rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:space-between;">
+        <span>📏 מדידת היקפים</span>
+        <span id="meas-arrow" style="transition:transform 0.2s;display:inline-block;">▼</span>
+      </button>
+      <div id="meas-section" style="display:none;margin-top:2px;"></div>
+    </div>
+
+    <!-- Period tracking (נשים בלבד) -->
+    <div class="period-card" id="period-card" style="display:none;">
+      <div class="period-info">
+        <div class="period-title">🔴 מחזור חודשי</div>
+        <div class="period-sub" id="period-sub-text">סמני כשמחזורך מתחיל ומסתיים — המאמן יראה את הסטטוס ויתאים את התוכנית בהתאם.</div>
+      </div>
+      <button class="btn-period inactive" id="btn-period" onclick="togglePeriod()">התחיל</button>
+    </div>
+
+    <!-- Weight + Water -->
+    <div class="weight-row" id="weight-row">
+      <div class="weight-info">
+        <div class="wlbl">משקל עדכני</div>
+        <div class="wval"><span id="weight-display">—</span> <span>ק"ג</span></div>
+      </div>
+      <button class="btn-weight" onclick="updateWeight()">⚖️ עדכן משקל</button>
+    </div>
+
+    <div class="water-card" id="water-card">
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <div style="font-size:1rem;font-weight:900;">💧 מעקב שתייה</div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span id="water-amount" style="font-size:0.88rem;color:#60a5fa;font-weight:700;">0 מ"ל</span>
+          <button onclick="undoLastWater()" title="בטל הוספה אחרונה" style="background:none;border:none;color:#555;cursor:pointer;font-size:0.8rem;padding:2px 4px;border-radius:4px;transition:color 0.2s;" onmouseover="this.style.color='#ff7070'" onmouseout="this.style.color='#555'">↩</button>
+        </div>
+      </div>
+      <div id="water-target-label" style="font-size:0.73rem;color:var(--muted);margin-top:2px;"></div>
+      <div class="water-track"><div class="water-fill" id="water-fill" style="width:0%"></div></div>
+      <div class="water-btn-row">
+        <button class="water-btn" onclick="addWater(150)">כוס<span>150 מ"ל</span></button>
+        <button class="water-btn" onclick="addWater(500)">בקבוק קטן<span>500 מ"ל</span></button>
+        <button class="water-btn" onclick="addWater(1500)">בקבוק גדול<span>1.5 ל׳</span></button>
+      </div>
     </div>
   </div>
 
-  <!-- Records -->
-  <div class="lib-banner" onclick="openRecords()" style="cursor:pointer;">
-    <div class="lib-icon">🏆</div>
-    <div class="lib-text">
-      <div class="lib-title">שיאי נבחרת</div>
-      <div class="lib-sub">דירוג מתאמנים לפי שיאי כוח וצעדים יומיים</div>
+  <!-- TAB: היסטוריה -->
+  <div class="tab-page" id="tab-history">
+    <div class="section">
+      <div class="sec-title"><span class="icon">📊</span> יומן אימונים</div>
+      <div id="history-wrap"></div>
     </div>
-    <div class="lib-arrow">←</div>
   </div>
 
-  <!-- Exercise Library -->
-  <a href="exercises.html" class="lib-banner">
-    <div class="lib-icon">🏋️</div>
-    <div class="lib-text">
-      <div class="lib-title">מאגר תרגילים</div>
-      <div class="lib-sub">סרטוני אנטומיה והסבר לכל תרגיל לפי קבוצת שריר</div>
-    </div>
-    <div class="lib-arrow">←</div>
-  </a>
+</div>
 
-  <!-- Food Library -->
-  <a href="food.html" class="lib-banner">
-    <div class="lib-icon">🥗</div>
-    <div class="lib-text">
-      <div class="lib-title">מאגר מזון</div>
-      <div class="lib-sub">ערכים תזונתיים לכל 100 גרם, מחולקים לקטגוריות</div>
-    </div>
-    <div class="lib-arrow">←</div>
-  </a>
-
-  <!-- Training Plan -->
-  <div class="section" id="plan-training-section" style="position:relative;">
-    <div class="sec-title"><span class="icon">🏋️</span> תוכנית אימונים</div>
-    <div id="training-wrap"></div>
-  </div>
-
-  <!-- Nutrition -->
-  <div class="lib-banner" id="plan-nutrition-banner" onclick="openNutrition()" style="cursor:pointer;position:relative;">
-    <div class="lib-icon">🥗</div>
-    <div class="lib-text">
-      <div class="lib-title">מעקב תזונה יומי</div>
-      <div class="lib-sub">מאקרו יומי, יומן אכילה ותפריט מוצע</div>
-    </div>
-    <div class="lib-arrow">←</div>
-  </div>
-
-  <!-- Workout History -->
-  <div class="section">
-    <div class="sec-title"><span class="icon">📊</span> יומן אימונים</div>
-    <div id="history-wrap"></div>
-  </div>
-
-
+<!-- BOTTOM TAB BAR -->
+<div class="tabbar" id="tabbar" style="display:none;">
+  <button class="tab-btn active" data-tab="workouts" onclick="switchTab('workouts')">
+    <span class="tab-ic">🏋️</span><span>אימונים</span>
+  </button>
+  <button class="tab-btn" data-tab="records" onclick="switchTab('records')">
+    <span class="tab-ic">🏆</span><span>שיאים</span>
+  </button>
+  <button class="tab-btn" data-tab="nutrition" id="tab-btn-nutrition" onclick="switchTab('nutrition')">
+    <span class="tab-ic">🥗</span><span>תזונה</span>
+  </button>
+  <button class="tab-btn" data-tab="measurements" onclick="switchTab('measurements')">
+    <span class="tab-ic">📏</span><span>מדידות</span>
+  </button>
+  <button class="tab-btn" data-tab="history" onclick="switchTab('history')">
+    <span class="tab-ic">📊</span><span>היסטוריה</span>
+  </button>
 </div>
 
 
@@ -826,24 +861,6 @@
       <button class="btn-ai-send" onclick="sendAiMsg()">שלח</button>
     </div>
   </div>
-</div>
-
-<!-- NUTRITION OVERLAY -->
-<div class="nutri-overlay" id="nutri-overlay">
-  <div class="nutri-hdr">
-    <div class="nutri-hdr-title">🥗 מעקב תזונה</div>
-    <button class="btn-close-rec" onclick="closeNutrition()">✕</button>
-  </div>
-  <div class="nutri-body" id="nutri-body"></div>
-</div>
-
-<!-- RECORDS OVERLAY -->
-<div class="records-overlay" id="records-overlay">
-  <div class="rec-hdr">
-    <div class="rec-hdr-title">🏆 שיאי נבחרת</div>
-    <button class="btn-close-rec" onclick="closeRecords()">✕</button>
-  </div>
-  <div class="rec-body" id="rec-body"></div>
 </div>
 
 <!-- WORKOUT SESSION -->
@@ -987,11 +1004,13 @@
     document.getElementById('loader').style.opacity = '0';
     setTimeout(() => document.getElementById('loader').style.display = 'none', 300);
     document.getElementById('main').style.display = 'block';
+    document.getElementById('tabbar').style.display = 'flex';
     initOneSignal(email);
 
     if (!client) {
       document.getElementById('client-name').textContent = email.split('@')[0];
       document.getElementById('timer-card').innerHTML = '<div style="color:#555;padding:20px;">ממתין לאישור מאמן — צור קשר עם הלל להפעלת האזור האישי שלך.</div>';
+      document.getElementById('tabbar').style.display = 'none';
       return;
     }
 
@@ -1004,6 +1023,9 @@
     const days  = Math.ceil((end - now) / 86400000);
     const numEl = document.getElementById('timer-num');
     numEl.textContent = days > 0 ? days : '0';
+    const totalDays = Math.max(1, Math.ceil((end - start) / 86400000));
+    const pct = Math.min(100, Math.max(0, (Math.max(0, days) / totalDays) * 100));
+    document.getElementById('hero-ring').style.setProperty('--pct', pct);
     if (days <= 0) {
       numEl.classList.add('expired');
       document.getElementById('timer-label').textContent = 'הליווי הסתיים';
@@ -1590,6 +1612,25 @@
     t._timer = setTimeout(() => { t.style.opacity = '0'; }, 4000);
   }
 
+  /* ── TAB NAVIGATION ── */
+  function switchTab(name) {
+    const btn = document.querySelector('.tab-btn[data-tab="' + name + '"]');
+    if (btn && btn.classList.contains('locked')) {
+      showDashToast('🔒 התוכן נעול — חדש את הליווי כדי לגשת לתזונה');
+      return;
+    }
+    document.querySelectorAll('.tab-page').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('tab-' + name)?.classList.add('active');
+    btn?.classList.add('active');
+    window.scrollTo({ top: 0, behavior: 'instant' });
+    if (name === 'records') openRecords();
+    if (name === 'nutrition') openNutrition();
+    if (name === 'measurements' && progressChart) {
+      requestAnimationFrame(() => progressChart.resize());
+    }
+  }
+
   /* ── HISTORY ── */
   function renderHistory(logs) {
     const wrap = document.getElementById('history-wrap');
@@ -1761,8 +1802,6 @@ ${foodList || 'אין פריטים'}
 
   /* ── NUTRITION ── */
   async function openNutrition() {
-    document.getElementById('nutri-overlay').classList.add('open');
-    document.body.style.overflow = 'hidden';
     if (foodItems === null || foodLogs === null || recipes === null) {
       document.getElementById('nutri-body').innerHTML = '<div class="empty">טוען...</div>';
       const today = new Date().toISOString().split('T')[0];
@@ -1776,12 +1815,6 @@ ${foodList || 'אין פריטים'}
       if (recRes.data !== null) recipes   = recRes.data || [];
     }
     renderNutriBody();
-  }
-
-  function closeNutrition() {
-    document.getElementById('nutri-overlay').classList.remove('open');
-    document.body.style.overflow = '';
-    hideFoodSugg();
   }
 
   function renderNutriBody() {
@@ -2294,8 +2327,6 @@ ${foodList || 'אין פריטים'}
   }
 
   async function openRecords() {
-    document.getElementById('records-overlay').classList.add('open');
-    document.body.style.overflow = 'hidden';
     if (recLogs !== null) { renderRecBody(); return; }
     document.getElementById('rec-body').innerHTML = '<div class="empty">טוען נתונים...</div>';
     const today = new Date().toISOString().split('T')[0];
@@ -2343,11 +2374,6 @@ ${foodList || 'אין פריטים'}
       recExercise = (RECORD_EXERCISES[recMuscle] || [])[0] || recExercise;
     }
     renderRecBody();
-  }
-
-  function closeRecords() {
-    document.getElementById('records-overlay').classList.remove('open');
-    document.body.style.overflow = '';
   }
 
   function renderRecBody() {
@@ -2513,21 +2539,12 @@ ${foodList || 'אין פריטים'}
         <button class="btn-lock-renew" onclick="document.getElementById('renewal-section')?.scrollIntoView({behavior:'smooth',block:'start'})">🔄 לחידוש הליווי</button>`;
       trainingSec.appendChild(ol);
     }
-    // נעל כפתור תזונה
-    const nutBanner = document.getElementById('plan-nutrition-banner');
-    if (nutBanner && !nutBanner.querySelector('.content-lock-overlay')) {
-      nutBanner.style.position = 'relative';
-      nutBanner.onclick = null;
-      nutBanner.style.cursor = 'default';
-      const ol2 = document.createElement('div');
-      ol2.className = 'content-lock-overlay';
-      ol2.style.borderRadius = '14px';
-      ol2.innerHTML = `
-        <div class="lock-icon">🔒</div>
-        <div class="lock-title">תפריט נעול</div>
-        <div class="lock-sub">חדש את המנוי לגישה לתפריט התזונה</div>
-        <button class="btn-lock-renew" onclick="document.getElementById('renewal-section')?.scrollIntoView({behavior:'smooth',block:'start'})">🔄 לחידוש הליווי</button>`;
-      nutBanner.appendChild(ol2);
+    // נעל כרטיסיית תזונה
+    const nutTabBtn = document.getElementById('tab-btn-nutrition');
+    if (nutTabBtn && !nutTabBtn.classList.contains('locked')) {
+      nutTabBtn.classList.add('locked');
+      const ic = nutTabBtn.querySelector('.tab-ic');
+      if (ic) ic.textContent = '🔒';
     }
   }
 
