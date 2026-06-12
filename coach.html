@@ -182,6 +182,11 @@
     .sched-badge { font-size:0.7rem;padding:3px 8px;border-radius:10px;flex-shrink:0; }
     .sched-badge.pending { background:rgba(255,107,0,0.1);color:var(--orange);border:1px solid rgba(255,107,0,0.3); }
     .sched-badge.done { background:rgba(60,200,60,0.08);color:#70dd70;border:1px solid rgba(60,200,60,0.25); }
+    .sched-badge.recurring { background:rgba(255,215,0,0.08);color:var(--gold);border:1px solid rgba(255,215,0,0.3); }
+    .btn-del-sched { background:none;border:none;color:#555;font-size:0.95rem;cursor:pointer;padding:2px 4px;flex-shrink:0;transition:color 0.2s; }
+    .btn-del-sched:hover { color:#ff7070; }
+    .sched-type-row { display:flex;gap:16px;align-items:center; }
+    .sched-type-row label { display:flex;align-items:center;gap:6px;font-size:0.85rem;font-weight:400;cursor:pointer;color:var(--white); }
     /* PLANS OVERLAY */
     .plans-overlay { position: fixed; inset: 0; z-index: 400; background-color: var(--black); background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 130 80'%3E%3Ctext x='65' y='65' text-anchor='middle' font-family='Arial Black%2Csans-serif' font-weight='900' font-size='68' fill='%23FF6B00' opacity='0.08'%3EFJ%3C/text%3E%3C/svg%3E"); background-attachment: fixed; background-position: center center; background-repeat: no-repeat; background-size: 140px; display: none; flex-direction: column; overflow: hidden; }
     .plans-overlay.open { display: flex; }
@@ -1017,44 +1022,89 @@
       list.innerHTML = '<div style="color:#444;font-size:0.82rem;text-align:center;padding:20px 0;">אין הודעות מתוזמנות</div>';
       return;
     }
+    const todayStr = new Date().toISOString().split('T')[0];
     list.innerHTML = data.map(m => {
+      if (m.recurring) {
+        const sentToday = m.last_sent_date === todayStr;
+        return `<div class="sched-item">
+          <div class="sched-item-msg" title="${m.message}">${m.message}</div>
+          <div class="sched-item-time">🔁 כל יום ב-${m.time_of_day}</div>
+          <div class="sched-badge recurring">${sentToday ? '✓ נשלח היום' : 'ממתין'}</div>
+          <button class="btn-del-sched" onclick="deleteScheduledMessage(${m.id})" title="מחק">✕</button>
+        </div>`;
+      }
       const dt = new Date(m.scheduled_time);
       const ts = dt.toLocaleString('he-IL', { day:'2-digit', month:'2-digit', year:'2-digit', hour:'2-digit', minute:'2-digit' });
       return `<div class="sched-item${m.sent ? ' sent' : ''}">
         <div class="sched-item-msg" title="${m.message}">${m.message}</div>
         <div class="sched-item-time">${ts}</div>
         <div class="sched-badge ${m.sent ? 'done' : 'pending'}">${m.sent ? '✓ נשלח' : 'ממתין'}</div>
+        <button class="btn-del-sched" onclick="deleteScheduledMessage(${m.id})" title="מחק">✕</button>
       </div>`;
     }).join('');
-    // Fire overdue pending messages
+
+    // הודעות חד-פעמיות שעבר זמנן
     const now = new Date();
-    const overdue = data.filter(m => !m.sent && new Date(m.scheduled_time) <= now);
-    if (overdue.length) {
+    const overdue = data.filter(m => !m.recurring && !m.sent && new Date(m.scheduled_time) <= now);
+    // הודעות חזרה יומית שהשעה שלהן הגיעה והיום עוד לא נשלחו
+    const nowTimeStr = now.toTimeString().slice(0, 5);
+    const dueRecurring = data.filter(m => m.recurring && m.time_of_day && m.last_sent_date !== todayStr && nowTimeStr >= m.time_of_day);
+
+    if (overdue.length || dueRecurring.length) {
       const emails = clients.map(c => c.email);
-      if (emails.length) {
-        const { data: toks } = await sb.from('push_tokens').select('onesignal_player_id').in('user_email', emails);
-        const ids = (toks || []).map(t => t.onesignal_player_id);
-        for (const m of overdue) {
-          await sendPush(ids, 'הודעה ממאמנך', m.message);
-          await sb.from('scheduled_messages').update({ sent: true }).eq('id', m.id);
-        }
+      const { data: toks } = emails.length
+        ? await sb.from('push_tokens').select('onesignal_player_id').in('user_email', emails)
+        : { data: [] };
+      const ids = (toks || []).map(t => t.onesignal_player_id).filter(Boolean);
+      for (const m of overdue) {
+        if (ids.length) await sendPush(ids, 'הודעה ממאמנך', m.message);
+        await sb.from('scheduled_messages').update({ sent: true }).eq('id', m.id);
+      }
+      for (const m of dueRecurring) {
+        if (ids.length) await sendPush(ids, 'הודעה ממאמנך', m.message);
+        await sb.from('scheduled_messages').update({ last_sent_date: todayStr }).eq('id', m.id);
       }
       loadScheduledMessages();
     }
   }
 
+  function toggleSchedType() {
+    const isRecurring = document.querySelector('input[name="sched-type"]:checked').value === 'recurring';
+    document.getElementById('sched-once-wrap').style.display = isRecurring ? 'none' : 'block';
+    document.getElementById('sched-recurring-wrap').style.display = isRecurring ? 'block' : 'none';
+  }
+
   async function saveScheduledMessage() {
-    const msg  = document.getElementById('sched-msg').value.trim();
-    const time = document.getElementById('sched-time').value;
-    if (!msg || !time) { toast('יש למלא הודעה ושעה', 'err'); return; }
+    const msg = document.getElementById('sched-msg').value.trim();
+    const isRecurring = document.querySelector('input[name="sched-type"]:checked').value === 'recurring';
+    if (!msg) { toast('יש למלא הודעה', 'err'); return; }
+    let payload = { coach_email: coachEmail, message: msg, sent: false, scheduled_time: new Date().toISOString() };
+    if (isRecurring) {
+      const time = document.getElementById('sched-time-daily').value;
+      if (!time) { toast('יש לבחור שעה', 'err'); return; }
+      payload.recurring = true;
+      payload.time_of_day = time;
+    } else {
+      const time = document.getElementById('sched-time').value;
+      if (!time) { toast('יש לבחור תאריך ושעה', 'err'); return; }
+      payload.recurring = false;
+      payload.scheduled_time = new Date(time).toISOString();
+    }
     const btn = document.querySelector('.btn-add-sched');
     btn.disabled = true;
-    const { error } = await sb.from('scheduled_messages').insert({ coach_email: coachEmail, message: msg, scheduled_time: new Date(time).toISOString(), sent: false });
+    const { error } = await sb.from('scheduled_messages').insert(payload);
     btn.disabled = false;
     if (error) { toast('שגיאה בשמירה', 'err'); return; }
     document.getElementById('sched-msg').value = '';
     document.getElementById('sched-time').value = '';
+    document.getElementById('sched-time-daily').value = '';
     toast('התזמון נשמר', 'ok');
+    loadScheduledMessages();
+  }
+
+  async function deleteScheduledMessage(id) {
+    if (!confirm('למחוק תזמון זה?')) return;
+    await sb.from('scheduled_messages').delete().eq('id', id);
     loadScheduledMessages();
   }
 
@@ -1514,6 +1564,10 @@
     await Promise.all([loadClients(), loadExerciseLibrary(), loadFoodItems()]);
     document.getElementById('loader').style.display = 'none';
     loadNotifications();
+
+    // בדיקה תקופתית של הודעות מתוזמנות/חזרה יומית כל עוד הדשבורד פתוח
+    loadScheduledMessages();
+    setInterval(loadScheduledMessages, 5 * 60 * 1000);
   }
 
   async function loadClients() {
@@ -4910,8 +4964,19 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
           <textarea id="sched-msg" rows="2" placeholder="תוכן ההודעה..."></textarea>
         </div>
         <div class="f-group">
+          <label>סוג תזמון</label>
+          <div class="sched-type-row">
+            <label><input type="radio" name="sched-type" value="once" checked onchange="toggleSchedType()"> חד-פעמי</label>
+            <label><input type="radio" name="sched-type" value="recurring" onchange="toggleSchedType()"> חזרה יומית</label>
+          </div>
+        </div>
+        <div class="f-group" id="sched-once-wrap">
           <label>תאריך ושעה</label>
           <input type="datetime-local" id="sched-time" style="padding:9px 12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:7px;color:var(--white);font-family:'Heebo',sans-serif;font-size:0.88rem;outline:none;"/>
+        </div>
+        <div class="f-group" id="sched-recurring-wrap" style="display:none;">
+          <label>שעה יומית</label>
+          <input type="time" id="sched-time-daily" style="padding:9px 12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:7px;color:var(--white);font-family:'Heebo',sans-serif;font-size:0.88rem;outline:none;"/>
         </div>
         <button class="btn-sm btn-orange btn-add-sched" onclick="saveScheduledMessage()" style="align-self:flex-start;">+ הוסף תזמון</button>
       </div>

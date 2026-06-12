@@ -80,6 +80,22 @@
       border-radius: 20px; font-size: 0.75rem; font-weight: 700; color: var(--gold);
     }
 
+    /* NOTIFICATION PERMISSION BANNER */
+    .notif-banner {
+      display: none; align-items: center; justify-content: space-between; gap: 12px;
+      background: rgba(255,107,0,0.08); border: 1px solid rgba(255,107,0,0.3);
+      border-radius: 12px; padding: 12px 16px; margin-bottom: 20px; font-size: 0.85rem;
+    }
+    .notif-banner.show { display: flex; }
+    .notif-banner .btn-enable-notif {
+      background: linear-gradient(135deg, var(--orange), #FF8C00); border: none; border-radius: 8px;
+      color: #fff; font-family: 'Heebo', sans-serif; font-size: 0.82rem; font-weight: 700;
+      padding: 8px 16px; cursor: pointer; white-space: nowrap;
+    }
+    .notif-banner .btn-dismiss-notif {
+      background: none; border: none; color: #666; font-size: 1.1rem; cursor: pointer; padding: 0 4px;
+    }
+
     /* TAB PAGES + BOTTOM TAB BAR */
     .tab-page { display: none; }
     .tab-page.active { display: block; }
@@ -700,6 +716,15 @@
     </div>
   </div>
 
+  <!-- NOTIFICATION PERMISSION BANNER -->
+  <div class="notif-banner" id="notif-banner">
+    <div>🔔 הפעל התראות כדי לקבל עדכונים והודעות מהמאמן</div>
+    <div style="display:flex;gap:6px;align-items:center;">
+      <button class="btn-enable-notif" onclick="enableNotifications()">הפעל</button>
+      <button class="btn-dismiss-notif" onclick="dismissNotifBanner()">✕</button>
+    </div>
+  </div>
+
   <!-- TAB: אימונים -->
   <div class="tab-page active" id="tab-workouts">
 
@@ -921,8 +946,39 @@
     });
   }
 
-  // לא נדרש עוד אישור ידני — שמור לתאימות
-  async function requestNotifPermission() { /* auto handled by initOneSignal */ }
+  // בקשת אישור התראות חייבת לקרות בתוך אינטראקציה של המשתמש (קליק) —
+  // לכן מציגים באנר עם כפתור, ולא קוראים ל-optIn אוטומטית בטעינת הדף
+  function checkNotifBanner() {
+    if (!('Notification' in window)) return;
+    if (localStorage.getItem('notifBannerDismissed') === '1') return;
+    if (Notification.permission === 'default') {
+      document.getElementById('notif-banner')?.classList.add('show');
+    }
+  }
+
+  function dismissNotifBanner() {
+    document.getElementById('notif-banner')?.classList.remove('show');
+    localStorage.setItem('notifBannerDismissed', '1');
+  }
+
+  function enableNotifications() {
+    window.OneSignalDeferred = window.OneSignalDeferred || [];
+    OneSignalDeferred.push(async function(OneSignal) {
+      try {
+        await OneSignal.User.PushSubscription.optIn();
+        const subId = OneSignal.User.PushSubscription.id;
+        if (subId && currentEmail) {
+          await sb.from('push_tokens').upsert(
+            { user_email: currentEmail, onesignal_player_id: subId, updated_at: new Date().toISOString() },
+            { onConflict: 'user_email' }
+          );
+        }
+      } catch(e) { console.warn('enableNotifications:', e); }
+      dismissNotifBanner();
+      if (Notification.permission === 'granted') showDashToast('🔔 התראות הופעלו בהצלחה ✓');
+      else showDashToast('לא הופעלו התראות — ניתן לאפשר זאת בהגדרות הדפדפן', 'err');
+    });
+  }
 
   // הצג התראה native כשהודעה חדשה מגיעה
   function notifyNewMsg(title, body, onClickFn) {
@@ -1010,6 +1066,7 @@
     document.getElementById('main').style.display = 'block';
     document.getElementById('tabbar').style.display = 'flex';
     initOneSignal(email);
+    checkNotifBanner();
 
     if (!client) {
       document.getElementById('client-name').textContent = email.split('@')[0];
