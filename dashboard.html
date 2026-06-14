@@ -966,7 +966,13 @@
     OneSignalDeferred.push(async function(OneSignal) {
       try {
         await OneSignal.User.PushSubscription.optIn();
-        const subId = OneSignal.User.PushSubscription.id;
+        // ל-OneSignal לוקח כמה מאות מ"ש לקבל subscription id אחרי optIn,
+        // לכן עושים כמה ניסיונות עד שמקבלים אותו
+        let subId = OneSignal.User.PushSubscription.id;
+        for (let i = 0; i < 6 && !subId; i++) {
+          await new Promise(r => setTimeout(r, 500));
+          subId = OneSignal.User.PushSubscription.id;
+        }
         if (subId && currentEmail) {
           await sb.from('push_tokens').upsert(
             { user_email: currentEmail, onesignal_player_id: subId, updated_at: new Date().toISOString() },
