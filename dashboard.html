@@ -964,7 +964,7 @@
         }
         window._OS = OneSignal;
         window._OSUserEmail = userEmail;
-      } catch(e) { console.warn('OneSignal:', e); }
+      } catch(e) { console.warn('OneSignal:', e); window._OSError = e?.message || String(e); }
       // מעדכנים את הסוויטץ' רק אחרי שהאינטיליזציה וה-opt-in האוטומטי הסתיימו —
       // כך נמנעים ממצב גזע שבו הסוויטץ' מוצג כ-OFF לפני שה-optedIn התעדכן
       updateNotifToggleUI();
@@ -1050,6 +1050,7 @@
     lines.push('Service Worker API: ' + ('serviceWorker' in navigator ? 'יש' : 'אין'));
     const OneSignal = window._OS;
     lines.push('OneSignal SDK: ' + (OneSignal ? 'נטען' : 'לא נטען'));
+    if (window._OSError) lines.push('OneSignal שגיאת init: ' + window._OSError);
     if (OneSignal) {
       try {
         lines.push('מנוי פעיל (optedIn): ' + OneSignal.User.PushSubscription.optedIn);
