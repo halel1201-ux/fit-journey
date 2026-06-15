@@ -87,14 +87,28 @@
       border-radius: 12px; padding: 12px 16px; margin-bottom: 20px; font-size: 0.85rem;
     }
     .notif-banner.show { display: flex; }
-    .notif-banner .btn-enable-notif {
-      background: linear-gradient(135deg, var(--orange), #FF8C00); border: none; border-radius: 8px;
-      color: #fff; font-family: 'Heebo', sans-serif; font-size: 0.82rem; font-weight: 700;
-      padding: 8px 16px; cursor: pointer; white-space: nowrap;
+    .notif-switch {
+      position: relative; display: inline-block; width: 46px; height: 26px; flex-shrink: 0; cursor: pointer;
     }
-    .notif-banner .btn-dismiss-notif {
-      background: none; border: none; color: #666; font-size: 1.1rem; cursor: pointer; padding: 0 4px;
+    .notif-switch input { opacity: 0; width: 0; height: 0; position: absolute; }
+    .notif-switch-slider {
+      position: absolute; inset: 0; background: rgba(255,255,255,0.18);
+      border-radius: 999px; transition: background 0.25s;
     }
+    .notif-switch-slider::before {
+      content: ''; position: absolute; width: 20px; height: 20px; left: 3px; top: 3px;
+      background: #fff; border-radius: 50%; transition: transform 0.25s;
+    }
+    .notif-switch input:checked + .notif-switch-slider {
+      background: linear-gradient(135deg, var(--orange), #FF8C00);
+    }
+    .notif-switch input:checked + .notif-switch-slider::before {
+      transform: translateX(20px);
+    }
+    .notif-switch-label {
+      font-size: 0.72rem; font-weight: 700; color: #888; letter-spacing: 0.5px; min-width: 28px; text-align: center;
+    }
+    .notif-switch-label.on { color: var(--orange); }
 
     /* TAB PAGES + BOTTOM TAB BAR */
     .tab-page { display: none; }
@@ -718,10 +732,13 @@
 
   <!-- NOTIFICATION PERMISSION BANNER -->
   <div class="notif-banner" id="notif-banner">
-    <div>🔔 הפעל התראות כדי לקבל עדכונים והודעות מהמאמן</div>
-    <div style="display:flex;gap:6px;align-items:center;">
-      <button class="btn-enable-notif" onclick="enableNotifications()">הפעל</button>
-      <button class="btn-dismiss-notif" onclick="dismissNotifBanner()">✕</button>
+    <div id="notif-banner-text">🔔 הפעל התראות כדי לקבל עדכונים והודעות מהמאמן</div>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <span class="notif-switch-label" id="notif-switch-label">OFF</span>
+      <label class="notif-switch">
+        <input type="checkbox" id="notif-toggle" onchange="onNotifToggle(this)">
+        <span class="notif-switch-slider"></span>
+      </label>
     </div>
   </div>
 
@@ -932,6 +949,11 @@
         // הדפדפן/מכשיר ישאל פעם אחת בלבד בהתקנת ה-PWA
         if (!OneSignal.User.PushSubscription.optedIn) {
           await OneSignal.User.PushSubscription.optIn();
+          // אחרי רענון לוקח ל-OneSignal רגע "להעלות" את ה-optedIn מהאחסון המקומי —
+          // בלי ההמתנה הזו הסוויטץ' היה מציג OFF גם כשבפועל ההרשמה כבר פעילה
+          for (let i = 0; i < 6 && !OneSignal.User.PushSubscription.optedIn; i++) {
+            await new Promise(r => setTimeout(r, 300));
+          }
         }
         const subId = OneSignal.User.PushSubscription.id;
         if (subId && userEmail) {
@@ -943,24 +965,39 @@
         window._OS = OneSignal;
         window._OSUserEmail = userEmail;
       } catch(e) { console.warn('OneSignal:', e); }
+      // מעדכנים את הסוויטץ' רק אחרי שהאינטיליזציה וה-opt-in האוטומטי הסתיימו —
+      // כך נמנעים ממצב גזע שבו הסוויטץ' מוצג כ-OFF לפני שה-optedIn התעדכן
+      updateNotifToggleUI();
     });
   }
 
-  // בקשת אישור התראות חייבת לקרות בתוך אינטראקציה של המשתמש (קליק) —
-  // לכן מציגים באנר עם כפתור, ולא קוראים ל-optIn אוטומטית בטעינת הדף
+  // מציגים את הבאנר עם הסוויטץ' (המצב עצמו מתעדכן בסוף initOneSignal)
   function checkNotifBanner() {
     if (!('Notification' in window)) return;
-    if (localStorage.getItem('notifBannerDismissed') === '1') return;
-    if (Notification.permission === 'default') {
-      document.getElementById('notif-banner')?.classList.add('show');
-    }
+    document.getElementById('notif-banner')?.classList.add('show');
   }
 
-  function dismissNotifBanner() {
-    document.getElementById('notif-banner')?.classList.remove('show');
-    localStorage.setItem('notifBannerDismissed', '1');
+  // מעדכן את מצב הסוויטץ' והטקסט לפי הסטטוס בפועל של המנוי ב-OneSignal
+  function updateNotifToggleUI() {
+    const OneSignal = window._OS;
+    const toggle = document.getElementById('notif-toggle');
+    const label = document.getElementById('notif-switch-label');
+    const text = document.getElementById('notif-banner-text');
+    if (!toggle || !OneSignal) return;
+    const isOn = OneSignal.User.PushSubscription.optedIn === true;
+    toggle.checked = isOn;
+    if (label) { label.textContent = isOn ? 'ON' : 'OFF'; label.classList.toggle('on', isOn); }
+    if (text) text.textContent = isOn ? '🔔 התראות פעילות' : '🔔 הפעל התראות כדי לקבל עדכונים והודעות מהמאמן';
   }
 
+  // קליק על הסוויטץ' — הופך בין הפעלה לכיבוי התראות
+  function onNotifToggle(checkbox) {
+    if (checkbox.checked) enableNotifications();
+    else disableNotifications();
+  }
+
+  // בקשת אישור התראות חייבת לקרות בתוך אינטראקציה של המשתמש (קליק) —
+  // לכן הקריאה ל-optIn קורית מתוך onNotifToggle ולא אוטומטית בטעינת הדף
   function enableNotifications() {
     window.OneSignalDeferred = window.OneSignalDeferred || [];
     OneSignalDeferred.push(async function(OneSignal) {
@@ -980,9 +1017,20 @@
           );
         }
       } catch(e) { console.warn('enableNotifications:', e); }
-      dismissNotifBanner();
       if (Notification.permission === 'granted') showDashToast('🔔 התראות הופעלו בהצלחה ✓');
       else showDashToast('לא הופעלו התראות — ניתן לאפשר זאת בהגדרות הדפדפן', 'err');
+      updateNotifToggleUI();
+    });
+  }
+
+  // כיבוי התראות — מנתק את המנוי מ-OneSignal (לא דורש הרשאת דפדפן)
+  function disableNotifications() {
+    window.OneSignalDeferred = window.OneSignalDeferred || [];
+    OneSignalDeferred.push(async function(OneSignal) {
+      try { await OneSignal.User.PushSubscription.optOut(); }
+      catch(e) { console.warn('disableNotifications:', e); }
+      showDashToast('🔕 התראות כבויות');
+      updateNotifToggleUI();
     });
   }
 
