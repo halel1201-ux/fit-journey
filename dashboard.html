@@ -940,20 +940,18 @@
       try {
         await OneSignal.init({
           appId: ONESIGNAL_APP_ID,
-          serviceWorkerPath: 'OneSignalSDKWorker.js',
+          serviceWorkerPath: 'sw.js',
           notifyButton: { enable: false },
           allowLocalhostAsSecureOrigin: true,
           autoResubscribe: true,
         });
-        // כניסה לפאנל = אישור אוטומטי להתראות
-        // הדפדפן/מכשיר ישאל פעם אחת בלבד בהתקנת ה-PWA
-        if (!OneSignal.User.PushSubscription.optedIn) {
-          await OneSignal.User.PushSubscription.optIn();
-          // אחרי רענון לוקח ל-OneSignal רגע "להעלות" את ה-optedIn מהאחסון המקומי —
-          // בלי ההמתנה הזו הסוויטץ' היה מציג OFF גם כשבפועל ההרשמה כבר פעילה
-          for (let i = 0; i < 6 && !OneSignal.User.PushSubscription.optedIn; i++) {
-            await new Promise(r => setTimeout(r, 300));
-          }
+        // לא קוראים ל-optIn אוטומטית כאן — בקשת הרשאה בלי קליק של המשתמש
+        // נכשלת בשקט בהרבה דפדפנים (בעיקר במובייל), והדפדפן "נועל" אותה
+        // ל-denied לצמיתות. ההפעלה קורית רק מתוך onNotifToggle (קליק אמיתי).
+        // כן ממתינים רגע ל-OneSignal "להעלות" מצב מנוי קיים מהאחסון המקומי —
+        // בלי ההמתנה הזו הסוויטץ' עלול להציג OFF גם כשבפועל המנוי כבר פעיל.
+        for (let i = 0; i < 6 && !OneSignal.User.PushSubscription.optedIn; i++) {
+          await new Promise(r => setTimeout(r, 300));
         }
         const subId = OneSignal.User.PushSubscription.id;
         if (subId && userEmail) {

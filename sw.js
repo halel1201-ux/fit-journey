@@ -1,4 +1,8 @@
 /* ── HF Coaching Service Worker ── */
+// מאחדים את ה-Service Worker של OneSignal עם שלנו, כדי שלא יתחרו על אותו scope
+// (שני SW-ים נפרדים על "/" גורמים לבעיות הרשמה ל-Push, בעיקר ב-iOS Safari)
+importScripts('https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js');
+
 const CACHE = 'hf-v1';
 
 const STATIC = [
