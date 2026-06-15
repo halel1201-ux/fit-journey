@@ -964,27 +964,52 @@
         }
         window._OS = OneSignal;
         window._OSUserEmail = userEmail;
+        // מאזינים לשינויים במנוי (למשל autoResubscribe שמסיים אחרי כמה שניות)
+        // כדי לעדכן את הסוויטץ' ולשמור token חדש אם נוצר
+        OneSignal.User.PushSubscription.addEventListener('change', async () => {
+          updateNotifToggleUI();
+          const id = OneSignal.User.PushSubscription.id;
+          if (id && window._OSUserEmail) {
+            await sb.from('push_tokens').upsert(
+              { user_email: window._OSUserEmail, onesignal_player_id: id, updated_at: new Date().toISOString() },
+              { onConflict: 'user_email' }
+            );
+          }
+        });
       } catch(e) { console.warn('OneSignal:', e); window._OSError = e?.message || String(e); }
-      // מעדכנים את הסוויטץ' רק אחרי שהאינטיליזציה וה-opt-in האוטומטי הסתיימו —
-      // כך נמנעים ממצב גזע שבו הסוויטץ' מוצג כ-OFF לפני שה-optedIn התעדכן
       updateNotifToggleUI();
     });
   }
 
-  // מציגים את הבאנר עם הסוויטץ' (המצב עצמו מתעדכן בסוף initOneSignal)
+  // מציגים את הבאנר וטוענים מיד את המצב האחרון שנשמר, בלי לחכות ל-OneSignal
   function checkNotifBanner() {
     if (!('Notification' in window)) return;
     document.getElementById('notif-banner')?.classList.add('show');
+    updateNotifToggleUI(); // מציג מצב מ-cache מיד בטעינה
   }
 
-  // מעדכן את מצב הסוויטץ' והטקסט לפי הסטטוס בפועל של המנוי ב-OneSignal
+  // שומר את מצב ההתראות ב-localStorage כדי שהסוויטץ' יוצג נכון בטעינה הבאה
+  function saveNotifState(isOn) {
+    try { localStorage.setItem('notif_state', isOn ? '1' : '0'); } catch(e) {}
+  }
+
+  // מעדכן את מצב הסוויטץ' — אם OneSignal טעון משתמשים בסטטוס האמיתי ושומרים אותו,
+  // אחרת מציגים את המצב השמור מהפעם הקודמת (או לפי הרשאת הדפדפן)
   function updateNotifToggleUI() {
     const OneSignal = window._OS;
     const toggle = document.getElementById('notif-toggle');
     const label = document.getElementById('notif-switch-label');
     const text = document.getElementById('notif-banner-text');
-    if (!toggle || !OneSignal) return;
-    const isOn = OneSignal.User.PushSubscription.optedIn === true;
+    if (!toggle) return;
+    let isOn;
+    if (OneSignal) {
+      isOn = OneSignal.User.PushSubscription.optedIn === true;
+      saveNotifState(isOn); // שומרים את המצב האמיתי לריענון הבא
+    } else {
+      // OneSignal עוד לא נטען — משתמשים ב-cache, ואם אין, לפי הרשאת הדפדפן
+      const cached = localStorage.getItem('notif_state');
+      isOn = cached !== null ? cached === '1' : (Notification.permission === 'granted');
+    }
     toggle.checked = isOn;
     if (label) { label.textContent = isOn ? 'ON' : 'OFF'; label.classList.toggle('on', isOn); }
     if (text) text.textContent = isOn ? '🔔 התראות פעילות' : '🔔 הפעל התראות כדי לקבל עדכונים והודעות מהמאמן';
