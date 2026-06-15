@@ -739,6 +739,7 @@
         <input type="checkbox" id="notif-toggle" onchange="onNotifToggle(this)">
         <span class="notif-switch-slider"></span>
       </label>
+      <button onclick="runNotifDiagnostics()" style="background:none;border:none;color:#777;font-size:0.95rem;cursor:pointer;padding:0 2px;" title="בדיקת מצב התראות">ℹ️</button>
     </div>
   </div>
 
@@ -1014,7 +1015,12 @@
             { onConflict: 'user_email' }
           );
         }
-      } catch(e) { console.warn('enableNotifications:', e); }
+      } catch(e) {
+        console.warn('enableNotifications:', e);
+        showDashToast('שגיאה בהפעלת התראות: ' + (e?.message || e), 'err');
+        updateNotifToggleUI();
+        return;
+      }
       if (Notification.permission === 'granted') showDashToast('🔔 התראות הופעלו בהצלחה ✓');
       else showDashToast('לא הופעלו התראות — ניתן לאפשר זאת בהגדרות הדפדפן', 'err');
       updateNotifToggleUI();
@@ -1030,6 +1036,33 @@
       showDashToast('🔕 התראות כבויות');
       updateNotifToggleUI();
     });
+  }
+
+  // בדיקת מצב התראות — מציג מסך מידע עם כל הנתונים הרלוונטיים לאבחון בעיות Push
+  async function runNotifDiagnostics() {
+    const lines = [];
+    const isStandalone = window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
+    lines.push('מותקן כ-PWA: ' + (isStandalone ? 'כן' : 'לא'));
+    lines.push('פרוטוקול: ' + location.protocol);
+    lines.push('Notification API: ' + ('Notification' in window ? 'יש' : 'אין'));
+    if ('Notification' in window) lines.push('הרשאה: ' + Notification.permission);
+    lines.push('Service Worker API: ' + ('serviceWorker' in navigator ? 'יש' : 'אין'));
+    const OneSignal = window._OS;
+    lines.push('OneSignal SDK: ' + (OneSignal ? 'נטען' : 'לא נטען'));
+    if (OneSignal) {
+      try {
+        lines.push('מנוי פעיל (optedIn): ' + OneSignal.User.PushSubscription.optedIn);
+        lines.push('subscription id: ' + (OneSignal.User.PushSubscription.id || 'אין'));
+      } catch(e) { lines.push('שגיאת OneSignal: ' + e.message); }
+    }
+    if ('serviceWorker' in navigator) {
+      try {
+        const regs = await navigator.serviceWorker.getRegistrations();
+        lines.push('Service Workers רשומים: ' + regs.length);
+        regs.forEach(r => lines.push('- ' + r.scope + ' ← ' + (r.active?.scriptURL || '?')));
+      } catch(e) { lines.push('שגיאת SW: ' + e.message); }
+    }
+    alert(lines.join('\n'));
   }
 
   // הצג התראה native כשהודעה חדשה מגיעה
