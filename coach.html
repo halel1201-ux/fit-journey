@@ -1002,7 +1002,7 @@
     try {
       const { data: tokens } = await sb.from('push_tokens').select('onesignal_player_id').in('user_email', clientEmails);
       const ids = (tokens || []).map(t => t.onesignal_player_id).filter(Boolean);
-      if (ids.length) await sendPush(ids, 'הודעה ממאמנך', msg);
+      if (ids.length) await sendPush(ids, `המאמן ${coachName}`, msg);
     } catch(e) {}
 
     btn.disabled = false; btn.textContent = '📣 שלח לכולם';
@@ -1057,11 +1057,11 @@
         : { data: [] };
       const ids = (toks || []).map(t => t.onesignal_player_id).filter(Boolean);
       for (const m of overdue) {
-        if (ids.length) await sendPush(ids, 'הודעה ממאמנך', m.message);
+        if (ids.length) await sendPush(ids, `המאמן ${coachName}`, m.message);
         await sb.from('scheduled_messages').update({ sent: true }).eq('id', m.id);
       }
       for (const m of dueRecurring) {
-        if (ids.length) await sendPush(ids, 'הודעה ממאמנך', m.message);
+        if (ids.length) await sendPush(ids, `המאמן ${coachName}`, m.message);
         await sb.from('scheduled_messages').update({ last_sent_date: todayStr }).eq('id', m.id);
       }
       loadScheduledMessages();
@@ -4451,7 +4451,7 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
       if (emails.length) {
         const { data: toks } = await sb.from('push_tokens').select('onesignal_player_id').in('user_email', emails);
         const ids = (toks || []).map(t => t.onesignal_player_id).filter(Boolean);
-        if (ids.length) await sendPush(ids, '👥 הודעה מהמאמן לקבוצה', text.slice(0,80));
+        if (ids.length) await sendPush(ids, `👥 ${coachName}`, text.slice(0,80));
       }
     } catch(e) {}
   }

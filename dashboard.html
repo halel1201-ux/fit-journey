@@ -709,6 +709,7 @@
   <div style="display:flex;gap:8px;align-items:center;">
     <a id="btn-admin-link" href="admin.html" style="display:none;padding:7px 18px;background:linear-gradient(135deg,var(--orange),#FF8C00);border-radius:6px;color:#fff;font-family:'Heebo',sans-serif;font-size:0.85rem;font-weight:700;text-decoration:none;">פאנל ניהול</a>
     <a id="btn-coach-link" href="coach.html" style="display:none;padding:7px 18px;background:transparent;border:1px solid rgba(255,107,0,0.4);border-radius:6px;color:var(--orange);font-family:'Heebo',sans-serif;font-size:0.85rem;font-weight:700;text-decoration:none;">החלף מצב — מאמן</a>
+    <button class="btn-logout" onclick="forceAppUpdate()" title="עדכון האפליקציה">🔄</button>
     <button class="btn-logout" onclick="logout()">יציאה</button>
   </div>
 </nav>
@@ -1361,6 +1362,22 @@
   async function logout() {
     await sb.auth.signOut();
     window.location.href = 'login.html';
+  }
+
+  // עדכון מלא של ה-PWA: מנקה קאש ו-Service Worker ישנים וטוען מחדש מהשרת
+  async function forceAppUpdate() {
+    showDashToast('🔄 מעדכן...');
+    try {
+      if ('caches' in window) {
+        const keys = await caches.keys();
+        await Promise.all(keys.map(k => caches.delete(k)));
+      }
+      if ('serviceWorker' in navigator) {
+        const regs = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(regs.map(r => r.unregister()));
+      }
+    } catch(e) { console.warn('forceAppUpdate:', e); }
+    location.reload();
   }
 
   /* ── WORKOUT SESSION ── */
