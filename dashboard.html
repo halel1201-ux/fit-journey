@@ -1074,7 +1074,8 @@
     if ('Notification' in window) lines.push('הרשאה: ' + Notification.permission);
     lines.push('Service Worker API: ' + ('serviceWorker' in navigator ? 'יש' : 'אין'));
     const OneSignal = window._OS;
-    lines.push('OneSignal SDK: ' + (OneSignal ? 'נטען' : 'לא נטען'));
+    lines.push('OneSignal script: ' + (typeof window.OneSignal !== 'undefined' ? 'נטען' : 'לא נטען (חסום?)'));
+    lines.push('OneSignal init: ' + (OneSignal ? 'הצליח' : 'לא רץ'));
     if (window._OSError) lines.push('OneSignal שגיאת init: ' + window._OSError);
     if (OneSignal) {
       try {
