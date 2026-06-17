@@ -3066,8 +3066,19 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
 
   /* ── EXERCISE AUTOCOMPLETE ── */
   async function loadExerciseLibrary() {
-    const { data } = await sb.from('exercises').select('id,name,muscle_group,sub_muscle_group').order('name');
-    exerciseLibrary = data || [];
+    try {
+      const res = await fetch('/strength_exercises.json');
+      const raw = await res.json();
+      exerciseLibrary = raw.map(ex => {
+        const md = ex.muscle_details || [];
+        return {
+          id:            ex.id,
+          name:          ex.name,
+          muscle_group:  md[0] ? md[0].group : (ex.muscle_groups?.[0] || ''),
+          sub_muscle_group: md[0] ? md[0].name : '',
+        };
+      });
+    } catch(e) { exerciseLibrary = []; }
   }
   async function loadFoodItems() {
     try {
@@ -3414,10 +3425,11 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
     const clientEmails = clients.map(c=>c.email);
     if(!clientEmails.length){ recLogs=[]; recSteps=[]; renderRecBody(); return; }
     const today=new Date().toISOString().split('T')[0];
-    const [{ data: logs },{ data: steps },{ data: allExs }] = await Promise.all([
+    const recExNames = new Set(Object.values(RECORD_EXERCISES).flat().map(n => normalizeRecEx(n)));
+    const allExs = exerciseLibrary.map(e => ({ name: e.name, muscle_group: e.muscle_group, compound: recExNames.has(normalizeRecEx(e.name)) }));
+    const [{ data: logs },{ data: steps }] = await Promise.all([
       sb.from('workout_logs').select('client_email,log_date,exercises').in('client_email',clientEmails),
       sb.from('steps_logs').select('client_email,steps').eq('log_date',today).in('client_email',clientEmails),
-      sb.from('exercises').select('name,muscle_group,compound').order('muscle_group').order('name')
     ]);
     recLogs=logs||[]; recSteps=steps||[];
     clients.forEach(c=>{ recClients[c.email]=c.name||c.email.split('@')[0]; });
