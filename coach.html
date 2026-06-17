@@ -2508,7 +2508,7 @@
     return `<div style="margin-bottom:10px;background:rgba(255,255,255,0.02);border-radius:8px;padding:10px 12px;">
       <div class="ex-row" style="margin-bottom:7px;">
         <input value="${esc(ex.name)}" oninput="trainingPlan[${di}].exercises[${ei}].name=this.value;showExSugg(this,${di},${ei})" onblur="setTimeout(hideExSugg,160)" autocomplete="off" placeholder="שם תרגיל" style="flex:2;"/>
-        <input value="${esc(ex.video_url||'')}" oninput="trainingPlan[${di}].exercises[${ei}].video_url=this.value" placeholder="קישור לסרטון" style="direction:ltr;text-align:right;flex:1;"/>
+        <button onclick="openDemoPicker(${di},${ei})" style="flex-shrink:0;padding:5px 10px;background:${ex.video_url?'rgba(255,107,0,0.15)':'rgba(255,255,255,0.04)'};border:1px solid ${ex.video_url?'rgba(255,107,0,0.5)':'rgba(255,255,255,0.1)'};border-radius:6px;color:${ex.video_url?'var(--orange)':'#666'};cursor:pointer;font-size:0.72rem;font-weight:700;font-family:'Heebo',sans-serif;white-space:nowrap;" title="${esc(ex.video_url||'לא הוגדרה הדגמה')}">${ex.video_url?'🎬 הדגמה ✓':'🎬 הדגמה'}</button>
         ${ei < total-1 ? `<button class="btn-link-next${ex.linked_next?' linked':''}" onclick="toggleLinkNext(${di},${ei})" title="חבר לתרגיל הבא לסופר-סט / טריפל-סט">🔗</button>` : ''}
         <div style="display:flex;flex-direction:column;gap:2px;">
           <button onclick="moveExercise(${di},${ei},-1)" ${ei===0?'disabled':''} style="padding:2px 6px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:4px;color:${ei===0?'#444':'#ccc'};cursor:${ei===0?'default':'pointer'};font-size:0.65rem;line-height:1;">▲</button>
@@ -3056,10 +3056,11 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
       exerciseLibrary = raw.map(ex => {
         const md = ex.muscle_details || [];
         return {
-          id:            ex.id,
-          name:          ex.name,
-          muscle_group:  md[0] ? md[0].group : (ex.muscle_groups?.[0] || ''),
-          sub_muscle_group: md[0] ? md[0].name : '',
+          id:               ex.id,
+          name:             ex.name,
+          muscle_group:     md[0] ? md[0].group : (ex.muscle_groups?.[0] || ''),
+          sub_muscle_group: md[0] ? md[0].name  : '',
+          video:            ex.video || '',
         };
       });
     } catch(e) { exerciseLibrary = []; }
@@ -3085,6 +3086,67 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
       })).filter(f => f.name && (f.calories > 0 || f.protein > 0));
     } catch(e) { allFoodItems = []; }
   }
+  /* ── DEMO PICKER ── */
+  let _demoPickerDi = null, _demoPickerEi = null;
+
+  function openDemoPicker(di, ei) {
+    _demoPickerDi = di; _demoPickerEi = ei;
+    document.getElementById('demo-picker-search').value = '';
+    renderDemoPickerList('');
+    document.getElementById('demo-picker-modal').style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+    setTimeout(() => document.getElementById('demo-picker-search').focus(), 80);
+  }
+
+  function closeDemoPicker() {
+    document.getElementById('demo-picker-modal').style.display = 'none';
+    document.body.style.overflow = '';
+  }
+
+  function renderDemoPickerList(q) {
+    const list_el = document.getElementById('demo-picker-list');
+    const curUrl = (trainingPlan[_demoPickerDi]?.exercises?.[_demoPickerEi]?.video_url || '').toLowerCase();
+    let items = exerciseLibrary.filter(e => e.video);
+    if (q) items = items.filter(e => e.name.toLowerCase().includes(q) || e.muscle_group.toLowerCase().includes(q));
+    else {
+      // מיין לפי שם תרגיל נוכחי
+      const curName = (trainingPlan[_demoPickerDi]?.exercises?.[_demoPickerEi]?.name || '').toLowerCase();
+      if (curName) {
+        items.sort((a,b) => {
+          const sa = a.name.toLowerCase().includes(curName) || curName.includes(a.name.toLowerCase()) ? 1 : 0;
+          const sb = b.name.toLowerCase().includes(curName) || curName.includes(b.name.toLowerCase()) ? 1 : 0;
+          return sb - sa;
+        });
+      }
+    }
+    items = items.slice(0,60);
+    if (!items.length) { list_el.innerHTML = '<div style="padding:16px;text-align:center;color:#555;">לא נמצאו תרגילים עם סרטון</div>'; return; }
+    list_el.innerHTML = items.map(e => {
+      const active = e.video && curUrl && e.video.toLowerCase() === curUrl;
+      return `<div onclick="setDemoVideo('${e.video.replace(/'/g,"\\'")}','${e.name.replace(/'/g,"\\'")}' )"
+        style="padding:10px 14px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:10px;border-bottom:1px solid rgba(255,255,255,0.04);background:${active?'rgba(255,107,0,0.1)':'transparent'};transition:background 0.15s;"
+        onmouseover="this.style.background='rgba(255,107,0,0.07)'" onmouseout="this.style.background='${active?'rgba(255,107,0,0.1)':'transparent'}'">
+        <div>
+          <div style="font-size:0.85rem;font-weight:700;color:#fff;">${esc(e.name)}</div>
+          <div style="font-size:0.72rem;color:#555;">${esc(e.muscle_group)}${e.sub_muscle_group?' · '+esc(e.sub_muscle_group):''}</div>
+        </div>
+        ${active ? '<span style="color:var(--orange);font-size:0.75rem;font-weight:700;">✓ נבחר</span>' : '<span style="color:#444;font-size:0.75rem;">▶ בחר</span>'}
+      </div>`;
+    }).join('');
+  }
+
+  function setDemoVideo(url, name) {
+    if (_demoPickerDi === null) return;
+    trainingPlan[_demoPickerDi].exercises[_demoPickerEi].video_url = url;
+    closeDemoPicker();
+    renderTrainingEditor();
+  }
+
+  function clearDemoVideo(di, ei) {
+    trainingPlan[di].exercises[ei].video_url = '';
+    renderTrainingEditor();
+  }
+
   function showExSugg(input, di, ei) {
     hideExSugg();
     trainingPlan[di].exercises[ei].name = input.value;
@@ -5383,6 +5445,26 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
 <!-- MEASUREMENTS MODAL -->
 <div class="meas-modal-overlay" id="meas-modal-overlay" onclick="if(event.target===this)closeMeasModal()">
   <div class="meas-modal-inner" id="meas-modal-inner"></div>
+</div>
+
+<!-- Demo Picker Modal -->
+<div id="demo-picker-modal" onclick="if(event.target===this)closeDemoPicker()"
+  style="display:none;position:fixed;inset:0;z-index:8000;align-items:center;justify-content:center;padding:16px;background:rgba(0,0,0,0.88);backdrop-filter:blur(6px);">
+  <div style="background:#161616;border:1px solid rgba(255,107,0,0.3);border-radius:16px;width:100%;max-width:440px;max-height:85vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 0 60px rgba(255,107,0,0.1);">
+    <div style="padding:14px 18px;border-bottom:1px solid rgba(255,255,255,0.07);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
+      <div style="font-size:0.95rem;font-weight:900;">🎬 בחר הדגמה לתרגיל</div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <button onclick="clearDemoVideo(_demoPickerDi,_demoPickerEi)" style="padding:4px 10px;background:rgba(255,100,100,0.1);border:1px solid rgba(255,100,100,0.3);border-radius:6px;color:#ff7070;font-family:'Heebo',sans-serif;font-size:0.75rem;cursor:pointer;">✕ נקה</button>
+        <button onclick="closeDemoPicker()" style="background:none;border:none;color:#666;font-size:1.2rem;cursor:pointer;padding:2px 6px;">✕</button>
+      </div>
+    </div>
+    <div style="padding:10px 14px;border-bottom:1px solid rgba(255,255,255,0.05);flex-shrink:0;">
+      <input id="demo-picker-search" type="text" placeholder="חיפוש תרגיל..."
+        oninput="renderDemoPickerList(this.value.trim().toLowerCase())"
+        style="width:100%;padding:7px 10px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:#fff;font-family:'Heebo',sans-serif;font-size:0.85rem;outline:none;"/>
+    </div>
+    <div id="demo-picker-list" style="overflow-y:auto;flex:1;"></div>
+  </div>
 </div>
 </body>
 </html>
