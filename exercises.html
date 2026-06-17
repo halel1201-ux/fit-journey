@@ -191,7 +191,7 @@
         sub_muscle_group:md[0] ? md[0].name  : '',
         all_muscles: (ex.muscle_groups || []).join(', '),
         video_url:   ex.video || '',
-        thumb_url:   ex.thumb || '',
+        thumb_url:   `/thumbs/${ex.id}.jpg`,
         cues:        ex.cues  || '',
       };
     }).sort((a, b) => a.name.localeCompare(b.name, 'he'));
