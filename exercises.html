@@ -167,40 +167,65 @@
   let activeTab    = 'הכל';
   let activeSubTab = null;
 
+  function hideLoader() {
+    const l = document.getElementById('loader');
+    if (l) { l.style.opacity = '0'; setTimeout(() => l.style.display = 'none', 300); }
+  }
+
   async function init() {
-    let { data: { session } } = await sb.auth.getSession();
-    if (!session) {
-      await new Promise(resolve => {
-        const { data: { subscription } } = sb.auth.onAuthStateChange((event, s) => {
-          if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') { session = s; subscription.unsubscribe(); resolve(); }
+    try {
+      /* ── AUTH ── */
+      let session = null;
+      try {
+        const { data } = await sb.auth.getSession();
+        session = data?.session || null;
+      } catch(e) {}
+
+      if (!session) {
+        session = await new Promise(resolve => {
+          let resolved = false;
+          const { data: { subscription } } = sb.auth.onAuthStateChange((event, s) => {
+            if (!resolved && (event === 'SIGNED_IN' || event === 'INITIAL_SESSION' || event === 'SIGNED_OUT')) {
+              resolved = true; subscription.unsubscribe(); resolve(s);
+            }
+          });
+          setTimeout(() => { if (!resolved) { resolved = true; resolve(null); } }, 4000);
         });
-        setTimeout(resolve, 3000);
-      });
+      }
+
+      if (!session) { window.location.href = 'login.html'; return; }
+
+      /* ── LOAD JSON ── */
+      const res = await fetch('/strength_exercises.json');
+      if (!res.ok) throw new Error('fetch failed: ' + res.status);
+      const raw = await res.json();
+
+      allExercises = raw.map(ex => {
+        const md = ex.muscle_details || [];
+        return {
+          id:               ex.id,
+          name:             ex.name,
+          english:          ex.english || '',
+          muscle_group:     md[0] ? md[0].group : (ex.muscle_groups?.[0] || ''),
+          sub_muscle_group: md[0] ? md[0].name  : '',
+          all_muscles:      (ex.muscle_groups || []).join(', '),
+          video_url:        ex.video || '',
+          thumb_url:        `/thumbs/${ex.id}.jpg`,
+          cues:             ex.cues  || '',
+        };
+      }).sort((a, b) => a.name.localeCompare(b.name, 'he'));
+
+      hideLoader();
+      document.getElementById('main').style.display = 'block';
+      renderTabs();
+      filterExercises();
+
+    } catch(err) {
+      hideLoader();
+      document.getElementById('main').style.display = 'block';
+      document.getElementById('exercises-grid').innerHTML =
+        `<div class="empty"><div class="empty-icon">⚠️</div><div>שגיאה בטעינה: ${err.message}</div></div>`;
     }
-    if (!session) { window.location.href = 'login.html'; return; }
-
-    const res  = await fetch('/strength_exercises.json');
-    const raw  = await res.json();
-    allExercises = raw.map(ex => {
-      const md = ex.muscle_details || [];
-      return {
-        id:          ex.id,
-        name:        ex.name,
-        english:     ex.english || '',
-        muscle_group:    md[0] ? md[0].group : (ex.muscle_groups[0] || ''),
-        sub_muscle_group:md[0] ? md[0].name  : '',
-        all_muscles: (ex.muscle_groups || []).join(', '),
-        video_url:   ex.video || '',
-        thumb_url:   `/thumbs/${ex.id}.jpg`,
-        cues:        ex.cues  || '',
-      };
-    }).sort((a, b) => a.name.localeCompare(b.name, 'he'));
-
-    document.getElementById('loader').style.opacity = '0';
-    setTimeout(() => document.getElementById('loader').style.display = 'none', 300);
-    document.getElementById('main').style.display = 'block';
-    renderTabs();
-    filterExercises();
   }
 
   function renderTabs() {
