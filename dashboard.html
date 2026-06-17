@@ -320,7 +320,26 @@
     .session-body { flex: 1; overflow-y: auto; padding: 20px 16px 10px; }
     .session-ex-block { background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 14px; padding: 18px 16px; margin-bottom: 18px; }
     .session-ex-num { font-size: 0.7rem; font-weight: 700; color: var(--orange); letter-spacing: 1.5px; margin-bottom: 4px; }
-    .session-ex-title { font-size: 1.05rem; font-weight: 900; margin-bottom: 10px; }
+    .session-ex-title { font-size: 1.05rem; font-weight: 900; margin-bottom: 10px; display:flex; align-items:center; justify-content:space-between; gap:8px; }
+    .btn-demo { flex-shrink:0; padding:4px 11px; background:rgba(255,107,0,0.12); border:1px solid rgba(255,107,0,0.4); border-radius:20px; color:var(--orange); font-size:0.72rem; font-weight:700; cursor:pointer; font-family:'Heebo',sans-serif; transition:background 0.15s; }
+    .btn-demo:hover { background:rgba(255,107,0,0.25); }
+    /* Demo Modal */
+    #demo-modal { display:none; position:fixed; inset:0; z-index:9000; align-items:center; justify-content:center; padding:16px; box-sizing:border-box; }
+    #demo-modal.open { display:flex; }
+    .demo-backdrop { position:absolute; inset:0; background:rgba(0,0,0,0.85); backdrop-filter:blur(4px); }
+    .demo-box { position:relative; z-index:1; background:#161616; border:1px solid rgba(255,107,0,0.3); border-radius:18px; width:100%; max-width:480px; overflow:hidden; box-shadow:0 0 40px rgba(255,107,0,0.15); }
+    .demo-header { display:flex; align-items:center; justify-content:space-between; padding:14px 18px; border-bottom:1px solid rgba(255,255,255,0.07); }
+    .demo-title { font-size:0.97rem; font-weight:900; color:var(--white); }
+    .demo-muscle { font-size:0.72rem; color:var(--orange); font-weight:700; margin-top:2px; }
+    .demo-close { background:none; border:none; color:#888; font-size:1.4rem; cursor:pointer; line-height:1; padding:0; }
+    .demo-close:hover { color:var(--white); }
+    .demo-video-wrap { background:#000; aspect-ratio:16/9; }
+    .demo-video-wrap video { width:100%; height:100%; object-fit:contain; }
+    .demo-no-video { display:flex; align-items:center; justify-content:center; aspect-ratio:16/9; background:#111; color:#555; font-size:0.85rem; }
+    .demo-cues { padding:14px 18px; max-height:200px; overflow-y:auto; }
+    .demo-cues-title { font-size:0.75rem; font-weight:700; color:var(--orange); letter-spacing:0.5px; margin-bottom:8px; }
+    .demo-cues ol { margin:0; padding-right:18px; }
+    .demo-cues li { font-size:0.82rem; color:#ccc; line-height:1.55; margin-bottom:4px; }
     .session-ex-desc { font-size: 0.82rem; color: var(--muted); background: rgba(255,255,255,0.03); border-right: 2px solid rgba(255,107,0,0.35); padding: 8px 12px; margin-bottom: 14px; border-radius: 0 7px 7px 0; line-height: 1.6; }
     .session-superset { border: 1px dashed rgba(255,215,0,0.35); border-radius: 16px; padding: 14px 12px 0; margin-bottom: 18px; }
     .session-superset-label { font-size: 0.8rem; font-weight: 900; color: var(--gold); margin-bottom: 8px; padding: 0 4px; }
@@ -1151,6 +1170,62 @@
   let nutritionPlanLocal  = [];
   let clientData          = null;
   let workoutSession      = null;
+
+  /* ── Exercise DB ── */
+  let exerciseDB = []; // טוען מ-strength_exercises.json
+  let exerciseByName = {}; // שם מנורמל → אובייקט תרגיל
+
+  async function loadExerciseDB() {
+    try {
+      const r = await fetch('/strength_exercises.json');
+      exerciseDB = await r.json();
+      exerciseByName = {};
+      exerciseDB.forEach(ex => {
+        exerciseByName[ex.name.trim().toLowerCase()] = ex;
+      });
+    } catch(e) {}
+  }
+
+  function findExercise(name) {
+    if (!name) return null;
+    const key = name.trim().toLowerCase();
+    if (exerciseByName[key]) return exerciseByName[key];
+    // חיפוש חלקי
+    return exerciseDB.find(ex => key.includes(ex.name.trim().toLowerCase()) || ex.name.trim().toLowerCase().includes(key)) || null;
+  }
+
+  function openDemo(name) {
+    const ex = findExercise(name);
+    const modal = document.getElementById('demo-modal');
+    document.getElementById('demo-title').textContent = ex ? ex.name : name;
+    document.getElementById('demo-muscle').textContent = ex ? (ex.muscle_groups || []).join(' · ') : '';
+    const mediaEl = document.getElementById('demo-media');
+    if (ex && ex.video) {
+      mediaEl.innerHTML = `<div class="demo-video-wrap"><video src="${ex.video}" autoplay loop muted playsinline controls></video></div>`;
+    } else {
+      mediaEl.innerHTML = `<div class="demo-no-video">אין סרטון זמין לתרגיל זה</div>`;
+    }
+    const cuesWrap = document.getElementById('demo-cues');
+    const cuesList = document.getElementById('demo-cues-list');
+    if (ex && ex.cues) {
+      const steps = ex.cues.split('\n').map(s => s.replace(/^\d+\.\s*/, '').trim()).filter(Boolean);
+      cuesList.innerHTML = steps.map(s => `<li>${s}</li>`).join('');
+      cuesWrap.style.display = 'block';
+    } else {
+      cuesWrap.style.display = 'none';
+    }
+    modal.classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeDemo() {
+    const modal = document.getElementById('demo-modal');
+    modal.classList.remove('open');
+    document.body.style.overflow = '';
+    // עצור וידאו
+    const vid = modal.querySelector('video');
+    if (vid) { vid.pause(); vid.src = ''; }
+  }
   let workoutLogs         = [];
   let foodItems           = null;
   let foodLogs            = null;
@@ -1206,6 +1281,7 @@
     document.getElementById('tabbar').style.display = 'flex';
     initOneSignal(email);
     checkNotifBanner();
+    loadExerciseDB();
 
     if (!client) {
       document.getElementById('client-name').textContent = email.split('@')[0];
@@ -1595,7 +1671,10 @@
     return `
       <div class="session-ex-block">
         <div class="session-ex-num">תרגיל ${ei + 1}</div>
-        <div class="session-ex-title">${esc(ex.name)}</div>
+        <div class="session-ex-title">
+          <span>${esc(ex.name)}</span>
+          <button class="btn-demo" onclick="openDemo('${ex.name.replace(/'/g,"\\'")}')">הדגמה ▶</button>
+        </div>
         ${ex.description ? `<div class="session-ex-desc">${esc(ex.description)}</div>` : ''}
         <div class="rest-ctrl">
           <span class="rest-ctrl-lbl">⏱ מנוחה בין סטים:</span>
@@ -3817,6 +3896,25 @@ ${foodList || 'אין פריטים'}
     <input class="chat-ov-inp" id="chat-ov-inp" placeholder="הודעה..."
       onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendOverlayMsg();}"/>
     <button class="btn-ov-send" id="btn-ov-send" onclick="sendOverlayMsg()">↑</button>
+  </div>
+</div>
+
+<!-- Demo Modal -->
+<div id="demo-modal" onclick="if(event.target===this||event.target.classList.contains('demo-backdrop'))closeDemo()">
+  <div class="demo-backdrop"></div>
+  <div class="demo-box">
+    <div class="demo-header">
+      <div>
+        <div class="demo-title" id="demo-title"></div>
+        <div class="demo-muscle" id="demo-muscle"></div>
+      </div>
+      <button class="demo-close" onclick="closeDemo()">✕</button>
+    </div>
+    <div id="demo-media"></div>
+    <div class="demo-cues" id="demo-cues" style="display:none;">
+      <div class="demo-cues-title">📋 דגשי ביצוע</div>
+      <ol id="demo-cues-list"></ol>
+    </div>
   </div>
 </div>
 
