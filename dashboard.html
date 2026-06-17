@@ -1228,14 +1228,16 @@
   }
 
   /* ── SWAP EXERCISE ── */
-  let _swapEi = null;
-  let _swapMuscle = null;
+  let _swapEi      = null;
+  let _swapGroup   = null; // קבוצה ראשית: "חזה"
+  let _swapMuscles = [];   // שרירים ספציפיים: ["חזה עליון","כתף קדמית"]
 
   function openSwapModal(ei) {
     _swapEi = ei;
     const ex = workoutSession?.exercises?.[ei];
     const dbEx = ex ? findExercise(ex.name) : null;
-    _swapMuscle = dbEx?.muscle_details?.[0]?.group || dbEx?.muscle_groups?.[0] || null;
+    _swapGroup   = dbEx?.muscle_details?.[0]?.group || null;
+    _swapMuscles = dbEx?.muscle_groups || (dbEx?.muscle_details || []).map(d => d.name);
     document.getElementById('swap-search-input').value = '';
     renderSwapList();
     document.getElementById('swap-modal').classList.add('open');
@@ -1249,31 +1251,49 @@
     _swapEi = null;
   }
 
+  function muscleOverlap(exMuscles) {
+    if (!_swapMuscles.length) return 0;
+    return exMuscles.filter(m => _swapMuscles.includes(m)).length;
+  }
+
   function renderSwapList() {
     const q = document.getElementById('swap-search-input').value.trim().toLowerCase();
-    let list = exerciseDB;
-    if (!q && _swapMuscle) {
-      list = exerciseDB.filter(ex => {
-        const md = ex.muscle_details?.[0];
-        return md ? md.group === _swapMuscle : (ex.muscle_groups?.[0] === _swapMuscle);
-      });
-    } else if (q) {
+    const curName = workoutSession?.exercises?.[_swapEi]?.name?.toLowerCase() || '';
+    let list;
+
+    if (q) {
       const qWords = q.split(/[\s\-\/]+/).filter(w => w.length > 1);
       list = exerciseDB.filter(ex => {
         const n = ex.name.toLowerCase();
-        return n.includes(q) || qWords.some(w => n.includes(w));
+        return n !== curName && (n.includes(q) || qWords.some(w => n.includes(w)));
       });
+    } else {
+      // מיון לפי חפיפת שרירים ספציפית, ואחריה לפי קבוצה ראשית
+      list = exerciseDB
+        .filter(ex => ex.name.toLowerCase() !== curName)
+        .map(ex => {
+          const exMuscles = ex.muscle_groups || (ex.muscle_details || []).map(d => d.name);
+          const overlap   = muscleOverlap(exMuscles);
+          const sameGroup = (ex.muscle_details?.[0]?.group || '') === _swapGroup ? 1 : 0;
+          return { ex, score: overlap * 10 + sameGroup };
+        })
+        .filter(({ score }) => score > 0)
+        .sort((a, b) => b.score - a.score)
+        .map(({ ex }) => ex);
     }
-    const curName = workoutSession?.exercises?.[_swapEi]?.name?.toLowerCase() || '';
-    list = list.filter(ex => ex.name.toLowerCase() !== curName).slice(0, 40);
+
+    list = list.slice(0, 50);
     const el = document.getElementById('swap-list');
     if (!list.length) { el.innerHTML = '<div style="padding:20px;text-align:center;color:#444;">לא נמצאו תרגילים</div>'; return; }
     el.innerHTML = list.map(ex => {
-      const md = ex.muscle_details?.[0];
-      const muscle = md ? `${md.group} · ${md.name}` : (ex.muscle_groups?.[0] || '');
+      const exMuscles = ex.muscle_groups || (ex.muscle_details || []).map(d => d.name);
+      const overlap   = muscleOverlap(exMuscles);
+      const group     = ex.muscle_details?.[0]?.group || '';
+      const muscleStr = exMuscles.slice(0, 2).join(' · ');
+      const badge     = overlap > 0 ? `<span style="margin-right:6px;padding:2px 7px;border-radius:10px;background:rgba(74,222,128,0.1);border:1px solid rgba(74,222,128,0.3);color:#4ade80;font-size:0.65rem;">${overlap} שרירים משותפים</span>` : '';
       return `<div class="swap-item" onclick="swapSessionExercise(${ex.id},'${ex.name.replace(/'/g,"\\'")}')">
-        <div class="swap-item-name">${esc(ex.name)}</div>
-        <div class="swap-item-muscle">${esc(muscle)}</div>
+        <div class="swap-item-name">${esc(ex.name)}${badge}</div>
+        <div class="swap-item-muscle">${esc(group)}${muscleStr ? ' · ' + esc(muscleStr) : ''}</div>
       </div>`;
     }).join('');
   }
