@@ -54,6 +54,15 @@
     .plan-gender-btn.g-female.active { background:rgba(236,72,153,0.12);border-color:rgba(236,72,153,0.4);color:#f472b6; }
     .main { flex: 1; overflow-y: auto; padding: 24px 28px 60px; }
     .no-select { display: flex; align-items: center; justify-content: center; height: 300px; color: #333; font-size: 1rem; }
+    .kpi-card { background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:14px;padding:18px 16px;text-align:center;border-top:3px solid var(--kc,var(--orange));transition:transform 0.15s; }
+    .kpi-card:hover { transform:translateY(-2px); }
+    .kpi-val { font-size:2rem;font-weight:900;color:var(--kc,var(--orange));line-height:1; }
+    .kpi-label { font-size:0.72rem;color:var(--muted);margin-top:6px;font-weight:700;letter-spacing:0.3px; }
+    .lobby-alert { display:flex;align-items:center;gap:10px;padding:10px 14px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:10px;margin-bottom:8px;cursor:pointer;transition:background 0.15s; }
+    .lobby-alert:hover { background:rgba(255,107,0,0.06); }
+    .lobby-alert-dot { width:8px;height:8px;border-radius:50%;flex-shrink:0; }
+    .lobby-alert-name { font-size:0.88rem;font-weight:700;color:var(--white); }
+    .lobby-alert-sub { font-size:0.73rem;color:var(--muted);margin-top:2px; }
     .sec-card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 22px 22px; margin-bottom: 24px; }
     .sec-card-title { font-size: 1rem; font-weight: 900; color: var(--white); margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; }
     .sec-card-title span { color: var(--orange); }
@@ -438,7 +447,18 @@
     <div class="client-list" id="client-list"></div>
   </div>
   <div class="main" id="main-area">
-    <div class="no-select">← בחר מתאמן מהרשימה</div>
+    <div id="lobby-view">
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:20px;" id="kpi-grid">
+        <div class="kpi-card" style="--kc:#4ade80;"><div class="kpi-val" id="kpi-active">—</div><div class="kpi-label">פעילים</div></div>
+        <div class="kpi-card" style="--kc:#FFD700;"><div class="kpi-val" id="kpi-expiring">—</div><div class="kpi-label">מסיימים בקרוב</div></div>
+        <div class="kpi-card" style="--kc:#f87171;"><div class="kpi-val" id="kpi-expired">—</div><div class="kpi-label">פג תוקף</div></div>
+        <div class="kpi-card" style="--kc:#fb923c;"><div class="kpi-val" id="kpi-pending">—</div><div class="kpi-label">ממתינים לתשלום</div></div>
+        <div class="kpi-card" style="--kc:#a78bfa;grid-column:1/-1;"><div class="kpi-val" id="kpi-revenue">—</div><div class="kpi-label">הכנסה החודש</div></div>
+      </div>
+      <!-- מתאמנים שדורשים תשומת לב -->
+      <div id="lobby-alerts"></div>
+      <div style="text-align:center;color:#333;font-size:0.85rem;margin-top:24px;">← בחר מתאמן מהרשימה לעריכה</div>
+    </div>
   </div>
 </div>
 
@@ -662,6 +682,17 @@
     <div class="client-card-row" id="cc-period-row" style="display:none;">
       <span class="client-card-label">מחזור</span>
       <span class="client-card-val" id="cc-period"></span>
+    </div>
+    <!-- חבילת מנוי -->
+    <div id="cc-pkg-section" style="margin-top:14px;padding:12px;background:rgba(255,107,0,0.05);border:1px solid rgba(255,107,0,0.15);border-radius:10px;display:none;">
+      <div style="font-size:0.72rem;font-weight:900;color:var(--orange);margin-bottom:8px;letter-spacing:0.5px;">📦 חבילת מנוי</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+        <div style="font-size:0.75rem;color:var(--muted);">סטטוס: <span id="cc-pkg-status" style="font-weight:700;"></span></div>
+        <div style="font-size:0.75rem;color:var(--muted);">סיום: <span id="cc-pkg-end" style="color:var(--white);font-weight:700;"></span></div>
+        <div style="font-size:0.75rem;color:var(--muted);">שולם: <span id="cc-pkg-paid" style="color:#4ade80;font-weight:700;"></span></div>
+        <div style="font-size:0.75rem;color:var(--muted);">נותר: <span id="cc-pkg-owed" style="color:#f87171;font-weight:700;"></span></div>
+        <div style="font-size:0.75rem;color:var(--muted);grid-column:1/-1;">פגישות: <span id="cc-pkg-sessions" style="color:var(--orange);font-weight:700;"></span></div>
+      </div>
     </div>
     <div style="margin-top:18px;display:flex;gap:10px;">
       <a id="cc-wa" href="#" target="_blank" style="flex:1;text-align:center;padding:10px;background:rgba(37,211,102,0.1);border:1px solid rgba(37,211,102,0.3);border-radius:10px;color:#25d366;font-size:0.85rem;font-weight:700;text-decoration:none;">WhatsApp</a>
@@ -1111,8 +1142,9 @@
   let coachEmail = null;
   let coachName  = null;
   let coachRole  = 'regular';
-  let clients    = [];
+  let clients     = [];
   let activeEmail = null;
+  let currentPackage = null;
   let trainingPlan  = [];
   let nutritionPlan = [];
   let dayClipboard  = null;
@@ -1573,7 +1605,72 @@
   async function loadClients() {
     const { data } = await sb.from('clients').select('*').eq('coach_email', coachEmail).order('created_at');
     clients = data || [];
+    if (clients.length) {
+      const emails = clients.map(c => c.email);
+      const { data: pkgs } = await sb.from('client_packages')
+        .select('*')
+        .eq('coach_email', coachEmail)
+        .in('client_email', emails);
+      clientPackageMap = {};
+      (pkgs || []).forEach(p => { clientPackageMap[p.client_email] = p; });
+    }
     renderSidebar();
+    renderLobby();
+  }
+
+  async function renderLobby() {
+    const allPkgs = Object.values(clientPackageMap);
+    const active   = allPkgs.filter(p => p.status === 'active').length;
+    const expiring = allPkgs.filter(p => p.status === 'expiring').length;
+    const expired  = allPkgs.filter(p => p.status === 'expired').length;
+    const pending  = allPkgs.filter(p => p.status === 'pending').length;
+
+    // הכנסה החודש מ-coach_sales
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+    const { data: salesThisMonth } = await sb.from('coach_sales')
+      .select('plan_price')
+      .eq('coach_email', coachEmail)
+      .in('status', ['paid', 'manual'])
+      .gte('created_at', monthStart);
+    const revenue = (salesThisMonth || []).reduce((s, r) => s + (r.plan_price || 0), 0);
+
+    document.getElementById('kpi-active').textContent   = active;
+    document.getElementById('kpi-expiring').textContent = expiring;
+    document.getElementById('kpi-expired').textContent  = expired;
+    document.getElementById('kpi-pending').textContent  = pending;
+    document.getElementById('kpi-revenue').textContent  = revenue.toLocaleString() + ' ₪';
+
+    // התראות — מי מסיים בקרוב / חייב כסף
+    const alerts = [
+      ...allPkgs.filter(p => p.status === 'expiring').map(p => ({
+        email: p.client_email, color: '#FFD700',
+        sub: `מסיים ב-${new Date(p.end_date+'T12:00:00').toLocaleDateString('he-IL')}`
+      })),
+      ...allPkgs.filter(p => p.status === 'pending').map(p => ({
+        email: p.client_email, color: '#fb923c',
+        sub: `חייב ${(Math.max(0,(p.amount_total||0)-(p.amount_paid||0))).toLocaleString()} ₪`
+      })),
+      ...allPkgs.filter(p => p.status === 'expired').map(p => ({
+        email: p.client_email, color: '#f87171',
+        sub: `פג תוקף — ${new Date(p.end_date+'T12:00:00').toLocaleDateString('he-IL')}`
+      })),
+    ];
+
+    const alertsEl = document.getElementById('lobby-alerts');
+    if (!alertsEl) return;
+    if (!alerts.length) { alertsEl.innerHTML = ''; return; }
+    const getName = email => clients.find(c => c.email === email)?.name || email;
+    alertsEl.innerHTML = `
+      <div style="font-size:0.78rem;font-weight:900;color:var(--muted);margin-bottom:10px;letter-spacing:0.5px;">⚠️ דורשים תשומת לב</div>
+      ${alerts.map(a => `
+        <div class="lobby-alert" onclick="selectClient('${a.email}')">
+          <div class="lobby-alert-dot" style="background:${a.color};"></div>
+          <div>
+            <div class="lobby-alert-name">${esc(getName(a.email))}</div>
+            <div class="lobby-alert-sub">${a.sub}</div>
+          </div>
+        </div>`).join('')}`;
   }
 
   function openAddModal() {
@@ -1679,15 +1776,25 @@
     return new Date(ts).toLocaleDateString('he-IL');
   }
 
+  // מפת סטטוס חבילות לפי אימייל — נטענת ב-loadClients
+  let clientPackageMap = {};
+
   function renderSidebar() {
     const el = document.getElementById('client-list');
     if (!clients.length) { el.innerHTML = '<div style="padding:16px;color:#444;font-size:0.82rem;text-align:center;">אין מתאמנים עדיין</div>'; return; }
     el.innerHTML = clients.map(c => {
       const lastSeen = fmtLastSeen(c.last_seen);
+      const pkg = clientPackageMap[c.email];
+      const statusDot = pkg
+        ? `<span title="${pkgStatusLabel(pkg.status)}" style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${pkgStatusColor(pkg.status)};flex-shrink:0;"></span>`
+        : `<span title="אין חבילה" style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#333;border:1px solid #555;flex-shrink:0;"></span>`;
       return `
       <div class="client-item ${c.email === activeEmail ? 'active' : ''}" onclick="selectClient('${c.email}')">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;">
-          <div class="client-item-name">${esc(c.name)}</div>
+          <div style="display:flex;align-items:center;gap:6px;min-width:0;">
+            ${statusDot}
+            <div class="client-item-name" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(c.name)}</div>
+          </div>
           <span class="gender-tag ${c.gender === 'female' ? 'female' : 'male'}">${c.gender === 'female' ? '♀' : '♂'}</span>
         </div>
         <div class="client-item-email">${c.email}</div>
@@ -1698,20 +1805,25 @@
 
   async function selectClient(email) {
     activeEmail = email;
+    currentPackage = null;
     renderSidebar();
     closeMobileSidebar();
     const client = clients.find(c => c.email === email);
-    const [{ data: tr }, { data: nu }] = await Promise.all([
+    const [{ data: tr }, { data: nu }, { data: pkg }] = await Promise.all([
       sb.from('training_plans').select('plan').eq('client_email', email).single(),
-      sb.from('nutrition_plans').select('plan').eq('client_email', email).single()
+      sb.from('nutrition_plans').select('plan').eq('client_email', email).single(),
+      sb.from('client_packages').select('*').eq('client_email', email).eq('coach_email', coachEmail).order('created_at', { ascending: false }).limit(1).maybeSingle()
     ]);
-    // נרמול: וודא שכל יום משתמש ב-day (לא name) כשדה הקנוני
     trainingPlan = (tr?.plan || []).map(d => {
       if (d.name !== undefined && !d.day) d.day = d.name;
       if (d.name !== undefined) { const { name, ...rest } = d; return rest; }
       return d;
     });
     nutritionPlan = nu?.plan || [];
+    currentPackage = pkg || null;
+    // מסתיר את הלובי בזמן צפייה במתאמן
+    const lobby = document.getElementById('lobby-view');
+    if (lobby) lobby.style.display = 'none';
     renderMain(client);
   }
 
@@ -1784,6 +1896,8 @@
         </div>
         <button class="btn-sm btn-orange" onclick="saveProfile()">שמור פרטים</button>
       </div>
+
+      ${renderPackageCard()}
 
       <div class="sec-card">
         <div class="sec-card-title">🏋️ תוכנית אימונים
@@ -1892,6 +2006,189 @@
   }
 
   /* ── CLIENT CARD ── */
+  // ─── חבילת מנוי ───────────────────────────────────────────────────
+  function pkgStatusLabel(s) {
+    return { active:'🟢 פעיל', expiring:'🟡 מסיים בקרוב', expired:'🔴 פג תוקף', pending:'⏳ ממתין לתשלום' }[s] || '⚪ אין חבילה';
+  }
+  function pkgStatusColor(s) {
+    return { active:'#4ade80', expiring:'#FFD700', expired:'#f87171', pending:'#fb923c' }[s] || '#666';
+  }
+
+  function renderPackageCard() {
+    const p = currentPackage;
+    const today = new Date().toISOString().split('T')[0];
+    if (!p) {
+      return `<div class="sec-card" id="pkg-card">
+        <div class="sec-card-title">📦 חבילת מנוי <span style="color:#666;font-size:0.78rem;font-weight:500;">אין חבילה פעילה</span></div>
+        ${renderPackageForm(null, today)}
+      </div>`;
+    }
+    const paid = p.amount_paid || 0;
+    const total = p.amount_total || 0;
+    const owed = Math.max(0, total - paid);
+    const sessUsed = p.sessions_used || 0;
+    const sessTotal = p.sessions_total || 0;
+    const sessLeft = Math.max(0, sessTotal - sessUsed);
+    const endFmt = p.end_date ? new Date(p.end_date + 'T12:00:00').toLocaleDateString('he-IL') : '—';
+    const col = pkgStatusColor(p.status);
+    return `<div class="sec-card" id="pkg-card">
+      <div class="sec-card-title">📦 חבילת מנוי
+        <span style="color:${col};font-size:0.82rem;font-weight:700;">${pkgStatusLabel(p.status)}</span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px;">
+        <div style="text-align:center;padding:12px 6px;background:rgba(74,222,128,0.07);border:1px solid rgba(74,222,128,0.2);border-radius:10px;">
+          <div style="font-size:1.2rem;font-weight:900;color:#4ade80;">${paid.toLocaleString()} ₪</div>
+          <div style="font-size:0.65rem;color:var(--muted);margin-top:3px;">שולם</div>
+        </div>
+        <div style="text-align:center;padding:12px 6px;background:rgba(248,113,113,0.07);border:1px solid rgba(248,113,113,0.2);border-radius:10px;">
+          <div style="font-size:1.2rem;font-weight:900;color:#f87171;">${owed.toLocaleString()} ₪</div>
+          <div style="font-size:0.65rem;color:var(--muted);margin-top:3px;">נותר לתשלום</div>
+        </div>
+        <div style="text-align:center;padding:12px 6px;background:rgba(255,107,0,0.07);border:1px solid rgba(255,107,0,0.2);border-radius:10px;">
+          <div style="font-size:1.2rem;font-weight:900;color:var(--orange);">${sessLeft}/${sessTotal}</div>
+          <div style="font-size:0.65rem;color:var(--muted);margin-top:3px;">פגישות נותרות</div>
+        </div>
+        <div style="text-align:center;padding:12px 6px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:10px;">
+          <div style="font-size:0.95rem;font-weight:900;color:var(--white);">${endFmt}</div>
+          <div style="font-size:0.65rem;color:var(--muted);margin-top:3px;">סיום</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap;">
+        <button class="btn-sm btn-orange" onclick="addPackageSession()">✓ פגישה בוצעה</button>
+        <button class="btn-sm btn-outline" onclick="openPaymentModal()">💰 עדכן תשלום</button>
+      </div>
+      <details style="cursor:pointer;">
+        <summary style="font-size:0.8rem;color:var(--muted);font-weight:700;list-style:none;display:flex;align-items:center;gap:6px;">
+          <span>✏️ ערוך חבילה</span>
+        </summary>
+        <div style="margin-top:14px;">${renderPackageForm(p, today)}</div>
+      </details>
+    </div>
+    <!-- מודל תשלום -->
+    <div id="pay-modal" style="display:none;position:fixed;inset:0;z-index:700;background:rgba(0,0,0,0.82);backdrop-filter:blur(6px);align-items:center;justify-content:center;" onclick="if(event.target===this)closePaymentModal()">
+      <div style="background:#161616;border:1px solid rgba(255,107,0,0.35);border-radius:16px;padding:26px;width:100%;max-width:320px;box-shadow:0 0 60px rgba(255,107,0,0.15);">
+        <div style="font-size:1rem;font-weight:900;color:var(--white);margin-bottom:16px;">💰 עדכן <span style="color:var(--orange);">תשלום</span></div>
+        <div style="font-size:0.82rem;color:var(--muted);margin-bottom:6px;">סה"כ ששולם עד כה: <strong style="color:#4ade80;">${paid.toLocaleString()} ₪</strong> מתוך ${total.toLocaleString()} ₪</div>
+        <div class="f-group" style="margin-bottom:14px;">
+          <label>סכום חדש ששולם (₪)</label>
+          <input id="pay-amount-input" type="number" min="0" placeholder="הכנס סכום" style="direction:ltr;text-align:right;"/>
+        </div>
+        <div style="display:flex;gap:8px;justify-content:flex-end;">
+          <button class="btn-sm btn-outline" onclick="closePaymentModal()">ביטול</button>
+          <button class="btn-sm btn-orange" onclick="recordPackagePayment()">שמור</button>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  function renderPackageForm(p, today) {
+    const startVal = p?.start_date || today;
+    const defaultEnd = new Date(new Date(today).setMonth(new Date(today).getMonth() + (p?.plan_months || 1))).toISOString().split('T')[0];
+    return `<div class="form-grid" style="margin-bottom:14px;">
+      <div class="f-group">
+        <label>מסלול (חודשים)</label>
+        <select id="pkg-months">
+          <option value="1" ${(p?.plan_months||1)==1?'selected':''}>חודש אחד</option>
+          <option value="3" ${(p?.plan_months)==3?'selected':''}>3 חודשים</option>
+          <option value="6" ${(p?.plan_months)==6?'selected':''}>6 חודשים</option>
+          <option value="12" ${(p?.plan_months)==12?'selected':''}>שנה</option>
+        </select>
+      </div>
+      <div class="f-group">
+        <label>תאריך התחלה</label>
+        <input id="pkg-start" type="date" value="${startVal}" onchange="updatePkgEnd()"/>
+      </div>
+      <div class="f-group">
+        <label>תאריך סיום</label>
+        <input id="pkg-end" type="date" value="${p?.end_date || defaultEnd}"/>
+      </div>
+      <div class="f-group">
+        <label>מספר פגישות בחבילה</label>
+        <input id="pkg-sessions" type="number" min="0" value="${p?.sessions_total||0}" placeholder="0 = ללא הגבלה"/>
+      </div>
+      <div class="f-group">
+        <label>מחיר חבילה (₪)</label>
+        <input id="pkg-total" type="number" min="0" value="${p?.amount_total||0}"/>
+      </div>
+      <div class="f-group">
+        <label>שולם עד כה (₪)</label>
+        <input id="pkg-paid" type="number" min="0" value="${p?.amount_paid||0}"/>
+      </div>
+      <div class="f-group" style="grid-column:1/-1;">
+        <label>הערות</label>
+        <input id="pkg-notes" value="${p?.notes||''}" placeholder="הערה אופציונלית"/>
+      </div>
+    </div>
+    <button class="btn-sm btn-orange" onclick="saveClientPackage()">${p ? 'עדכן חבילה' : 'צור חבילה'}</button>`;
+  }
+
+  function updatePkgEnd() {
+    const start = document.getElementById('pkg-start')?.value;
+    const months = parseInt(document.getElementById('pkg-months')?.value || '1');
+    if (!start) return;
+    const end = new Date(start);
+    end.setMonth(end.getMonth() + months);
+    const endEl = document.getElementById('pkg-end');
+    if (endEl) endEl.value = end.toISOString().split('T')[0];
+  }
+
+  async function saveClientPackage() {
+    const months   = parseInt(document.getElementById('pkg-months')?.value || '1');
+    const start    = document.getElementById('pkg-start')?.value;
+    const end      = document.getElementById('pkg-end')?.value;
+    const sessions = parseInt(document.getElementById('pkg-sessions')?.value || '0');
+    const total    = parseInt(document.getElementById('pkg-total')?.value || '0');
+    const paid     = parseInt(document.getElementById('pkg-paid')?.value || '0');
+    const notes    = document.getElementById('pkg-notes')?.value || '';
+    if (!start || !end) { toast('חסרים תאריכים', 'err'); return; }
+    const payload = {
+      client_email: activeEmail, coach_email: coachEmail,
+      plan_months: months, start_date: start, end_date: end,
+      sessions_total: sessions, sessions_used: currentPackage?.sessions_used || 0,
+      amount_total: total, amount_paid: paid, notes
+    };
+    let error;
+    if (currentPackage?.id) {
+      ({ error } = await sb.from('client_packages').update(payload).eq('id', currentPackage.id));
+    } else {
+      ({ error } = await sb.from('client_packages').insert(payload));
+    }
+    if (error) { toast('שגיאה: ' + error.message, 'err'); return; }
+    toast('✓ חבילה נשמרה!');
+    await selectClient(activeEmail);
+  }
+
+  async function addPackageSession() {
+    if (!currentPackage?.id) { toast('אין חבילה פעילה', 'err'); return; }
+    const newUsed = (currentPackage.sessions_used || 0) + 1;
+    const { error } = await sb.from('client_packages').update({ sessions_used: newUsed }).eq('id', currentPackage.id);
+    if (error) { toast('שגיאה', 'err'); return; }
+    toast('✓ פגישה תועדה');
+    await selectClient(activeEmail);
+  }
+
+  function openPaymentModal() {
+    const m = document.getElementById('pay-modal');
+    if (m) { m.style.display = 'flex'; document.getElementById('pay-amount-input').focus(); }
+  }
+  function closePaymentModal() {
+    const m = document.getElementById('pay-modal');
+    if (m) m.style.display = 'none';
+  }
+
+  async function recordPackagePayment() {
+    if (!currentPackage?.id) return;
+    const added = parseInt(document.getElementById('pay-amount-input')?.value || '0');
+    if (!added || added <= 0) { toast('הכנס סכום תקין', 'err'); return; }
+    const newPaid = (currentPackage.amount_paid || 0) + added;
+    const { error } = await sb.from('client_packages').update({ amount_paid: newPaid }).eq('id', currentPackage.id);
+    if (error) { toast('שגיאה', 'err'); return; }
+    toast('✓ תשלום עודכן');
+    closePaymentModal();
+    await selectClient(activeEmail);
+  }
+  // ─────────────────────────────────────────────────────────────────
+
   function openClientCard(email) {
     const c = clients.find(x => x.email === email);
     if (!c) return;
@@ -1934,6 +2231,19 @@
     waBtn.style.opacity = waNum ? '1' : '0.3';
     waBtn.style.pointerEvents = waNum ? 'auto' : 'none';
     document.getElementById('cc-mail').href = `mailto:${c.email}`;
+    // חבילת מנוי בכרטיס
+    const pkgSec = document.getElementById('cc-pkg-section');
+    const p = currentPackage;
+    if (p) {
+      pkgSec.style.display = 'block';
+      document.getElementById('cc-pkg-status').innerHTML = `<span style="color:${pkgStatusColor(p.status)};font-weight:700;">${pkgStatusLabel(p.status)}</span>`;
+      document.getElementById('cc-pkg-end').textContent = p.end_date ? new Date(p.end_date+'T12:00:00').toLocaleDateString('he-IL') : '—';
+      document.getElementById('cc-pkg-paid').textContent = (p.amount_paid||0).toLocaleString() + ' ₪';
+      document.getElementById('cc-pkg-owed').textContent = Math.max(0,(p.amount_total||0)-(p.amount_paid||0)).toLocaleString() + ' ₪';
+      document.getElementById('cc-pkg-sessions').textContent = p.sessions_total ? `${p.sessions_total-(p.sessions_used||0)} נותרות מתוך ${p.sessions_total}` : 'ללא הגבלה';
+    } else {
+      pkgSec.style.display = 'none';
+    }
     document.getElementById('client-card-modal').classList.add('open');
   }
   function closeClientCard() { document.getElementById('client-card-modal').classList.remove('open'); }
