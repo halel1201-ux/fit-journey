@@ -323,6 +323,23 @@
     .session-ex-title { font-size: 1.05rem; font-weight: 900; margin-bottom: 10px; display:flex; align-items:center; justify-content:space-between; gap:8px; }
     .btn-demo { flex-shrink:0; padding:4px 11px; background:rgba(255,107,0,0.12); border:1px solid rgba(255,107,0,0.4); border-radius:20px; color:var(--orange); font-size:0.72rem; font-weight:700; cursor:pointer; font-family:'Heebo',sans-serif; transition:background 0.15s; }
     .btn-demo:hover { background:rgba(255,107,0,0.25); }
+    .btn-swap { flex-shrink:0; padding:4px 11px; background:rgba(96,180,255,0.08); border:1px solid rgba(96,180,255,0.35); border-radius:20px; color:#60b4ff; font-size:0.72rem; font-weight:700; cursor:pointer; font-family:'Heebo',sans-serif; transition:background 0.15s; }
+    .btn-swap:hover { background:rgba(96,180,255,0.18); }
+    /* Replace Modal */
+    #swap-modal { display:none; position:fixed; inset:0; z-index:9500; align-items:center; justify-content:center; padding:16px; box-sizing:border-box; }
+    #swap-modal.open { display:flex; }
+    .swap-backdrop { position:absolute; inset:0; background:rgba(0,0,0,0.88); backdrop-filter:blur(4px); }
+    .swap-box { position:relative; z-index:1; background:#161616; border:1px solid rgba(96,180,255,0.3); border-radius:16px; width:100%; max-width:420px; max-height:82vh; display:flex; flex-direction:column; overflow:hidden; box-shadow:0 0 60px rgba(96,180,255,0.1); }
+    .swap-header { padding:14px 18px; border-bottom:1px solid rgba(255,255,255,0.07); display:flex; align-items:center; justify-content:space-between; flex-shrink:0; }
+    .swap-title { font-size:0.95rem; font-weight:900; }
+    .swap-close { background:none; border:none; color:#666; font-size:1.2rem; cursor:pointer; padding:2px 6px; }
+    .swap-search { padding:10px 14px; border-bottom:1px solid rgba(255,255,255,0.05); flex-shrink:0; }
+    .swap-search input { width:100%; padding:7px 10px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:8px; color:#fff; font-family:'Heebo',sans-serif; font-size:0.85rem; outline:none; }
+    .swap-list { overflow-y:auto; flex:1; padding:6px 0; }
+    .swap-item { padding:10px 16px; cursor:pointer; display:flex; flex-direction:column; gap:3px; border-bottom:1px solid rgba(255,255,255,0.04); transition:background 0.15s; }
+    .swap-item:hover { background:rgba(96,180,255,0.08); }
+    .swap-item-name { font-size:0.88rem; font-weight:700; }
+    .swap-item-muscle { font-size:0.72rem; color:#555; }
     /* Demo Modal */
     #demo-modal { display:none; position:fixed; inset:0; z-index:9000; align-items:center; justify-content:center; padding:16px; box-sizing:border-box; }
     #demo-modal.open { display:flex; }
@@ -1187,11 +1204,86 @@
   }
 
   function findExercise(name) {
-    if (!name) return null;
+    if (!name || !exerciseDB.length) return null;
     const key = name.trim().toLowerCase();
     if (exerciseByName[key]) return exerciseByName[key];
-    // חיפוש חלקי
-    return exerciseDB.find(ex => key.includes(ex.name.trim().toLowerCase()) || ex.name.trim().toLowerCase().includes(key)) || null;
+    // substring match
+    const subMatch = exerciseDB.find(ex => {
+      const n = ex.name.trim().toLowerCase();
+      return n.includes(key) || key.includes(n);
+    });
+    if (subMatch) return subMatch;
+    // word-overlap scoring: e.g. "פולי עליון" matches "משיכת פולי עליון באחיזה רחבה"
+    const keyWords = key.split(/[\s\-\/,()]+/).filter(w => w.length > 1);
+    let best = null, bestScore = 0;
+    for (const ex of exerciseDB) {
+      const exWords = ex.name.trim().toLowerCase().split(/[\s\-\/,()]+/).filter(w => w.length > 1);
+      const overlap = keyWords.filter(w => exWords.includes(w)).length;
+      if (overlap > 0) {
+        const score = overlap / Math.max(keyWords.length, exWords.length);
+        if (score > bestScore) { bestScore = score; best = ex; }
+      }
+    }
+    return bestScore >= 0.25 ? best : null;
+  }
+
+  /* ── SWAP EXERCISE ── */
+  let _swapEi = null;
+  let _swapMuscle = null;
+
+  function openSwapModal(ei) {
+    _swapEi = ei;
+    const ex = workoutSession?.exercises?.[ei];
+    const dbEx = ex ? findExercise(ex.name) : null;
+    _swapMuscle = dbEx?.muscle_details?.[0]?.group || dbEx?.muscle_groups?.[0] || null;
+    document.getElementById('swap-search-input').value = '';
+    renderSwapList();
+    document.getElementById('swap-modal').classList.add('open');
+    document.body.style.overflow = 'hidden';
+    setTimeout(() => document.getElementById('swap-search-input').focus(), 100);
+  }
+
+  function closeSwapModal() {
+    document.getElementById('swap-modal').classList.remove('open');
+    document.body.style.overflow = '';
+    _swapEi = null;
+  }
+
+  function renderSwapList() {
+    const q = document.getElementById('swap-search-input').value.trim().toLowerCase();
+    let list = exerciseDB;
+    if (!q && _swapMuscle) {
+      list = exerciseDB.filter(ex => {
+        const md = ex.muscle_details?.[0];
+        return md ? md.group === _swapMuscle : (ex.muscle_groups?.[0] === _swapMuscle);
+      });
+    } else if (q) {
+      const qWords = q.split(/[\s\-\/]+/).filter(w => w.length > 1);
+      list = exerciseDB.filter(ex => {
+        const n = ex.name.toLowerCase();
+        return n.includes(q) || qWords.some(w => n.includes(w));
+      });
+    }
+    const curName = workoutSession?.exercises?.[_swapEi]?.name?.toLowerCase() || '';
+    list = list.filter(ex => ex.name.toLowerCase() !== curName).slice(0, 40);
+    const el = document.getElementById('swap-list');
+    if (!list.length) { el.innerHTML = '<div style="padding:20px;text-align:center;color:#444;">לא נמצאו תרגילים</div>'; return; }
+    el.innerHTML = list.map(ex => {
+      const md = ex.muscle_details?.[0];
+      const muscle = md ? `${md.group} · ${md.name}` : (ex.muscle_groups?.[0] || '');
+      return `<div class="swap-item" onclick="swapSessionExercise(${ex.id},'${ex.name.replace(/'/g,"\\'")}')">
+        <div class="swap-item-name">${esc(ex.name)}</div>
+        <div class="swap-item-muscle">${esc(muscle)}</div>
+      </div>`;
+    }).join('');
+  }
+
+  function swapSessionExercise(dbId, newName) {
+    if (_swapEi === null || !workoutSession) return;
+    workoutSession.exercises[_swapEi].name = newName;
+    workoutSession.exercises[_swapEi].video_url = '';
+    closeSwapModal();
+    renderSession();
   }
 
   function openDemo(name) {
@@ -1673,7 +1765,10 @@
         <div class="session-ex-num">תרגיל ${ei + 1}</div>
         <div class="session-ex-title">
           <span>${esc(ex.name)}</span>
-          <button class="btn-demo" onclick="openDemo('${ex.name.replace(/'/g,"\\'")}')">הדגמה ▶</button>
+          <div style="display:flex;gap:5px;flex-shrink:0;">
+            <button class="btn-demo" onclick="openDemo('${ex.name.replace(/'/g,"\\'")}')">הדגמה ▶</button>
+            <button class="btn-swap" onclick="openSwapModal(${ei})">🔄 החלפה</button>
+          </div>
         </div>
         ${ex.description ? `<div class="session-ex-desc">${esc(ex.description)}</div>` : ''}
         <div class="rest-ctrl">
@@ -3965,6 +4060,19 @@ ${foodList || 'אין פריטים'}
     <input class="chat-ov-inp" id="chat-ov-inp" placeholder="הודעה..."
       onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendOverlayMsg();}"/>
     <button class="btn-ov-send" id="btn-ov-send" onclick="sendOverlayMsg()">↑</button>
+  </div>
+</div>
+
+<!-- Swap Modal -->
+<div id="swap-modal" onclick="if(event.target===this||event.target.classList.contains('swap-backdrop'))closeSwapModal()">
+  <div class="swap-backdrop"></div>
+  <div class="swap-box">
+    <div class="swap-header">
+      <div class="swap-title">🔄 החלף תרגיל</div>
+      <button class="swap-close" onclick="closeSwapModal()">✕</button>
+    </div>
+    <div class="swap-search"><input id="swap-search-input" placeholder="חיפוש תרגיל..." oninput="renderSwapList()" autocomplete="off"/></div>
+    <div class="swap-list" id="swap-list"></div>
   </div>
 </div>
 
