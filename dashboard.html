@@ -2434,53 +2434,122 @@ ${foodList || 'אין פריטים'}
     renderNutriBody();
   }
 
-  /* ── RECORDS ── */
+  /* ── RECORDS ── שמות תואמים בדיוק ל-strength_exercises.json */
   let RECORD_EXERCISES = {
-    'חזה':       ['לחיצת חזה במשקולות','לחיצת חזה במוט חופשי','לחיצת חזה בסמית','לחיצת חזה בשיפוע חיובי במוט חופשי','לחיצת חזה בשיפוע חיובי בסמית','לחיצת חזה בשיפוע חיובי במשקולות'],
-    '4 ראשי':    ['סקוואט חופשי','סקוואט בסמית','לחיצת רגליים','האק סקוואט','לאנץ בולגרי'],
-    'המסטרינג':  ['דדליפט קונבנציונלי','דדליפט רומני','דדליפט רומני רגל רגל','היפ טראסט'],
-    'גב':        ['פולי עליון לגב','חתירה במוט חופשי','חתירה בסמית'],
-    'יד קדמית':  ['יד קדמית במוט','יד קדמית בדאמבלים'],
-    'יד אחורית': ['לחיצה צרה במוט','לחיצה צרה בסמית'],
-    'כתפיים':    ['לחיצת כתפיים במוט חופשי','לחיצת כתפיים בסמית','לחיצת כתפיים בדאמבלים','הרחקת כתפיים'],
+    'חזה': [
+      'לחיצת חזה בשכיבה עם מוט',
+      'לחיצת חזה בשכיבה עם משקולות',
+      'לחיצת חזה בשיפוע חיובי עם מוט',
+      'לחיצת חזה בשיפוע חיובי עם משקולות',
+      'לחיצת חזה בשיפוע שלילי עם מוט',
+      "לחיצת חזה בסמית' מאשין",
+      'לחיצת חזה בשיפוע חיובי בסמית משין',
+      'מקבילים',
+      'מקבילים עם משקל',
+    ],
+    'גב': [
+      'חתירה בכיפוף עם משקולות',
+      'חתירה עם משקולות יד',
+      'משיכת פולי עליון באחיזה רחבה - פרונציה',
+      'משיכת פולי עליון באחיזה צרה - סופינציה',
+      'עליות מתח Chin Up',
+      'עליות Chin Up עם משקל',
+      'חתירה עם כבל בישיבה',
+      'ראק פול (Rack Pull)',
+    ],
+    'כתפיים': [
+      'לחיצת כתפיים בעמידה עם מוט',
+      'לחיצת כתפיים בישיבה עם מוט',
+      'לחיצת כתפיים מעל הראש בעמידה עם משקולות',
+      "לחיצת כתפיים בסמית' מאשין",
+      'לחיצת כתפיים (ארנולד)',
+    ],
+    'יד אחורית': [
+      'לחיצת חזה באחיזה צרה עם מוט',
+      'דיפס (מקבילים)',
+      'דיפס (מקבילים) עם משקל',
+      'פשיטת מרפקים בפולי עליון',
+      'פשיטת מרפקים עם חבל בפולי עליון',
+    ],
+    'ארבע ראשי': [
+      'סקוואט עם מוט על הגב',
+      'סקוואט בסמית משין',
+      'האק סקוואט',
+      'לחיצת רגליים במכונה',
+      'ספליט סקוואט בולגרי',
+      'ספליט סקוואט',
+      'גובלט סקוואט',
+    ],
+    'המסטרינג': [
+      'דדליפט קלאסי',
+      'דדליפט רומני',
+      'סומו דדפליט',
+      'סטיף לג דדליפט',
+      'דדליפט עם רגל אחת',
+      'גוד מורנינג',
+    ],
+    'ישבן': [
+      'היפ טראסט עם מוט',
+      'היפ טראסט עם קטלבל',
+      'היפ טראסט במכונה',
+      'היפ טראסט על רגל אחת עם משקולת',
+      'ספליט סקוואט בולגרי',
+    ],
   };
 
-  // ── Exercise Identity Layer ──
-  // aliases: כל וריאציה אפשרית (עברית + אנגלית) → canonical label
+  // ── Exercise Identity Layer ── aliases → canonical (שם מה-JSON)
   const EX_ALIASES = {
     // ── חזה ──
-    'לחיצת חזה במשקולות':                    ['לחיצת חזה דאמבלים','לחיצת דאמבלים שטוח','dumbbell bench press','dumbbell flat bench','db bench press','db flat press'],
-    'לחיצת חזה במוט חופשי':                  ['לחיצת חזה','לחיצת בנץ','bench press','barbell bench press','flat bench press','flat bench','חזה מוט'],
-    'לחיצת חזה בסמית':                       ['סמית חזה','smith bench press','smith machine bench','smith flat bench','לחיצת חזה סמית'],
-    'לחיצת חזה בשיפוע חיובי במוט חופשי':    ['שיפוע חיובי מוט','incline bench press','incline barbell press','incline barbell bench','incline bench'],
-    'לחיצת חזה בשיפוע חיובי בסמית':         ['שיפוע חיובי סמית','incline smith press','smith incline bench','smith incline press','incline smith machine'],
-    'לחיצת חזה בשיפוע חיובי במשקולות':      ['שיפוע חיובי דאמבלים','incline dumbbell press','incline dumbbell bench','incline db press'],
-    // ── 4 ראשי ──
-    'סקוואט חופשי':   ['סקוואט','squat','barbell squat','back squat','free squat'],
-    'סקוואט בסמית':   ['סמית סקוואט','smith squat','smith machine squat'],
-    'לחיצת רגליים':   ['לג פרס','leg press','leg press machine'],
-    'האק סקוואט':     ['hack squat','hack squat machine'],
-    'לאנץ בולגרי':    ['בולגרי','בולגרי ארבע ראשי','לאנץ בולגרי גלוטס','לאנץ בולגרי ישבן','bulgarian split squat','split squat','bulgarian squat'],
-    // ── המסטרינג ──
-    'דדליפט קונבנציונלי': ['דדליפט','deadlift','barbell deadlift','conventional deadlift'],
-    'דדליפט רומני':        ['rdl','romanian deadlift','romanian rdl','stiff leg deadlift'],
-    'דדליפט רומני רגל רגל':['רומני רגל אחת','single leg rdl','single leg romanian deadlift','single leg deadlift'],
-    'היפ טראסט':           ['hip thrust','barbell hip thrust','glute bridge barbell','היפ תראסט'],
+    'לחיצת חזה בשכיבה עם מוט':              ['לחיצת חזה במוט','לחיצת חזה','לחיצת בנץ','bench press','barbell bench press','flat bench press','flat bench','חזה מוט','לחיצת חזה במוט חופשי'],
+    'לחיצת חזה בשכיבה עם משקולות':          ['לחיצת חזה דאמבלים','לחיצת דאמבלים שטוח','dumbbell bench press','db bench press','לחיצת חזה במשקולות'],
+    'לחיצת חזה בשיפוע חיובי עם מוט':        ['שיפוע חיובי מוט','incline bench press','incline barbell press','incline bench','לחיצת חזה בשיפוע חיובי במוט חופשי'],
+    'לחיצת חזה בשיפוע חיובי עם משקולות':    ['שיפוע חיובי דאמבלים','incline dumbbell press','incline db press','לחיצת חזה בשיפוע חיובי במשקולות'],
+    'לחיצת חזה בשיפוע שלילי עם מוט':        ['שיפוע שלילי מוט','decline bench press','decline barbell press'],
+    "לחיצת חזה בסמית' מאשין":               ['סמית חזה','smith bench press','smith flat bench','לחיצת חזה בסמית','לחיצת חזה סמית'],
+    'לחיצת חזה בשיפוע חיובי בסמית משין':    ['שיפוע חיובי סמית','incline smith press','smith incline bench','לחיצת חזה בשיפוע חיובי בסמית'],
+    'מקבילים':                               ['dips','parallel bar dips','chest dips'],
+    'מקבילים עם משקל':                       ['weighted dips','dips with weight'],
     // ── גב ──
-    'פולי עליון לגב':  ['פולי גב','lat pulldown','pull down','cable pulldown','wide grip pulldown'],
-    'חתירה במוט חופשי':['חתירה','bent over row','barbell row','barbell bent over row'],
-    'חתירה בסמית':     ['סמית חתירה','smith row','smith machine row','smith bent over row'],
-    // ── יד קדמית ──
-    'יד קדמית במוט':     ['כפיפת מרפק מוט','barbell curl','bicep curl','bicep barbell curl','ez bar curl'],
-    'יד קדמית בדאמבלים': ['כפיפת מרפק דאמבלים','dumbbell curl','hammer curl','alternating curl'],
-    // ── יד אחורית ──
-    'לחיצה צרה במוט':   ['לחיצה צרה','close grip bench','close grip bench press','tricep press','tricep barbell press'],
-    'לחיצה צרה בסמית':  ['סמית לחיצה צרה','close grip smith','smith close grip bench'],
+    'חתירה בכיפוף עם משקולות':               ['חתירה במוט','bent over row','barbell row','barbell bent over row','חתירה','חתירה במוט חופשי'],
+    'חתירה עם משקולות יד':                   ['חתירה דאמבלים','dumbbell row','db row','one arm row'],
+    'משיכת פולי עליון באחיזה רחבה - פרונציה':['פולי עליון','פולי גב','lat pulldown','wide grip pulldown','cable pulldown','פולי עליון לגב'],
+    'משיכת פולי עליון באחיזה צרה - סופינציה':['פולי צר','reverse grip pulldown','underhand pulldown'],
+    'עליות מתח Chin Up':                     ['מתח','chin up','pull up','pullup','chinup'],
+    'עליות Chin Up עם משקל':                 ['מתח עם משקל','weighted pull up','weighted chin up'],
+    'חתירה עם כבל בישיבה':                   ['חתירה כבל','seated cable row','low cable row'],
+    'ראק פול (Rack Pull)':                   ['ראק פול','rack pull'],
     // ── כתפיים ──
-    'לחיצת כתפיים במוט חופשי': ['לחיצת כתפיים','לחיצה מעל ראש','overhead press','ohp','military press','barbell overhead press','barbell ohp'],
-    'לחיצת כתפיים בסמית':      ['סמית כתפיים','smith shoulder press','smith ohp','smith overhead press'],
-    'לחיצת כתפיים בדאמבלים':   ['לחיצת כתפיים דאמבלים','dumbbell shoulder press','dumbbell ohp','db shoulder press'],
-    'הרחקת כתפיים':             ['הרחקות','lateral raise','side raise','side lateral raise','dumbbell lateral raise'],
+    'לחיצת כתפיים בעמידה עם מוט':            ['לחיצת כתפיים מוט','overhead press','ohp','military press','barbell ohp','לחיצת כתפיים במוט חופשי','לחיצת כתפיים'],
+    'לחיצת כתפיים בישיבה עם מוט':            ['לחיצת כתפיים ישיבה','seated overhead press','seated barbell press'],
+    'לחיצת כתפיים מעל הראש בעמידה עם משקולות':['לחיצת כתפיים דאמבלים','dumbbell shoulder press','dumbbell ohp','db ohp','לחיצת כתפיים בדאמבלים'],
+    "לחיצת כתפיים בסמית' מאשין":            ['סמית כתפיים','smith shoulder press','smith ohp','לחיצת כתפיים בסמית'],
+    'לחיצת כתפיים (ארנולד)':                 ['ארנולד פרס','arnold press','arnold shoulder press','לחיצת ארנולד','לחיצת כתפיים ארנולד'],
+    // ── יד אחורית ──
+    'לחיצת חזה באחיזה צרה עם מוט':          ['לחיצה צרה','לחיצה צרה מוט','close grip bench','close grip bench press','tricep press','לחיצה צרה במוט'],
+    'דיפס (מקבילים)':                        ['דיפס','dips triceps','tricep dips','parallel dips'],
+    'דיפס (מקבילים) עם משקל':               ['דיפס משקל','weighted tricep dips'],
+    'פשיטת מרפקים בפולי עליון':              ['פולי תחתון טרייספס','tricep pushdown','cable pushdown','tricep cable'],
+    'פשיטת מרפקים עם חבל בפולי עליון':      ['חבל טרייספס','rope pushdown','rope tricep pushdown'],
+    // ── ארבע ראשי ──
+    'סקוואט עם מוט על הגב':                 ['סקוואט','squat','barbell squat','back squat','סקוואט חופשי','סקוואט מוט'],
+    'סקוואט בסמית משין':                    ['סמית סקוואט','smith squat','smith machine squat','סקוואט בסמית'],
+    'האק סקוואט':                           ['hack squat','hack squat machine'],
+    'לחיצת רגליים במכונה':                  ['לג פרס','leg press','לחיצת רגליים','leg press machine'],
+    'ספליט סקוואט בולגרי':                  ['בולגרי','לאנץ בולגרי','bulgarian split squat','bulgarian squat','split squat','ספליט בולגרי'],
+    'ספליט סקוואט':                         ['ספליט','split squat','לאנץ'],
+    'גובלט סקוואט':                         ['goblet squat','goblet'],
+    // ── המסטרינג ──
+    'דדליפט קלאסי':                         ['דדליפט','deadlift','barbell deadlift','conventional deadlift','דדליפט קונבנציונלי'],
+    'דדליפט רומני':                         ['rdl','romanian deadlift','romanian rdl','רומני'],
+    'סומו דדפליט':                          ['סומו','sumo deadlift','sumo'],
+    'סטיף לג דדליפט':                       ['סטיף','stiff leg deadlift','straight leg deadlift'],
+    'דדליפט עם רגל אחת':                    ['רומני רגל אחת','single leg rdl','single leg deadlift','סינגל לג','דדליפט רומני רגל רגל'],
+    'גוד מורנינג':                          ['good morning','good mornings'],
+    // ── ישבן ──
+    'היפ טראסט עם מוט':                     ['היפ טראסט','hip thrust','barbell hip thrust','glute bridge barbell','היפ תראסט'],
+    'היפ טראסט עם קטלבל':                   ['היפ טראסט קטלבל','kettlebell hip thrust'],
+    'היפ טראסט במכונה':                     ['היפ טראסט מכונה','machine hip thrust'],
+    'היפ טראסט על רגל אחת עם משקולת':      ['היפ טראסט רגל אחת','single leg hip thrust'],
   };
 
   // בנה מפה הפוכה: alias → canonical
@@ -2531,7 +2600,7 @@ ${foodList || 'אין פריטים'}
   let recMode     = 'strength';
   let recScope    = 'mine';   // 'mine' = הנבחרת שלנו | 'all' = כלליים
   let recMuscle   = 'חזה';
-  let recExercise = 'לחיצת חזה במוט חופשי';
+  let recExercise = 'לחיצת חזה בשכיבה עם מוט';
   let recLogs     = null;
   let recClients  = {};
   let recClientCoach = {};   // clientEmail → coachEmail

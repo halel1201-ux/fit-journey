@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="he" dir="rtl">
 <head>
   <meta charset="UTF-8"/>
@@ -21,119 +21,85 @@
     body { font-family: 'Heebo', sans-serif; background: var(--black); color: var(--white); min-height: 100vh; }
     ::-webkit-scrollbar { width: 5px; } ::-webkit-scrollbar-track { background: var(--black); } ::-webkit-scrollbar-thumb { background: var(--orange); border-radius: 3px; }
 
-    /* NAV */
-    nav {
-      position: sticky; top: 0; z-index: 50;
-      background: rgba(9,9,9,0.92); backdrop-filter: blur(14px);
-      border-bottom: 1px solid rgba(255,107,0,0.15);
-      padding: 0 24px; height: 62px;
-      display: flex; align-items: center; justify-content: space-between;
-    }
-    .nav-brand { display: flex; align-items: center; gap: 10px; }
-    .nav-hf { font-size: 1.4rem; font-weight: 900; background: linear-gradient(135deg, var(--orange), var(--gold)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-    .nav-right { display: flex; align-items: center; gap: 12px; }
-    .nav-back { font-size: 0.85rem; color: var(--muted); text-decoration: none; font-weight: 700; transition: color 0.2s; }
-    .nav-back:hover { color: var(--orange); }
-    .btn-logout { padding: 7px 18px; background: transparent; border: 1px solid rgba(255,107,0,0.4); border-radius: 6px; color: var(--orange); font-family: 'Heebo', sans-serif; font-size: 0.85rem; font-weight: 700; cursor: pointer; transition: background 0.2s; }
-    .btn-logout:hover { background: rgba(255,107,0,0.1); }
+    nav { position:sticky; top:0; z-index:50; background:rgba(9,9,9,0.92); backdrop-filter:blur(14px); border-bottom:1px solid rgba(255,107,0,0.15); padding:0 24px; height:62px; display:flex; align-items:center; justify-content:space-between; }
+    .nav-brand { display:flex; align-items:center; gap:10px; }
+    .nav-hf { font-size:1.4rem; font-weight:900; background:linear-gradient(135deg,var(--orange),var(--gold)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+    .nav-right { display:flex; align-items:center; gap:12px; }
+    .nav-back { font-size:0.85rem; color:var(--muted); text-decoration:none; font-weight:700; transition:color 0.2s; }
+    .nav-back:hover { color:var(--orange); }
+    .btn-logout { padding:7px 18px; background:transparent; border:1px solid rgba(255,107,0,0.4); border-radius:6px; color:var(--orange); font-family:'Heebo',sans-serif; font-size:0.85rem; font-weight:700; cursor:pointer; transition:background 0.2s; }
+    .btn-logout:hover { background:rgba(255,107,0,0.1); }
 
-    /* LAYOUT */
-    .container { max-width: 1100px; margin: 0 auto; padding: 36px 20px 60px; }
+    .container { max-width:1100px; margin:0 auto; padding:36px 20px 60px; }
+    .page-header { margin-bottom:28px; }
+    .page-title { font-size:1.9rem; font-weight:900; margin-bottom:6px; }
+    .page-title span { background:linear-gradient(135deg,var(--orange),var(--gold)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+    .page-sub { font-size:0.88rem; color:var(--muted); }
 
-    /* PAGE TITLE */
-    .page-header { margin-bottom: 28px; }
-    .page-title { font-size: 1.9rem; font-weight: 900; margin-bottom: 6px; }
-    .page-title span { background: linear-gradient(135deg, var(--orange), var(--gold)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-    .page-sub { font-size: 0.88rem; color: var(--muted); }
+    .search-input { width:100%; padding:12px 16px; margin-bottom:18px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:10px; color:var(--white); font-family:'Heebo',sans-serif; font-size:0.95rem; outline:none; transition:border-color 0.2s; }
+    .search-input:focus { border-color:var(--orange); }
+    .search-input::placeholder { color:#444; }
 
-    /* SEARCH */
-    .search-input {
-      width: 100%; padding: 12px 16px; margin-bottom: 18px;
-      background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 10px; color: var(--white); font-family: 'Heebo', sans-serif;
-      font-size: 0.95rem; outline: none; transition: border-color 0.2s;
-    }
-    .search-input:focus { border-color: var(--orange); }
-    .search-input::placeholder { color: #444; }
+    .filter-tabs { display:flex; gap:8px; overflow-x:auto; padding-bottom:4px; margin-bottom:10px; scrollbar-width:none; }
+    .filter-tabs::-webkit-scrollbar { display:none; }
+    .filter-subtabs { display:none; gap:6px; overflow-x:auto; padding-bottom:4px; margin-bottom:18px; scrollbar-width:none; }
+    .filter-subtabs::-webkit-scrollbar { display:none; }
+    .tab-btn { padding:8px 18px; border-radius:20px; font-family:'Heebo',sans-serif; font-size:0.85rem; font-weight:700; cursor:pointer; white-space:nowrap; border:1px solid rgba(255,107,0,0.25); background:transparent; color:var(--muted); transition:all 0.2s; }
+    .tab-btn:hover { color:var(--white); border-color:rgba(255,107,0,0.5); }
+    .tab-btn.active { background:linear-gradient(135deg,var(--orange),#FF8C00); border-color:transparent; color:var(--white); }
+    .tab-btn-sub { padding:5px 13px; border-radius:16px; font-family:'Heebo',sans-serif; font-size:0.78rem; font-weight:700; cursor:pointer; white-space:nowrap; border:1px solid rgba(255,255,255,0.12); background:transparent; color:var(--muted); transition:all 0.2s; }
+    .tab-btn-sub:hover { color:var(--white); border-color:rgba(255,107,0,0.4); }
+    .tab-btn-sub.active { background:rgba(255,107,0,0.15); border-color:var(--orange); color:var(--orange); }
 
-    /* FILTER TABS */
-    .filter-tabs { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 10px; scrollbar-width: none; }
-    .filter-tabs::-webkit-scrollbar { display: none; }
-    .filter-subtabs { display: none; gap: 6px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 18px; scrollbar-width: none; }
-    .filter-subtabs::-webkit-scrollbar { display: none; }
-    .tab-btn {
-      padding: 8px 18px; border-radius: 20px; font-family: 'Heebo', sans-serif;
-      font-size: 0.85rem; font-weight: 700; cursor: pointer; white-space: nowrap;
-      border: 1px solid rgba(255,107,0,0.25); background: transparent; color: var(--muted);
-      transition: all 0.2s;
-    }
-    .tab-btn:hover { color: var(--white); border-color: rgba(255,107,0,0.5); }
-    .tab-btn.active { background: linear-gradient(135deg, var(--orange), #FF8C00); border-color: transparent; color: var(--white); }
-    .tab-btn-sub {
-      padding: 5px 13px; border-radius: 16px; font-family: 'Heebo', sans-serif;
-      font-size: 0.78rem; font-weight: 700; cursor: pointer; white-space: nowrap;
-      border: 1px solid rgba(255,255,255,0.12); background: transparent; color: var(--muted);
-      transition: all 0.2s;
-    }
-    .tab-btn-sub:hover { color: var(--white); border-color: rgba(255,107,0,0.4); }
-    .tab-btn-sub.active { background: rgba(255,107,0,0.15); border-color: var(--orange); color: var(--orange); }
+    .results-count { font-size:0.82rem; color:var(--muted); margin-bottom:16px; }
+    .results-count strong { color:var(--orange); }
 
-    /* COUNT */
-    .results-count { font-size: 0.82rem; color: var(--muted); margin-bottom: 16px; }
-    .results-count strong { color: var(--orange); }
+    .exercises-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:14px; }
+    .ex-card { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:0 0 12px; overflow:hidden; transition:box-shadow 0.2s,border-color 0.2s; display:flex; flex-direction:column; gap:0; cursor:pointer; }
+    .ex-card:hover { box-shadow:0 8px 28px rgba(255,107,0,0.15); border-color:rgba(255,107,0,0.5); }
 
-    /* GRID */
-    .exercises-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; }
+    .ex-thumb-wrap { width:100%; aspect-ratio:16/9; overflow:hidden; background:#111; position:relative; }
+    .ex-thumb-wrap img { width:100%; height:100%; object-fit:cover; display:block; transition:transform 0.25s; }
+    .ex-card:hover .ex-thumb-wrap img { transform:scale(1.04); }
+    .ex-thumb-play { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,0.25); opacity:0; transition:opacity 0.2s; }
+    .ex-card:hover .ex-thumb-play { opacity:1; }
+    .ex-thumb-play-icon { width:38px; height:38px; background:rgba(255,107,0,0.92); border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:1rem; padding-right:2px; }
+    .ex-no-thumb { width:100%; aspect-ratio:16/9; background:#111; display:flex; align-items:center; justify-content:center; color:#2a2a2a; font-size:2.5rem; }
 
-    /* CARD */
-    .ex-card {
-      background: var(--card); border: 1px solid var(--border);
-      border-radius: 14px; padding: 16px 14px 12px;
-      transition: box-shadow 0.2s, border-color 0.2s;
-      display: flex; flex-direction: column; gap: 8px;
-    }
-    .ex-card:hover { box-shadow: 0 8px 28px rgba(255,107,0,0.12); border-color: rgba(255,107,0,0.4); }
-    .ex-muscle-badge {
-      display: inline-block; padding: 3px 10px; border-radius: 12px;
-      background: rgba(255,107,0,0.1); border: 1px solid rgba(255,107,0,0.25);
-      font-size: 0.72rem; font-weight: 700; color: var(--orange); align-self: flex-start;
-    }
-    .ex-card-name { font-size: 0.95rem; font-weight: 700; line-height: 1.4; flex: 1; color: var(--white); text-decoration: none; display: block; }
-    .ex-card-name.clickable { color: var(--orange); cursor: pointer; }
-    .ex-card-name.clickable:hover { text-decoration: underline; }
-    /* URL input row on card */
-    .card-url-row { display: flex; gap: 6px; margin-top: 4px; }
-    .card-url-input {
-      flex: 1; padding: 6px 10px; background: rgba(255,255,255,0.04);
-      border: 1px solid rgba(255,255,255,0.08); border-radius: 7px;
-      color: var(--white); font-family: 'Heebo', sans-serif;
-      font-size: 0.75rem; outline: none; direction: ltr; min-width: 0;
-    }
-    .card-url-input:focus { border-color: var(--orange); }
-    .card-url-input::placeholder { color: #444; }
-    .card-url-btn {
-      padding: 6px 11px; background: var(--orange); border: none; border-radius: 7px;
-      color: #fff; font-family: 'Heebo', sans-serif; font-size: 0.75rem;
-      font-weight: 700; cursor: pointer; white-space: nowrap; transition: opacity 0.2s;
-      flex-shrink: 0;
-    }
-    .card-url-btn:hover { opacity: 0.85; }
-    .card-url-btn:disabled { opacity: 0.5; cursor: default; }
-    .has-video { color: var(--orange); }
-    .no-video { color: #444; }
+    .ex-card-body { padding:10px 12px 0; display:flex; flex-direction:column; gap:6px; flex:1; }
+    .ex-muscle-badge { display:inline-block; padding:3px 9px; border-radius:12px; background:rgba(255,107,0,0.1); border:1px solid rgba(255,107,0,0.25); font-size:0.7rem; font-weight:700; color:var(--orange); align-self:flex-start; }
+    .ex-card-name { font-size:0.9rem; font-weight:700; line-height:1.35; color:var(--white); }
+    .ex-card-en { font-size:0.72rem; color:#555; }
 
-    /* EMPTY */
-    .empty { grid-column: 1 / -1; text-align: center; padding: 60px 20px; color: #444; }
-    .empty-icon { font-size: 3rem; margin-bottom: 12px; }
+    .empty { grid-column:1/-1; text-align:center; padding:60px 20px; color:#444; }
+    .empty-icon { font-size:3rem; margin-bottom:12px; }
 
-    /* LOADER */
-    #loader { position: fixed; inset: 0; background: var(--black); display: flex; align-items: center; justify-content: center; z-index: 999; transition: opacity 0.3s; }
-    .spin { width: 40px; height: 40px; border: 3px solid rgba(255,107,0,0.2); border-top-color: var(--orange); border-radius: 50%; animation: spin 0.7s linear infinite; }
-    @keyframes spin { to { transform: rotate(360deg); } }
+    /* Demo Modal */
+    #ex-demo-modal { display:none; position:fixed; inset:0; z-index:9000; align-items:center; justify-content:center; padding:16px; box-sizing:border-box; }
+    #ex-demo-modal.open { display:flex; }
+    .ex-demo-backdrop { position:absolute; inset:0; background:rgba(0,0,0,0.88); backdrop-filter:blur(5px); }
+    .ex-demo-box { position:relative; z-index:1; background:#161616; border:1px solid rgba(255,107,0,0.3); border-radius:18px; width:100%; max-width:520px; overflow:hidden; box-shadow:0 0 50px rgba(255,107,0,0.18); max-height:90vh; display:flex; flex-direction:column; }
+    .ex-demo-header { display:flex; align-items:flex-start; justify-content:space-between; padding:14px 18px; border-bottom:1px solid rgba(255,255,255,0.07); flex-shrink:0; }
+    .ex-demo-title { font-size:1rem; font-weight:900; color:var(--white); line-height:1.3; }
+    .ex-demo-en { font-size:0.72rem; color:#666; margin-top:2px; }
+    .ex-demo-muscle { font-size:0.72rem; color:var(--orange); font-weight:700; margin-top:3px; }
+    .ex-demo-close { background:none; border:none; color:#888; font-size:1.4rem; cursor:pointer; line-height:1; padding:0; flex-shrink:0; margin-right:10px; }
+    .ex-demo-close:hover { color:var(--white); }
+    .ex-demo-video-wrap { background:#000; aspect-ratio:16/9; flex-shrink:0; }
+    .ex-demo-video-wrap video { width:100%; height:100%; object-fit:contain; }
+    .ex-demo-no-video { display:flex; align-items:center; justify-content:center; aspect-ratio:16/9; background:#111; color:#555; font-size:0.85rem; flex-shrink:0; }
+    .ex-demo-cues { padding:14px 18px; overflow-y:auto; flex:1; }
+    .ex-demo-cues-title { font-size:0.75rem; font-weight:700; color:var(--orange); letter-spacing:0.5px; margin-bottom:8px; }
+    .ex-demo-cues ol { margin:0; padding-right:18px; }
+    .ex-demo-cues li { font-size:0.82rem; color:#ccc; line-height:1.6; margin-bottom:5px; }
 
-    @media (max-width: 480px) {
-      .exercises-grid { grid-template-columns: repeat(auto-fill, minmax(155px, 1fr)); }
-      .page-title { font-size: 1.5rem; }
+    #loader { position:fixed; inset:0; background:var(--black); display:flex; align-items:center; justify-content:center; z-index:999; transition:opacity 0.3s; }
+    .spin { width:40px; height:40px; border:3px solid rgba(255,107,0,0.2); border-top-color:var(--orange); border-radius:50%; animation:spin 0.7s linear infinite; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+
+    @media (max-width:480px) {
+      .exercises-grid { grid-template-columns:repeat(auto-fill,minmax(155px,1fr)); }
+      .page-title { font-size:1.5rem; }
     }
   </style>
 </head>
@@ -142,9 +108,7 @@
 <div id="loader"><div class="spin"></div></div>
 
 <nav>
-  <div class="nav-brand">
-    <div class="nav-hf">FJ</div>
-  </div>
+  <div class="nav-brand"><div class="nav-hf">FJ</div></div>
   <div class="nav-right">
     <a id="back-link" href="dashboard.html" class="nav-back">← אזור אישי</a>
     <script>(function(){const p=new URLSearchParams(location.search);if(p.get('from')==='coach'){const a=document.getElementById('back-link');a.href='coach.html';a.textContent='✕ סגור';a.style.cssText='font-size:1.1rem;font-weight:900;color:var(--orange);text-decoration:none;padding:4px 10px;border:1px solid rgba(255,107,0,0.4);border-radius:8px;';} })();</script>
@@ -155,18 +119,34 @@
 <div class="container" id="main" style="display:none;">
   <div class="page-header">
     <div class="page-title">מאגר <span>תרגילים</span></div>
-    <p class="page-sub">חפש תרגיל, סנן לפי קבוצת שריר וצפה בסרטון הסבר</p>
+    <p class="page-sub" id="page-sub">347 תרגילים עם סרטוני הדגמה ודגשי ביצוע</p>
   </div>
-
-  <input class="search-input" id="search" placeholder="חיפוש תרגיל..." oninput="filterExercises()"/>
-
+  <input class="search-input" id="search" placeholder="חיפוש לפי שם בעברית או אנגלית..." oninput="filterExercises()"/>
   <div class="filter-tabs" id="filter-tabs"></div>
   <div class="filter-subtabs" id="filter-subtabs"></div>
   <div class="results-count" id="results-count"></div>
   <div class="exercises-grid" id="exercises-grid"></div>
 </div>
 
-<!-- (modal removed — video URL editing is now inline on each card) -->
+<!-- Demo Modal -->
+<div id="ex-demo-modal" onclick="if(event.target===this||event.target.classList.contains('ex-demo-backdrop'))closeExDemo()">
+  <div class="ex-demo-backdrop"></div>
+  <div class="ex-demo-box">
+    <div class="ex-demo-header">
+      <div>
+        <div class="ex-demo-title" id="ex-demo-title"></div>
+        <div class="ex-demo-en" id="ex-demo-en"></div>
+        <div class="ex-demo-muscle" id="ex-demo-muscle"></div>
+      </div>
+      <button class="ex-demo-close" onclick="closeExDemo()">✕</button>
+    </div>
+    <div id="ex-demo-media"></div>
+    <div class="ex-demo-cues" id="ex-demo-cues" style="display:none;">
+      <div class="ex-demo-cues-title">📋 דגשי ביצוע</div>
+      <ol id="ex-demo-cues-list"></ol>
+    </div>
+  </div>
+</div>
 
 <script>
   const URL_ = 'https://luwknflmhvcxgifzxgrk.supabase.co';
@@ -174,45 +154,51 @@
   const sb   = supabase.createClient(URL_, KEY);
 
   const MUSCLE_HIERARCHY = {
-    'חזה':        ['חזה עליון','חזה אמצעי','חזה תחתון','חזה פנימי'],
-    'גב':         ['רוחב גב','גב עליון','טרפזים','גב תחתון','זוקפי גב'],
-    'כתפיים':    ['כתף קדמית','כתף צידית','כתף אחורית'],
-    'יד קדמית':  ['ראש ארוך','ראש קצר','ברכיאליס'],
-    'יד אחורית': ['ראש ארוך','ראש לטרלי','ראש מדיאלי'],
-    'אמות':      ['כופפי אמה','פושטי אמה','כוח אחיזה'],
-    '4 ראשי':    ['קוואדס חיצוני','קוואדס פנימי','קוואדס אמצעי'],
-    'המסטרינג':  ['חלק פנימי','חלק חיצוני'],
-    'ישבן':      ['גלוטס מקסימוס','גלוטס מדיוס'],
-    'עגל':       ['תאומים','סולאוס','טיביאליס'],
-    'ליבה':      ['בטן עליונה','בטן תחתונה','אלכסונים','עומק ליבה']
+    'חזה':      ['חזה עליון','חזה מרכזי','חזה תחתון'],
+    'גב':       ['רחב גבי','טרפזים','גב תחתון'],
+    'כתפיים':   ['כתף קדמית','כתף צידית','כתף אחורית'],
+    'ידיים':    ['יד קדמית','יד אחורית','אמות'],
+    'רגליים':   ['ארבע ראשי','המסטרינג','ישבן','תאומים','מרחיקים','מקרבים'],
+    'בטן':      ['שרירי הבטן'],
+    'פול באדי': ['פול באדי'],
   };
+
   let allExercises = [];
   let activeTab    = 'הכל';
   let activeSubTab = null;
 
   async function init() {
     let { data: { session } } = await sb.auth.getSession();
-
     if (!session) {
       await new Promise(resolve => {
         const { data: { subscription } } = sb.auth.onAuthStateChange((event, s) => {
-          if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
-            session = s; subscription.unsubscribe(); resolve();
-          }
+          if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') { session = s; subscription.unsubscribe(); resolve(); }
         });
         setTimeout(resolve, 3000);
       });
     }
-
     if (!session) { window.location.href = 'login.html'; return; }
 
-    const { data, error } = await sb.from('exercises').select('*').order('muscle_group').order('name');
-    allExercises = data || [];
+    const res  = await fetch('/strength_exercises.json');
+    const raw  = await res.json();
+    allExercises = raw.map(ex => {
+      const md = ex.muscle_details || [];
+      return {
+        id:          ex.id,
+        name:        ex.name,
+        english:     ex.english || '',
+        muscle_group:    md[0] ? md[0].group : (ex.muscle_groups[0] || ''),
+        sub_muscle_group:md[0] ? md[0].name  : '',
+        all_muscles: (ex.muscle_groups || []).join(', '),
+        video_url:   ex.video || '',
+        thumb_url:   ex.thumb || '',
+        cues:        ex.cues  || '',
+      };
+    }).sort((a, b) => a.name.localeCompare(b.name, 'he'));
 
     document.getElementById('loader').style.opacity = '0';
     setTimeout(() => document.getElementById('loader').style.display = 'none', 300);
     document.getElementById('main').style.display = 'block';
-
     renderTabs();
     filterExercises();
   }
@@ -222,7 +208,6 @@
     document.getElementById('filter-tabs').innerHTML = mainGroups.map(m =>
       `<button class="tab-btn${m === activeTab ? ' active' : ''}" onclick="setTab('${m}')">${m}</button>`
     ).join('');
-
     const subWrap = document.getElementById('filter-subtabs');
     const subs = activeTab !== 'הכל' ? (MUSCLE_HIERARCHY[activeTab] || []) : [];
     if (subs.length) {
@@ -236,28 +221,18 @@
     }
   }
 
-  function setTab(muscle) {
-    activeTab = muscle;
-    activeSubTab = null;
-    renderTabs();
-    filterExercises();
-  }
-
-  function setSubTab(sub) {
-    activeSubTab = sub;
-    renderTabs();
-    filterExercises();
-  }
+  function setTab(muscle) { activeTab = muscle; activeSubTab = null; renderTabs(); filterExercises(); }
+  function setSubTab(sub)  { activeSubTab = sub; renderTabs(); filterExercises(); }
 
   function filterExercises() {
     const q = document.getElementById('search').value.trim().toLowerCase();
     let list = allExercises;
     if (activeTab !== 'הכל') list = list.filter(e => e.muscle_group === activeTab);
-    if (activeSubTab) list = list.filter(e => e.sub_muscle_group === activeSubTab);
-    if (q) list = list.filter(e => e.name.toLowerCase().includes(q));
+    if (activeSubTab)        list = list.filter(e => e.sub_muscle_group === activeSubTab || e.all_muscles.includes(activeSubTab));
+    if (q) list = list.filter(e => e.name.toLowerCase().includes(q) || e.english.toLowerCase().includes(q) || e.all_muscles.toLowerCase().includes(q));
     renderGrid(list);
     document.getElementById('results-count').innerHTML =
-      `מוצגים <strong>${list.length}</strong> תרגילים`;
+      `מוצגים <strong>${list.length}</strong> מתוך ${allExercises.length} תרגילים`;
   }
 
   function renderGrid(list) {
@@ -267,72 +242,67 @@
       return;
     }
     grid.innerHTML = list.map(ex => {
-      const hasVideo = !!ex.video_url;
-      const nameHtml = hasVideo
-        ? `<a class="ex-card-name clickable" href="${esc(ex.video_url)}" target="_blank" rel="noopener">${esc(ex.name)} ▶</a>`
-        : `<div class="ex-card-name">${esc(ex.name)}</div>`;
+      const safeId = ex.id;
+      const thumb  = ex.thumb_url
+        ? `<div class="ex-thumb-wrap">
+             <img src="${esc(ex.thumb_url)}" alt="${esc(ex.name)}" loading="lazy"
+               onerror="this.closest('.ex-thumb-wrap').outerHTML='<div class=ex-no-thumb>🏋️</div>'"/>
+             <div class="ex-thumb-play"><div class="ex-thumb-play-icon">▶</div></div>
+           </div>`
+        : `<div class="ex-no-thumb">🏋️</div>`;
       return `
-        <div class="ex-card" data-id="${ex.id}">
-          <span class="ex-muscle-badge">${ex.sub_muscle_group || ex.muscle_group}</span>
-          ${nameHtml}
-          <div class="card-url-row">
-            <input class="card-url-input" id="url-${ex.id}" value="${esc(ex.video_url || '')}"
-              placeholder="הדבק לינק לסרטון..." dir="ltr"
-              onkeydown="if(event.key==='Enter')saveUrl('${ex.id}')"/>
-            <button class="card-url-btn" onclick="saveUrl('${ex.id}')">שמור</button>
+        <div class="ex-card" onclick="openExDemo(${safeId})">
+          ${thumb}
+          <div class="ex-card-body">
+            <span class="ex-muscle-badge">${esc(ex.sub_muscle_group || ex.muscle_group)}</span>
+            <div class="ex-card-name">${esc(ex.name)}</div>
+            ${ex.english ? `<div class="ex-card-en">${esc(ex.english)}</div>` : ''}
           </div>
         </div>`;
     }).join('');
   }
 
-  async function saveUrl(id) {
-    const input = document.getElementById(`url-${id}`);
-    if (!input) return;
-    const url = input.value.trim();
-    const btn = input.nextElementSibling;
-    btn.disabled = true; btn.textContent = '...';
-    const { error } = await sb.from('exercises').update({ video_url: url || null }).eq('id', id);
-    btn.disabled = false; btn.textContent = 'שמור';
-    if (error) { btn.textContent = '✗'; setTimeout(() => btn.textContent = 'שמור', 2000); return; }
-    const ex = allExercises.find(e => String(e.id) === String(id));
-    if (ex) ex.video_url = url || null;
-    // update name link
-    const card = document.querySelector(`[data-id="${id}"]`);
-    if (card) {
-      const nameEl = card.querySelector('.ex-card-name');
-      if (nameEl) {
-        if (url) {
-          const a = document.createElement('a');
-          a.className = 'ex-card-name clickable';
-          a.href = url; a.target = '_blank'; a.rel = 'noopener';
-          a.textContent = (ex?.name || '') + ' ▶';
-          nameEl.replaceWith(a);
-        } else {
-          const d = document.createElement('div');
-          d.className = 'ex-card-name';
-          d.textContent = ex?.name || '';
-          nameEl.replaceWith(d);
-        }
-      }
+  function openExDemo(id) {
+    const ex = allExercises.find(e => e.id === id);
+    if (!ex) return;
+    document.getElementById('ex-demo-title').textContent  = ex.name;
+    document.getElementById('ex-demo-en').textContent     = ex.english || '';
+    document.getElementById('ex-demo-muscle').textContent = ex.all_muscles;
+    const mediaEl = document.getElementById('ex-demo-media');
+    mediaEl.innerHTML = ex.video_url
+      ? `<div class="ex-demo-video-wrap"><video src="${esc(ex.video_url)}" autoplay loop muted playsinline controls></video></div>`
+      : `<div class="ex-demo-no-video">אין סרטון זמין לתרגיל זה</div>`;
+    const cuesWrap = document.getElementById('ex-demo-cues');
+    if (ex.cues) {
+      const steps = ex.cues.split('\n').map(s => s.replace(/^\d+\.\s*/, '').trim()).filter(Boolean);
+      document.getElementById('ex-demo-cues-list').innerHTML = steps.map(s => `<li>${s}</li>`).join('');
+      cuesWrap.style.display = 'block';
+    } else {
+      cuesWrap.style.display = 'none';
     }
-    btn.textContent = '✓'; setTimeout(() => btn.textContent = 'שמור', 2000);
+    document.getElementById('ex-demo-modal').classList.add('open');
+    document.body.style.overflow = 'hidden';
   }
 
-  function esc(s) {
-    return (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  function closeExDemo() {
+    document.getElementById('ex-demo-modal').classList.remove('open');
+    document.body.style.overflow = '';
+    const vid = document.querySelector('#ex-demo-modal video');
+    if (vid) { vid.pause(); vid.src = ''; }
   }
 
-  async function logout() {
-    await sb.auth.signOut();
-    window.location.href = 'login.html';
-  }
+  function esc(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
+  async function logout() { await sb.auth.signOut(); window.location.href = 'login.html'; }
+
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeExDemo(); });
 
   init();
 </script>
-  <script>
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js').catch(e => console.warn('SW:', e));
-    }
-  </script></body>
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js').catch(e => console.warn('SW:', e));
+  }
+</script>
+</body>
 </html>
