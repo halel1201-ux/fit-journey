@@ -444,6 +444,10 @@
       <span class="sidebar-title">המתאמנים שלי</span>
       <button class="btn-sm btn-orange" id="btn-add-client" style="display:none;font-size:0.75rem;padding:5px 10px;" onclick="openAddModal()">+ הוסף</button>
     </div>
+    <div style="padding:8px 10px;border-bottom:1px solid rgba(255,255,255,0.05);">
+      <input id="client-search" type="text" placeholder="🔍 חיפוש מתאמן..." oninput="renderSidebar()"
+        style="width:100%;box-sizing:border-box;padding:7px 10px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:var(--white);font-family:'Heebo',sans-serif;font-size:0.82rem;outline:none;"/>
+    </div>
     <div class="client-list" id="client-list"></div>
   </div>
   <div class="main" id="main-area">
@@ -1782,7 +1786,10 @@
   function renderSidebar() {
     const el = document.getElementById('client-list');
     if (!clients.length) { el.innerHTML = '<div style="padding:16px;color:#444;font-size:0.82rem;text-align:center;">אין מתאמנים עדיין</div>'; return; }
-    el.innerHTML = clients.map(c => {
+    const q = (document.getElementById('client-search')?.value || '').trim().toLowerCase();
+    const visible = q ? clients.filter(c => c.name?.toLowerCase().includes(q) || c.email?.toLowerCase().includes(q)) : clients;
+    if (!visible.length) { el.innerHTML = '<div style="padding:16px;color:#444;font-size:0.82rem;text-align:center;">לא נמצאו מתאמנים</div>'; return; }
+    el.innerHTML = visible.map(c => {
       const lastSeen = fmtLastSeen(c.last_seen);
       const pkg = clientPackageMap[c.email];
       const statusDot = pkg

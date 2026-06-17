@@ -731,6 +731,32 @@
     </div>
   </div>
 
+  <!-- כרטיס סטטוס חבילה -->
+  <div id="pkg-card" style="display:none;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:16px;padding:16px 18px;margin:0 0 12px;border-top:3px solid var(--orange);">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+      <span style="font-weight:700;font-size:0.9rem;color:var(--white);">📦 חבילת ליווי</span>
+      <span id="pkg-status-badge" style="font-size:0.75rem;font-weight:700;padding:3px 10px;border-radius:20px;"></span>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <div style="background:rgba(255,255,255,0.04);border-radius:10px;padding:10px 12px;text-align:center;">
+        <div id="pkg-paid" style="font-size:1.3rem;font-weight:900;color:var(--orange);">—</div>
+        <div style="font-size:0.68rem;color:var(--muted);margin-top:2px;">שולם ₪</div>
+      </div>
+      <div style="background:rgba(255,255,255,0.04);border-radius:10px;padding:10px 12px;text-align:center;">
+        <div id="pkg-owed" style="font-size:1.3rem;font-weight:900;color:#f87171;">—</div>
+        <div style="font-size:0.68rem;color:var(--muted);margin-top:2px;">נותר לתשלום ₪</div>
+      </div>
+      <div id="pkg-sessions-box" style="background:rgba(255,255,255,0.04);border-radius:10px;padding:10px 12px;text-align:center;display:none;">
+        <div id="pkg-sessions" style="font-size:1.3rem;font-weight:900;color:#4ade80;">—</div>
+        <div style="font-size:0.68rem;color:var(--muted);margin-top:2px;">פגישות נותרות</div>
+      </div>
+      <div style="background:rgba(255,255,255,0.04);border-radius:10px;padding:10px 12px;text-align:center;">
+        <div id="pkg-end" style="font-size:1rem;font-weight:700;color:var(--white);">—</div>
+        <div style="font-size:0.68rem;color:var(--muted);margin-top:2px;">תאריך סיום</div>
+      </div>
+    </div>
+  </div>
+
   <!-- NOTIFICATION PERMISSION BANNER -->
   <div class="notif-banner" id="notif-banner">
     <div id="notif-banner-text">🔔 הפעל התראות כדי לקבל עדכונים והודעות מהמאמן</div>
@@ -1223,12 +1249,14 @@
       'מ-' + fmt(start) + ' עד ' + fmt(end);
     document.getElementById('plan-badge').textContent = client.plan_type || 'ליווי אישי';
 
-    // Plans + history
-    const [{ data: tr }, { data: nu }, { data: logs }] = await Promise.all([
+    // Plans + history + package
+    const [{ data: tr }, { data: nu }, { data: logs }, { data: pkg }] = await Promise.all([
       sb.from('training_plans').select('plan').eq('client_email', email).single(),
       sb.from('nutrition_plans').select('plan').eq('client_email', email).single(),
-      sb.from('workout_logs').select('*').eq('client_email', email).order('log_date', { ascending: false }).order('created_at', { ascending: false }).limit(30)
+      sb.from('workout_logs').select('*').eq('client_email', email).order('log_date', { ascending: false }).order('created_at', { ascending: false }).limit(30),
+      sb.from('client_packages').select('*').eq('client_email', email).order('created_at', { ascending: false }).limit(1).maybeSingle()
     ]);
+    renderPackageCard(pkg);
 
     trainingPlanLocal  = tr?.plan || [];
     nutritionPlanLocal = nu?.plan || [];
@@ -1240,6 +1268,30 @@
     await Promise.all([loadCycle(), loadProgressEntries(), loadCoachBranding(client.coach_email), loadMessages(), loadCheckin()]);
     initPeriodCard(); // כרטיס מחזור לנשים
     showFab(); // תמיד הצג כפתור צ'אט
+  }
+
+  function renderPackageCard(pkg) {
+    const card = document.getElementById('pkg-card');
+    if (!pkg) return;
+    card.style.display = 'block';
+    const statusMap = { active: { label: '🟢 פעיל', bg: 'rgba(74,222,128,0.15)', color: '#4ade80' }, expiring: { label: '🟡 מסיים בקרוב', bg: 'rgba(255,215,0,0.15)', color: '#FFD700' }, expired: { label: '🔴 פג תוקף', bg: 'rgba(248,113,113,0.15)', color: '#f87171' }, pending: { label: '⏳ ממתין לתשלום', bg: 'rgba(251,146,60,0.15)', color: '#fb923c' } };
+    const s = statusMap[pkg.status] || { label: '⚪ לא ידוע', bg: 'rgba(255,255,255,0.06)', color: '#aaa' };
+    const badge = document.getElementById('pkg-status-badge');
+    badge.textContent = s.label;
+    badge.style.background = s.bg;
+    badge.style.color = s.color;
+    document.getElementById('pkg-paid').textContent = (pkg.amount_paid || 0).toLocaleString();
+    const owed = Math.max(0, (pkg.amount_total || 0) - (pkg.amount_paid || 0));
+    document.getElementById('pkg-owed').textContent = owed.toLocaleString();
+    if (owed === 0) { document.getElementById('pkg-owed').style.color = '#4ade80'; }
+    if (pkg.sessions_total > 0) {
+      const sessBox = document.getElementById('pkg-sessions-box');
+      sessBox.style.display = 'block';
+      document.getElementById('pkg-sessions').textContent = (pkg.sessions_total - (pkg.sessions_used || 0));
+    }
+    document.getElementById('pkg-end').textContent = pkg.end_date
+      ? new Date(pkg.end_date).toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit', year: 'numeric' })
+      : '—';
   }
 
   function fmt(d) {
