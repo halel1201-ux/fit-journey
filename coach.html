@@ -3123,7 +3123,7 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
     if (!items.length) { list_el.innerHTML = '<div style="padding:16px;text-align:center;color:#555;">לא נמצאו תרגילים עם סרטון</div>'; return; }
     list_el.innerHTML = items.map(e => {
       const active = e.video && curUrl && e.video.toLowerCase() === curUrl;
-      return `<div onclick="setDemoVideo('${e.video.replace(/'/g,"\\'")}','${e.name.replace(/'/g,"\\'")}' )"
+      return `<div onclick="setDemoVideo('${e.video.replace(/'/g,"\\'")}',${e.id},'${e.name.replace(/'/g,"\\'")}' )"
         style="padding:10px 14px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:10px;border-bottom:1px solid rgba(255,255,255,0.04);background:${active?'rgba(255,107,0,0.1)':'transparent'};transition:background 0.15s;"
         onmouseover="this.style.background='rgba(255,107,0,0.07)'" onmouseout="this.style.background='${active?'rgba(255,107,0,0.1)':'transparent'}'">
         <div>
@@ -3135,15 +3135,18 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
     }).join('');
   }
 
-  function setDemoVideo(url, name) {
+  function setDemoVideo(url, exId, name) {
     if (_demoPickerDi === null) return;
-    trainingPlan[_demoPickerDi].exercises[_demoPickerEi].video_url = url;
+    const ex = trainingPlan[_demoPickerDi].exercises[_demoPickerEi];
+    ex.video_url   = url;
+    ex.demo_ex_id  = exId;
     closeDemoPicker();
     renderTrainingEditor();
   }
 
   function clearDemoVideo(di, ei) {
-    trainingPlan[di].exercises[ei].video_url = '';
+    trainingPlan[di].exercises[ei].video_url  = '';
+    trainingPlan[di].exercises[ei].demo_ex_id = null;
     renderTrainingEditor();
   }
 

@@ -1306,12 +1306,14 @@
     renderSession();
   }
 
-  function openDemo(name, customUrl) {
-    const ex = findExercise(name);
-    const modal = document.getElementById('demo-modal');
-    document.getElementById('demo-title').textContent = ex ? ex.name : name;
+  function openDemo(name, customUrl, demoExId) {
+    // אם נבחרה הדגמה מותאמת — קח נתונים מאותו תרגיל; אחרת — חפש לפי שם
+    const demoEx = demoExId ? exerciseDB.find(e => e.id === demoExId) : null;
+    const ex     = demoEx || findExercise(name);
+    const modal  = document.getElementById('demo-modal');
+    document.getElementById('demo-title').textContent  = name; // תמיד שם המקורי
     document.getElementById('demo-muscle').textContent = ex ? (ex.muscle_groups || []).join(' · ') : '';
-    const mediaEl = document.getElementById('demo-media');
+    const mediaEl  = document.getElementById('demo-media');
     const videoSrc = customUrl || (ex && ex.video) || '';
     if (videoSrc) {
       mediaEl.innerHTML = `<div class="demo-video-wrap"><video src="${videoSrc}" autoplay loop muted playsinline controls></video></div>`;
@@ -1666,7 +1668,8 @@
         return {
           name: ex.name,
           description: ex.description || '',
-          video_url: ex.video_url || '',
+          video_url:   ex.video_url  || '',
+          demo_ex_id:  ex.demo_ex_id || null,
           restTime: ex.rest_time || 90,
           linked_next: !!ex.linked_next,
           sets: setsArr.map((s, si) => {
@@ -1788,7 +1791,7 @@
         <div class="session-ex-title">
           <span>${esc(ex.name)}</span>
           <div style="display:flex;gap:5px;flex-shrink:0;">
-            <button class="btn-demo" onclick="openDemo('${ex.name.replace(/'/g,"\\'")}','${(ex.video_url||'').replace(/'/g,"\\'")}')">הדגמה ▶</button>
+            <button class="btn-demo" onclick="openDemo('${ex.name.replace(/'/g,"\\'")}','${(ex.video_url||'').replace(/'/g,"\\'")}',${ex.demo_ex_id||'null'})">הדגמה ▶</button>
             <button class="btn-swap" onclick="openSwapModal(${ei})">🔄 החלפה</button>
           </div>
         </div>
