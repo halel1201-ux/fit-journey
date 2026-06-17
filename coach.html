@@ -1158,70 +1158,16 @@
   let exerciseLibrary = [];
   let allFoodItems = [];
 
-  /* ── FOOD DB FALLBACK (per 100g) — used when Supabase food_items is empty ── */
-  const FOOD_DB_LOCAL = [
-    {id:0,name:'חזה עוף מבושל',   calories:165, protein:31,  carbs:0,    fat:3.6},
-    {id:0,name:'פילה עוף',         calories:110, protein:23,  carbs:0,    fat:1.5},
-    {id:0,name:'שוק עוף',          calories:209, protein:26,  carbs:0,    fat:11 },
-    {id:0,name:'טונה בקופסה',      calories:118, protein:25.9,carbs:0,    fat:0.6},
-    {id:0,name:'סלמון',            calories:208, protein:20,  carbs:0,    fat:13 },
-    {id:0,name:'בקר טחון רזה 5%', calories:137, protein:21,  carbs:0,    fat:6  },
-    {id:0,name:'פילה בקר',         calories:158, protein:26,  carbs:0,    fat:6  },
-    {id:0,name:'ביצה שלמה',        calories:142, protein:12.5,carbs:0.8,  fat:10 },
-    {id:0,name:'חלבון ביצה',       calories:52,  protein:10.6,carbs:0.6,  fat:0  },
-    {id:0,name:'גבינה לבנה 5%',   calories:73,  protein:11,  carbs:3,    fat:1.5},
-    {id:0,name:'גבינה לבנה 9%',   calories:95,  protein:10,  carbs:3,    fat:4  },
-    {id:0,name:'קוטג\' 3%',        calories:73,  protein:11,  carbs:3,    fat:1.5},
-    {id:0,name:'יוגורט יווני 0%',  calories:60,  protein:10,  carbs:4,    fat:0  },
-    {id:0,name:'יוגורט יווני 2%',  calories:73,  protein:8.7, carbs:4,    fat:2  },
-    {id:0,name:'מעדן GO אוורירי',  calories:62,  protein:11,  carbs:6,    fat:0  },
-    {id:0,name:'מעדן חלבון 0%',   calories:65,  protein:11,  carbs:6,    fat:0  },
-    {id:0,name:'מעדן חלבון 1.5%', calories:80,  protein:10,  carbs:6.5,  fat:1.5},
-    {id:0,name:'גבינה צהובה 28%', calories:321, protein:21.4,carbs:1.8,  fat:25 },
-    {id:0,name:'אבקת חלבון ויי',  calories:400, protein:80,  carbs:10,   fat:6.7},
-    {id:0,name:'טופו',             calories:76,  protein:8,   carbs:2,    fat:4  },
-    {id:0,name:'אורז לבן מבושל',  calories:130, protein:2.7, carbs:28,   fat:0.3},
-    {id:0,name:'אורז חום מבושל',  calories:112, protein:2.6, carbs:24,   fat:0.9},
-    {id:0,name:'פסטה מבושלת',     calories:131, protein:5,   carbs:25,   fat:1.1},
-    {id:0,name:'קינואה מבושלת',   calories:120, protein:4.4, carbs:21,   fat:1.9},
-    {id:0,name:'לחם שיפון',        calories:250, protein:10,  carbs:50,   fat:2.7},
-    {id:0,name:'לחם מלא',          calories:250, protein:10,  carbs:46.7, fat:3.3},
-    {id:0,name:'פיתה מלאה',        calories:267, protein:10,  carbs:53.3, fat:2.5},
-    {id:0,name:'תפוח אדמה מבושל', calories:93,  protein:2,   carbs:21,   fat:0.1},
-    {id:0,name:'בטטה מבושלת',     calories:90,  protein:2,   carbs:21,   fat:0.1},
-    {id:0,name:'שיבולת שועל',     calories:370, protein:12.5,carbs:65,   fat:7  },
-    {id:0,name:'שמן זית',          calories:893, protein:0,   carbs:0,    fat:100},
-    {id:0,name:'אבוקדו',           calories:160, protein:2,   carbs:9,    fat:15 },
-    {id:0,name:'טחינה גולמית',    calories:610, protein:17.5,carbs:17.5, fat:55 },
-    {id:0,name:'אגוזי מלך',        calories:661, protein:14.3,carbs:14.3, fat:64.3},
-    {id:0,name:'שקדים',            calories:582, protein:21.4,carbs:21.4, fat:50 },
-    {id:0,name:'בוטנים',           calories:593, protein:25,  carbs:21.4, fat:50 },
-    {id:0,name:'חמאת בוטנים טבעית',calories:588,protein:25,  carbs:18.75,fat:50 },
-    {id:0,name:'ברוקולי',          calories:34,  protein:2.8, carbs:7,    fat:0.4},
-    {id:0,name:'תרד',              calories:23,  protein:2.9, carbs:3.6,  fat:0.4},
-    {id:0,name:'מלפפון',           calories:16,  protein:0.7, carbs:3.6,  fat:0.1},
-    {id:0,name:'עגבניה',           calories:18,  protein:0.9, carbs:3.9,  fat:0.2},
-    {id:0,name:'חסה',              calories:15,  protein:1.4, carbs:2.9,  fat:0.2},
-    {id:0,name:'פלפל אדום',        calories:31,  protein:1,   carbs:6,    fat:0.3},
-  ];
-  function getFoodList() { return allFoodItems.length ? allFoodItems : FOOD_DB_LOCAL; }
+  function getFoodList() { return allFoodItems; }
 
-  /* ── findFood: Supabase ראשון, fallback ל-FOOD_DB_LOCAL ── */
   function findFood(name) {
-    if (allFoodItems.length) {
-      const f = allFoodItems.find(fd => fd.name === name);
-      if (f && f.calories > 0) return f;
-    }
-    return FOOD_DB_LOCAL.find(fd => fd.name === name) || null;
+    if (!name || !allFoodItems.length) return null;
+    const key = name.trim();
+    return allFoodItems.find(fd => fd.name === key) ||
+           allFoodItems.find(fd => fd.name.includes(key) || key.includes(fd.name)) || null;
   }
 
-  /* ── getMergedFoodList: Supabase + מה שחסר מ-FOOD_DB_LOCAL ── */
-  function getMergedFoodList() {
-    if (!allFoodItems.length) return FOOD_DB_LOCAL;
-    const valid = allFoodItems.filter(f => f.calories > 0);
-    const names = new Set(valid.map(f => f.name));
-    return [...valid, ...FOOD_DB_LOCAL.filter(f => !names.has(f.name))];
-  }
+  function getMergedFoodList() { return allFoodItems; }
 
   /* ── macroScore: דמיון יחס מאקרו בין פריט קיים לאלטרנטיבה (0–1) ── */
   function macroScore(refItem, cand) {
@@ -1487,8 +1433,20 @@
   ];
   function getUnitsForFood(foodName) {
     const specific = FOOD_UNITS_MAP[foodName] || [];
-    if (!specific.length) return GENERIC_UNITS;
-    return specific.some(u => u.name === 'גרם') ? specific : [{ name:'גרם',grams:1 }, ...specific];
+    if (specific.length) {
+      return specific.some(u => u.name === 'גרם') ? specific : [{ name:'גרם',grams:1 }, ...specific];
+    }
+    const fd = allFoodItems.find(f => f.name === foodName);
+    if (fd) {
+      const extra = [];
+      if (fd.unit_g)   extra.push({ name:'יחידה', grams: fd.unit_g });
+      if (fd.tbsp_g)   extra.push({ name:'כף',    grams: fd.tbsp_g });
+      if (fd.tsp_g)    extra.push({ name:'כפית',  grams: fd.tsp_g });
+      if (fd.cup_g)    extra.push({ name:'כוס',   grams: fd.cup_g });
+      if (fd.portion_g && !extra.some(u => u.grams === fd.portion_g)) extra.push({ name:'מנה', grams: fd.portion_g });
+      if (extra.length) return [{ name:'גרם', grams:1 }, ...extra];
+    }
+    return GENERIC_UNITS;
   }
   function toggleItemExpand(mi, ii) {
     const item = nutritionPlan[mi].items[ii];
@@ -3112,8 +3070,25 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
     exerciseLibrary = data || [];
   }
   async function loadFoodItems() {
-    const { data } = await sb.from('food_items').select('*').order('name');
-    allFoodItems = data || [];
+    try {
+      const res = await fetch('/food_all.json');
+      const raw = await res.json();
+      const n = v => (v === null || v === '' || v === undefined) ? 0 : Math.round(Number(v) * 10) / 10;
+      allFoodItems = raw.map(f => ({
+        id:        f.product_id,
+        name:      (f.description || '').trim(),
+        calories:  n(f.energy_value),
+        protein:   n(f.protein),
+        carbs:     n(f.carbohydrates),
+        fat:       n(f.fat),
+        fiber:     n(f.fiber),
+        unit_g:    n(f.grams_per_unit)       || null,
+        tbsp_g:    n(f.grams_per_tablespoon) || null,
+        tsp_g:     n(f.grams_per_teaspoon)   || null,
+        cup_g:     n(f.grams_per_cup)        || null,
+        portion_g: n(f.grams_per_portion)    || null,
+      })).filter(f => f.name && (f.calories > 0 || f.protein > 0));
+    } catch(e) { allFoodItems = []; }
   }
   function showExSugg(input, di, ei) {
     hideExSugg();

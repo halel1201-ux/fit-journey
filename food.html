@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="he" dir="rtl">
 <head>
   <meta charset="UTF-8"/>
@@ -21,134 +21,86 @@
     body { font-family: 'Heebo', sans-serif; background: var(--black); color: var(--white); min-height: 100vh; }
     ::-webkit-scrollbar { width: 5px; } ::-webkit-scrollbar-track { background: var(--black); } ::-webkit-scrollbar-thumb { background: var(--orange); border-radius: 3px; }
 
-    /* NAV */
-    nav {
-      position: sticky; top: 0; z-index: 50;
-      background: rgba(9,9,9,0.92); backdrop-filter: blur(14px);
-      border-bottom: 1px solid rgba(255,107,0,0.15);
-      padding: 0 24px; height: 62px;
-      display: flex; align-items: center; justify-content: space-between;
-    }
-    .nav-brand { display: flex; align-items: center; gap: 10px; }
-    .nav-hf { font-size: 1.4rem; font-weight: 900; background: linear-gradient(135deg, var(--orange), var(--gold)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-    .nav-right { display: flex; align-items: center; gap: 12px; }
-    .nav-back { font-size: 0.85rem; color: var(--muted); text-decoration: none; font-weight: 700; transition: color 0.2s; }
-    .nav-back:hover { color: var(--orange); }
-    .btn-logout { padding: 7px 18px; background: transparent; border: 1px solid rgba(255,107,0,0.4); border-radius: 6px; color: var(--orange); font-family: 'Heebo', sans-serif; font-size: 0.85rem; font-weight: 700; cursor: pointer; transition: background 0.2s; }
-    .btn-logout:hover { background: rgba(255,107,0,0.1); }
+    nav { position:sticky; top:0; z-index:50; background:rgba(9,9,9,0.92); backdrop-filter:blur(14px); border-bottom:1px solid rgba(255,107,0,0.15); padding:0 24px; height:62px; display:flex; align-items:center; justify-content:space-between; }
+    .nav-brand { display:flex; align-items:center; gap:10px; }
+    .nav-hf { font-size:1.4rem; font-weight:900; background:linear-gradient(135deg,var(--orange),var(--gold)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+    .nav-right { display:flex; align-items:center; gap:12px; }
+    .nav-back { font-size:0.85rem; color:var(--muted); text-decoration:none; font-weight:700; transition:color 0.2s; }
+    .nav-back:hover { color:var(--orange); }
+    .btn-logout { padding:7px 18px; background:transparent; border:1px solid rgba(255,107,0,0.4); border-radius:6px; color:var(--orange); font-family:'Heebo',sans-serif; font-size:0.85rem; font-weight:700; cursor:pointer; transition:background 0.2s; }
+    .btn-logout:hover { background:rgba(255,107,0,0.1); }
 
-    /* LAYOUT */
-    .container { max-width: 1100px; margin: 0 auto; padding: 36px 20px 60px; }
+    .container { max-width:1100px; margin:0 auto; padding:36px 20px 60px; }
+    .page-header { margin-bottom:28px; }
+    .page-title { font-size:1.9rem; font-weight:900; margin-bottom:6px; }
+    .page-title span { background:linear-gradient(135deg,var(--orange),var(--gold)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+    .page-sub { font-size:0.88rem; color:var(--muted); }
 
-    /* PAGE TITLE */
-    .page-header { margin-bottom: 28px; }
-    .page-title { font-size: 1.9rem; font-weight: 900; margin-bottom: 6px; }
-    .page-title span { background: linear-gradient(135deg, var(--orange), var(--gold)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-    .page-sub { font-size: 0.88rem; color: var(--muted); }
+    .search-input { width:100%; padding:12px 16px; margin-bottom:14px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:10px; color:var(--white); font-family:'Heebo',sans-serif; font-size:0.95rem; outline:none; transition:border-color 0.2s; }
+    .search-input:focus { border-color:var(--orange); }
+    .search-input::placeholder { color:#444; }
 
-    /* SEARCH */
-    .search-input {
-      width: 100%; padding: 12px 16px; margin-bottom: 18px;
-      background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 10px; color: var(--white); font-family: 'Heebo', sans-serif;
-      font-size: 0.95rem; outline: none; transition: border-color 0.2s;
-    }
-    .search-input:focus { border-color: var(--orange); }
-    .search-input::placeholder { color: #444; }
+    .filter-tabs { display:flex; gap:8px; overflow-x:auto; padding-bottom:4px; margin-bottom:18px; scrollbar-width:none; flex-wrap:wrap; }
+    .filter-tabs::-webkit-scrollbar { display:none; }
+    .tab-btn { padding:8px 18px; border-radius:20px; font-family:'Heebo',sans-serif; font-size:0.85rem; font-weight:700; cursor:pointer; white-space:nowrap; border:1px solid rgba(255,107,0,0.25); background:transparent; color:var(--muted); transition:all 0.2s; }
+    .tab-btn:hover { color:var(--white); border-color:rgba(255,107,0,0.5); }
+    .tab-btn.active { background:linear-gradient(135deg,var(--orange),#FF8C00); border-color:transparent; color:var(--white); }
 
-    /* FILTER TABS */
-    .filter-tabs { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 18px; scrollbar-width: none; flex-wrap: wrap; }
-    .filter-tabs::-webkit-scrollbar { display: none; }
-    .tab-btn {
-      padding: 8px 18px; border-radius: 20px; font-family: 'Heebo', sans-serif;
-      font-size: 0.85rem; font-weight: 700; cursor: pointer; white-space: nowrap;
-      border: 1px solid rgba(255,107,0,0.25); background: transparent; color: var(--muted);
-      transition: all 0.2s;
-    }
-    .tab-btn:hover { color: var(--white); border-color: rgba(255,107,0,0.5); }
-    .tab-btn.active { background: linear-gradient(135deg, var(--orange), #FF8C00); border-color: transparent; color: var(--white); }
+    .results-count { font-size:0.82rem; color:var(--muted); margin-bottom:16px; }
+    .results-count strong { color:var(--orange); }
 
-    /* COUNT */
-    .results-count { font-size: 0.82rem; color: var(--muted); margin-bottom: 16px; }
-    .results-count strong { color: var(--orange); }
+    .food-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:14px; }
+    .food-card { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:14px; cursor:pointer; transition:transform 0.2s,box-shadow 0.2s,border-color 0.2s; display:flex; flex-direction:column; gap:7px; }
+    .food-card:hover { transform:translateY(-3px); box-shadow:0 8px 28px rgba(255,107,0,0.15); border-color:rgba(255,107,0,0.5); }
+    .food-cat-badge { display:inline-block; padding:3px 9px; border-radius:12px; background:rgba(255,107,0,0.1); border:1px solid rgba(255,107,0,0.25); font-size:0.7rem; font-weight:700; color:var(--orange); align-self:flex-start; }
+    .food-card-name { font-size:0.88rem; font-weight:700; line-height:1.35; flex:1; }
+    .food-macros { display:grid; grid-template-columns:repeat(2,1fr); gap:4px; margin-top:2px; }
+    .macro-item { font-size:0.72rem; color:var(--muted); }
+    .macro-item strong { color:var(--white); }
+    .macro-cal { grid-column:1/-1; font-size:0.78rem; color:var(--gold); font-weight:700; }
 
-    /* GRID */
-    .food-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; }
+    .empty { grid-column:1/-1; text-align:center; padding:60px 20px; color:#444; }
+    .empty-icon { font-size:3rem; margin-bottom:12px; }
 
-    /* CARD */
-    .food-card {
-      background: var(--card); border: 1px solid var(--border);
-      border-radius: 14px; padding: 16px 14px; cursor: pointer;
-      transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
-      display: flex; flex-direction: column; gap: 8px;
-    }
-    .food-card:hover { transform: translateY(-3px); box-shadow: 0 8px 28px rgba(255,107,0,0.15); border-color: rgba(255,107,0,0.5); }
-    .food-cat-badge {
-      display: inline-block; padding: 3px 10px; border-radius: 12px;
-      background: rgba(255,107,0,0.1); border: 1px solid rgba(255,107,0,0.25);
-      font-size: 0.72rem; font-weight: 700; color: var(--orange); align-self: flex-start;
-    }
-    .food-card-name { font-size: 0.95rem; font-weight: 700; line-height: 1.4; flex: 1; }
-    .food-macros {
-      display: grid; grid-template-columns: repeat(2, 1fr); gap: 5px;
-      margin-top: 2px;
-    }
-    .macro-item { font-size: 0.75rem; color: var(--muted); }
-    .macro-item strong { color: var(--white); }
-    .macro-cal { grid-column: 1 / -1; font-size: 0.8rem; color: var(--gold); font-weight: 700; }
+    /* Modal */
+    .modal-bg { position:fixed; inset:0; background:rgba(0,0,0,0.88); backdrop-filter:blur(8px); z-index:200; display:none; align-items:center; justify-content:center; padding:20px; }
+    .modal-bg.open { display:flex; }
+    .modal { background:#161616; border:1px solid rgba(255,107,0,0.3); border-radius:18px; width:100%; max-width:460px; box-shadow:0 0 80px rgba(255,107,0,0.12); overflow:hidden; max-height:90vh; display:flex; flex-direction:column; }
+    .modal-header { padding:18px 22px 14px; border-bottom:1px solid rgba(255,255,255,0.06); display:flex; align-items:flex-start; justify-content:space-between; gap:12px; flex-shrink:0; }
+    .modal-title { font-size:1.1rem; font-weight:900; margin-bottom:5px; line-height:1.3; }
+    .modal-en { font-size:0.72rem; color:#555; margin-bottom:4px; }
+    .modal-close { background:none; border:none; color:var(--muted); font-size:1.3rem; cursor:pointer; padding:2px 6px; line-height:1; transition:color 0.2s; flex-shrink:0; }
+    .modal-close:hover { color:var(--white); }
+    .modal-body { padding:18px 22px 24px; overflow-y:auto; flex:1; }
+    .modal-per100 { font-size:0.78rem; color:#555; margin-bottom:14px; }
 
-    /* EMPTY */
-    .empty { grid-column: 1 / -1; text-align: center; padding: 60px 20px; color: #444; }
-    .empty-icon { font-size: 3rem; margin-bottom: 12px; }
+    .macro-big-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin-bottom:14px; }
+    .macro-big { background:rgba(255,255,255,0.04); border-radius:10px; padding:12px; text-align:center; border:1px solid rgba(255,255,255,0.07); }
+    .macro-big-val { font-size:1.5rem; font-weight:900; }
+    .macro-big-lbl { font-size:0.72rem; color:var(--muted); margin-top:2px; }
+    .macro-cal-big { grid-column:1/-1; background:rgba(255,107,0,0.08); border:1px solid rgba(255,107,0,0.2); border-radius:10px; padding:12px; text-align:center; }
+    .macro-cal-big .macro-big-val { color:var(--orange); }
 
-    /* MODAL */
-    .modal-bg {
-      position: fixed; inset: 0; background: rgba(0,0,0,0.85);
-      backdrop-filter: blur(8px); z-index: 200;
-      display: none; align-items: center; justify-content: center; padding: 20px;
-    }
-    .modal-bg.open { display: flex; }
-    .modal {
-      background: #161616; border: 1px solid rgba(255,107,0,0.3);
-      border-radius: 18px; width: 100%; max-width: 440px;
-      box-shadow: 0 0 80px rgba(255,107,0,0.12); overflow: hidden;
-    }
-    .modal-header {
-      padding: 22px 24px 16px; border-bottom: 1px solid rgba(255,255,255,0.06);
-      display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
-    }
-    .modal-title { font-size: 1.25rem; font-weight: 900; margin-bottom: 6px; }
-    .modal-close {
-      background: none; border: none; color: var(--muted); font-size: 1.3rem;
-      cursor: pointer; padding: 2px 6px; line-height: 1; transition: color 0.2s; flex-shrink: 0;
-    }
-    .modal-close:hover { color: var(--white); }
-    .modal-body { padding: 22px 24px 28px; }
+    .serving-row { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px; }
+    .serving-chip { padding:4px 11px; border-radius:16px; border:1px solid rgba(255,255,255,0.12); background:rgba(255,255,255,0.04); font-size:0.75rem; color:var(--muted); cursor:pointer; transition:all 0.2s; }
+    .serving-chip:hover,.serving-chip.active { border-color:var(--orange); color:var(--orange); background:rgba(255,107,0,0.08); }
 
-    .macro-big-grid {
-      display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px;
-    }
-    .macro-big {
-      background: rgba(255,255,255,0.04); border-radius: 12px; padding: 14px;
-      text-align: center; border: 1px solid rgba(255,255,255,0.07);
-    }
-    .macro-big-val { font-size: 1.6rem; font-weight: 900; }
-    .macro-big-lbl { font-size: 0.75rem; color: var(--muted); margin-top: 3px; }
-    .macro-cal-big {
-      grid-column: 1 / -1; background: rgba(255,107,0,0.08);
-      border: 1px solid rgba(255,107,0,0.2); border-radius: 12px; padding: 14px;
-      text-align: center;
-    }
-    .macro-cal-big .macro-big-val { color: var(--orange); }
+    .log-section { border-top:1px solid rgba(255,255,255,0.07); padding-top:14px; margin-top:4px; }
+    .log-section-title { font-size:0.85rem; font-weight:700; margin-bottom:10px; }
+    .log-row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:8px; }
+    .log-input { width:72px; padding:6px 8px; background:rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.14); border-radius:6px; color:#fff; font-family:'Heebo',sans-serif; font-size:0.85rem; text-align:center; outline:none; }
+    .log-select { padding:6px 10px; background:rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.14); border-radius:6px; color:#fff; font-family:'Heebo',sans-serif; font-size:0.82rem; outline:none; cursor:pointer; }
+    .log-preview { font-size:0.75rem; color:var(--muted); min-height:16px; margin-bottom:8px; }
+    .btn-log { padding:8px 22px; background:linear-gradient(135deg,var(--orange),#FF8C00); border:none; border-radius:8px; color:#fff; font-family:'Heebo',sans-serif; font-size:0.85rem; font-weight:700; cursor:pointer; }
+    .log-status { font-size:0.8rem; }
 
-    /* LOADER */
-    #loader { position: fixed; inset: 0; background: var(--black); display: flex; align-items: center; justify-content: center; z-index: 999; transition: opacity 0.3s; }
-    .spin { width: 40px; height: 40px; border: 3px solid rgba(255,107,0,0.2); border-top-color: var(--orange); border-radius: 50%; animation: spin 0.7s linear infinite; }
-    @keyframes spin { to { transform: rotate(360deg); } }
+    #loader { position:fixed; inset:0; background:var(--black); display:flex; align-items:center; justify-content:center; z-index:999; transition:opacity 0.3s; }
+    .spin { width:40px; height:40px; border:3px solid rgba(255,107,0,0.2); border-top-color:var(--orange); border-radius:50%; animation:spin 0.7s linear infinite; }
+    @keyframes spin { to { transform:rotate(360deg); } }
 
-    @media (max-width: 480px) {
-      .food-grid { grid-template-columns: repeat(auto-fill, minmax(155px, 1fr)); }
-      .page-title { font-size: 1.5rem; }
+    @media (max-width:480px) {
+      .food-grid { grid-template-columns:repeat(auto-fill,minmax(155px,1fr)); }
+      .page-title { font-size:1.5rem; }
     }
   </style>
 </head>
@@ -157,9 +109,7 @@
 <div id="loader"><div class="spin"></div></div>
 
 <nav>
-  <div class="nav-brand">
-    <div class="nav-hf">FJ</div>
-  </div>
+  <div class="nav-brand"><div class="nav-hf">FJ</div></div>
   <div class="nav-right">
     <a id="back-link" href="dashboard.html" class="nav-back">← אזור אישי</a>
     <script>(function(){const p=new URLSearchParams(location.search);if(p.get('from')==='coach'){const a=document.getElementById('back-link');a.href='coach.html';a.textContent='✕ סגור';a.style.cssText='font-size:1.1rem;font-weight:900;color:var(--orange);text-decoration:none;padding:4px 10px;border:1px solid rgba(255,107,0,0.4);border-radius:8px;';} })();</script>
@@ -170,39 +120,38 @@
 <div class="container" id="main" style="display:none;">
   <div class="page-header">
     <div class="page-title">מאגר <span>מזון</span></div>
-    <p class="page-sub">ערכים תזונתיים לכל 100 גרם — חפש מאכל וסנן לפי קטגוריה</p>
+    <p class="page-sub" id="page-sub">1,389 מוצרים — ערכים לכל 100 גרם</p>
   </div>
-
-  <input class="search-input" id="search" placeholder="חיפוש מאכל..." oninput="filterFoods()"/>
+  <input class="search-input" id="search" placeholder="חיפוש מאכל בעברית או אנגלית..." oninput="filterFoods()"/>
   <div class="filter-tabs" id="filter-tabs"></div>
   <div class="results-count" id="results-count"></div>
   <div class="food-grid" id="food-grid"></div>
 </div>
 
 <!-- FOOD MODAL -->
-<div class="modal-bg" id="food-modal" onclick="onModalBgClick(event)">
-  <div class="modal" id="modal-inner">
+<div class="modal-bg" id="food-modal" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
     <div class="modal-header">
-      <div>
+      <div style="min-width:0;">
         <div class="modal-title" id="modal-name"></div>
+        <div class="modal-en" id="modal-en"></div>
         <span class="food-cat-badge" id="modal-cat"></span>
       </div>
       <button class="modal-close" onclick="closeModal()">✕</button>
     </div>
     <div class="modal-body">
-      <p style="font-size:0.8rem;color:var(--muted);margin-bottom:16px;">ערכים לכל 100 גרם</p>
+      <div class="modal-per100">ערכים לכל <strong id="modal-per-label">100</strong> גרם</div>
       <div class="macro-big-grid" id="modal-macros"></div>
-      <div style="margin-top:20px;border-top:1px solid rgba(255,255,255,0.07);padding-top:16px;">
-        <div style="font-size:0.85rem;font-weight:700;margin-bottom:10px;">➕ הוסף ליומן היומי</div>
-        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px;">
-          <div style="display:flex;align-items:center;gap:6px;">
-            <label style="font-size:0.8rem;color:var(--muted);">כמות:</label>
-            <input id="log-grams" type="number" min="1" value="100"
-              style="width:72px;padding:6px 8px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.14);border-radius:6px;color:#fff;font-family:'Heebo',sans-serif;font-size:0.85rem;text-align:center;outline:none;"
-              oninput="updateLogPreview()"/>
-            <span style="font-size:0.8rem;color:var(--muted);">גרם</span>
-          </div>
-          <select id="log-meal" style="padding:6px 10px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.14);border-radius:6px;color:#fff;font-family:'Heebo',sans-serif;font-size:0.82rem;outline:none;cursor:pointer;">
+
+      <div class="serving-row" id="serving-row" style="display:none;"></div>
+
+      <div class="log-section">
+        <div class="log-section-title">➕ הוסף ליומן</div>
+        <div class="log-row">
+          <label style="font-size:0.8rem;color:var(--muted);">כמות:</label>
+          <input id="log-grams" class="log-input" type="number" min="1" value="100" oninput="updateLogPreview()"/>
+          <span style="font-size:0.8rem;color:var(--muted);">גרם</span>
+          <select id="log-meal" class="log-select">
             <option>ארוחת בוקר</option>
             <option>ארוחת צהריים</option>
             <option>ארוחת ערב</option>
@@ -211,11 +160,10 @@
             <option>אחרי אימון</option>
           </select>
         </div>
-        <div id="log-preview" style="font-size:0.78rem;color:var(--muted);margin-bottom:10px;min-height:18px;"></div>
+        <div class="log-preview" id="log-preview"></div>
         <div style="display:flex;align-items:center;gap:10px;">
-          <button id="btn-add-log" onclick="addToLog()"
-            style="padding:8px 22px;background:linear-gradient(135deg,var(--orange),#FF8C00);border:none;border-radius:8px;color:#fff;font-family:'Heebo',sans-serif;font-size:0.85rem;font-weight:700;cursor:pointer;">הוסף ליומן</button>
-          <span id="log-status" style="font-size:0.8rem;"></span>
+          <button class="btn-log" id="btn-add-log" onclick="addToLog()">הוסף ליומן</button>
+          <span class="log-status" id="log-status"></span>
         </div>
       </div>
     </div>
@@ -227,8 +175,26 @@
   const KEY  = 'sb_publishable_k3M7SfBeiBGs3rTKewBzWQ_7RHRskB9';
   const sb   = supabase.createClient(URL_, KEY);
 
-  const CAT_ORDER = ['הכל','בשרי','חלבי','פרווה','מקור חלבון','מקור פחמימה','מקור שומן','ירקות','פירות',"ג'אנק פוד",'כללי'];
-  const CAT_ICONS = {'בשרי':'🥩','חלבי':'🧀','פרווה':'🥚','מקור חלבון':'💪','מקור פחמימה':'🍞','מקור שומן':'🥑','ירקות':'🥦','פירות':'🍎',"ג'אנק פוד":'🍔','כללי':'📦','הכל':'🍽️'};
+  const CAT_ORDER = ['הכל','מקור חלבון','פחמימות','ירקות','פירות','חלבי','שומנים','חטיפים ומתוקים','שתייה','כללי'];
+  const CAT_ICONS = { 'הכל':'🍽️','מקור חלבון':'💪','פחמימות':'🍞','ירקות':'🥦','פירות':'🍎','חלבי':'🧀','שומנים':'🥑','חטיפים ומתוקים':'🍫','שתייה':'🥤','כללי':'📦' };
+
+  const CAT_RULES = [
+    ['מקור חלבון', /עוף|בקר|הודו|טונה|סלמון|דג |דגים|נקניק|המבורגר|בשר|פרגית|שניצל|ביצ|קוטג|גבינה לבנה|יוגורט|חלבון|ויי|אבקת חלבון|טופו|קטניות|עדשים|חומוס|שעועית|טמפה/i],
+    ['פחמימות',    /אורז|פסטה|לחם|פיתה|לאפה|שיבולת|קינואה|קוסקוס|קורנפלקס|גרנולה|עוגיי|עוגה|בייגל|לחמני|טוסט|קראקר|מנגו|בננה|בטטה|תפוח אדמה|דגנ/i],
+    ['ירקות',      /מלפפון|עגבניה|גזר|ברוקולי|חסה|פלפל|קישוא|תרד|סלק|כרוב|כרובית|חציל|שום|בצל|פטרוזיליה|כוסברה|חומוס ירוק|אפונה|תירס|ירק/i],
+    ['פירות',      /תפוח |תפוז|לימון|ענב|תות|אבטיח|מלון|אפרסק|שזיף|קיווי|אגס|רמון|תמר|צימוק|דובד/i],
+    ['חלבי',       /חלב |גבינה|יוגורט|קוטג|שמנת|לבן |מוצרלה|פרמזן|רוקפור|צהוב|בולגרי|עיזים|פטה|קשקבל|קממבר|שוקו/i],
+    ['שומנים',     /שמן |טחינה|אגוז|שקד|קשיו|פיסטוק|פקאן|חמאה|מיונז|אבוקדו|זרע|פשתן|צ'יה|קוקוס|חמניות/i],
+    ['חטיפים ומתוקים', /שוקולד|ממתק|סוכרייה|ופל|עוגייה|עוגה |גלידה|חטיף|דוריטוס|ביסלי|במבה|אחלה|שרצ|קנדי|מרקיז|קיטקט|מאפה|קרואסון|סופגנייה|חלבה|בקלווה/i],
+    ['שתייה',      /מיץ |קפה|תה |שייק|משקה|קולה|ספרייט|פאנטה|נס קפה|שוקו |מים |אנרגי|בירה|יין /i],
+  ];
+
+  function autoCategory(name) {
+    for (const [cat, re] of CAT_RULES) { if (re.test(name)) return cat; }
+    return 'כללי';
+  }
+
+  const num = v => (v === null || v === '' || v === undefined) ? 0 : Math.round(Number(v) * 10) / 10;
 
   let allFoods    = [];
   let activeTab   = 'הכל';
@@ -236,53 +202,61 @@
 
   async function init() {
     let { data: { session } } = await sb.auth.getSession();
-
     if (!session) {
       await new Promise(resolve => {
         const { data: { subscription } } = sb.auth.onAuthStateChange((event, s) => {
-          if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
-            session = s; subscription.unsubscribe(); resolve();
-          }
+          if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') { session = s; subscription.unsubscribe(); resolve(); }
         });
         setTimeout(resolve, 3000);
       });
     }
-
     if (!session) { window.location.href = 'login.html'; return; }
 
-    const { data } = await sb.from('food_items').select('*').order('name');
-    allFoods = data || [];
+    const res = await fetch('/food_all.json');
+    const raw = await res.json();
+    allFoods = raw.map(f => ({
+      id:        f.product_id,
+      name:      (f.description || '').trim(),
+      english:   (f.english_description || '').trim(),
+      calories:  num(f.energy_value),
+      protein:   num(f.protein),
+      carbs:     num(f.carbohydrates),
+      fat:       num(f.fat),
+      fiber:     num(f.fiber),
+      sodium:    num(f.sodium),
+      serving_g: num(f.grams_per_portion) || num(f.grams_per_unit) || null,
+      unit_g:    num(f.grams_per_unit) || null,
+      tbsp_g:    num(f.grams_per_tablespoon) || null,
+      tsp_g:     num(f.grams_per_teaspoon) || null,
+      cup_g:     num(f.grams_per_cup) || null,
+      category:  autoCategory((f.description || '')),
+    })).sort((a, b) => a.name.localeCompare(b.name, 'he'));
 
     document.getElementById('loader').style.opacity = '0';
     setTimeout(() => document.getElementById('loader').style.display = 'none', 300);
     document.getElementById('main').style.display = 'block';
-
     renderTabs();
     filterFoods();
   }
 
   function renderTabs() {
-    const presentCats = new Set(allFoods.map(f => f.category || 'כללי'));
-    const tabs = CAT_ORDER.filter(c => c === 'הכל' || presentCats.has(c));
+    const present = new Set(allFoods.map(f => f.category));
+    const tabs = CAT_ORDER.filter(c => c === 'הכל' || present.has(c));
     document.getElementById('filter-tabs').innerHTML = tabs.map(c =>
-      `<button class="tab-btn${c === activeTab ? ' active' : ''}" data-cat="${c.replace(/"/g,'&quot;')}" onclick="setTab(this.dataset.cat)">${CAT_ICONS[c] || ''} ${c}</button>`
+      `<button class="tab-btn${c === activeTab ? ' active' : ''}" onclick="setTab('${c}')">${CAT_ICONS[c] || ''} ${c}</button>`
     ).join('');
   }
 
-  function setTab(cat) {
-    activeTab = cat;
-    renderTabs();
-    filterFoods();
-  }
+  function setTab(cat) { activeTab = cat; renderTabs(); filterFoods(); }
 
   function filterFoods() {
     const q = document.getElementById('search').value.trim().toLowerCase();
     let list = allFoods;
-    if (activeTab !== 'הכל') list = list.filter(f => (f.category || 'כללי') === activeTab);
-    if (q) list = list.filter(f => f.name.toLowerCase().includes(q));
+    if (activeTab !== 'הכל') list = list.filter(f => f.category === activeTab);
+    if (q) list = list.filter(f => f.name.toLowerCase().includes(q) || f.english.toLowerCase().includes(q));
     renderGrid(list);
     document.getElementById('results-count').innerHTML =
-      `מוצגים <strong>${list.length}</strong> מאכלים`;
+      `מוצגים <strong>${list.length}</strong> מתוך ${allFoods.length} מוצרים`;
   }
 
   function renderGrid(list) {
@@ -291,62 +265,98 @@
       grid.innerHTML = '<div class="empty"><div class="empty-icon">🔍</div><div>לא נמצאו מאכלים</div></div>';
       return;
     }
-    grid.innerHTML = list.map(f => `
+    grid.innerHTML = list.slice(0, 200).map(f => `
       <div class="food-card" onclick="openModal(${f.id})">
-        <span class="food-cat-badge">${CAT_ICONS[f.category || 'כללי'] || ''} ${esc(f.category || 'כללי')}</span>
+        <span class="food-cat-badge">${CAT_ICONS[f.category] || ''} ${esc(f.category)}</span>
         <div class="food-card-name">${esc(f.name)}</div>
         <div class="food-macros">
-          <div class="macro-cal">${f.calories || 0} קק"ל</div>
-          <div class="macro-item">חלבון <strong>${f.protein || 0}g</strong></div>
-          <div class="macro-item">פחמימה <strong>${f.carbs || 0}g</strong></div>
-          <div class="macro-item">שומן <strong>${f.fat || 0}g</strong></div>
+          <div class="macro-cal">${f.calories} קק"ל</div>
+          <div class="macro-item">חלבון <strong>${f.protein}g</strong></div>
+          <div class="macro-item">פחמימה <strong>${f.carbs}g</strong></div>
+          <div class="macro-item">שומן <strong>${f.fat}g</strong></div>
+          ${f.fiber ? `<div class="macro-item">סיבים <strong>${f.fiber}g</strong></div>` : ''}
         </div>
       </div>
     `).join('');
+    if (list.length > 200) {
+      grid.innerHTML += `<div style="grid-column:1/-1;text-align:center;padding:20px;color:#555;font-size:0.82rem;">מוצגים 200 תוצאות ראשונות — צמצם את החיפוש לתוצאות מדויקות יותר</div>`;
+    }
   }
 
   function openModal(id) {
     const f = allFoods.find(x => x.id === id);
     if (!f) return;
     currentFood = f;
-
     document.getElementById('modal-name').textContent = f.name;
-    document.getElementById('modal-cat').textContent  = `${CAT_ICONS[f.category || 'כללי'] || ''} ${f.category || 'כללי'}`;
+    document.getElementById('modal-en').textContent   = f.english || '';
+    document.getElementById('modal-cat').textContent  = `${CAT_ICONS[f.category] || ''} ${f.category}`;
+    document.getElementById('modal-per-label').textContent = '100';
+    document.getElementById('log-grams').value = 100;
+    document.getElementById('log-status').textContent = '';
+    renderModalMacros(100);
+    renderServingChips(f);
+    document.getElementById('food-modal').classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
 
+  function renderModalMacros(grams) {
+    const f = currentFood;
+    if (!f) return;
+    const r = grams / 100;
+    document.getElementById('modal-per-label').textContent = grams;
     document.getElementById('modal-macros').innerHTML = `
-      <div class="macro-big macro-cal-big">
-        <div class="macro-big-val">${f.calories || 0}</div>
+      <div class="macro-cal-big">
+        <div class="macro-big-val">${Math.round(f.calories * r)}</div>
         <div class="macro-big-lbl">קילוקלוריות</div>
       </div>
       <div class="macro-big">
-        <div class="macro-big-val" style="color:#4ade80">${f.protein || 0}g</div>
+        <div class="macro-big-val" style="color:#4ade80">${Math.round(f.protein * r * 10) / 10}g</div>
         <div class="macro-big-lbl">חלבון</div>
       </div>
       <div class="macro-big">
-        <div class="macro-big-val" style="color:#60a5fa">${f.carbs || 0}g</div>
-        <div class="macro-big-lbl">פחמימה</div>
+        <div class="macro-big-val" style="color:#60a5fa">${Math.round(f.carbs * r * 10) / 10}g</div>
+        <div class="macro-big-lbl">פחמימות</div>
       </div>
       <div class="macro-big">
-        <div class="macro-big-val" style="color:#facc15">${f.fat || 0}g</div>
+        <div class="macro-big-val" style="color:#facc15">${Math.round(f.fat * r * 10) / 10}g</div>
         <div class="macro-big-lbl">שומן</div>
       </div>
+      ${f.fiber ? `<div class="macro-big"><div class="macro-big-val" style="color:#a78bfa">${Math.round(f.fiber * r * 10) / 10}g</div><div class="macro-big-lbl">סיבים</div></div>` : ''}
+      ${f.sodium ? `<div class="macro-big"><div class="macro-big-val" style="color:#94a3b8">${Math.round(f.sodium * r)}mg</div><div class="macro-big-lbl">נתרן</div></div>` : ''}
     `;
+  }
 
-    document.getElementById('log-grams').value = 100;
-    document.getElementById('log-status').textContent = '';
+  function renderServingChips(f) {
+    const row = document.getElementById('serving-row');
+    const chips = [];
+    if (f.unit_g)   chips.push({ label: `יחידה (${f.unit_g}g)`,  g: f.unit_g });
+    if (f.tbsp_g)   chips.push({ label: `כף (${f.tbsp_g}g)`,     g: f.tbsp_g });
+    if (f.tsp_g)    chips.push({ label: `כפית (${f.tsp_g}g)`,    g: f.tsp_g });
+    if (f.cup_g)    chips.push({ label: `כוס (${f.cup_g}g)`,     g: f.cup_g });
+    if (!chips.length) { row.style.display = 'none'; return; }
+    row.style.display = 'flex';
+    row.innerHTML = chips.map(c =>
+      `<span class="serving-chip" onclick="setServing(${c.g})">${esc(c.label)}</span>`
+    ).join('');
+  }
+
+  function setServing(g) {
+    document.getElementById('log-grams').value = g;
+    document.querySelectorAll('.serving-chip').forEach(el => el.classList.remove('active'));
+    event.target.classList.add('active');
+    renderModalMacros(g);
     updateLogPreview();
-    document.getElementById('food-modal').classList.add('open');
-    document.body.style.overflow = 'hidden';
   }
 
   function updateLogPreview() {
     if (!currentFood) return;
     const g = parseFloat(document.getElementById('log-grams').value) || 0;
+    renderModalMacros(g);
     const r = g / 100;
-    const cal  = Math.round((currentFood.calories || 0) * r);
-    const prot = Math.round((currentFood.protein  || 0) * r * 10) / 10;
-    const carb = Math.round((currentFood.carbs    || 0) * r * 10) / 10;
-    const fat  = Math.round((currentFood.fat      || 0) * r * 10) / 10;
+    const cal  = Math.round(currentFood.calories * r);
+    const prot = Math.round(currentFood.protein  * r * 10) / 10;
+    const carb = Math.round(currentFood.carbs    * r * 10) / 10;
+    const fat  = Math.round(currentFood.fat      * r * 10) / 10;
     document.getElementById('log-preview').textContent =
       `${g}g = ${cal} קק"ל · חלבון ${prot}g · פחמימה ${carb}g · שומן ${fat}g`;
   }
@@ -356,17 +366,14 @@
     const g    = parseFloat(document.getElementById('log-grams').value) || 0;
     const meal = document.getElementById('log-meal').value;
     const status = document.getElementById('log-status');
-    const btn    = document.getElementById('btn-add-log');
+    const btn  = document.getElementById('btn-add-log');
     if (!g) { status.style.color = '#ff7070'; status.textContent = 'הכנס כמות'; return; }
 
-    btn.disabled = true; btn.textContent = '⏳ מוסיף...';
+    btn.disabled = true; btn.textContent = '⏳';
     status.textContent = '';
 
     const { data: { session } } = await sb.auth.getSession();
-    if (!session) {
-      status.style.color = '#ff7070'; status.textContent = 'לא מחובר';
-      btn.disabled = false; btn.textContent = 'הוסף ליומן'; return;
-    }
+    if (!session) { status.style.color = '#ff7070'; status.textContent = 'לא מחובר'; btn.disabled = false; btn.textContent = 'הוסף ליומן'; return; }
 
     const r = g / 100;
     const today = new Date().toISOString().split('T')[0];
@@ -375,20 +382,15 @@
       log_date:     today,
       food_name:    currentFood.name,
       grams:        Math.round(g),
-      calories:     Math.round((currentFood.calories || 0) * r),
-      protein:      Math.round((currentFood.protein  || 0) * r * 10) / 10,
-      carbs:        Math.round((currentFood.carbs    || 0) * r * 10) / 10,
-      fat:          Math.round((currentFood.fat      || 0) * r * 10) / 10,
-      meal_type:    meal
+      calories:     Math.round(currentFood.calories * r),
+      protein:      Math.round(currentFood.protein  * r * 10) / 10,
+      carbs:        Math.round(currentFood.carbs    * r * 10) / 10,
+      fat:          Math.round(currentFood.fat      * r * 10) / 10,
+      meal_type:    meal,
     });
-
     btn.disabled = false; btn.textContent = 'הוסף ליומן';
     if (error) { status.style.color = '#ff7070'; status.textContent = 'שגיאה'; }
-    else { status.style.color = '#4ade80'; status.textContent = '✓ נוסף ליומן!'; }
-  }
-
-  function onModalBgClick(e) {
-    if (e.target === document.getElementById('food-modal')) closeModal();
+    else { status.style.color = '#4ade80'; status.textContent = '✓ נוסף!'; setTimeout(() => { status.textContent = ''; }, 2000); }
   }
 
   function closeModal() {
@@ -396,22 +398,16 @@
     document.body.style.overflow = '';
   }
 
-  function esc(s) {
-    return (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  }
-
-  async function logout() {
-    await sb.auth.signOut();
-    window.location.href = 'login.html';
-  }
-
+  function esc(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  async function logout() { await sb.auth.signOut(); window.location.href = 'login.html'; }
   document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
 
   init();
 </script>
-  <script>
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js').catch(e => console.warn('SW:', e));
-    }
-  </script></body>
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js').catch(e => console.warn('SW:', e));
+  }
+</script>
+</body>
 </html>
