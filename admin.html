@@ -613,6 +613,7 @@
   let tokenRequestsCache = [];
   let addClientForCoach = null;
   let trainingPlan  = [];
+  let _trainingArchive = [];
   let nutritionPlan = [];
   let dayClipboard  = null;
   let mealClipboard = null;
@@ -1540,7 +1541,8 @@
       sb.from('training_plans').select('plan').eq('client_email', email).single(),
       sb.from('nutrition_plans').select('plan').eq('client_email', email).single()
     ]);
-    trainingPlan  = tr?.plan  || [];
+    trainingPlan  = Array.isArray(tr?.plan) ? (tr.plan || []) : (tr?.plan?.active || []);
+    _trainingArchive = Array.isArray(tr?.plan) ? [] : (tr?.plan?.archive || []);
     nutritionPlan = nu?.plan  || [];
     renderMain(client);
   }
@@ -2122,7 +2124,7 @@ Bro Split: 6-8 תרגילים לשריר, דגש על מבודדים, ניתן 2
 
   async function saveTraining() {
     const { error } = await sb.from('training_plans')
-      .upsert({ client_email: activeEmail, plan: trainingPlan, updated_at: new Date().toISOString() }, { onConflict: 'client_email' });
+      .upsert({ client_email: activeEmail, plan: { active: trainingPlan, archive: _trainingArchive || [] }, updated_at: new Date().toISOString() }, { onConflict: 'client_email' });
     error ? toast('שגיאה בשמירה', 'err') : toast('תוכנית נשמרה ✓', 'ok');
   }
 

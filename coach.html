@@ -1150,6 +1150,7 @@
   let activeEmail = null;
   let currentPackage = null;
   let trainingPlan  = [];
+  let trainingArchive = [];
   let nutritionPlan = [];
   let dayClipboard  = null;
   const collapsedDays  = new Set();
@@ -1779,7 +1780,10 @@
       sb.from('nutrition_plans').select('plan').eq('client_email', email).single(),
       sb.from('client_packages').select('*').eq('client_email', email).eq('coach_email', coachEmail).order('created_at', { ascending: false }).limit(1).maybeSingle()
     ]);
-    trainingPlan = (tr?.plan || []).map(d => {
+    const rawPlanData = tr?.plan;
+    const activeDays  = Array.isArray(rawPlanData) ? rawPlanData : (rawPlanData?.active || []);
+    trainingArchive    = Array.isArray(rawPlanData) ? [] : (rawPlanData?.archive || []);
+    trainingPlan = activeDays.map(d => {
       if (d.name !== undefined && !d.day) d.day = d.name;
       if (d.name !== undefined) { const { name, ...rest } = d; return rest; }
       return d;
@@ -1896,9 +1900,14 @@
           <button class="btn-sm btn-outline" onclick="copyPlan()" style="border-color:rgba(255,215,0,0.35);color:#FFD700;">📋 העתק תוכנית</button>
           <button class="btn-sm btn-outline" id="btn-paste-day" style="display:none;border-color:rgba(255,215,0,0.4);color:#FFD700;" onclick="pasteDay()">📋 הדבק אימון</button>
           <button class="btn-sm btn-outline" id="btn-paste-plan" style="display:none;border-color:rgba(74,222,128,0.4);color:#4ade80;" onclick="pastePlan()">📋 הדבק תוכנית</button>
+          <button class="btn-sm btn-outline" style="border-color:rgba(120,150,255,0.4);color:#9bb3ff;" onclick="archiveCurrentPlan()">🗄️ ארכב תוכנית נוכחית</button>
         </div>
         <div id="training-editor"></div>
         <button class="btn-sm btn-orange" style="margin-top:14px;" onclick="saveTraining()">שמור תוכנית</button>
+        <div style="margin-top:18px;border-top:1px solid rgba(255,255,255,0.07);padding-top:14px;">
+          <div style="font-size:0.85rem;font-weight:900;color:#9bb3ff;margin-bottom:8px;">📂 ארכיון תוכניות (בלוקים)</div>
+          <div id="training-archive-list"></div>
+        </div>
       </div>
 
       <div class="sec-card">
@@ -1960,6 +1969,7 @@
       </div>
     `;
     renderTrainingEditor();
+    renderArchiveList();
     renderNutritionEditor();
     loadDefaultTemplate();
     loadClientLogs(client.email);
@@ -2703,18 +2713,30 @@ Bro Split: 6-8 תרגילים לשריר, דגש על מבודדים, ניתן 2
       if (!match) throw new Error('תשובה לא תקינה מה-AI');
       const plan = JSON.parse(match[0]);
       if (!Array.isArray(plan) || !plan.length) throw new Error('תוכנית ריקה');
+      let unmatchedCount = 0;
       trainingPlan = plan.map(day => ({
         ...day,
         name: day.name || day.day || '',
-        exercises: (day.exercises || []).map(ex => ({
-          name:        ex.name        || '',
-          sets:        parseSetsToArray(ex.sets || ex.sets_reps),
-          description: ex.description || ex.notes     || '',
-          video_url:   ex.video_url   || '',
-          rest_time:   ex.rest_time   || 90,
-        }))
+        exercises: (day.exercises || []).map(ex => {
+          const libMatch = findLibraryMatch(ex.name || '');
+          if (!libMatch) unmatchedCount++;
+          return {
+            name:        ex.name        || '',
+            sets:        parseSetsToArray(ex.sets || ex.sets_reps),
+            description: ex.description || ex.notes     || '',
+            video_url:   ex.video_url   || (libMatch ? libMatch.video : ''),
+            demo_ex_id:  libMatch ? libMatch.id : null,
+            rest_time:   ex.rest_time   || 90,
+          };
+        })
       }));
       renderTrainingEditor();
+      if (unmatchedCount > 0) {
+        statusEl.style.color = '#ffb020';
+        statusEl.textContent = `⚠ ${plan.length} ימים נבנו — ${unmatchedCount} תרגילים בלי הדגמה תואמת, בדוק ידנית (כפתור 🎬)`;
+        btn.disabled = false; btn.textContent = '✨ צור תוכנית';
+        return;
+      }
       statusEl.style.color = '#70dd70';
       statusEl.textContent = `✓ ${plan.length} ימי אימון נבנו — בדוק ושמור`;
     } catch (e) {
@@ -2724,9 +2746,71 @@ Bro Split: 6-8 תרגילים לשריר, דגש על מבודדים, ניתן 2
     btn.disabled = false; btn.textContent = '✨ צור תוכנית';
   }
 
-  async function saveTraining() {
-    const { error } = await sb.from('training_plans').upsert({client_email:activeEmail,plan:trainingPlan,updated_at:new Date().toISOString()},{onConflict:'client_email'});
+  async function saveTraining(silent) {
+    const planData = { active: trainingPlan, archive: trainingArchive };
+    const { error } = await sb.from('training_plans').upsert({client_email:activeEmail,plan:planData,updated_at:new Date().toISOString()},{onConflict:'client_email'});
+    if (silent) return !error;
     error ? toast('שגיאה בשמירה','err') : toast('תוכנית נשמרה ✓','ok');
+    return !error;
+  }
+
+  /* ── ארכיון תוכניות אימון (בלוקים) ── */
+  function renderArchiveList() {
+    const el = document.getElementById('training-archive-list');
+    if (!el) return;
+    if (!trainingArchive.length) { el.innerHTML = '<div style="color:#444;font-size:0.82rem;">אין בלוקים בארכיון</div>'; return; }
+    el.innerHTML = trainingArchive.map((block, bi) => {
+      const dateStr = block.archived_at ? new Date(block.archived_at).toLocaleDateString('he-IL') : '';
+      const dayCount = (block.days||[]).length;
+      const exCount  = (block.days||[]).reduce((s,d)=>s+(d.exercises||[]).length,0);
+      return `<div style="background:rgba(255,255,255,0.03);border:1px solid rgba(120,150,255,0.2);border-radius:8px;padding:9px 12px;margin-bottom:7px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+        <div>
+          <div style="font-weight:900;font-size:0.85rem;color:#9bb3ff;">${esc(block.label)}</div>
+          <div style="font-size:0.72rem;color:#666;">${dateStr} · ${dayCount} ימים · ${exCount} תרגילים</div>
+        </div>
+        <div style="display:flex;gap:6px;">
+          <button class="btn-sm btn-outline" style="border-color:rgba(74,222,128,0.4);color:#4ade80;font-size:0.72rem;padding:4px 9px;" onclick="restoreArchiveBlock(${bi})">↩ שחזר לפעיל</button>
+          <button class="btn-sm btn-red" style="font-size:0.72rem;padding:4px 9px;" onclick="deleteArchiveBlock(${bi})">🗑 מחק</button>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  async function archiveCurrentPlan() {
+    if (!trainingPlan.length) { toast('אין תוכנית פעילה לארכוב', 'err'); return; }
+    const label = prompt('שם לבלוק בארכיון:', `בלוק ${trainingArchive.length+1}`);
+    if (label === null) return;
+    trainingArchive.push({ label: label.trim() || `בלוק ${trainingArchive.length+1}`, days: JSON.parse(JSON.stringify(trainingPlan)), archived_at: new Date().toISOString() });
+    trainingPlan = [];
+    renderTrainingEditor();
+    renderArchiveList();
+    const ok = await saveTraining(true);
+    toast(ok ? 'התוכנית הועברה לארכיון ✓' : 'שגיאה בשמירת הארכיון', ok ? 'ok' : 'err');
+  }
+
+  async function restoreArchiveBlock(bi) {
+    const block = trainingArchive[bi];
+    if (!block) return;
+    if (trainingPlan.length && !confirm('יש תוכנית פעילה כרגע — לארכב אותה לפני השחזור?')) {
+      // המשתמש בחר לא לארכב — נמשיך ונחליף בלי לאבד, נוסיף גם אותה לארכיון בכל מקרה כדי לא לאבד נתונים
+    }
+    if (trainingPlan.length) {
+      trainingArchive.push({ label: `בלוק ${trainingArchive.length+1} (אוטומטי)`, days: JSON.parse(JSON.stringify(trainingPlan)), archived_at: new Date().toISOString() });
+    }
+    trainingPlan = JSON.parse(JSON.stringify(block.days || []));
+    trainingArchive.splice(bi, 1);
+    renderTrainingEditor();
+    renderArchiveList();
+    const ok = await saveTraining(true);
+    toast(ok ? 'הבלוק שוחזר לתוכנית הפעילה ✓' : 'שגיאה בשמירה', ok ? 'ok' : 'err');
+  }
+
+  async function deleteArchiveBlock(bi) {
+    if (!confirm('למחוק את הבלוק מהארכיון לצמיתות?')) return;
+    trainingArchive.splice(bi, 1);
+    renderArchiveList();
+    const ok = await saveTraining(true);
+    toast(ok ? 'הבלוק נמחק ✓' : 'שגיאה בשמירה', ok ? 'ok' : 'err');
   }
 
   /* ── העתקות תוכנית אימון ── */

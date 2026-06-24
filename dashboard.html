@@ -1449,7 +1449,7 @@
     ]);
     renderPackageCard(pkg);
 
-    trainingPlanLocal  = tr?.plan || [];
+    trainingPlanLocal  = Array.isArray(tr?.plan) ? (tr.plan || []) : (tr?.plan?.active || []);
     nutritionPlanLocal = nu?.plan || [];
     renderTraining(trainingPlanLocal);
     workoutLogs = logs || [];
