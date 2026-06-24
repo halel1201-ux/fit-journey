@@ -2505,8 +2505,13 @@
       const lbl = s < 60 ? s + ' שנ׳' : (s % 60 === 0 ? (s/60) + ' דק׳' : Math.floor(s/60) + ':' + (s%60).toString().padStart(2,'0') + ' דק׳');
       return `<option value="${s}" ${curRest === s ? 'selected' : ''}>${lbl}</option>`;
     }).join('');
+    const _media = resolveExerciseMedia(ex);
     return `<div style="margin-bottom:10px;background:rgba(255,255,255,0.02);border-radius:8px;padding:10px 12px;">
       <div class="ex-row" style="margin-bottom:7px;">
+        ${_media ? `<div onclick="previewExerciseMedia(${di},${ei})" title="לחץ לתצוגה מקדימה — ${esc(_media.label)}${_media.source==='auto'?' (התאמה אוטומטית)':' (נבחר ע״י המאמן)'}" style="flex-shrink:0;width:40px;height:40px;border-radius:6px;overflow:hidden;cursor:pointer;border:1px solid ${_media.source==='manual'?'rgba(255,107,0,0.5)':'rgba(255,255,255,0.15)'};position:relative;background:#000;">
+          ${_media.thumb ? `<img src="${_media.thumb}" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display='none'"/>` : ''}
+          <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:0.8rem;text-shadow:0 0 4px rgba(0,0,0,0.8);">▶</div>
+        </div>` : `<div style="flex-shrink:0;width:40px;height:40px;border-radius:6px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:center;color:#444;font-size:0.65rem;" title="לא נמצאה התאמת סרטון">✕</div>`}
         <input value="${esc(ex.name)}" oninput="trainingPlan[${di}].exercises[${ei}].name=this.value;showExSugg(this,${di},${ei})" onblur="setTimeout(hideExSugg,160)" autocomplete="off" placeholder="שם תרגיל" style="flex:2;"/>
         <button onclick="openDemoPicker(${di},${ei})" style="flex-shrink:0;padding:5px 10px;background:${ex.video_url?'rgba(255,107,0,0.15)':'rgba(255,255,255,0.04)'};border:1px solid ${ex.video_url?'rgba(255,107,0,0.5)':'rgba(255,255,255,0.1)'};border-radius:6px;color:${ex.video_url?'var(--orange)':'#666'};cursor:pointer;font-size:0.72rem;font-weight:700;font-family:'Heebo',sans-serif;white-space:nowrap;" title="${esc(ex.video_url||'לא הוגדרה הדגמה')}">${ex.video_url?'🎬 הדגמה ✓':'🎬 הדגמה'}</button>
         ${ei < total-1 ? `<button class="btn-link-next${ex.linked_next?' linked':''}" onclick="toggleLinkNext(${di},${ei})" title="חבר לתרגיל הבא לסופר-סט / טריפל-סט">🔗</button>` : ''}
@@ -3061,9 +3066,47 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
           muscle_group:     md[0] ? md[0].group : (ex.muscle_groups?.[0] || ''),
           sub_muscle_group: md[0] ? md[0].name  : '',
           video:            ex.video || '',
+          thumb:            `/thumbs/${ex.id}.jpg`,
         };
       });
     } catch(e) { exerciseLibrary = []; }
+  }
+
+  /* 3-tier fuzzy match (exact → substring → word-overlap) against exerciseLibrary, mirrors dashboard.html findExercise() */
+  function findLibraryMatch(name) {
+    if (!name || !exerciseLibrary.length) return null;
+    const key = name.trim().toLowerCase();
+    if (!key) return null;
+    const exact = exerciseLibrary.find(e => e.name.trim().toLowerCase() === key);
+    if (exact) return exact;
+    const sub = exerciseLibrary.find(e => {
+      const n = e.name.trim().toLowerCase();
+      return n.includes(key) || key.includes(n);
+    });
+    if (sub) return sub;
+    const keyWords = key.split(/[\s\-\/,()]+/).filter(w => w.length > 1);
+    let best = null, bestScore = 0;
+    for (const e of exerciseLibrary) {
+      const exWords = e.name.trim().toLowerCase().split(/[\s\-\/,()]+/).filter(w => w.length > 1);
+      const overlap = keyWords.filter(w => exWords.includes(w)).length;
+      if (overlap > 0) {
+        const score = overlap / Math.max(keyWords.length, exWords.length);
+        if (score > bestScore) { bestScore = score; best = e; }
+      }
+    }
+    return bestScore >= 0.25 ? best : null;
+  }
+
+  /* resolves which video the client will actually see for this plan exercise: demo_ex_id override > manual video_url > fuzzy match */
+  function resolveExerciseMedia(ex) {
+    if (ex.demo_ex_id) {
+      const m = exerciseLibrary.find(e => e.id === ex.demo_ex_id);
+      if (m) return { video: m.video, thumb: m.thumb, label: m.name, source: 'manual' };
+    }
+    if (ex.video_url) return { video: ex.video_url, thumb: '', label: ex.name, source: 'manual' };
+    const m = findLibraryMatch(ex.name);
+    if (m) return { video: m.video, thumb: m.thumb, label: m.name, source: 'auto' };
+    return null;
   }
   async function loadFoodItems() {
     try {
@@ -3086,6 +3129,23 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
       })).filter(f => f.name && (f.calories > 0 || f.protein > 0));
     } catch(e) { allFoodItems = []; }
   }
+  /* ── QUICK PREVIEW (current resolved video) ── */
+  function previewExerciseMedia(di, ei) {
+    const ex = trainingPlan[di].exercises[ei];
+    const m  = resolveExerciseMedia(ex);
+    if (!m) return;
+    document.getElementById('preview-title').textContent = ex.name;
+    document.getElementById('preview-sub').textContent = (m.source === 'manual' ? '🎬 הדגמה שנבחרה ע״י המאמן: ' : '🔎 התאמה אוטומטית: ') + m.label;
+    const wrap = document.getElementById('preview-video-wrap');
+    wrap.innerHTML = m.video ? `<video src="${m.video}" autoplay loop muted playsinline controls style="width:100%;border-radius:10px;max-height:60vh;"></video>` : `<div style="padding:40px;text-align:center;color:#666;">אין סרטון זמין</div>`;
+    document.getElementById('preview-replace-btn').onclick = () => { closePreviewModal(); openDemoPicker(di, ei); };
+    document.getElementById('preview-modal').style.display = 'flex';
+  }
+  function closePreviewModal() {
+    document.getElementById('preview-modal').style.display = 'none';
+    document.getElementById('preview-video-wrap').innerHTML = '';
+  }
+
   /* ── DEMO PICKER ── */
   let _demoPickerDi = null, _demoPickerEi = null;
 
@@ -5448,6 +5508,22 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
 <!-- MEASUREMENTS MODAL -->
 <div class="meas-modal-overlay" id="meas-modal-overlay" onclick="if(event.target===this)closeMeasModal()">
   <div class="meas-modal-inner" id="meas-modal-inner"></div>
+</div>
+
+<!-- Quick Video Preview Modal -->
+<div id="preview-modal" onclick="if(event.target===this)closePreviewModal()"
+  style="display:none;position:fixed;inset:0;z-index:8100;align-items:center;justify-content:center;padding:16px;background:rgba(0,0,0,0.9);backdrop-filter:blur(6px);">
+  <div style="background:#161616;border:1px solid rgba(255,107,0,0.3);border-radius:16px;width:100%;max-width:420px;overflow:hidden;box-shadow:0 0 60px rgba(255,107,0,0.1);">
+    <div style="padding:14px 18px;border-bottom:1px solid rgba(255,255,255,0.07);display:flex;align-items:center;justify-content:space-between;">
+      <div id="preview-title" style="font-size:0.95rem;font-weight:900;"></div>
+      <button onclick="closePreviewModal()" style="background:none;border:none;color:#666;font-size:1.2rem;cursor:pointer;padding:2px 6px;">✕</button>
+    </div>
+    <div id="preview-video-wrap" style="padding:14px;"></div>
+    <div id="preview-sub" style="padding:0 18px 4px;font-size:0.75rem;color:#999;"></div>
+    <div style="padding:14px 18px;">
+      <button id="preview-replace-btn" style="width:100%;padding:9px;background:rgba(255,107,0,0.15);border:1px solid rgba(255,107,0,0.5);border-radius:8px;color:var(--orange);font-family:'Heebo',sans-serif;font-weight:700;font-size:0.85rem;cursor:pointer;">🔄 החלף הדגמה</button>
+    </div>
+  </div>
 </div>
 
 <!-- Demo Picker Modal -->
