@@ -1170,6 +1170,32 @@
 
   function getMergedFoodList() { return allFoodItems; }
 
+  /* ── כשרות: סיווג בשר/חלב כדי שהחלפות/חלופות לא יציעו שילוב פסול באותה ארוחה ── */
+  const KOSHER_MEAT_KW = ['עוף','הודו','בקר','כבש','טלה','עגל','פרגית','חזה עוף','ירך עוף','שוק עוף','כנף עוף',
+    'פסטרמה','נקניק','נקניקיה','סלמי','קבב','שווארמה','המבורגר','קציצה','אנטריקוט','סינטה','פילה בקר',
+    'שייטל','אסאדו','כבד','לבבות עוף','בשר','דג','סלמון','טונה','אמנון','דניס','לברק','מקרל','סרדינים','פילה דג'];
+  const KOSHER_DAIRY_KW = ['חלב','גבינה','קוטג\'','קוטג','יוגורט','לאבנה','שמנת','חמאה','גבינת','מעדן חלבון','גבינה לבנה',
+    'פרמזן','מוצרלה','גבינת עמק','גבינת פטה','חלבון מי גבינה','ויי'];
+  function foodKosherType(name) {
+    if (!name) return null;
+    if (KOSHER_DAIRY_KW.some(k => name.includes(k))) return 'dairy';
+    if (KOSHER_MEAT_KW.some(k => name.includes(k))) return 'meat';
+    return null;
+  }
+  /* בודק אם הצעה מסוימת מפרה כשרות מול הפריט המוחלף ומול שאר הפריטים באותה ארוחה */
+  function violatesKosher(mealIdx, candidateName, excludeItemName) {
+    const candType = foodKosherType(candidateName);
+    if (!candType) return false;
+    const meal = nutritionPlan[mealIdx];
+    const items = (meal && meal.items) || [];
+    return items.some(it => {
+      const n = it.food || it.name || '';
+      if (n === excludeItemName) return false;
+      const t = foodKosherType(n);
+      return t && t !== candType;
+    });
+  }
+
   /* ── macroScore: דמיון יחס מאקרו בין פריט קיים לאלטרנטיבה (0–1) ── */
   function macroScore(refItem, cand) {
     if (!cand || !cand.calories || !refItem) return 0;
@@ -1192,6 +1218,7 @@
     const autoFills = getMergedFoodList()
       .filter(fd => {
         if (fd.name === refName) return false;
+        if (violatesKosher(mi, fd.name, refName)) return false;
         if (category === 'protein') return (fd.protein||0) > 10;
         if (category === 'carbs')   return (fd.carbs||0)   > 20;
         return                             (fd.fat||0)      > 10;
@@ -1863,7 +1890,10 @@
             </div>
           </div>
         </div>
-        <button class="btn-sm btn-orange" onclick="saveProfile()">שמור פרטים</button>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn-sm btn-orange" onclick="saveProfile()">שמור פרטים</button>
+          ${coachRole === 'senior' ? `<button class="btn-sm btn-outline" onclick="setClientPassword()" style="border-color:rgba(255,215,0,0.35);color:#FFD700;" title="הגדר סיסמה = מספר הטלפון (ספרות בלבד)">🔑 הגדר סיסמה</button>` : ''}
+        </div>
       </div>
 
       ${renderPackageCard()}
@@ -2286,6 +2316,29 @@
     if (newEmail !== activeEmail) { activeEmail = newEmail; }
     await loadClients();
     toast('פרטים נשמרו ✓', 'ok');
+  }
+
+  /* הגדרת סיסמה ללקוח — מאמן בכיר בלבד (לקוחות מאמן רגיל מנוהלים ע"י אדמין) */
+  async function setClientPassword() {
+    if (coachRole !== 'senior') { toast('פעולה זו מוגבלת למאמן בכיר', 'err'); return; }
+    const phone = document.getElementById('e-phone').value.trim();
+    const email = activeEmail;
+    if (!phone) { toast('יש להזין מספר טלפון קודם', 'err'); return; }
+    const password = phone.replace(/\D/g, '');
+    if (password.length < 6) { toast('מספר טלפון קצר מדי (מינימום 6 ספרות)', 'err'); return; }
+
+    const { data: { users }, error: listErr } = await sbAdmin.auth.admin.listUsers({ perPage: 1000 });
+    if (listErr) { toast('שגיאה: ' + listErr.message, 'err'); return; }
+
+    const user = users.find(u => u.email === email);
+    if (user) {
+      const { error } = await sbAdmin.auth.admin.updateUserById(user.id, { password });
+      if (error) { toast('שגיאה בעדכון סיסמה: ' + error.message, 'err'); return; }
+    } else {
+      const { error } = await sbAdmin.auth.admin.createUser({ email, password, email_confirm: true });
+      if (error) { toast('שגיאה ביצירת משתמש: ' + error.message, 'err'); return; }
+    }
+    toast(`✓ סיסמה הוגדרה: ${password}`, 'ok');
   }
 
   function toggleMobileSidebar() {
@@ -3430,10 +3483,10 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
       if (isLightMeal && cat === 'protein') {
         /* Breakfast/evening/late → prefer GO + airy protein snacks */
         const LIGHT = ['מעדן GO','מעדן חלבון','קוטג\'','יוגורט יווני','גבינה לבנה','ביצה שלמה','חלבון ביצה'];
-        matches = all.filter(fd => fd.name !== currentFoodName && LIGHT.some(k => fd.name.includes(k)));
+        matches = all.filter(fd => fd.name !== currentFoodName && !violatesKosher(mi, fd.name, currentFoodName) && LIGHT.some(k => fd.name.includes(k)));
         if (matches.length < 6) {
           const extra = all
-            .filter(fd => fd.name !== currentFoodName && (fd.protein||0) > 8 && !matches.includes(fd))
+            .filter(fd => fd.name !== currentFoodName && !violatesKosher(mi, fd.name, currentFoodName) && (fd.protein||0) > 8 && !matches.includes(fd))
             .map(fd => ({...fd, _s: macroScore(item, fd)}))
             .filter(fd => fd._s > 0.35)
             .sort((a,b) => b._s - a._s)
@@ -3445,6 +3498,7 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
         matches = all
           .filter(fd => {
             if (fd.name === currentFoodName) return false;
+            if (violatesKosher(mi, fd.name, currentFoodName)) return false;
             if (cat === 'protein') return (fd.protein||0) > 10;
             if (cat === 'carbs')   return (fd.carbs||0)   > 20;
             return                        (fd.fat||0)      > 10;
@@ -3457,7 +3511,7 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
     } else {
       /* Search by name, rank by macro similarity */
       matches = all
-        .filter(fd => fd.name !== currentFoodName && fd.name.includes(q))
+        .filter(fd => fd.name !== currentFoodName && !violatesKosher(mi, fd.name, currentFoodName) && fd.name.includes(q))
         .map(fd => ({...fd, _s: macroScore(item, fd)}))
         .sort((a,b) => b._s - a._s)
         .slice(0, 7);

@@ -1551,6 +1551,9 @@
     const coachOpts = coachesList.map(c =>
       `<option value="${c.email}" ${client.coach_email===c.email?'selected':''}>${esc(c.name)}</option>`
     ).join('');
+    /* מאמן בכיר מגדיר סיסמה ללקוחות שלו עצמו — אדמין מגדיר רק ללקוחות שאצל מאמן רגיל (או בלי מאמן) */
+    const clientCoach = coachesList.find(co => co.email === client.coach_email);
+    const canAdminSetPassword = !clientCoach || clientCoach.role !== 'senior';
     document.getElementById('main-area').innerHTML = `
       <!-- Profile -->
       <div class="sec-card">
@@ -1600,7 +1603,9 @@
         </div>
         <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
           <button class="btn-sm btn-orange" onclick="saveProfile()">שמור פרטים</button>
-          <button class="btn-sm btn-outline" onclick="setClientPassword()" style="border-color:rgba(255,215,0,0.35);color:#FFD700;" title="הגדר סיסמה = מספר הטלפון (ספרות בלבד)">🔑 הגדר סיסמה</button>
+          ${canAdminSetPassword
+            ? `<button class="btn-sm btn-outline" onclick="setClientPassword()" style="border-color:rgba(255,215,0,0.35);color:#FFD700;" title="הגדר סיסמה = מספר הטלפון (ספרות בלבד)">🔑 הגדר סיסמה</button>`
+            : `<span style="font-size:0.75rem;color:#777;" title="ללקוחות מאמן בכיר — הגדרת הסיסמה מתבצעת ע״י המאמן עצמו">🔑 מאמן בכיר מגדיר סיסמה</span>`}
           <button class="btn-sm btn-red" onclick="deleteClient('${esc(client.email)}')">מחק לקוח</button>
         </div>
       </div>
@@ -2426,6 +2431,9 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
   }
 
   async function setClientPassword() {
+    const client = clients.find(c => c.email === activeEmail);
+    const clientCoach = coachesList.find(co => co.email === client?.coach_email);
+    if (clientCoach && clientCoach.role === 'senior') { toast('ללקוחות מאמן בכיר — הגדרת הסיסמה מתבצעת ע״י המאמן עצמו', 'err'); return; }
     const phone = document.getElementById('e-phone').value.trim();
     const email = activeEmail;
     if (!phone) { toast('יש להזין מספר טלפון קודם', 'err'); return; }
