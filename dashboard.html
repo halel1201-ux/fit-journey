@@ -793,6 +793,48 @@
     </div>
   </div>
 
+  <!-- כרטיס מצב כספי / חוב -->
+  <div id="debt-card-client" style="display:none;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:16px;padding:16px 18px;margin:0 0 12px;border-top:3px solid #f87171;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+      <span style="font-weight:700;font-size:0.9rem;color:var(--white);">💳 מצב כספי</span>
+      <span id="debt-status-badge" style="font-size:0.75rem;font-weight:700;padding:3px 10px;border-radius:20px;"></span>
+    </div>
+    <div style="text-align:center;margin-bottom:10px;">
+      <div id="debt-balance-val" style="font-size:1.6rem;font-weight:900;">—</div>
+      <div style="font-size:0.68rem;color:var(--muted);margin-top:2px;">יתרת חוב</div>
+    </div>
+    <div id="debt-pending-note" style="display:none;font-size:0.72rem;color:#FFD700;text-align:center;margin-bottom:10px;"></div>
+    <button style="width:100%;padding:10px;background:linear-gradient(135deg,#4ade80,#22c55e);border:none;border-radius:10px;color:#06281a;font-family:'Heebo',sans-serif;font-weight:900;font-size:0.88rem;cursor:pointer;" onclick="openPaidModal()">💰 שילמתי</button>
+  </div>
+
+  <!-- מודל דיווח תשלום -->
+  <div id="paid-modal" style="display:none;position:fixed;inset:0;z-index:3000;background:rgba(0,0,0,0.82);backdrop-filter:blur(6px);align-items:center;justify-content:center;padding:16px;" onclick="if(event.target===this)closePaidModal()">
+    <div style="background:#161616;border:1px solid rgba(74,222,128,0.35);border-radius:16px;padding:26px;width:100%;max-width:340px;box-shadow:0 0 60px rgba(74,222,128,0.12);">
+      <div style="font-size:1rem;font-weight:900;color:#fff;margin-bottom:14px;">💰 דיווח <span style="color:#4ade80;">תשלום</span></div>
+      <div style="font-size:0.76rem;color:#999;margin-bottom:14px;">הדיווח יישלח למאמן לאישור, ויירד מהחוב רק לאחר שהמאמן יאשר אותו.</div>
+      <div style="margin-bottom:12px;">
+        <label style="display:block;font-size:0.78rem;color:#999;margin-bottom:5px;">סכום ששולם (₪)</label>
+        <input id="paid-amount" type="number" min="0" placeholder="0" style="width:100%;box-sizing:border-box;padding:9px 12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:#fff;direction:ltr;text-align:right;"/>
+      </div>
+      <div style="margin-bottom:12px;">
+        <label style="display:block;font-size:0.78rem;color:#999;margin-bottom:5px;">אופן תשלום</label>
+        <select id="paid-method" style="width:100%;box-sizing:border-box;padding:9px 12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:#fff;">
+          <option value="ביט">ביט</option>
+          <option value="מזומן">מזומן</option>
+          <option value="העברה בנקאית">העברה בנקאית</option>
+        </select>
+      </div>
+      <div style="margin-bottom:16px;">
+        <label style="display:block;font-size:0.78rem;color:#999;margin-bottom:5px;">הערה (אופציונלי)</label>
+        <input id="paid-note" placeholder="לדוגמה: תשלום עבור חודש יוני" style="width:100%;box-sizing:border-box;padding:9px 12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:#fff;"/>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;">
+        <button onclick="closePaidModal()" style="padding:9px 16px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:#ccc;font-family:'Heebo',sans-serif;font-weight:700;cursor:pointer;">ביטול</button>
+        <button id="paid-submit-btn" onclick="submitPaidClaim()" style="padding:9px 16px;background:linear-gradient(135deg,#4ade80,#22c55e);border:none;border-radius:8px;color:#06281a;font-family:'Heebo',sans-serif;font-weight:900;cursor:pointer;">שלח לאישור</button>
+      </div>
+    </div>
+  </div>
+
   <!-- NOTIFICATION PERMISSION BANNER -->
   <div class="notif-banner" id="notif-banner">
     <div id="notif-banner-text">🔔 הפעל התראות כדי לקבל עדכונים והודעות מהמאמן</div>
@@ -1448,6 +1490,7 @@
       sb.from('client_packages').select('*').eq('client_email', email).order('created_at', { ascending: false }).limit(1).maybeSingle()
     ]);
     renderPackageCard(pkg);
+    loadDebtCard(email);
 
     trainingPlanLocal  = Array.isArray(tr?.plan) ? (tr.plan || []) : (tr?.plan?.active || []);
     nutritionPlanLocal = nu?.plan || [];
@@ -1487,6 +1530,95 @@
 
   function fmt(d) {
     return d.toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  }
+
+  /* ── מצב כספי / חוב (ledger) ── */
+  let clientDebtTxnsLocal = [];
+
+  function debtBalColor(bal) {
+    if (!bal || bal <= 0) return '#4ade80';
+    return bal > 500 ? '#f87171' : '#fb923c';
+  }
+
+  async function loadDebtCard(email) {
+    const { data: txns } = await sb.from('client_debt_transactions')
+      .select('*').eq('client_email', email)
+      .order('txn_date', { ascending: false }).order('created_at', { ascending: false });
+    clientDebtTxnsLocal = txns || [];
+    renderDebtCardClient();
+  }
+
+  function renderDebtCardClient() {
+    const txns = clientDebtTxnsLocal || [];
+    const card = document.getElementById('debt-card-client');
+    if (!txns.length) { card.style.display = 'none'; return; }
+    card.style.display = 'block';
+    let balance = 0;
+    txns.filter(t => t.status === 'approved').forEach(t => {
+      balance += t.type === 'charge' ? (+t.amount||0) : -(+t.amount||0);
+    });
+    balance = Math.round(balance * 100) / 100;
+    const col = debtBalColor(balance);
+    const badge = document.getElementById('debt-status-badge');
+    badge.textContent = balance <= 0 ? '🟢 אין חוב' : (balance > 500 ? '🔴 חוב משמעותי' : '🟠 חוב קטן');
+    badge.style.background = col + '26';
+    badge.style.color = col;
+    const valEl = document.getElementById('debt-balance-val');
+    valEl.textContent = (balance > 0 ? balance.toLocaleString() : '0') + ' ₪';
+    valEl.style.color = col;
+    const pending = txns.filter(t => t.status === 'pending');
+    const noteEl = document.getElementById('debt-pending-note');
+    if (pending.length) {
+      const sum = pending.reduce((s,t) => s + (+t.amount||0), 0);
+      noteEl.style.display = 'block';
+      noteEl.textContent = `⏳ ${sum.toLocaleString()} ₪ בבדיקה אצל המאמן`;
+    } else {
+      noteEl.style.display = 'none';
+    }
+  }
+
+  function openPaidModal() {
+    document.getElementById('paid-amount').value = '';
+    document.getElementById('paid-note').value = '';
+    document.getElementById('paid-modal').style.display = 'flex';
+  }
+  function closePaidModal() {
+    document.getElementById('paid-modal').style.display = 'none';
+  }
+
+  async function submitPaidClaim() {
+    const amount = parseFloat(document.getElementById('paid-amount').value);
+    if (!amount || amount <= 0) { alert('יש להזין סכום תקין'); return; }
+    const method = document.getElementById('paid-method').value;
+    const note = document.getElementById('paid-note').value.trim();
+    const coachMail = clientData?.coach_email;
+    if (!coachMail) { alert('שגיאה: לא נמצא מאמן מקושר לחשבון'); return; }
+    const btn = document.getElementById('paid-submit-btn');
+    btn.disabled = true; btn.textContent = 'שולח...';
+    const { error } = await sb.from('client_debt_transactions').insert({
+      client_email: currentEmail, coach_email: coachMail, type: 'payment', status: 'pending',
+      category: method, amount, note, txn_date: new Date().toISOString().split('T')[0],
+      created_by: clientData?.name || currentEmail
+    });
+    btn.disabled = false; btn.textContent = 'שלח לאישור';
+    if (error) { alert('שגיאה: ' + error.message); return; }
+    closePaidModal();
+    await loadDebtCard(currentEmail);
+    showDashToast('✓ הדיווח נשלח למאמן לאישור');
+    const clientName = clientData?.name || currentEmail.split('@')[0];
+    sb.from('coach_notifications').insert({
+      coach_email: coachMail,
+      client_email: currentEmail,
+      client_name: clientName,
+      read: false,
+      data: { kind: 'payment_claim', amount, method, note }
+    });
+    (async () => {
+      const { data: tok } = await sb.from('push_tokens').select('onesignal_player_id').eq('user_email', coachMail).single();
+      if (tok?.onesignal_player_id) {
+        await sendPushToPlayer(tok.onesignal_player_id, `${clientName} דיווח על תשלום`, `${amount.toLocaleString()} ₪ (${method}) — מחכה לאישור`);
+      }
+    })();
   }
 
   /* ── RENEWAL ── */

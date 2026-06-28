@@ -459,6 +459,12 @@
         <div class="kpi-card" style="--kc:#fb923c;"><div class="kpi-val" id="kpi-pending">—</div><div class="kpi-label">ממתינים לתשלום</div></div>
         <div class="kpi-card" style="--kc:#a78bfa;grid-column:1/-1;"><div class="kpi-val" id="kpi-revenue">—</div><div class="kpi-label">הכנסה החודש</div></div>
       </div>
+      <!-- מצב כספי כללי -->
+      <div style="font-size:0.78rem;font-weight:900;color:var(--muted);margin-bottom:10px;letter-spacing:0.5px;">💰 מצב כספי כללי</div>
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:20px;">
+        <div class="kpi-card" style="--kc:#f87171;"><div class="kpi-val" id="kpi-debt-open">—</div><div class="kpi-label">חוב פתוח כולל</div></div>
+        <div class="kpi-card" style="--kc:#fb923c;"><div class="kpi-val" id="kpi-debt-clients">—</div><div class="kpi-label">מתאמנים עם חוב</div></div>
+      </div>
       <!-- מתאמנים שדורשים תשומת לב -->
       <div id="lobby-alerts"></div>
       <div style="text-align:center;color:#333;font-size:0.85rem;margin-top:24px;">← בחר מתאמן מהרשימה לעריכה</div>
@@ -1149,6 +1155,7 @@
   let clients     = [];
   let activeEmail = null;
   let currentPackage = null;
+  let clientDebtTxns = [];
   let trainingPlan  = [];
   let trainingArchive = [];
   let nutritionPlan = [];
@@ -1603,6 +1610,16 @@
         .in('client_email', emails);
       clientPackageMap = {};
       (pkgs || []).forEach(p => { clientPackageMap[p.client_email] = p; });
+      const { data: debts } = await sb.from('client_debt_transactions')
+        .select('client_email,type,amount')
+        .eq('coach_email', coachEmail)
+        .eq('status', 'approved')
+        .in('client_email', emails);
+      clientDebtMap = {};
+      (debts || []).forEach(t => {
+        const sign = t.type === 'charge' ? 1 : -1;
+        clientDebtMap[t.client_email] = Math.round(((clientDebtMap[t.client_email] || 0) + sign * (+t.amount || 0)) * 100) / 100;
+      });
     }
     renderSidebar();
     renderLobby();
@@ -1631,6 +1648,12 @@
     document.getElementById('kpi-pending').textContent  = pending;
     document.getElementById('kpi-revenue').textContent  = revenue.toLocaleString() + ' ₪';
 
+    // מצב כספי כללי (חוב)
+    const debtEntries = Object.entries(clientDebtMap).filter(([, bal]) => bal > 0);
+    const totalOpenDebt = debtEntries.reduce((s, [, bal]) => s + bal, 0);
+    document.getElementById('kpi-debt-open').textContent    = totalOpenDebt.toLocaleString() + ' ₪';
+    document.getElementById('kpi-debt-clients').textContent = debtEntries.length;
+
     // התראות — מי מסיים בקרוב / חייב כסף
     const alerts = [
       ...allPkgs.filter(p => p.status === 'expiring').map(p => ({
@@ -1644,6 +1667,10 @@
       ...allPkgs.filter(p => p.status === 'expired').map(p => ({
         email: p.client_email, color: '#f87171',
         sub: `פג תוקף — ${new Date(p.end_date+'T12:00:00').toLocaleDateString('he-IL')}`
+      })),
+      ...debtEntries.filter(([, bal]) => bal > 500).map(([email, bal]) => ({
+        email, color: '#f87171',
+        sub: `חוב פתוח — ${bal.toLocaleString()} ₪`
       })),
     ];
 
@@ -1719,11 +1746,19 @@
     } else {
       list.innerHTML = coachNotifs.map(n => {
         const d = n.data || {};
+        const dateStr = new Date(n.created_at).toLocaleString('he-IL', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+        if (d.kind === 'payment_claim') {
+          return `<div class="notif-card${n.read ? '' : ' unread'}" onclick="notifGoClient('${n.client_email}')" style="border-right:3px solid #FFD700;">
+            <div class="notif-card-name">${esc(n.client_name || n.client_email.split('@')[0])}</div>
+            <div class="notif-card-meta">💰 דיווח על תשלום ${(d.amount||0).toLocaleString()} ₪ (${esc(d.method||'')}) — ⏳ לאישור</div>
+            ${d.note ? `<div class="notif-card-meta" style="color:#888;">${esc(d.note)}</div>` : ''}
+            <div class="notif-time">${dateStr}</div>
+          </div>`;
+        }
         const prsHtml = d.prs && d.prs.length
           ? `<div class="notif-card-prs">🏆 ${d.prs.map(p => esc(p.exercise)).join(' · ')}</div>` : '';
         const calHtml = d.calories_target > 0
           ? `<div class="notif-card-nutrition">🍽 ${d.calories_eaten||0} / ${d.calories_target} קק"ל</div>` : '';
-        const dateStr = new Date(n.created_at).toLocaleString('he-IL', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
         return `<div class="notif-card${n.read ? '' : ' unread'}" onclick="notifGoClient('${n.client_email}')">
           <div class="notif-card-name">${esc(n.client_name || n.client_email.split('@')[0])}</div>
           <div class="notif-card-meta">🏋️ ${esc(d.day_name||'אימון')} · ⏱ ${d.duration_min||0} דק׳ · ${d.exercises_count||0} תרגילים</div>
@@ -1768,6 +1803,13 @@
 
   // מפת סטטוס חבילות לפי אימייל — נטענת ב-loadClients
   let clientPackageMap = {};
+  // מפת יתרת חוב לפי אימייל — נטענת ב-loadClients
+  let clientDebtMap = {};
+
+  function debtStatusColor(bal) {
+    if (!bal || bal <= 0) return '#4ade80';
+    return bal > 500 ? '#f87171' : '#fb923c';
+  }
 
   function renderSidebar() {
     const el = document.getElementById('client-list');
@@ -1781,6 +1823,10 @@
       const statusDot = pkg
         ? `<span title="${pkgStatusLabel(pkg.status)}" style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${pkgStatusColor(pkg.status)};flex-shrink:0;"></span>`
         : `<span title="אין חבילה" style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#333;border:1px solid #555;flex-shrink:0;"></span>`;
+      const debtBal = clientDebtMap[c.email] || 0;
+      const debtBadge = debtBal > 0
+        ? `<span title="חוב פתוח" style="font-size:0.66rem;font-weight:900;color:${debtStatusColor(debtBal)};background:${debtStatusColor(debtBal)}1a;border:1px solid ${debtStatusColor(debtBal)}40;border-radius:8px;padding:1px 6px;flex-shrink:0;">₪${debtBal.toLocaleString()}</span>`
+        : '';
       return `
       <div class="client-item ${c.email === activeEmail ? 'active' : ''}" onclick="selectClient('${c.email}')">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;">
@@ -1788,7 +1834,10 @@
             ${statusDot}
             <div class="client-item-name" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(c.name)}</div>
           </div>
-          <span class="gender-tag ${c.gender === 'female' ? 'female' : 'male'}">${c.gender === 'female' ? '♀' : '♂'}</span>
+          <div style="display:flex;align-items:center;gap:5px;flex-shrink:0;">
+            ${debtBadge}
+            <span class="gender-tag ${c.gender === 'female' ? 'female' : 'male'}">${c.gender === 'female' ? '♀' : '♂'}</span>
+          </div>
         </div>
         <div class="client-item-email">${c.email}</div>
         ${lastSeen ? `<div style="font-size:0.68rem;color:#555;margin-top:2px;">👁 ${lastSeen}</div>` : ''}
@@ -1802,11 +1851,13 @@
     renderSidebar();
     closeMobileSidebar();
     const client = clients.find(c => c.email === email);
-    const [{ data: tr }, { data: nu }, { data: pkg }] = await Promise.all([
+    const [{ data: tr }, { data: nu }, { data: pkg }, { data: debtTxns }] = await Promise.all([
       sb.from('training_plans').select('plan').eq('client_email', email).single(),
       sb.from('nutrition_plans').select('plan').eq('client_email', email).single(),
-      sb.from('client_packages').select('*').eq('client_email', email).eq('coach_email', coachEmail).order('created_at', { ascending: false }).limit(1).maybeSingle()
+      sb.from('client_packages').select('*').eq('client_email', email).eq('coach_email', coachEmail).order('created_at', { ascending: false }).limit(1).maybeSingle(),
+      sb.from('client_debt_transactions').select('*').eq('client_email', email).eq('coach_email', coachEmail).order('txn_date', { ascending: false }).order('created_at', { ascending: false })
     ]);
+    clientDebtTxns = debtTxns || [];
     const rawPlanData = tr?.plan;
     const activeDays  = Array.isArray(rawPlanData) ? rawPlanData : (rawPlanData?.active || []);
     trainingArchive    = Array.isArray(rawPlanData) ? [] : (rawPlanData?.archive || []);
@@ -1897,6 +1948,8 @@
       </div>
 
       ${renderPackageCard()}
+
+      ${renderDebtCard()}
 
       <div class="sec-card">
         <div class="sec-card-title">🏋️ תוכנית אימונים
@@ -2001,6 +2054,7 @@
     renderTrainingEditor();
     renderArchiveList();
     renderNutritionEditor();
+    syncClipboardButtons();
     loadDefaultTemplate();
     loadClientLogs(client.email);
     loadCycleForClient(client.email);
@@ -2191,6 +2245,307 @@
     toast('✓ תשלום עודכן');
     closePaymentModal();
     await selectClient(activeEmail);
+  }
+  // ─────────────────────────────────────────────────────────────────
+
+  // ─── מצב כספי / חוב (ledger) ──────────────────────────────────────
+  const DEBT_CHARGE_CATEGORIES = ['מנוי','אימון','ציוד','תפריט','תוסף','אחר'];
+  const DEBT_PAYMENT_METHODS   = ['מזומן','אשראי','ביט','העברה בנקאית','פייבוקס','אחר'];
+
+  function getDebtInfo(txns) {
+    let balance = 0, lastTxnAt = null, earliestChargeDate = null;
+    (txns || []).filter(t => t.status === 'approved').forEach(t => {
+      const amt = +t.amount || 0;
+      balance += t.type === 'charge' ? amt : -amt;
+      if (!lastTxnAt || new Date(t.created_at) > new Date(lastTxnAt)) lastTxnAt = t.created_at;
+      if (t.type === 'charge' && (!earliestChargeDate || t.txn_date < earliestChargeDate)) earliestChargeDate = t.txn_date;
+    });
+    balance = Math.round(balance * 100) / 100;
+    const overdue = balance > 0 && !!earliestChargeDate && (Date.now() - new Date(earliestChargeDate + 'T12:00:00').getTime()) > 30 * 86400000;
+    return { balance, lastTxnAt, earliestChargeDate, overdue };
+  }
+
+  function renderDebtCard() {
+    const txns = clientDebtTxns || [];
+    const { balance, lastTxnAt, overdue } = getDebtInfo(txns);
+    const col = debtStatusColor(balance);
+    const statusLabel = balance <= 0 ? '🟢 אין חוב' : (balance > 500 ? '🔴 חוב משמעותי' : '🟠 חוב קטן');
+    const lastUpd = lastTxnAt ? fmtLastSeen(lastTxnAt) : null;
+    const pendingClaims = txns.filter(t => t.status === 'pending');
+    const pendingHtml = pendingClaims.length ? `
+        <div style="background:rgba(255,215,0,0.06);border:1px solid rgba(255,215,0,0.3);border-radius:10px;padding:12px;margin-bottom:14px;">
+          <div style="font-size:0.78rem;font-weight:900;color:#FFD700;margin-bottom:6px;">⏳ תשלומים ממתינים לאישור</div>
+          ${pendingClaims.map(t => `
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 0;border-top:1px solid rgba(255,255,255,0.06);">
+              <div>
+                <div style="font-size:0.85rem;font-weight:900;color:var(--white);">${(+t.amount||0).toLocaleString()} ₪ <span style="color:var(--muted);font-weight:500;font-size:0.72rem;">· ${esc(t.category||'')}</span></div>
+                <div style="font-size:0.68rem;color:#666;">${t.txn_date ? new Date(t.txn_date+'T12:00:00').toLocaleDateString('he-IL') : ''}${t.note ? ' · ' + esc(t.note) : ''}</div>
+              </div>
+              <div style="display:flex;gap:6px;flex-shrink:0;">
+                <button class="btn-sm" style="padding:4px 10px;font-size:0.72rem;background:linear-gradient(135deg,#4ade80,#22c55e);border:none;border-radius:6px;color:#06281a;font-weight:900;cursor:pointer;" onclick="approveDebtClaim(${t.id})">✓ אשר</button>
+                <button class="btn-sm btn-outline" style="padding:4px 10px;font-size:0.72rem;border-color:rgba(248,113,113,0.4);color:#f87171;" onclick="rejectDebtClaim(${t.id})">✗ דחה</button>
+              </div>
+            </div>`).join('')}
+        </div>` : '';
+    return `<div id="debt-card-wrap">
+      <div class="sec-card" id="debt-card">
+        <div class="sec-card-title">💳 מצב כספי
+          <span style="color:${col};font-size:0.82rem;font-weight:700;">${statusLabel}</span>
+        </div>
+        ${pendingHtml}
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;">
+          <div style="text-align:center;padding:14px 6px;background:${col}12;border:1px solid ${col}40;border-radius:10px;">
+            <div style="font-size:1.4rem;font-weight:900;color:${col};">${balance > 0 ? balance.toLocaleString() : '0'} ₪</div>
+            <div style="font-size:0.65rem;color:var(--muted);margin-top:3px;">יתרת חוב</div>
+          </div>
+          <div style="text-align:center;padding:14px 6px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:10px;">
+            <div style="font-size:0.95rem;font-weight:900;color:var(--white);">${lastUpd || '—'}</div>
+            <div style="font-size:0.65rem;color:var(--muted);margin-top:3px;">עודכן לאחרונה</div>
+          </div>
+          <div style="text-align:center;padding:14px 6px;background:${overdue ? 'rgba(248,113,113,0.07)' : 'rgba(255,255,255,0.04)'};border:1px solid ${overdue ? 'rgba(248,113,113,0.25)' : 'rgba(255,255,255,0.1)'};border-radius:10px;">
+            <div style="font-size:0.95rem;font-weight:900;color:${overdue ? '#f87171' : 'var(--white)'};">${overdue ? '⚠ בפיגור' : 'תקין'}</div>
+            <div style="font-size:0.65rem;color:var(--muted);margin-top:3px;">סטטוס תשלום</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;margin-bottom:6px;flex-wrap:wrap;">
+          <button class="btn-sm btn-outline" onclick="openDebtBreakdown()">📋 הצג פירוט</button>
+          <button class="btn-sm btn-orange" onclick="openDebtChargeModal()">➕ הוסף חיוב</button>
+          <button class="btn-sm btn-outline" style="border-color:rgba(74,222,128,0.4);color:#4ade80;" onclick="openDebtPaymentModal()">💰 הוסף תשלום</button>
+          ${balance > 0 ? `<button class="btn-sm btn-outline" style="border-color:rgba(248,113,113,0.35);color:#f87171;" onclick="resetDebtBalance()">↺ אפס חוב</button>` : ''}
+        </div>
+      </div>
+
+      <!-- מודל פירוט חוב -->
+      <div id="debt-breakdown-modal" style="display:none;position:fixed;inset:0;z-index:700;background:rgba(0,0,0,0.82);backdrop-filter:blur(6px);align-items:center;justify-content:center;" onclick="if(event.target===this)closeDebtBreakdown()">
+        <div style="background:#161616;border:1px solid rgba(255,107,0,0.35);border-radius:16px;padding:26px;width:100%;max-width:560px;max-height:80vh;overflow-y:auto;box-shadow:0 0 60px rgba(255,107,0,0.15);">
+          <div style="font-size:1rem;font-weight:900;color:var(--white);margin-bottom:16px;">📋 פירוט <span style="color:var(--orange);">חוב</span></div>
+          <div id="debt-breakdown-body">${renderDebtBreakdownBody(txns)}</div>
+          <div style="display:flex;justify-content:flex-end;margin-top:16px;">
+            <button class="btn-sm btn-outline" onclick="closeDebtBreakdown()">סגור</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- מודל הוספת חיוב -->
+      <div id="debt-charge-modal" style="display:none;position:fixed;inset:0;z-index:700;background:rgba(0,0,0,0.82);backdrop-filter:blur(6px);align-items:center;justify-content:center;" onclick="if(event.target===this)closeDebtChargeModal()">
+        <div style="background:#161616;border:1px solid rgba(255,107,0,0.35);border-radius:16px;padding:26px;width:100%;max-width:340px;box-shadow:0 0 60px rgba(255,107,0,0.15);">
+          <div style="font-size:1rem;font-weight:900;color:var(--white);margin-bottom:16px;">➕ הוסף <span style="color:var(--orange);">חיוב</span></div>
+          <div class="f-group" style="margin-bottom:12px;">
+            <label>סכום (₪)</label>
+            <input id="debt-charge-amount" type="number" min="0" placeholder="0" style="direction:ltr;text-align:right;"/>
+          </div>
+          <div class="f-group" style="margin-bottom:12px;">
+            <label>קטגוריה</label>
+            <select id="debt-charge-category">${DEBT_CHARGE_CATEGORIES.map(c => `<option value="${c}">${c}</option>`).join('')}</select>
+          </div>
+          <div class="f-group" style="margin-bottom:12px;">
+            <label>תיאור</label>
+            <input id="debt-charge-desc" placeholder="תיאור קצר"/>
+          </div>
+          <div class="f-group" style="margin-bottom:12px;">
+            <label>תאריך</label>
+            <input id="debt-charge-date" type="date" value="${new Date().toISOString().split('T')[0]}"/>
+          </div>
+          <div class="f-group" style="margin-bottom:14px;">
+            <label>הערות</label>
+            <input id="debt-charge-note" placeholder="הערה אופציונלית"/>
+          </div>
+          <div style="display:flex;gap:8px;justify-content:flex-end;">
+            <button class="btn-sm btn-outline" onclick="closeDebtChargeModal()">ביטול</button>
+            <button class="btn-sm btn-orange" onclick="saveDebtCharge()">שמור</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- מודל הוספת תשלום -->
+      <div id="debt-payment-modal" style="display:none;position:fixed;inset:0;z-index:700;background:rgba(0,0,0,0.82);backdrop-filter:blur(6px);align-items:center;justify-content:center;" onclick="if(event.target===this)closeDebtPaymentModal()">
+        <div style="background:#161616;border:1px solid rgba(74,222,128,0.35);border-radius:16px;padding:26px;width:100%;max-width:340px;box-shadow:0 0 60px rgba(74,222,128,0.12);">
+          <div style="font-size:1rem;font-weight:900;color:var(--white);margin-bottom:16px;">💰 הוסף <span style="color:#4ade80;">תשלום</span></div>
+          <div style="font-size:0.82rem;color:var(--muted);margin-bottom:6px;">יתרת חוב נוכחית: <strong style="color:${col};">${balance.toLocaleString()} ₪</strong></div>
+          <div class="f-group" style="margin-bottom:12px;">
+            <label>סכום ששולם (₪)</label>
+            <input id="debt-payment-amount" type="number" min="0" placeholder="0" style="direction:ltr;text-align:right;"/>
+          </div>
+          <div class="f-group" style="margin-bottom:12px;">
+            <label>אופן תשלום</label>
+            <select id="debt-payment-method">${DEBT_PAYMENT_METHODS.map(c => `<option value="${c}">${c}</option>`).join('')}</select>
+          </div>
+          <div class="f-group" style="margin-bottom:12px;">
+            <label>תאריך</label>
+            <input id="debt-payment-date" type="date" value="${new Date().toISOString().split('T')[0]}"/>
+          </div>
+          <div class="f-group" style="margin-bottom:14px;">
+            <label>הערות</label>
+            <input id="debt-payment-note" placeholder="הערה אופציונלית"/>
+          </div>
+          <div style="display:flex;gap:8px;justify-content:flex-end;">
+            <button class="btn-sm btn-outline" onclick="closeDebtPaymentModal()">ביטול</button>
+            <button class="btn-sm btn-orange" style="background:linear-gradient(135deg,#4ade80,#22c55e);" onclick="saveDebtPayment()">שמור</button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  function renderDebtBreakdownBody(txns) {
+    if (!txns.length) return `<div style="color:#555;font-size:0.85rem;text-align:center;padding:20px 0;">אין תנועות חוב עדיין</div>`;
+    const approved = txns.filter(t => t.status === 'approved');
+    const totalCharged = approved.filter(t => t.type === 'charge').reduce((s,t) => s + (+t.amount||0), 0);
+    const totalPaid    = approved.filter(t => t.type === 'payment').reduce((s,t) => s + (+t.amount||0), 0);
+    const balance = Math.round((totalCharged - totalPaid) * 100) / 100;
+    const rows = txns.map(t => {
+      const isCharge = t.type === 'charge';
+      const dateFmt = t.txn_date ? new Date(t.txn_date + 'T12:00:00').toLocaleDateString('he-IL') : '—';
+      const statusTag = t.status === 'pending' ? ' <span style="color:#FFD700;font-size:0.65rem;font-weight:900;">⏳ ממתין</span>'
+        : t.status === 'rejected' ? ' <span style="color:#666;font-size:0.65rem;font-weight:900;">✗ נדחה</span>' : '';
+      const actionCell = t.status === 'pending'
+        ? `<button onclick="approveDebtClaim(${t.id})" title="אשר" style="background:none;border:none;color:#4ade80;cursor:pointer;font-size:0.85rem;margin-left:6px;">✓</button><button onclick="rejectDebtClaim(${t.id})" title="דחה" style="background:none;border:none;color:#f87171;cursor:pointer;font-size:0.85rem;">✗</button>`
+        : `<button onclick="deleteDebtTxn(${t.id})" title="מחק תנועה" style="background:none;border:none;color:#555;cursor:pointer;font-size:0.85rem;">✕</button>`;
+      return `<tr style="${t.status === 'rejected' ? 'opacity:0.45;' : ''}">
+        <td style="padding:7px 6px;font-size:0.78rem;color:var(--muted);white-space:nowrap;">${dateFmt}</td>
+        <td style="padding:7px 6px;font-size:0.78rem;font-weight:700;color:${isCharge ? '#f87171' : '#4ade80'};white-space:nowrap;">${isCharge ? 'חיוב' : 'תשלום'}${statusTag}</td>
+        <td style="padding:7px 6px;font-size:0.78rem;color:var(--white);">${esc(t.category || '')}${t.description ? ' · ' + esc(t.description) : ''}${t.note ? `<div style="color:#666;font-size:0.7rem;">${esc(t.note)}</div>` : ''}</td>
+        <td style="padding:7px 6px;font-size:0.82rem;font-weight:900;color:${isCharge ? '#f87171' : '#4ade80'};white-space:nowrap;">${isCharge ? '+' : '-'}${(+t.amount||0).toLocaleString()} ₪</td>
+        <td style="padding:7px 6px;text-align:left;white-space:nowrap;">${actionCell}</td>
+      </tr>`;
+    }).join('');
+    return `
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px;">
+        <div style="text-align:center;padding:10px 4px;background:rgba(248,113,113,0.07);border:1px solid rgba(248,113,113,0.2);border-radius:8px;">
+          <div style="font-size:1rem;font-weight:900;color:#f87171;">${totalCharged.toLocaleString()} ₪</div>
+          <div style="font-size:0.62rem;color:var(--muted);margin-top:2px;">סה"כ חיובים</div>
+        </div>
+        <div style="text-align:center;padding:10px 4px;background:rgba(74,222,128,0.07);border:1px solid rgba(74,222,128,0.2);border-radius:8px;">
+          <div style="font-size:1rem;font-weight:900;color:#4ade80;">${totalPaid.toLocaleString()} ₪</div>
+          <div style="font-size:0.62rem;color:var(--muted);margin-top:2px;">סה"כ שולם</div>
+        </div>
+        <div style="text-align:center;padding:10px 4px;background:${debtStatusColor(balance)}12;border:1px solid ${debtStatusColor(balance)}40;border-radius:8px;">
+          <div style="font-size:1rem;font-weight:900;color:${debtStatusColor(balance)};">${balance.toLocaleString()} ₪</div>
+          <div style="font-size:0.62rem;color:var(--muted);margin-top:2px;">יתרה</div>
+        </div>
+      </div>
+      <table style="width:100%;border-collapse:collapse;">
+        <thead><tr style="border-bottom:1px solid rgba(255,255,255,0.1);">
+          <th style="padding:6px;text-align:right;font-size:0.68rem;color:#666;">תאריך</th>
+          <th style="padding:6px;text-align:right;font-size:0.68rem;color:#666;">סוג</th>
+          <th style="padding:6px;text-align:right;font-size:0.68rem;color:#666;">תיאור</th>
+          <th style="padding:6px;text-align:right;font-size:0.68rem;color:#666;">סכום</th>
+          <th></th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+  }
+
+  function openDebtBreakdown() {
+    document.getElementById('debt-breakdown-body').innerHTML = renderDebtBreakdownBody(clientDebtTxns);
+    document.getElementById('debt-breakdown-modal').style.display = 'flex';
+  }
+  function closeDebtBreakdown() {
+    document.getElementById('debt-breakdown-modal').style.display = 'none';
+  }
+
+  function openDebtChargeModal() {
+    document.getElementById('debt-charge-amount').value = '';
+    document.getElementById('debt-charge-desc').value = '';
+    document.getElementById('debt-charge-note').value = '';
+    document.getElementById('debt-charge-date').value = new Date().toISOString().split('T')[0];
+    document.getElementById('debt-charge-modal').style.display = 'flex';
+  }
+  function closeDebtChargeModal() {
+    document.getElementById('debt-charge-modal').style.display = 'none';
+  }
+  async function saveDebtCharge() {
+    const amount = parseFloat(document.getElementById('debt-charge-amount').value);
+    if (!amount || amount <= 0) { toast('הכנס סכום תקין', 'err'); return; }
+    const category = document.getElementById('debt-charge-category').value;
+    const description = document.getElementById('debt-charge-desc').value.trim();
+    const date = document.getElementById('debt-charge-date').value || new Date().toISOString().split('T')[0];
+    const note = document.getElementById('debt-charge-note').value.trim();
+    const { error } = await sb.from('client_debt_transactions').insert({
+      client_email: activeEmail, coach_email: coachEmail, type: 'charge', status: 'approved',
+      category, amount, description, note, txn_date: date, created_by: coachName || coachEmail
+    });
+    if (error) { toast('שגיאה: ' + error.message, 'err'); return; }
+    closeDebtChargeModal();
+    toast('✓ חיוב נוסף');
+    await refreshDebtUI();
+  }
+
+  function openDebtPaymentModal() {
+    document.getElementById('debt-payment-amount').value = '';
+    document.getElementById('debt-payment-note').value = '';
+    document.getElementById('debt-payment-date').value = new Date().toISOString().split('T')[0];
+    document.getElementById('debt-payment-modal').style.display = 'flex';
+  }
+  function closeDebtPaymentModal() {
+    document.getElementById('debt-payment-modal').style.display = 'none';
+  }
+  async function saveDebtPayment() {
+    const amount = parseFloat(document.getElementById('debt-payment-amount').value);
+    if (!amount || amount <= 0) { toast('הכנס סכום תקין', 'err'); return; }
+    const method = document.getElementById('debt-payment-method').value;
+    const date = document.getElementById('debt-payment-date').value || new Date().toISOString().split('T')[0];
+    const note = document.getElementById('debt-payment-note').value.trim();
+    const { error } = await sb.from('client_debt_transactions').insert({
+      client_email: activeEmail, coach_email: coachEmail, type: 'payment', status: 'approved',
+      category: method, amount, note, txn_date: date, created_by: coachName || coachEmail
+    });
+    if (error) { toast('שגיאה: ' + error.message, 'err'); return; }
+    closeDebtPaymentModal();
+    toast('✓ תשלום נוסף');
+    await refreshDebtUI();
+  }
+
+  async function deleteDebtTxn(id) {
+    if (!confirm('למחוק תנועה זו?')) return;
+    const { error } = await sb.from('client_debt_transactions').delete().eq('id', id);
+    if (error) { toast('שגיאה: ' + error.message, 'err'); return; }
+    toast('✓ נמחק');
+    await refreshDebtUI();
+    openDebtBreakdown();
+  }
+
+  async function approveDebtClaim(id) {
+    const { error } = await sb.from('client_debt_transactions').update({ status: 'approved' }).eq('id', id);
+    if (error) { toast('שגיאה: ' + error.message, 'err'); return; }
+    toast('✓ התשלום אושר וירד מהחוב');
+    await refreshDebtUI();
+    const modal = document.getElementById('debt-breakdown-modal');
+    if (modal && modal.style.display === 'flex') openDebtBreakdown();
+  }
+
+  async function rejectDebtClaim(id) {
+    if (!confirm('לדחות את התשלום הזה? הוא לא ינוכה מהחוב.')) return;
+    const { error } = await sb.from('client_debt_transactions').update({ status: 'rejected' }).eq('id', id);
+    if (error) { toast('שגיאה: ' + error.message, 'err'); return; }
+    toast('התשלום נדחה');
+    await refreshDebtUI();
+    const modal = document.getElementById('debt-breakdown-modal');
+    if (modal && modal.style.display === 'flex') openDebtBreakdown();
+  }
+
+  async function resetDebtBalance() {
+    const { balance } = getDebtInfo(clientDebtTxns);
+    if (balance <= 0) return;
+    if (!confirm(`לאפס את יתרת החוב (${balance.toLocaleString()} ₪)? הפעולה תתועד כתשלום מלא בהיסטוריה.`)) return;
+    const { error } = await sb.from('client_debt_transactions').insert({
+      client_email: activeEmail, coach_email: coachEmail, type: 'payment', status: 'approved',
+      category: 'איפוס יתרה', amount: balance, note: 'איפוס חוב ע"י המאמן', txn_date: new Date().toISOString().split('T')[0],
+      created_by: coachName || coachEmail
+    });
+    if (error) { toast('שגיאה: ' + error.message, 'err'); return; }
+    toast('✓ החוב אופס');
+    await refreshDebtUI();
+  }
+
+  async function refreshDebtUI() {
+    const { data: debtTxns } = await sb.from('client_debt_transactions').select('*').eq('client_email', activeEmail).eq('coach_email', coachEmail).order('txn_date', { ascending: false }).order('created_at', { ascending: false });
+    clientDebtTxns = debtTxns || [];
+    const { balance } = getDebtInfo(clientDebtTxns);
+    clientDebtMap[activeEmail] = balance;
+    const wrap = document.getElementById('debt-card-wrap');
+    if (wrap) wrap.outerHTML = renderDebtCard();
+    renderSidebar();
   }
   // ─────────────────────────────────────────────────────────────────
 
@@ -2896,6 +3251,30 @@ Bro Split: 6-8 תרגילים לשריר, דגש על מבודדים, ניתן 2
     toast(`תוכנית הודבקה ✓ (${copies.length} ימים)`, 'ok');
   }
 
+  // מציג/מסתיר כפתורי "הדבק" לפי מה שיש בזיכרון — מאפשר להעתיק תוכנית/יום/ארוחה ממתאמן אחד ולהדביק אצל מתאמן אחר
+  function syncClipboardButtons() {
+    const dayBtn = document.getElementById('btn-paste-day');
+    if (dayBtn) {
+      if (dayClipboard) { dayBtn.style.display = 'block'; dayBtn.textContent = `📋 הדבק — ${esc(dayClipboard.name || dayClipboard.day || 'יום')}`; }
+      else dayBtn.style.display = 'none';
+    }
+    const planBtn = document.getElementById('btn-paste-plan');
+    if (planBtn) {
+      if (trainingPlanClipboard) { planBtn.style.display = 'inline-block'; planBtn.textContent = `📋 הדבק תוכנית (${trainingPlanClipboard.length} ימים)`; }
+      else planBtn.style.display = 'none';
+    }
+    const mealBtn = document.getElementById('btn-paste-meal');
+    if (mealBtn) {
+      if (mealClipboard) { mealBtn.style.display = 'inline-block'; mealBtn.textContent = `📋 הדבק ארוחה — ${esc(mealClipboard.meal || 'ארוחה')}`; }
+      else mealBtn.style.display = 'none';
+    }
+    const nutriDayBtn = document.getElementById('btn-paste-nutri-day');
+    if (nutriDayBtn) {
+      if (nutritionDayClipboard) { nutriDayBtn.style.display = 'inline-block'; nutriDayBtn.textContent = `📋 הדבק יום (${nutritionDayClipboard.length} ארוחות)`; }
+      else nutriDayBtn.style.display = 'none';
+    }
+  }
+
   /* ── העתקות תפריט תזונה ── */
   let nutritionDayClipboard = null;
   function copyMeal(mi) {
@@ -3276,7 +3655,29 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
     const wrap = document.getElementById('preview-video-wrap');
     wrap.innerHTML = m.video ? `<video src="${m.video}" autoplay loop muted playsinline controls style="width:100%;border-radius:10px;max-height:60vh;"></video>` : `<div style="padding:40px;text-align:center;color:#666;">אין סרטון זמין</div>`;
     document.getElementById('preview-replace-btn').onclick = () => { closePreviewModal(); openDemoPicker(di, ei); };
+    const dlBtn = document.getElementById('preview-download-btn');
+    dlBtn.style.display = m.video ? 'block' : 'none';
+    dlBtn.onclick = () => downloadDemoVideo(m.video, ex.name);
     document.getElementById('preview-modal').style.display = 'flex';
+  }
+  async function downloadDemoVideo(url, name) {
+    if (!url) { toast('אין סרטון להורדה', 'err'); return; }
+    toast('מוריד סרטון...', 'ok');
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error('fetch failed');
+      const blob = await res.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = (name || 'תרגיל').replace(/[\\/:*?"<>|]/g, '') + '.mp4';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 5000);
+    } catch (e) {
+      window.open(url, '_blank');
+    }
   }
   function closePreviewModal() {
     document.getElementById('preview-modal').style.display = 'none';
@@ -5658,8 +6059,9 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
     </div>
     <div id="preview-video-wrap" style="padding:14px;"></div>
     <div id="preview-sub" style="padding:0 18px 4px;font-size:0.75rem;color:#999;"></div>
-    <div style="padding:14px 18px;">
-      <button id="preview-replace-btn" style="width:100%;padding:9px;background:rgba(255,107,0,0.15);border:1px solid rgba(255,107,0,0.5);border-radius:8px;color:var(--orange);font-family:'Heebo',sans-serif;font-weight:700;font-size:0.85rem;cursor:pointer;">🔄 החלף הדגמה</button>
+    <div style="padding:14px 18px;display:flex;gap:8px;">
+      <button id="preview-download-btn" style="flex:1;padding:9px;background:rgba(74,222,128,0.12);border:1px solid rgba(74,222,128,0.4);border-radius:8px;color:#4ade80;font-family:'Heebo',sans-serif;font-weight:700;font-size:0.85rem;cursor:pointer;">⬇ הורד סרטון</button>
+      <button id="preview-replace-btn" style="flex:1;padding:9px;background:rgba(255,107,0,0.15);border:1px solid rgba(255,107,0,0.5);border-radius:8px;color:var(--orange);font-family:'Heebo',sans-serif;font-weight:700;font-size:0.85rem;cursor:pointer;">🔄 החלף הדגמה</button>
     </div>
   </div>
 </div>
