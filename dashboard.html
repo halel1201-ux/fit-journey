@@ -2453,9 +2453,9 @@ ${foodList || 'אין פריטים'}
             ${altPanelHtml}
           </div>`;
         }).join('');
-        return `<div style="background:rgba(255,255,255,0.03);border:1px solid ${isLogged?'rgba(74,222,128,0.3)':'rgba(255,255,255,0.07)'};border-radius:12px;padding:14px 16px;margin-bottom:12px;transition:border-color 0.3s;">
+        return `<div style="background:${isLogged?'rgba(74,222,128,0.08)':'rgba(255,255,255,0.03)'};border:1px solid ${isLogged?'rgba(74,222,128,0.45)':'rgba(255,255,255,0.07)'};border-radius:12px;padding:14px 16px;margin-bottom:12px;transition:background 0.3s,border-color 0.3s;">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-            <div style="font-weight:900;font-size:0.95rem;color:var(--gold);">${esc(meal.meal)}</div>
+            <div style="font-weight:900;font-size:0.95rem;color:${isLogged?'#4ade80':'var(--gold)'};">${esc(meal.meal)}${isLogged?' ✓':''}</div>
             <button onclick="${isLogged?`unlogMeal(${mi})`:`logMeal(${mi})`}"
               style="padding:5px 14px;background:${isLogged?'rgba(74,222,128,0.1)':'rgba(255,255,255,0.05)'};border:1px solid ${isLogged?'rgba(74,222,128,0.5)':'rgba(255,255,255,0.15)'};border-radius:20px;color:${isLogged?'#4ade80':'var(--muted)'};font-size:0.78rem;font-weight:700;cursor:pointer;font-family:'Heebo',sans-serif;transition:all 0.2s;">
               ${isLogged?'✓ נרשם':'✓ אכלתי'}
@@ -2644,6 +2644,7 @@ ${foodList || 'אין פריטים'}
     if (error) { console.error(error); return; }
     foodLogs = [...(foodLogs||[]), ...(data||[])];
     renderNutriBody();
+    showDashToast(`${meal.meal} נאכלה`);
   }
 
   async function unlogMeal(mi) {
