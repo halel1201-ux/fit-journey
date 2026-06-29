@@ -652,6 +652,16 @@
     transition: opacity 0.2s;
   }
   .vol-btn-close:hover { opacity: 0.88; }
+  .vol-share-btn {
+    width: 100%; padding: 12px; margin-bottom: 10px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.15);
+    color: #fff; font-family: 'Heebo', sans-serif;
+    font-size: 0.92rem; font-weight: 700;
+    border-radius: 10px; cursor: pointer;
+    transition: opacity 0.2s, background 0.2s;
+  }
+  .vol-share-btn:hover { background: rgba(255,255,255,0.1); }
 
   /* ── CYCLE CARD ── */
   .cycle-card { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:18px 20px; margin-bottom:4px; }
@@ -2153,7 +2163,7 @@
 
     // Show volume popup
     const totalSets = exercises.reduce((a, ex) => a + (ex.sets?.length || 0), 0);
-    showVolumeModal(totalVolume, prevVol || 0, totalSets, exercises.length, Math.floor(elapsed / 60));
+    showVolumeModal(totalVolume, prevVol || 0, totalSets, exercises.length, Math.floor(elapsed / 60), workoutSession.dayName);
 
     if (prs.length) {
       setTimeout(() => showDashToast('🏆 שיא אישי! ' + prs.map(p => p.exercise).join(' · ')), 4500);
@@ -3390,8 +3400,11 @@ ${foodList || 'אין פריטים'}
     requestAnimationFrame(step);
   }
 
-  function showVolumeModal(currentVol, prevVol, totalSets, exCount, durationMin) {
+  let lastVolumeShareData = null;
+
+  function showVolumeModal(currentVol, prevVol, totalSets, exCount, durationMin, dayName) {
     const m = getVolMilestone(currentVol);
+    lastVolumeShareData = { vol: currentVol, totalSets, exCount, durationMin, dayName: dayName || '', emoji: m.emoji };
 
     document.getElementById('vol-emoji').textContent = m.emoji;
     document.getElementById('vol-compare-text').textContent = m.text;
@@ -3418,6 +3431,103 @@ ${foodList || 'אין פריטים'}
 
   function closeVolumeModal() {
     document.getElementById('volume-modal').style.display = 'none';
+  }
+
+  async function shareWorkoutSummary() {
+    if (!lastVolumeShareData) return;
+    const btn = document.getElementById('vol-share-btn');
+    const prevTxt = btn.textContent;
+    btn.disabled = true; btn.textContent = 'מכין תמונה...';
+    try {
+      const blob = await renderWorkoutShareImage(lastVolumeShareData);
+      const file = new File([blob], 'workout-summary.png', { type: 'image/png' });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          files: [file],
+          title: 'נפח אימון',
+          text: `סיימתי אימון ${lastVolumeShareData.dayName || ''} 💪`
+        });
+      } else {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = 'workout-summary.png';
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 5000);
+        showDashToast('התמונה נשמרה — אפשר לשתף אותה באינסטגרם');
+      }
+    } catch (e) {
+      if (e?.name !== 'AbortError') showDashToast('שגיאה ביצירת התמונה לשיתוף');
+    }
+    btn.disabled = false; btn.textContent = prevTxt;
+  }
+
+  function renderWorkoutShareImage(d) {
+    return new Promise(async (resolve) => {
+      if (document.fonts && document.fonts.ready) { try { await document.fonts.ready; } catch (e) {} }
+      const W = 1080, H = 1920;
+      const canvas = document.createElement('canvas');
+      canvas.width = W; canvas.height = H;
+      const ctx = canvas.getContext('2d');
+
+      const bg = ctx.createLinearGradient(0, 0, 0, H);
+      bg.addColorStop(0, '#1a1a1a'); bg.addColorStop(1, '#0a0a0a');
+      ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+
+      const glow = ctx.createRadialGradient(W/2, H*0.42, 60, W/2, H*0.42, 700);
+      glow.addColorStop(0, 'rgba(255,107,0,0.35)');
+      glow.addColorStop(1, 'rgba(255,107,0,0)');
+      ctx.fillStyle = glow; ctx.fillRect(0, 0, W, H);
+
+      ctx.direction = 'rtl';
+      ctx.textAlign = 'center';
+
+      ctx.font = '120px Heebo, sans-serif';
+      ctx.fillText(d.emoji || '💪', W/2, H*0.27);
+
+      ctx.font = '700 34px Heebo, sans-serif';
+      ctx.fillStyle = '#888';
+      ctx.fillText('נפח אימון כולל', W/2, H*0.37);
+
+      const numGrad = ctx.createLinearGradient(W*0.2, 0, W*0.8, 0);
+      numGrad.addColorStop(0, '#FF6B00'); numGrad.addColorStop(1, '#FFD700');
+      ctx.font = '900 130px Heebo, sans-serif';
+      ctx.fillStyle = numGrad;
+      ctx.fillText(`${Math.round(d.vol).toLocaleString('he-IL')} ק"ג`, W/2, H*0.47);
+
+      if (d.dayName) {
+        ctx.font = '700 44px Heebo, sans-serif';
+        ctx.fillStyle = '#fff';
+        ctx.fillText(d.dayName, W/2, H*0.54);
+      }
+
+      const stats = [
+        { num: d.totalSets, lbl: 'סטים' },
+        { num: d.exCount, lbl: 'תרגילים' },
+        { num: d.durationMin, lbl: 'דקות' }
+      ];
+      const statY = H*0.63, gap = 220, startX = W/2 - gap;
+      stats.forEach((s, i) => {
+        const x = startX + i*gap;
+        ctx.font = '900 56px Heebo, sans-serif';
+        ctx.fillStyle = '#FF6B00';
+        ctx.fillText(String(s.num), x, statY);
+        ctx.font = '400 28px Heebo, sans-serif';
+        ctx.fillStyle = '#888';
+        ctx.fillText(s.lbl, x, statY + 44);
+      });
+
+      ctx.font = '400 26px Heebo, sans-serif';
+      ctx.fillStyle = '#555';
+      ctx.fillText(new Date().toLocaleDateString('he-IL'), W/2, H*0.71);
+
+      ctx.font = '700 30px Heebo, sans-serif';
+      ctx.fillStyle = 'rgba(255,255,255,0.55)';
+      ctx.direction = 'ltr';
+      ctx.textAlign = 'right';
+      ctx.fillText('by fitjourney', W - 36, H - 36);
+
+      canvas.toBlob(resolve, 'image/png');
+    });
   }
 
   /* ══════════════════════════════════════════════════════
@@ -4167,6 +4277,7 @@ ${foodList || 'אין פריטים'}
         <div class="vol-stat-lbl">דקות</div>
       </div>
     </div>
+    <button class="vol-share-btn" id="vol-share-btn" onclick="shareWorkoutSummary()">📤 שתף לאינסטגרם</button>
     <button class="vol-btn-close" onclick="closeVolumeModal()">🔥 המשך כך!</button>
   </div>
 </div>
