@@ -1292,6 +1292,23 @@
         expandedHtml = `
         ${pendingApproveHtml}
         ${statsHtml}
+        <div style="padding:8px 14px 12px;border-top:1px solid rgba(74,222,128,0.1);background:rgba(74,222,128,0.01);">
+          <div style="font-size:0.72rem;font-weight:700;color:#4ade80;letter-spacing:1px;margin-bottom:8px;">✏️ עריכת פרטי מאמן</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;">
+            <div style="display:flex;flex-direction:column;gap:3px;flex:1;min-width:120px;">
+              <label style="font-size:0.65rem;color:var(--muted);">שם</label>
+              <input type="text" id="ci-name-${c.id}" value="${esc(c.name)}" onclick="event.stopPropagation()"
+                style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:6px;color:#fff;font-family:'Heebo',sans-serif;font-size:0.8rem;padding:5px 9px;outline:none;width:100%;box-sizing:border-box;"/>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:3px;flex:1;min-width:160px;">
+              <label style="font-size:0.65rem;color:var(--muted);">מייל (כניסה)</label>
+              <input type="email" id="ci-email-${c.id}" value="${c.email}" onclick="event.stopPropagation()"
+                style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:6px;color:#fff;font-family:'Heebo',sans-serif;font-size:0.8rem;padding:5px 9px;outline:none;width:100%;box-sizing:border-box;direction:ltr;"/>
+            </div>
+            <button class="btn-sm btn-outline" style="font-size:0.72rem;padding:5px 12px;border-color:rgba(74,222,128,0.4);color:#4ade80;white-space:nowrap;"
+              onclick="event.stopPropagation();saveCoachInfo('${c.id}','${c.email}')">שמור שינויים</button>
+          </div>
+        </div>
         <div style="padding:8px 14px 10px;border-top:1px solid rgba(255,255,255,0.05);display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
           <div style="font-size:0.72rem;color:var(--muted);font-weight:700;">דרגה:</div>
           ${roleSelect}
@@ -1442,6 +1459,38 @@
     if (c) { c.license_start = startVal; c.license_end = endVal; }
     renderCoachesTable();
     toast('רישיון עודכן ✓', 'ok');
+  }
+
+  async function saveCoachInfo(id, oldEmail) {
+    const newName  = document.getElementById(`ci-name-${id}`)?.value.trim();
+    const newEmail = document.getElementById(`ci-email-${id}`)?.value.trim().toLowerCase();
+    if (!newName) { toast('שם לא יכול להיות ריק', 'err'); return; }
+    if (!newEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail)) { toast('מייל לא תקין', 'err'); return; }
+
+    const updates = { name: newName };
+    const emailChanged = newEmail !== oldEmail;
+
+    if (emailChanged) {
+      const ok = confirm(`שינוי מייל מ-\n${oldEmail}\nל-\n${newEmail}\n\nהשינוי ישפיע על הכניסה למערכת. להמשיך?`);
+      if (!ok) return;
+
+      const { data: listData, error: listErr } = await sbAdmin.auth.admin.listUsers({ perPage: 1000 });
+      if (listErr) { toast('שגיאה: ' + listErr.message, 'err'); return; }
+      const authUser = (listData?.users || []).find(u => u.email === oldEmail);
+      if (!authUser) { toast('משתמש לא נמצא ב-Auth — ייתכן שלא נרשם עדיין', 'err'); return; }
+
+      const { error: authErr } = await sbAdmin.auth.admin.updateUserById(authUser.id, { email: newEmail, email_confirm: true });
+      if (authErr) { toast('שגיאת Auth: ' + authErr.message, 'err'); return; }
+      updates.email = newEmail;
+    }
+
+    const { error } = await sbAdmin.from('coaches').update(updates).eq('id', id);
+    if (error) { toast('שגיאה: ' + error.message, 'err'); return; }
+
+    const c = coachesList.find(x => x.id === id);
+    if (c) { c.name = newName; if (emailChanged) c.email = newEmail; }
+    renderCoachesTable();
+    toast(`✓ פרטי המאמן עודכנו${emailChanged ? ' (כולל מייל)' : ''}`, 'ok');
   }
 
   /* ── TOKEN MANAGEMENT ── */

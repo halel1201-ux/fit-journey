@@ -720,6 +720,33 @@
   </div>
   <div class="brand-body">
 
+    <!-- SECTION 0: PERSONAL INFO -->
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+      <div style="width:8px;height:8px;border-radius:50%;background:#4ade80;"></div>
+      <div style="font-size:0.85rem;font-weight:900;">פרטים אישיים</div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+      <div>
+        <label style="font-size:0.72rem;color:var(--muted);display:block;margin-bottom:4px;">שם מלא / שם עסק</label>
+        <input type="text" id="cp-name" maxlength="60" placeholder="שם המאמן / העסק"
+          style="width:100%;padding:9px 12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:var(--white);font-family:'Heebo',sans-serif;font-size:0.88rem;outline:none;box-sizing:border-box;"/>
+      </div>
+      <div>
+        <label style="font-size:0.72rem;color:var(--muted);display:block;margin-bottom:4px;">מספר טלפון</label>
+        <input type="tel" id="cp-phone" maxlength="20" placeholder="050-0000000"
+          style="width:100%;padding:9px 12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:var(--white);font-family:'Heebo',sans-serif;font-size:0.88rem;outline:none;box-sizing:border-box;direction:ltr;"/>
+      </div>
+    </div>
+    <div style="margin-bottom:6px;">
+      <label style="font-size:0.72rem;color:var(--muted);display:block;margin-bottom:4px;">כתובת מייל (לכניסה למערכת)</label>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <input type="email" id="cp-email" maxlength="120" placeholder="email@example.com"
+          style="flex:1;padding:9px 12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:var(--white);font-family:'Heebo',sans-serif;font-size:0.88rem;outline:none;direction:ltr;"/>
+        <div style="font-size:0.68rem;color:#888;white-space:nowrap;">⚠ שינוי מייל<br>מצריך אישור</div>
+      </div>
+    </div>
+    <button class="btn-sm btn-orange" style="width:100%;padding:11px;font-size:0.88rem;margin-bottom:28px;" id="cp-save-btn" onclick="saveCoachPersonalInfo()">💾 שמור פרטים אישיים</button>
+
     <!-- LIVE PREVIEW -->
     <div style="font-size:0.78rem;font-weight:700;color:var(--muted);margin-bottom:10px;">תצוגה מקדימה</div>
     <div class="brand-preview-box" style="margin-bottom:24px;overflow:hidden;border-radius:14px;">
@@ -1151,6 +1178,7 @@
 
   let coachEmail = null;
   let coachName  = null;
+  let coachPhone = null;
   let coachRole  = 'regular';
   let clients     = [];
   let activeEmail = null;
@@ -1549,6 +1577,7 @@
     if (!coach) { window.location.href = 'login.html'; return; }
     coachEmail = session.user.email;
     coachName  = coach.name;
+    coachPhone = coach.phone || null;
     coachRole  = coach.role || 'regular';
     coachPlans = coach.plans || {};
     document.getElementById('coach-brand').textContent = `FJ — ${coachName}`;
@@ -1943,6 +1972,7 @@
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
           <button class="btn-sm btn-orange" onclick="saveProfile()">שמור פרטים</button>
+          <button class="btn-sm btn-outline" onclick="openReceiptModal()" style="border-color:rgba(74,222,128,0.4);color:#4ade80;">🧾 הנפק קבלה</button>
           ${coachRole === 'senior' ? `<button class="btn-sm btn-outline" onclick="setClientPassword()" style="border-color:rgba(255,215,0,0.35);color:#FFD700;" title="הגדר סיסמה = מספר הטלפון (ספרות בלבד)">🔑 הגדר סיסמה</button>` : ''}
         </div>
       </div>
@@ -2717,6 +2747,186 @@
   }
   async function logout() { await sb.auth.signOut(); window.location.href = 'login.html'; }
 
+  /* ══════════════════════════════════════════════════════
+     RECEIPTS — הנפקת קבלות
+  ══════════════════════════════════════════════════════ */
+  function openReceiptModal() {
+    if (!activeEmail) { toast('בחר לקוח קודם', 'err'); return; }
+    document.getElementById('rec-amount').value  = '';
+    document.getElementById('rec-date').value    = new Date().toISOString().split('T')[0];
+    document.getElementById('rec-desc').value    = '';
+    document.getElementById('rec-method').value  = '';
+    document.getElementById('rec-notes').value   = '';
+    document.getElementById('rec-status').textContent = '';
+    const modal = document.getElementById('receipt-modal');
+    modal.style.display = 'flex';
+  }
+
+  function closeReceiptModal() {
+    document.getElementById('receipt-modal').style.display = 'none';
+  }
+
+  async function generateReceipt() {
+    const amount  = parseFloat(document.getElementById('rec-amount').value);
+    const desc    = document.getElementById('rec-desc').value.trim();
+    const date    = document.getElementById('rec-date').value;
+    const method  = document.getElementById('rec-method').value;
+    const notes   = document.getElementById('rec-notes').value.trim();
+    const statusEl = document.getElementById('rec-status');
+    const btn      = document.getElementById('rec-gen-btn');
+
+    if (!amount || amount <= 0) { statusEl.style.color='#ff7070'; statusEl.textContent='יש להזין סכום תקין'; return; }
+    if (!desc) { statusEl.style.color='#ff7070'; statusEl.textContent='יש להזין תיאור שירות'; return; }
+    if (!date) { statusEl.style.color='#ff7070'; statusEl.textContent='יש לבחור תאריך'; return; }
+
+    btn.disabled = true; btn.textContent = '⏳ שומר...';
+    statusEl.style.color = 'var(--muted)'; statusEl.textContent = 'שומר קבלה...';
+
+    try {
+      const { data: existing } = await sbAdmin.from('receipts')
+        .select('id').eq('coach_email', coachEmail).order('id', { ascending: false }).limit(1);
+      const nextNum = (existing && existing.length ? existing[0].id : 0) + 1;
+      const year = new Date(date).getFullYear();
+      const receiptNumber = `R-${year}-${String(nextNum).padStart(4,'0')}`;
+
+      const client = clients.find(c => c.email === activeEmail);
+      const clientName = client?.name || activeEmail.split('@')[0];
+
+      const { data: brandData } = await sb.from('coaches').select('logo_url,tagline').eq('email', coachEmail).single();
+
+      const receiptRow = {
+        receipt_number: receiptNumber,
+        coach_email:    coachEmail,
+        client_email:   activeEmail,
+        client_name:    clientName,
+        amount,
+        description:    desc,
+        payment_method: method || null,
+        notes:          notes || null,
+        receipt_date:   date,
+        coach_name:     coachName || coachEmail,
+        coach_logo_url: brandData?.logo_url || null,
+        business_name:  coachName || coachEmail,
+      };
+
+      const { error } = await sbAdmin.from('receipts').insert(receiptRow);
+      if (error) throw new Error(error.message);
+
+      btn.disabled = false; btn.textContent = '🖨 הנפק והדפס';
+      statusEl.style.color = '#4ade80'; statusEl.textContent = `✓ קבלה ${receiptNumber} נשמרה`;
+
+      printReceipt({ ...receiptRow, receipt_number: receiptNumber });
+      setTimeout(() => closeReceiptModal(), 1800);
+    } catch(e) {
+      btn.disabled = false; btn.textContent = '🖨 הנפק והדפס';
+      statusEl.style.color = '#ff7070'; statusEl.textContent = 'שגיאה: ' + e.message;
+    }
+  }
+
+  function printReceipt(r) {
+    const fmt = (n) => Number(n).toLocaleString('he-IL', { minimumFractionDigits: 2 });
+    const logoHtml = r.coach_logo_url
+      ? `<img src="${r.coach_logo_url}" alt="logo" style="height:60px;max-width:180px;object-fit:contain;margin-bottom:8px;"/>`
+      : `<div style="font-size:2rem;font-weight:900;color:#1a1a1a;letter-spacing:2px;">${r.business_name || 'FJ'}</div>`;
+
+    const win = window.open('', '_blank', 'width=700,height=900');
+    win.document.write(`<!DOCTYPE html>
+<html dir="rtl" lang="he">
+<head>
+<meta charset="utf-8"/>
+<title>קבלה ${r.receipt_number}</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;700;900&display=swap');
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:'Heebo',sans-serif; background:#f8f8f6; color:#1a1a1a; padding:40px; direction:rtl; }
+  .page { background:#fff; max-width:620px; margin:0 auto; border-radius:12px; overflow:hidden; box-shadow:0 4px 24px rgba(0,0,0,0.08); }
+  .header { background:#1a1a1a; color:#fff; padding:28px 32px 24px; display:flex; justify-content:space-between; align-items:flex-start; }
+  .header-right { text-align:right; }
+  .header-left  { text-align:left; }
+  .receipt-title { font-size:1.6rem; font-weight:900; letter-spacing:1px; }
+  .receipt-num   { font-size:0.88rem; color:#aaa; margin-top:4px; direction:ltr; }
+  .sub-title     { font-size:0.75rem; color:#888; margin-top:2px; }
+  .divider { height:4px; background:linear-gradient(90deg,#4ade80,#22c55e); }
+  .body { padding:28px 32px; }
+  .section { margin-bottom:20px; }
+  .label { font-size:0.72rem; color:#888; font-weight:700; letter-spacing:1px; text-transform:uppercase; margin-bottom:4px; }
+  .value { font-size:0.95rem; font-weight:700; color:#1a1a1a; }
+  .amount-box { background:#f0fdf4; border:2px solid #4ade80; border-radius:10px; padding:16px 20px; text-align:center; margin:20px 0; }
+  .amount-big { font-size:2.4rem; font-weight:900; color:#15803d; direction:ltr; }
+  .amount-label { font-size:0.78rem; color:#666; margin-top:4px; }
+  .row { display:flex; gap:24px; flex-wrap:wrap; }
+  .row > div { flex:1; min-width:120px; }
+  .footer { background:#f8f8f6; padding:18px 32px; text-align:center; border-top:1px solid #eee; }
+  .footer p { font-size:0.72rem; color:#aaa; }
+  .notes-box { background:#fffbeb; border:1px solid #fde68a; border-radius:8px; padding:12px 16px; font-size:0.85rem; color:#92400e; }
+  @media print {
+    body { background:#fff; padding:0; }
+    .page { box-shadow:none; border-radius:0; max-width:100%; }
+    .no-print { display:none; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="header">
+    <div class="header-right">${logoHtml}<div class="sub-title">${r.coach_email}</div></div>
+    <div class="header-left">
+      <div class="receipt-title">קבלה</div>
+      <div class="receipt-num">${r.receipt_number}</div>
+    </div>
+  </div>
+  <div class="divider"></div>
+  <div class="body">
+    <div class="row section">
+      <div>
+        <div class="label">שם הלקוח</div>
+        <div class="value">${r.client_name || ''}</div>
+        <div style="font-size:0.78rem;color:#888;margin-top:2px;direction:ltr;">${r.client_email}</div>
+      </div>
+      <div>
+        <div class="label">תאריך הנפקה</div>
+        <div class="value">${new Date(r.receipt_date).toLocaleDateString('he-IL')}</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="label">תיאור השירות</div>
+      <div class="value" style="font-size:1rem;">${r.description || ''}</div>
+    </div>
+
+    <div class="amount-box">
+      <div class="amount-big">${fmt(r.amount)} ₪</div>
+      <div class="amount-label">סה"כ לתשלום${r.payment_method ? ' — ' + r.payment_method : ''}</div>
+    </div>
+
+    ${r.notes ? `<div class="notes-box" style="margin-bottom:20px;">📝 ${r.notes}</div>` : ''}
+
+    <div class="row">
+      <div>
+        <div class="label">שם המאמן / העסק</div>
+        <div class="value">${r.coach_name || ''}</div>
+      </div>
+      <div>
+        <div class="label">מספר קבלה</div>
+        <div class="value" style="direction:ltr;">${r.receipt_number}</div>
+      </div>
+    </div>
+  </div>
+  <div class="footer">
+    <p>מסמך זה הופק על ידי מערכת FitJourney · ${new Date().toLocaleDateString('he-IL')}</p>
+    <br/>
+    <button class="no-print" onclick="window.print()"
+      style="padding:10px 28px;background:#15803d;color:#fff;border:none;border-radius:8px;font-family:'Heebo',sans-serif;font-size:0.9rem;font-weight:700;cursor:pointer;margin-top:8px;">
+      🖨 הדפס / שמור PDF
+    </button>
+  </div>
+</div>
+</body>
+</html>`);
+    win.document.close();
+    win.focus();
+  }
+
   function showPendingApproval(name) {
     document.body.innerHTML = `
       <style>
@@ -3015,6 +3225,7 @@
       const templateSection = useDefault
         ? `\n\n## תבנית ברירת מחדל — חובה לפעול לפיה:\n${defaultTmpl}`
         : '';
+      const hasFile = _pendingPlanFiles.length > 0;
       const res = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: {
@@ -3032,6 +3243,21 @@
 
 ## בקשת המאמן:
 "${prompt}"${templateSection}
+${hasFile ? `
+## 📄 מצב: חילוץ מקובץ מצורף — חוקים קריטיים
+**הקובץ המצורף הוא מקור האמת היחיד.**
+1. קרא את הקובץ מלה במלה — כל יום, כל תרגיל, כל סט/חזרות, כל הערות
+2. שמור על סדר הימים בדיוק כפי שמופיע — אל תשנה ואל תעביר ימים
+3. שמור על סדר התרגילים בכל יום בדיוק — אל תשנה את הסדר
+4. שמור על מספר הסטים והחזרות בדיוק — לא לעגל, לא לשנות
+5. שמור על כל הערה, טכניקה, הנחיה שמופיעה ליד תרגיל
+6. אל תוסיף תרגילים שלא מופיעים בקובץ
+7. אל תמחוק תרגילים שמופיעים בקובץ
+8. אל תבצע "השלמות חכמות" ללא הנחיה מפורשת מהמאמן
+9. המטרה: העתק נאמן מדויק של הקובץ, ממיר לפורמט JSON בלבד
+
+לגבי שמות תרגילים: התאם לשמות המאגר המורשה (בסעיף הבא). אם לא קיים התאמה מדויקת — בחר את השם הקרוב ביותר מהמאגר. אין להמציא שמות.
+` : ''}
 
 ## ═══ חוקי ברזל — חובה לעמוד בכולם ═══
 
@@ -3110,6 +3336,12 @@ UPPER: 2 חזה + 2 גב (משיכה+חתירה) + 2 כתפיים (לחיצה+צ
 Bro Split: 6-8 תרגילים לשריר, דגש על מבודדים, ניתן 2 טכניקות
 
 ## ═══ פורמט תשובה ═══
+⚠️ חוק קריטי לפני החזרת JSON:
+- עבור על כל תרגיל שבחרת
+- ודא שהשם מופיע ברשימת המאגר המורשה בדיוק כפי שכתוב
+- אם שם לא מופיע ברשימה — החלף בשם הקרוב ביותר שכן קיים
+- אסור להחזיר שם שלא קיים ברשימה
+
 החזר אך ורק JSON תקני ללא markdown ללא הסבר:
 [{"day":"יום א׳ — PUSH","muscles":["חזה","כתפיים","יד אחורית"],"exercises":[{"name":"לחיצת חזה במוט","sets_reps":"5×20/15/12/10/8","notes":""},{"name":"פרפר חזה במכונה","sets_reps":"4×12-20","notes":""}]}]`, _pendingPlanFiles) }]
         })
@@ -3121,32 +3353,50 @@ Bro Split: 6-8 תרגילים לשריר, דגש על מבודדים, ניתן 2
       if (!match) throw new Error('תשובה לא תקינה מה-AI');
       const plan = JSON.parse(match[0]);
       if (!Array.isArray(plan) || !plan.length) throw new Error('תוכנית ריקה');
-      let unmatchedCount = 0;
+      let unmatchedNames = [];
       trainingPlan = plan.map(day => ({
         ...day,
         name: day.name || day.day || '',
         exercises: (day.exercises || []).map(ex => {
-          const libMatch = findLibraryMatch(ex.name || '');
-          if (!libMatch) unmatchedCount++;
+          const rawName = ex.name || '';
+          let libMatch = findLibraryMatch(rawName);
+          // Aggressive fallback: lower threshold to 0.1 for near-misses
+          if (!libMatch && rawName && exerciseLibrary.length) {
+            const key = rawName.trim().toLowerCase();
+            const keyWords = key.split(/[\s\-\/,()]+/).filter(w => w.length > 1);
+            let best = null, bestScore = 0;
+            for (const e of exerciseLibrary) {
+              const exWords = e.name.trim().toLowerCase().split(/[\s\-\/,()]+/).filter(w => w.length > 1);
+              const overlap = keyWords.filter(w => exWords.some(ew => ew.startsWith(w) || w.startsWith(ew))).length;
+              if (overlap > 0) {
+                const score = overlap / Math.max(keyWords.length, exWords.length);
+                if (score > bestScore) { bestScore = score; best = e; }
+              }
+            }
+            if (bestScore >= 0.1) libMatch = best;
+          }
+          if (!libMatch) unmatchedNames.push(rawName);
+          const resolvedName = libMatch ? libMatch.name : rawName;
           return {
-            name:        ex.name        || '',
+            name:        resolvedName,
             sets:        parseSetsToArray(ex.sets || ex.sets_reps),
-            description: ex.description || ex.notes     || '',
-            video_url:   ex.video_url   || (libMatch ? libMatch.video : ''),
+            description: ex.description || ex.notes || '',
+            video_url:   ex.video_url || (libMatch ? libMatch.video : ''),
             demo_ex_id:  libMatch ? libMatch.id : null,
-            rest_time:   ex.rest_time   || 90,
+            rest_time:   ex.rest_time || 90,
           };
         })
       }));
       renderTrainingEditor();
-      if (unmatchedCount > 0) {
+      if (unmatchedNames.length > 0) {
+        const preview = unmatchedNames.slice(0, 3).join(', ') + (unmatchedNames.length > 3 ? ` ועוד ${unmatchedNames.length - 3}` : '');
         statusEl.style.color = '#ffb020';
-        statusEl.textContent = `⚠ ${plan.length} ימים נבנו — ${unmatchedCount} תרגילים בלי הדגמה תואמת, בדוק ידנית (כפתור 🎬)`;
+        statusEl.textContent = `⚠ ${plan.length} ימים נבנו — ${unmatchedNames.length} תרגיל/ים לא זוהו במאגר (${preview}). בדוק ידנית 🎬`;
         btn.disabled = false; btn.textContent = '✨ צור תוכנית';
         return;
       }
       statusEl.style.color = '#70dd70';
-      statusEl.textContent = `✓ ${plan.length} ימי אימון נבנו — בדוק ושמור`;
+      statusEl.textContent = `✓ ${plan.length} ימי אימון נבנו — כל התרגילים זוהו ✓`;
     } catch (e) {
       statusEl.style.color = '#ff7070';
       statusEl.textContent = 'שגיאה: ' + e.message;
@@ -4520,12 +4770,16 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
   }
 
   async function loadBranding() {
-    const { data } = await sb.from('coaches').select('logo_url,cover_url,brand_color,tagline').eq('email', coachEmail).single();
+    const { data } = await sb.from('coaches').select('logo_url,cover_url,brand_color,tagline,phone').eq('email', coachEmail).single();
     if (!data) return;
     _brandLogoUrl  = data.logo_url  || null;
     _brandCoverUrl = data.cover_url || null;
     _brandColor    = data.brand_color || '#FF6B00';
+    coachPhone     = data.phone || null;
 
+    document.getElementById('cp-name').value  = coachName  || '';
+    document.getElementById('cp-phone').value = coachPhone || '';
+    document.getElementById('cp-email').value = coachEmail || '';
     document.getElementById('brand-color-pick').value = _brandColor;
     document.getElementById('brand-color-hex').textContent = _brandColor;
     document.getElementById('brand-tagline').value = data.tagline || '';
@@ -4635,6 +4889,51 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
     if (error) throw error;
     const { data: pub } = sbAdmin.storage.from('coach-assets').getPublicUrl(path);
     return pub.publicUrl + '?t=' + Date.now();
+  }
+
+  async function saveCoachPersonalInfo() {
+    const newName  = document.getElementById('cp-name').value.trim();
+    const newPhone = document.getElementById('cp-phone').value.trim();
+    const newEmail = document.getElementById('cp-email').value.trim().toLowerCase();
+    const btn      = document.getElementById('cp-save-btn');
+
+    if (!newName) { toast('יש להזין שם', 'err'); return; }
+    if (newEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail)) { toast('כתובת מייל לא תקינה', 'err'); return; }
+
+    btn.disabled = true; btn.textContent = '⏳ שומר...';
+
+    try {
+      const updates = { name: newName, phone: newPhone || null };
+
+      if (newEmail && newEmail !== coachEmail) {
+        const ok = confirm(`שינוי מייל כניסה מ-\n${coachEmail}\nל-\n${newEmail}\n\nהשינוי ישפיע על כל הנתונים. האם להמשיך?`);
+        if (!ok) { btn.disabled = false; btn.textContent = '💾 שמור פרטים אישיים'; return; }
+
+        const { data: listData, error: listErr } = await sbAdmin.auth.admin.listUsers({ perPage: 1000 });
+        if (listErr) throw new Error('שגיאה בטעינת משתמשים: ' + listErr.message);
+        const authUser = (listData?.users || []).find(u => u.email === coachEmail);
+        if (!authUser) throw new Error('משתמש לא נמצא בAuth — פנה לאדמין');
+
+        const { error: authErr } = await sbAdmin.auth.admin.updateUserById(authUser.id, { email: newEmail, email_confirm: true });
+        if (authErr) throw new Error('שגיאת Auth: ' + authErr.message);
+
+        updates.email = newEmail;
+        coachEmail = newEmail;
+        document.getElementById('cp-email').value = newEmail;
+      }
+
+      const { error } = await sbAdmin.from('coaches').update(updates).eq('email', updates.email || coachEmail);
+      if (error) throw new Error(error.message);
+
+      coachName  = newName;
+      coachPhone = newPhone || null;
+      document.getElementById('coach-brand').textContent = `FJ — ${coachName}`;
+      btn.disabled = false; btn.textContent = '💾 שמור פרטים אישיים';
+      toast('✓ פרטים נשמרו', 'ok');
+    } catch(e) {
+      btn.disabled = false; btn.textContent = '💾 שמור פרטים אישיים';
+      toast('שגיאה: ' + (e.message || e), 'err');
+    }
   }
 
   async function saveBranding() {
@@ -6083,6 +6382,62 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
         style="width:100%;padding:7px 10px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:#fff;font-family:'Heebo',sans-serif;font-size:0.85rem;outline:none;"/>
     </div>
     <div id="demo-picker-list" style="overflow-y:auto;flex:1;"></div>
+  </div>
+</div>
+
+<!-- ═══ RECEIPT MODAL ═══ -->
+<div id="receipt-modal" onclick="if(event.target===this)closeReceiptModal()"
+  style="display:none;position:fixed;inset:0;z-index:9997;background:rgba(0,0,0,0.88);align-items:center;justify-content:center;padding:16px;">
+  <div style="background:linear-gradient(160deg,#1a1a1a,#111);border:1px solid rgba(74,222,128,0.35);border-radius:20px;padding:28px 26px 22px;max-width:420px;width:100%;position:relative;max-height:90vh;overflow-y:auto;">
+    <button onclick="closeReceiptModal()" style="position:absolute;top:14px;left:16px;background:none;border:none;color:#666;font-size:1.3rem;cursor:pointer;">✕</button>
+    <div style="font-size:1rem;font-weight:900;color:#4ade80;margin-bottom:20px;">🧾 הנפקת קבלה</div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+      <div>
+        <label style="font-size:0.72rem;color:var(--muted);display:block;margin-bottom:4px;">סכום (₪) *</label>
+        <input type="number" id="rec-amount" min="1" step="0.01" placeholder="0.00"
+          style="width:100%;padding:9px 12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:#fff;font-family:'Heebo',sans-serif;font-size:0.9rem;outline:none;box-sizing:border-box;direction:ltr;"/>
+      </div>
+      <div>
+        <label style="font-size:0.72rem;color:var(--muted);display:block;margin-bottom:4px;">תאריך</label>
+        <input type="date" id="rec-date"
+          style="width:100%;padding:9px 12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:#fff;font-family:'Heebo',sans-serif;font-size:0.85rem;outline:none;box-sizing:border-box;"/>
+      </div>
+    </div>
+
+    <div style="margin-bottom:12px;">
+      <label style="font-size:0.72rem;color:var(--muted);display:block;margin-bottom:4px;">תיאור השירות *</label>
+      <input type="text" id="rec-desc" maxlength="120" placeholder="לדוגמה: ליווי אישי חודש מאי 2025"
+        style="width:100%;padding:9px 12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:#fff;font-family:'Heebo',sans-serif;font-size:0.88rem;outline:none;box-sizing:border-box;"/>
+    </div>
+
+    <div style="margin-bottom:12px;">
+      <label style="font-size:0.72rem;color:var(--muted);display:block;margin-bottom:4px;">אמצעי תשלום</label>
+      <select id="rec-method"
+        style="width:100%;padding:9px 12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:#fff;font-family:'Heebo',sans-serif;font-size:0.88rem;outline:none;box-sizing:border-box;">
+        <option value="">— לא צוין —</option>
+        <option value="ביט">ביט</option>
+        <option value="מזומן">מזומן</option>
+        <option value="העברה בנקאית">העברה בנקאית</option>
+        <option value="אשראי">אשראי</option>
+        <option value="פייבוקס">פייבוקס</option>
+        <option value="צ׳ק">צ׳ק</option>
+      </select>
+    </div>
+
+    <div style="margin-bottom:20px;">
+      <label style="font-size:0.72rem;color:var(--muted);display:block;margin-bottom:4px;">הערות (אופציונלי)</label>
+      <textarea id="rec-notes" maxlength="200" rows="2" placeholder="הערות נוספות לקבלה..."
+        style="width:100%;padding:9px 12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:#fff;font-family:'Heebo',sans-serif;font-size:0.85rem;outline:none;resize:vertical;box-sizing:border-box;"></textarea>
+    </div>
+
+    <div style="display:flex;gap:10px;">
+      <button id="rec-gen-btn" onclick="generateReceipt()"
+        style="flex:1;padding:12px;background:linear-gradient(135deg,#4ade80,#22c55e);border:none;border-radius:10px;color:#052e16;font-family:'Heebo',sans-serif;font-weight:900;font-size:0.95rem;cursor:pointer;">🖨 הנפק והדפס</button>
+      <button onclick="closeReceiptModal()"
+        style="padding:12px 18px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:10px;color:#aaa;font-family:'Heebo',sans-serif;font-size:0.88rem;cursor:pointer;">ביטול</button>
+    </div>
+    <div id="rec-status" style="margin-top:10px;font-size:0.8rem;text-align:center;"></div>
   </div>
 </div>
 </body>
