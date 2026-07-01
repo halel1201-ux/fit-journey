@@ -1902,6 +1902,7 @@
     if (lobby) lobby.style.display = 'none';
     renderMain(client);
     loadClientReceipts(email);
+    if (client.goal === 'peak_week') loadPeakWeekPlan();
   }
 
   function renderMain(client) {
@@ -1947,7 +1948,30 @@
               <option value="female" ${client.gender === 'female' ? 'selected' : ''}>♀ אישה</option>
             </select>
           </div>
+          <div class="f-group">
+            <label>מצב נוכחי / מטרה</label>
+            <select id="e-goal" onchange="onGoalChange(this.value)">
+              <option value="" ${!client.goal?'selected':''}>— לא הוגדר —</option>
+              <option value="mass"      ${client.goal==='mass'     ?'selected':''}>💪 מסה</option>
+              <option value="cut"       ${client.goal==='cut'      ?'selected':''}>🔥 חיטוב</option>
+              <option value="recomp"    ${client.goal==='recomp'   ?'selected':''}>⚖️ ריקומפוזיציה</option>
+              <option value="peak_week" ${client.goal==='peak_week'?'selected':''}>🏆 פייק וויק</option>
+            </select>
+          </div>
           ${periodStatusHtml}
+        </div>
+        <div id="peak-week-dates" style="display:${client.goal==='peak_week'?'block':'none'};background:rgba(255,215,0,0.05);border:1px solid rgba(255,215,0,0.25);border-radius:10px;padding:12px 14px;margin-bottom:12px;">
+          <div style="font-size:0.78rem;font-weight:700;color:#FFD700;margin-bottom:10px;">🏆 תאריכי פייק וויק</div>
+          <div class="form-grid">
+            <div class="f-group">
+              <label>תחילת פייק וויק</label>
+              <input id="e-pw-start" type="date" value="${client.peak_week_start||''}"/>
+            </div>
+            <div class="f-group">
+              <label>תאריך במה / תחרות</label>
+              <input id="e-stage" type="date" value="${client.stage_date||''}"/>
+            </div>
+          </div>
         </div>
         <div style="margin-bottom:16px;">
           <div style="font-size:0.78rem;font-weight:700;color:var(--muted);margin-bottom:8px;">יעדי מאקרו יומיים</div>
@@ -1981,6 +2005,14 @@
       ${renderPackageCard()}
 
       ${renderDebtCard()}
+
+      <div class="sec-card" id="peak-week-card" style="display:${client.goal==='peak_week'?'block':'none'};border-color:rgba(255,215,0,0.35);">
+        <div class="sec-card-title" style="color:#FFD700;">🏆 פייק וויק — 7 ימים
+          <button class="btn-sm btn-orange" onclick="savePeakWeekPlan()" style="background:linear-gradient(135deg,#FFD700,#FF8C00);color:#1a1a1a;">💾 שמור תוכנית</button>
+        </div>
+        <div id="pw-day-tabs" style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;"></div>
+        <div id="pw-day-body"></div>
+      </div>
 
       <div class="sec-card" id="receipts-card">
         <div class="sec-card-title">🧾 קבלות
@@ -2695,7 +2727,10 @@
     const fat    = parseInt(document.getElementById('e-fat').value)    || null;
     const water  = parseFloat(document.getElementById('e-water').value)  || null;
     const weight = parseFloat(document.getElementById('e-weight').value) || null;
-    const gender = document.getElementById('e-gender')?.value || 'male';
+    const gender    = document.getElementById('e-gender')?.value || 'male';
+    const goal      = document.getElementById('e-goal')?.value || null;
+    const pwStart   = document.getElementById('e-pw-start')?.value || null;
+    const stageDate = document.getElementById('e-stage')?.value || null;
     if (newEmail !== activeEmail) {
       const { data: existing } = await sb.from('clients').select('email').eq('email', newEmail).maybeSingle();
       if (existing) { toast('כבר קיים לקוח עם המייל הזה', 'err'); return; }
@@ -2703,7 +2738,8 @@
     const { error } = await sb.from('clients')
       .update({ name, phone, email: newEmail, coaching_start: start, coaching_end: end,
                 target_calories: cal, target_protein: prot, target_carbs: carb, target_fat: fat,
-                target_water: water, current_weight: weight, gender })
+                target_water: water, current_weight: weight, gender,
+                goal: goal || null, peak_week_start: pwStart || null, stage_date: stageDate || null })
       .eq('email', activeEmail);
     if (error) { toast('שגיאה בשמירה', 'err'); return; }
     if (newEmail !== activeEmail) { activeEmail = newEmail; }
@@ -2798,6 +2834,129 @@
   function reprintReceipt(id) {
     const r = clientReceiptsList.find(x => x.id === id);
     if (r) printReceipt(r);
+  }
+
+  /* ══════════════════════════════════════════════════════
+     PEAK WEEK — בנאי 7 ימים
+  ══════════════════════════════════════════════════════ */
+  const GOAL_LABELS = { mass: '💪 מסה', cut: '🔥 חיטוב', recomp: '⚖️ ריקומפוזיציה', peak_week: '🏆 פייק וויק' };
+  let peakWeekPlan  = null;   // { days: [...7 items] }
+  let pwActiveDay   = 0;      // 0-6
+
+  function onGoalChange(val) {
+    const pwDates = document.getElementById('peak-week-dates');
+    const pwCard  = document.getElementById('peak-week-card');
+    if (pwDates) pwDates.style.display = val === 'peak_week' ? 'block' : 'none';
+    if (pwCard)  pwCard.style.display  = val === 'peak_week' ? 'block' : 'none';
+  }
+
+  function makePwDay(i, pwStart, stageDate) {
+    const dateStr = pwStart
+      ? new Date(new Date(pwStart).getTime() + i * 864e5).toLocaleDateString('he-IL', { weekday: 'short', day: '2-digit', month: '2-digit' })
+      : `יום ${i + 1}`;
+    const isStage = stageDate && pwStart
+      ? new Date(new Date(pwStart).getTime() + i * 864e5).toISOString().split('T')[0] === stageDate
+      : false;
+    return { day: i + 1, label: dateStr + (isStage ? ' 🏆' : ''), sodium_mg: '', protein_g: '', carbs_g: '', fat_g: '', water_l: '', menu: '' };
+  }
+
+  async function loadPeakWeekPlan() {
+    if (!activeEmail) return;
+    const { data } = await sbAdmin.from('peak_week_plans').select('*').eq('client_email', activeEmail).maybeSingle();
+    const pwStart   = document.getElementById('e-pw-start')?.value || null;
+    const stageDate = document.getElementById('e-stage')?.value    || null;
+    const existing  = data?.days?.length === 7 ? data.days : null;
+    peakWeekPlan = { days: Array.from({ length: 7 }, (_, i) => {
+      const base = makePwDay(i, pwStart, stageDate);
+      const saved = existing?.[i] || {};
+      return { ...base, sodium_mg: saved.sodium_mg ?? '', protein_g: saved.protein_g ?? '', carbs_g: saved.carbs_g ?? '', fat_g: saved.fat_g ?? '', water_l: saved.water_l ?? '', menu: saved.menu || '' };
+    })};
+    pwActiveDay = 0;
+    renderPwTabs();
+    renderPwDay();
+  }
+
+  function renderPwTabs() {
+    const el = document.getElementById('pw-day-tabs');
+    if (!el || !peakWeekPlan) return;
+    const pwStart   = document.getElementById('e-pw-start')?.value || null;
+    const stageDate = document.getElementById('e-stage')?.value    || null;
+    el.innerHTML = peakWeekPlan.days.map((d, i) => {
+      const isToday = pwStart ? new Date(new Date(pwStart).getTime() + i * 864e5).toISOString().split('T')[0] === new Date().toISOString().split('T')[0] : false;
+      const isStage = stageDate && pwStart ? new Date(new Date(pwStart).getTime() + i * 864e5).toISOString().split('T')[0] === stageDate : false;
+      const active  = i === pwActiveDay;
+      return `<button onclick="switchPwDay(${i})" style="padding:6px 12px;border-radius:8px;font-family:'Heebo',sans-serif;font-size:0.78rem;font-weight:${active?'900':'700'};cursor:pointer;border:1px solid ${isStage?'rgba(255,215,0,0.7)':active?'rgba(255,215,0,0.6)':'rgba(255,255,255,0.12)'};background:${active?'rgba(255,215,0,0.15)':'rgba(255,255,255,0.03)'};color:${isStage?'#FFD700':active?'#FFD700':'#aaa'};">
+        יום ${i + 1}${isStage ? ' 🏆' : isToday ? ' ←' : ''}
+      </button>`;
+    }).join('');
+  }
+
+  function switchPwDay(i) {
+    savePwDayToMemory();
+    pwActiveDay = i;
+    renderPwTabs();
+    renderPwDay();
+  }
+
+  function savePwDayToMemory() {
+    if (!peakWeekPlan) return;
+    const d = peakWeekPlan.days[pwActiveDay];
+    d.sodium_mg = document.getElementById('pw-sodium')?.value || '';
+    d.protein_g = document.getElementById('pw-protein')?.value || '';
+    d.carbs_g   = document.getElementById('pw-carbs')?.value || '';
+    d.fat_g     = document.getElementById('pw-fat')?.value || '';
+    d.water_l   = document.getElementById('pw-water')?.value || '';
+    d.menu      = document.getElementById('pw-menu')?.value || '';
+  }
+
+  function renderPwDay() {
+    const el = document.getElementById('pw-day-body');
+    if (!el || !peakWeekPlan) return;
+    const d = peakWeekPlan.days[pwActiveDay];
+    const pwStart   = document.getElementById('e-pw-start')?.value || null;
+    const stageDate = document.getElementById('e-stage')?.value    || null;
+    const dateLabel = pwStart
+      ? new Date(new Date(pwStart).getTime() + pwActiveDay * 864e5).toLocaleDateString('he-IL', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' })
+      : `יום ${pwActiveDay + 1}`;
+    const isStage = stageDate && pwStart
+      ? new Date(new Date(pwStart).getTime() + pwActiveDay * 864e5).toISOString().split('T')[0] === stageDate
+      : false;
+
+    el.innerHTML = `
+      <div style="margin-bottom:12px;">
+        <div style="font-size:0.88rem;font-weight:900;color:#FFD700;margin-bottom:10px;">יום ${pwActiveDay + 1}${isStage ? ' 🏆 — יום הבמה!' : ''} · ${dateLabel}</div>
+        <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:12px;">
+          ${[
+            { id:'pw-sodium',  label:'מלח (מ"ג)',  val: d.sodium_mg, ph:'3000' },
+            { id:'pw-protein', label:'חלבון (g)',   val: d.protein_g, ph:'220'  },
+            { id:'pw-carbs',   label:'פחמימה (g)', val: d.carbs_g,   ph:'300'  },
+            { id:'pw-fat',     label:'שומן (g)',   val: d.fat_g,     ph:'50'   },
+            { id:'pw-water',   label:'מים (ליטר)', val: d.water_l,   ph:'4.0'  },
+          ].map(f => `<div>
+            <div style="font-size:0.68rem;color:var(--muted);font-weight:700;margin-bottom:4px;">${f.label}</div>
+            <input type="number" id="${f.id}" value="${esc(String(f.val))}" placeholder="${f.ph}" step="any" min="0"
+              style="width:100%;padding:8px 10px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,215,0,0.2);border-radius:8px;color:#FFD700;font-family:'Heebo',sans-serif;font-size:0.9rem;font-weight:700;outline:none;text-align:center;box-sizing:border-box;"/>
+          </div>`).join('')}
+        </div>
+        <div style="font-size:0.75rem;color:var(--muted);font-weight:700;margin-bottom:6px;">תפריט יומי מדויק</div>
+        <textarea id="pw-menu" rows="8"
+          placeholder="ארוחת בוקר (07:00):\n• שיבולת שועל 80g\n• חלבון ביצה 6\n• פירות יער 100g\n\nארוחת ביניים (10:00):\n..."
+          style="width:100%;padding:10px 12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,215,0,0.2);border-radius:8px;color:#fff;font-family:'Heebo',sans-serif;font-size:0.83rem;outline:none;resize:vertical;box-sizing:border-box;line-height:1.6;">${esc(d.menu)}</textarea>
+      </div>`;
+  }
+
+  async function savePeakWeekPlan() {
+    savePwDayToMemory();
+    if (!peakWeekPlan) return;
+    const pwStart   = document.getElementById('e-pw-start')?.value || null;
+    const stageDate = document.getElementById('e-stage')?.value    || null;
+    const { error } = await sbAdmin.from('peak_week_plans').upsert({
+      client_email: activeEmail, coach_email: coachEmail,
+      peak_week_start: pwStart, stage_date: stageDate,
+      days: peakWeekPlan.days, updated_at: new Date().toISOString()
+    }, { onConflict: 'client_email' });
+    if (error) { toast('שגיאה בשמירת פייק וויק: ' + error.message, 'err'); return; }
+    toast('✓ תוכנית פייק וויק נשמרה', 'ok');
   }
 
   function openReceiptModal() {

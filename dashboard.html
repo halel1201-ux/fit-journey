@@ -803,6 +803,20 @@
     </div>
   </div>
 
+  <!-- כרטיס פייק וויק -->
+  <div id="peak-week-client-card" style="display:none;background:rgba(255,215,0,0.06);border:1px solid rgba(255,215,0,0.35);border-radius:16px;padding:16px 18px;margin:0 0 12px;border-top:3px solid #FFD700;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+      <span style="font-weight:900;font-size:0.95rem;color:#FFD700;">🏆 פייק וויק</span>
+      <span id="pw-day-badge" style="font-size:0.78rem;font-weight:700;background:rgba(255,215,0,0.15);padding:3px 12px;border-radius:20px;color:#FFD700;"></span>
+    </div>
+    <div id="pw-stage-countdown" style="font-size:0.78rem;color:var(--muted);margin-bottom:12px;text-align:center;"></div>
+    <div id="pw-macros-row" style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:12px;"></div>
+    <div id="pw-menu-block" style="display:none;">
+      <div style="font-size:0.72rem;color:#FFD700;font-weight:700;margin-bottom:6px;">📋 תפריט היום</div>
+      <div id="pw-menu-text" style="font-size:0.82rem;color:#ddd;white-space:pre-line;line-height:1.7;background:rgba(255,255,255,0.03);border-radius:8px;padding:10px 12px;"></div>
+    </div>
+  </div>
+
   <!-- כרטיס מצב כספי / חוב -->
   <div id="debt-card-client" style="display:none;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:16px;padding:16px 18px;margin:0 0 12px;border-top:3px solid #f87171;">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
@@ -1501,6 +1515,7 @@
     ]);
     renderPackageCard(pkg);
     loadDebtCard(email);
+    loadPeakWeekClient(email);
 
     trainingPlanLocal  = Array.isArray(tr?.plan) ? (tr.plan || []) : (tr?.plan?.active || []);
     nutritionPlanLocal = nu?.plan || [];
@@ -1543,6 +1558,65 @@
   }
 
   /* ── מצב כספי / חוב (ledger) ── */
+  /* ══ PEAK WEEK (client view) ══ */
+  async function loadPeakWeekClient(email) {
+    const card = document.getElementById('peak-week-client-card');
+    if (!card) return;
+    if (clientData?.goal !== 'peak_week') { card.style.display = 'none'; return; }
+
+    const { data } = await sb.from('peak_week_plans').select('*').eq('client_email', email).maybeSingle();
+    if (!data || !data.days?.length) { card.style.display = 'none'; return; }
+
+    const today     = new Date().toISOString().split('T')[0];
+    const pwStart   = data.peak_week_start;
+    const stageDate = data.stage_date;
+    const days      = data.days;
+
+    let dayIdx = -1;
+    if (pwStart) {
+      const start = new Date(pwStart);
+      const diff  = Math.floor((new Date(today) - start) / 864e5);
+      if (diff >= 0 && diff < 7) dayIdx = diff;
+    }
+    if (dayIdx < 0) { card.style.display = 'none'; return; }
+
+    card.style.display = 'block';
+    const d = days[dayIdx];
+
+    document.getElementById('pw-day-badge').textContent = `יום ${dayIdx + 1} מתוך 7`;
+
+    if (stageDate) {
+      const daysToStage = Math.ceil((new Date(stageDate) - new Date(today)) / 864e5);
+      const stageLocale = new Date(stageDate).toLocaleDateString('he-IL', { weekday: 'long', day: '2-digit', month: '2-digit' });
+      document.getElementById('pw-stage-countdown').textContent =
+        daysToStage === 0 ? '🏆 היום יום הבמה! בהצלחה!' :
+        daysToStage > 0  ? `${daysToStage} ימים עד הבמה · ${stageLocale}` : '';
+    }
+
+    const macros = [
+      { label: 'מלח',     val: d.sodium_mg  ? `${d.sodium_mg} מ"ג` : '—', clr: '#fb923c' },
+      { label: 'חלבון',   val: d.protein_g  ? `${d.protein_g}g`    : '—', clr: '#60a5fa' },
+      { label: 'פחמימה', val: d.carbs_g    ? `${d.carbs_g}g`      : '—', clr: '#4ade80' },
+      { label: 'שומן',   val: d.fat_g      ? `${d.fat_g}g`        : '—', clr: '#f59e0b' },
+      { label: 'מים',    val: d.water_l    ? `${d.water_l}L`      : '—', clr: '#38bdf8' },
+    ];
+    document.getElementById('pw-macros-row').innerHTML = macros.map(m =>
+      `<div style="text-align:center;background:rgba(255,255,255,0.04);border-radius:8px;padding:8px 4px;">
+        <div style="font-size:1rem;font-weight:900;color:${m.clr};">${m.val}</div>
+        <div style="font-size:0.65rem;color:var(--muted);margin-top:2px;">${m.label}</div>
+      </div>`
+    ).join('');
+
+    const menuEl = document.getElementById('pw-menu-block');
+    const menuTx = document.getElementById('pw-menu-text');
+    if (d.menu) {
+      menuEl.style.display = 'block';
+      menuTx.textContent   = d.menu;
+    } else {
+      menuEl.style.display = 'none';
+    }
+  }
+
   let clientDebtTxnsLocal = [];
 
   function debtBalColor(bal) {
