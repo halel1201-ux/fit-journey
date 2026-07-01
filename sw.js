@@ -36,7 +36,7 @@ self.addEventListener('activate', e => {
 self.addEventListener('fetch', e => {
   const url = new URL(e.request.url);
 
-  /* API calls (Supabase / Anthropic / OneSignal) → always network, never cache */
+  /* API calls (Supabase / Anthropic / OneSignal) → bypass SW entirely, let browser handle */
   if (
     url.hostname.includes('supabase.co') ||
     url.hostname.includes('anthropic.com') ||
@@ -44,8 +44,7 @@ self.addEventListener('fetch', e => {
     url.hostname.includes('bitpay.co.il') ||
     url.protocol === 'chrome-extension:'
   ) {
-    e.respondWith(fetch(e.request));
-    return;
+    return; // don't call e.respondWith — browser fetches directly, body stream intact
   }
 
   /* Google Fonts → network first, cache fallback */
