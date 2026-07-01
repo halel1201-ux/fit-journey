@@ -1901,6 +1901,7 @@
     const lobby = document.getElementById('lobby-view');
     if (lobby) lobby.style.display = 'none';
     renderMain(client);
+    loadClientReceipts(email);
   }
 
   function renderMain(client) {
@@ -1980,6 +1981,13 @@
       ${renderPackageCard()}
 
       ${renderDebtCard()}
+
+      <div class="sec-card" id="receipts-card">
+        <div class="sec-card-title">🧾 קבלות
+          <button class="btn-sm btn-outline" style="border-color:rgba(74,222,128,0.4);color:#4ade80;" onclick="openReceiptModal()">+ הנפק קבלה</button>
+        </div>
+        <div id="receipts-list"><div style="color:#555;font-size:0.82rem;">טוען...</div></div>
+      </div>
 
       <div class="sec-card">
         <div class="sec-card-title">🏋️ תוכנית אימונים
@@ -2750,6 +2758,48 @@
   /* ══════════════════════════════════════════════════════
      RECEIPTS — הנפקת קבלות
   ══════════════════════════════════════════════════════ */
+  let clientReceiptsList = [];
+
+  async function loadClientReceipts(email) {
+    const el = document.getElementById('receipts-list');
+    if (!el) return;
+    const { data, error } = await sbAdmin.from('receipts')
+      .select('*').eq('client_email', email).eq('coach_email', coachEmail)
+      .order('receipt_date', { ascending: false }).order('id', { ascending: false });
+    clientReceiptsList = data || [];
+    renderReceiptsList();
+  }
+
+  function renderReceiptsList() {
+    const el = document.getElementById('receipts-list');
+    if (!el) return;
+    if (!clientReceiptsList.length) {
+      el.innerHTML = '<div style="color:#555;font-size:0.82rem;padding:4px 0;">אין קבלות עדיין</div>';
+      return;
+    }
+    el.innerHTML = clientReceiptsList.map(r => {
+      const dateStr = new Date(r.receipt_date).toLocaleDateString('he-IL');
+      const amt     = Number(r.amount).toLocaleString('he-IL', { minimumFractionDigits: 2 });
+      return `<div style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:8px;margin-bottom:6px;flex-wrap:wrap;gap:6px;">
+        <div>
+          <div style="font-size:0.82rem;font-weight:700;color:#4ade80;">${esc(r.receipt_number)}</div>
+          <div style="font-size:0.75rem;color:var(--muted);margin-top:2px;">${dateStr}${r.payment_method ? ' · ' + esc(r.payment_method) : ''}</div>
+          <div style="font-size:0.78rem;color:var(--white);margin-top:2px;">${esc(r.description || '')}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div style="font-size:1rem;font-weight:900;color:#4ade80;">${amt} ₪</div>
+          <button class="btn-sm btn-outline" style="font-size:0.72rem;padding:4px 10px;border-color:rgba(255,255,255,0.2);color:#ccc;"
+            onclick="reprintReceipt(${r.id})">🖨 הדפס</button>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  function reprintReceipt(id) {
+    const r = clientReceiptsList.find(x => x.id === id);
+    if (r) printReceipt(r);
+  }
+
   function openReceiptModal() {
     if (!activeEmail) { toast('בחר לקוח קודם', 'err'); return; }
     document.getElementById('rec-amount').value  = '';
@@ -2815,7 +2865,10 @@
       btn.disabled = false; btn.textContent = '🖨 הנפק והדפס';
       statusEl.style.color = '#4ade80'; statusEl.textContent = `✓ קבלה ${receiptNumber} נשמרה`;
 
-      printReceipt({ ...receiptRow, receipt_number: receiptNumber });
+      const newRow = { ...receiptRow, id: (existing?.[0]?.id ?? 0) + 1, receipt_number: receiptNumber };
+      clientReceiptsList.unshift(newRow);
+      renderReceiptsList();
+      printReceipt(newRow);
       setTimeout(() => closeReceiptModal(), 1800);
     } catch(e) {
       btn.disabled = false; btn.textContent = '🖨 הנפק והדפס';
