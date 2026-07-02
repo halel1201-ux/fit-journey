@@ -407,6 +407,13 @@
   </div>
   <div style="display:flex;gap:8px;align-items:center;">
     <span id="license-days-badge" style="display:none;padding:4px 10px;border-radius:8px;font-size:0.72rem;font-weight:700;"></span>
+    <!-- Autopilot toggle -->
+    <button id="autopilot-btn" onclick="toggleAutopilot()" title="טייס אוטומטי — AI עונה ללקוחות כשאתה לא זמין"
+      style="display:none;align-items:center;gap:5px;padding:4px 10px;border-radius:8px;font-size:0.72rem;font-weight:700;
+             border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.04);color:#888;cursor:pointer;
+             font-family:'Heebo',sans-serif;transition:all 0.25s;">
+      ✈️ טייס
+    </button>
     <div id="token-badge-wrap">
       <svg width="30" height="16" viewBox="0 0 30 16" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;">
         <rect x="0" y="0" width="25" height="16" rx="3" fill="#FF6B00"/>
@@ -851,6 +858,54 @@
   const sbAdmin = supabase.createClient(URL_, SERVICE_KEY, {
     auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }
   });
+
+  // ─── AUTOPILOT ───────────────────────────────────────────────────────
+  let autopilotActive = false;
+
+  async function loadAutopilotState() {
+    const { data } = await sb.from('coaches').select('autopilot_active, whatsapp_number').eq('email', coachEmail).single();
+    autopilotActive = data?.autopilot_active ?? false;
+    renderAutopilotBtn();
+    const btn = document.getElementById('autopilot-btn');
+    if (btn) btn.style.display = 'flex';
+  }
+
+  function renderAutopilotBtn() {
+    const btn = document.getElementById('autopilot-btn');
+    if (!btn) return;
+    if (autopilotActive) {
+      btn.style.background = 'rgba(255,107,0,0.18)';
+      btn.style.borderColor = 'rgba(255,107,0,0.6)';
+      btn.style.color = '#FF6B00';
+      btn.innerHTML = '✈️ טייס <span style="font-size:0.62rem;background:#FF6B00;color:#000;border-radius:4px;padding:1px 4px;margin-right:3px;">פעיל</span>';
+    } else {
+      btn.style.background = 'rgba(255,255,255,0.04)';
+      btn.style.borderColor = 'rgba(255,255,255,0.15)';
+      btn.style.color = '#888';
+      btn.innerHTML = '✈️ טייס';
+    }
+  }
+
+  async function toggleAutopilot() {
+    const newState = !autopilotActive;
+
+    if (newState) {
+      // Verify WhatsApp number is set
+      const { data: coachRow } = await sb.from('coaches').select('whatsapp_number').eq('email', coachEmail).single();
+      if (!coachRow?.whatsapp_number) {
+        const phone = prompt('להפעלת הטייס האוטומטי, הזן מספר WhatsApp שלך (עם קידומת מדינה, למשל: +972501234567):');
+        if (!phone || phone.trim().length < 10) { toast('מספר WhatsApp נדרש להפעלת הטייס', 'err'); return; }
+        await sbAdmin.from('coaches').update({ whatsapp_number: phone.trim() }).eq('email', coachEmail);
+      }
+    }
+
+    const { error } = await sbAdmin.from('coaches').update({ autopilot_active: newState }).eq('email', coachEmail);
+    if (error) { toast('שגיאה בעדכון הטייס: ' + error.message, 'err'); return; }
+
+    autopilotActive = newState;
+    renderAutopilotBtn();
+    toast(newState ? '✈️ טייס אוטומטי הופעל — ה-AI יענה ללקוחות לאחר 2 דקות' : '✈️ טייס אוטומטי כובה', newState ? 'ok' : 'info');
+  }
 
   // ─── TOKEN SYSTEM ────────────────────────────────────────────────────
   let coachTokens = 0;
@@ -1582,6 +1637,7 @@
     coachPlans = coach.plans || {};
     document.getElementById('coach-brand').textContent = `FJ — ${coachName}`;
     loadTokens();
+    loadAutopilotState();
     initOneSignal(coachEmail);
 
     // מאמן ממתין לאישור
