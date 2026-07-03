@@ -2788,17 +2788,31 @@
     const pwStart   = document.getElementById('e-pw-start')?.value || null;
     const stageDate = document.getElementById('e-stage')?.value || null;
     if (newEmail !== activeEmail) {
-      const { data: existing } = await sb.from('clients').select('email').eq('email', newEmail).maybeSingle();
+      const { data: existing } = await sbAdmin.from('clients').select('email').eq('email', newEmail).maybeSingle();
       if (existing) { toast('כבר קיים לקוח עם המייל הזה', 'err'); return; }
     }
-    const { error } = await sb.from('clients')
-      .update({ name, phone, email: newEmail, coaching_start: start, coaching_end: end,
+    const updatePayload = { name, phone, coaching_start: start, coaching_end: end,
                 target_calories: cal, target_protein: prot, target_carbs: carb, target_fat: fat,
                 target_water: water, current_weight: weight, gender,
-                goal: goal || null, peak_week_start: pwStart || null, stage_date: stageDate || null })
-      .eq('email', activeEmail);
-    if (error) { toast('שגיאה בשמירה', 'err'); return; }
-    if (newEmail !== activeEmail) { activeEmail = newEmail; }
+                goal: goal || null, peak_week_start: pwStart || null, stage_date: stageDate || null };
+    if (newEmail !== activeEmail) updatePayload.email = newEmail;
+    const { error } = await sbAdmin.from('clients').update(updatePayload).eq('email', activeEmail);
+    if (error) { toast('שגיאה בשמירה: ' + error.message, 'err'); return; }
+    if (newEmail !== activeEmail) {
+      // cascade email update to related tables
+      await Promise.all([
+        sbAdmin.from('training_plans').update({ client_email: newEmail }).eq('client_email', activeEmail),
+        sbAdmin.from('nutrition_plans').update({ client_email: newEmail }).eq('client_email', activeEmail),
+        sbAdmin.from('messages').update({ client_email: newEmail }).eq('client_email', activeEmail),
+        sbAdmin.from('cycles').update({ client_email: newEmail }).eq('client_email', activeEmail),
+        sbAdmin.from('push_tokens').update({ user_email: newEmail }).eq('user_email', activeEmail),
+      ]);
+      // update auth user email
+      const { data: { users } } = await sbAdmin.auth.admin.listUsers({ perPage: 1000 });
+      const authUser = users?.find(u => u.email === activeEmail);
+      if (authUser) await sbAdmin.auth.admin.updateUserById(authUser.id, { email: newEmail, email_confirm: true });
+      activeEmail = newEmail;
+    }
     await loadClients();
     toast('פרטים נשמרו ✓', 'ok');
   }
@@ -5366,11 +5380,13 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
 
   function getCompoundsFromDOM() {
     const list = [];
-    for (let i = 0; i < cycleCompounds.length; i++) {
-      const name         = (document.getElementById(`cpd-name-${i}`)?.value || '').trim();
+    let i = 0;
+    while (document.getElementById(`cpd-name-${i}`)) {
+      const name         = (document.getElementById(`cpd-name-${i}`).value || '').trim();
       const dose         = (document.getElementById(`cpd-dose-${i}`)?.value || '').trim();
       const inj_per_week = (document.getElementById(`cpd-inj-${i}`)?.value  || '').trim();
       list.push({ name, dose, inj_per_week });
+      i++;
     }
     return list;
   }
@@ -5395,7 +5411,6 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
     const details= document.getElementById('cy-details').value.trim();
     const sdate  = document.getElementById('cy-start').value || new Date().toISOString().split('T')[0];
     const compounds = getCompoundsFromDOM().filter(c => c.name || c.dose || c.inj_per_week);
-    cycleCompounds = compounds.length >= 1 ? compounds : cycleCompounds;
 
     // Archive if status/goal changed
     if (clientCycle && (clientCycle.status!==status||clientCycle.goal!==goal)) {
@@ -5409,12 +5424,13 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
     const { data, error } = await sbAdmin.from('cycles').upsert({
       client_email:email, coach_email:coachEmail,
       status, goal, details, start_date:sdate,
-      compounds: compounds,
+      compounds: compounds.length > 0 ? compounds : [],
       updated_at:new Date().toISOString(),
     },{ onConflict:'client_email' }).select().single();
 
     if (error) { toast('שגיאה: '+error.message,'err'); return; }
     clientCycle = data;
+    cycleCompounds = compounds.length > 0 ? compounds : [{ name:'', dose:'', inj_per_week:'' }];
     renderCycleEditor();
     toast('סייקל נשמר ✓','ok');
   }

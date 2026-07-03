@@ -2469,20 +2469,17 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
     const fat    = parseInt(document.getElementById('e-fat').value)    || null;
     const water  = parseFloat(document.getElementById('e-water').value)  || null;
     const weight = parseFloat(document.getElementById('e-weight').value) || null;
-    const { error } = await sb.from('clients')
+    const { error } = await sbAdmin.from('clients')
       .update({ name, phone, coach_email: coachEmail, coaching_start: start, coaching_end: end, plan_type: plan,
                 target_calories: cal, target_protein: prot, target_carbs: carb, target_fat: fat,
                 target_water: water, current_weight: weight })
       .eq('email', activeEmail);
-    if (error) { toast('שגיאה בשמירה', 'err'); return; }
+    if (error) { toast('שגיאה בשמירה: ' + error.message, 'err'); return; }
     await loadClients();
     toast('פרטים נשמרו ✓', 'ok');
   }
 
   async function setClientPassword() {
-    const client = clients.find(c => c.email === activeEmail);
-    const clientCoach = coachesList.find(co => co.email === client?.coach_email);
-    if (clientCoach && clientCoach.role === 'senior') { toast('ללקוחות מאמן בכיר — הגדרת הסיסמה מתבצעת ע״י המאמן עצמו', 'err'); return; }
     const phone = document.getElementById('e-phone').value.trim();
     const email = activeEmail;
     if (!phone) { toast('יש להזין מספר טלפון קודם', 'err'); return; }
