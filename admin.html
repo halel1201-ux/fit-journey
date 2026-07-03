@@ -1600,9 +1600,8 @@
     const coachOpts = coachesList.map(c =>
       `<option value="${c.email}" ${client.coach_email===c.email?'selected':''}>${esc(c.name)}</option>`
     ).join('');
-    /* מאמן בכיר מגדיר סיסמה ללקוחות שלו עצמו — אדמין מגדיר רק ללקוחות שאצל מאמן רגיל (או בלי מאמן) */
-    const clientCoach = coachesList.find(co => co.email === client.coach_email);
-    const canAdminSetPassword = !clientCoach || clientCoach.role !== 'senior';
+    /* מנהל המערכת מגדיר סיסמה לכל לקוח (כולל לקוחות של מאמן בכיר) */
+    const canAdminSetPassword = true;
     document.getElementById('main-area').innerHTML = `
       <!-- Profile -->
       <div class="sec-card">

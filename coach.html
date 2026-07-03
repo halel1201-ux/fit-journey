@@ -2790,29 +2790,21 @@
     if (newEmail !== activeEmail) {
       const { data: existing } = await sbAdmin.from('clients').select('email').eq('email', newEmail).maybeSingle();
       if (existing) { toast('כבר קיים לקוח עם המייל הזה', 'err'); return; }
-    }
-    const updatePayload = { name, phone, coaching_start: start, coaching_end: end,
-                target_calories: cal, target_protein: prot, target_carbs: carb, target_fat: fat,
-                target_water: water, current_weight: weight, gender,
-                goal: goal || null, peak_week_start: pwStart || null, stage_date: stageDate || null };
-    if (newEmail !== activeEmail) updatePayload.email = newEmail;
-    const { error } = await sbAdmin.from('clients').update(updatePayload).eq('email', activeEmail);
-    if (error) { toast('שגיאה בשמירה: ' + error.message, 'err'); return; }
-    if (newEmail !== activeEmail) {
-      // cascade email update to related tables
-      await Promise.all([
-        sbAdmin.from('training_plans').update({ client_email: newEmail }).eq('client_email', activeEmail),
-        sbAdmin.from('nutrition_plans').update({ client_email: newEmail }).eq('client_email', activeEmail),
-        sbAdmin.from('messages').update({ client_email: newEmail }).eq('client_email', activeEmail),
-        sbAdmin.from('cycles').update({ client_email: newEmail }).eq('client_email', activeEmail),
-        sbAdmin.from('push_tokens').update({ user_email: newEmail }).eq('user_email', activeEmail),
-      ]);
-      // update auth user email
+      // עדכון המייל בכל הטבלאות בטרנזקציה אחת (RPC בצד ה-DB)
+      const { error: rpcErr } = await sbAdmin.rpc('rename_client_email', { p_old: activeEmail, p_new: newEmail });
+      if (rpcErr) { toast('שגיאה בשינוי מייל: ' + rpcErr.message, 'err'); return; }
+      // עדכון משתמש ההתחברות (Supabase Auth)
       const { data: { users } } = await sbAdmin.auth.admin.listUsers({ perPage: 1000 });
       const authUser = users?.find(u => u.email === activeEmail);
       if (authUser) await sbAdmin.auth.admin.updateUserById(authUser.id, { email: newEmail, email_confirm: true });
       activeEmail = newEmail;
     }
+    const updatePayload = { name, phone, coaching_start: start, coaching_end: end,
+                target_calories: cal, target_protein: prot, target_carbs: carb, target_fat: fat,
+                target_water: water, current_weight: weight, gender,
+                goal: goal || null, peak_week_start: pwStart || null, stage_date: stageDate || null };
+    const { error } = await sbAdmin.from('clients').update(updatePayload).eq('email', activeEmail);
+    if (error) { toast('שגיאה בשמירה: ' + error.message, 'err'); return; }
     await loadClients();
     toast('פרטים נשמרו ✓', 'ok');
   }
