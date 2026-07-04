@@ -854,7 +854,6 @@
 <script>
   const URL_ = 'https://luwknflmhvcxgifzxgrk.supabase.co';
   const KEY  = 'sb_publishable_k3M7SfBeiBGs3rTKewBzWQ_7RHRskB9';
-  const SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx1d2tuZmxtaHZjeGdpZnp4Z3JrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODg1MDIxNSwiZXhwIjoyMDk0NDI2MjE1fQ.8M2WqqUUM5VJD53LXKYCoF_KPD6bbCiOI0h9Xv49AfA';
   const CLAUDE_KEY = ''; // מפתח AI הועבר ל-Edge Function בשרת
   async function aiFetch(_url, options) {
     const { data: { session } } = await sb.auth.getSession();
@@ -875,9 +874,7 @@
     try { return await res.json(); } catch { return { error: "network" }; }
   }
   const sb      = supabase.createClient(URL_, KEY);
-  const sbAdmin = supabase.createClient(URL_, SERVICE_KEY, {
-    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }
-  });
+  const sbAdmin = sb; // מפתח השירות הוסר מהדפדפן — פעולות רצות תחת RLS / דרך Edge Functions
 
   // ─── AUTOPILOT (מנוי) ─────────────────────────────────────────────────
   let autopilotActive = false;
@@ -962,7 +959,7 @@
   function closeAutopilotLog() { document.getElementById('autopilot-log-modal').style.display = 'none'; }
 
   async function deactivateAutopilot() {
-    const { error } = await sbAdmin.from('coaches').update({ autopilot_active: false }).eq('email', coachEmail);
+    const { error } = await sb.from('coaches').update({ autopilot_active: false }).eq('email', coachEmail);
     if (error) { toast('שגיאה: ' + error.message, 'err'); return; }
     autopilotActive = false;
     renderAutopilotBtn();
@@ -1004,7 +1001,7 @@
     const { error: tErr } = await sb.from('coach_tokens')
       .upsert({ coach_email: coachEmail, balance: newBal, updated_at: new Date().toISOString() });
     if (tErr) { toast('שגיאה בחיוב: ' + tErr.message, 'err'); return; }
-    const { error: cErr } = await sbAdmin.from('coaches')
+    const { error: cErr } = await sb.from('coaches')
       .update({ autopilot_active: true, autopilot_until: untilStr, autopilot_plan: plan.id }).eq('email', coachEmail);
     if (cErr) { toast('שגיאה בהפעלה: ' + cErr.message, 'err'); return; }
 
@@ -2924,10 +2921,10 @@
 
     try {
       /* מחק תוכניות אימון ותזונה — דרך service role כדי לעקוף RLS */
-      await sbAdmin.from('training_plans').delete().eq('client_email', email);
-      await sbAdmin.from('nutrition_plans').delete().eq('client_email', email);
+      await sb.from('training_plans').delete().eq('client_email', email);
+      await sb.from('nutrition_plans').delete().eq('client_email', email);
       /* מחק את הלקוח עצמו — רק אם שייך למאמן הנוכחי */
-      const { error } = await sbAdmin.from('clients').delete().eq('email', email).eq('coach_email', coachEmail);
+      const { error } = await sb.from('clients').delete().eq('email', email).eq('coach_email', coachEmail);
       if (error) throw error;
       closeClientCard();
       if (activeEmail === email) {
@@ -2961,10 +2958,10 @@
     const pwStart   = document.getElementById('e-pw-start')?.value || null;
     const stageDate = document.getElementById('e-stage')?.value || null;
     if (newEmail !== activeEmail) {
-      const { data: existing } = await sbAdmin.from('clients').select('email').eq('email', newEmail).maybeSingle();
+      const { data: existing } = await sb.from('clients').select('email').eq('email', newEmail).maybeSingle();
       if (existing) { toast('כבר קיים לקוח עם המייל הזה', 'err'); return; }
       // עדכון המייל בכל הטבלאות בטרנזקציה אחת (RPC בצד ה-DB)
-      const { error: rpcErr } = await sbAdmin.rpc('rename_client_email', { p_old: activeEmail, p_new: newEmail });
+      const { error: rpcErr } = await sb.rpc('rename_client_email', { p_old: activeEmail, p_new: newEmail });
       if (rpcErr) { toast('שגיאה בשינוי מייל: ' + rpcErr.message, 'err'); return; }
       // עדכון משתמש ההתחברות (Supabase Auth) — דרך שרת מאובטח
       const _r = await adminCall({ action: 'rename_email', old_email: activeEmail, new_email: newEmail });
@@ -2975,7 +2972,7 @@
                 target_calories: cal, target_protein: prot, target_carbs: carb, target_fat: fat,
                 target_water: water, current_weight: weight, gender,
                 goal: goal || null, peak_week_start: pwStart || null, stage_date: stageDate || null };
-    const { error } = await sbAdmin.from('clients').update(updatePayload).eq('email', activeEmail);
+    const { error } = await sb.from('clients').update(updatePayload).eq('email', activeEmail);
     if (error) { toast('שגיאה בשמירה: ' + error.message, 'err'); return; }
     await loadClients();
     toast('פרטים נשמרו ✓', 'ok');
@@ -3025,7 +3022,7 @@
   async function loadClientReceipts(email) {
     const el = document.getElementById('receipts-list');
     if (!el) return;
-    const { data, error } = await sbAdmin.from('receipts')
+    const { data, error } = await sb.from('receipts')
       .select('*').eq('client_email', email).eq('coach_email', coachEmail)
       .order('receipt_date', { ascending: false }).order('id', { ascending: false });
     clientReceiptsList = data || [];
@@ -3088,7 +3085,7 @@
 
   async function loadPeakWeekPlan() {
     if (!activeEmail) return;
-    const { data } = await sbAdmin.from('peak_week_plans').select('*').eq('client_email', activeEmail).maybeSingle();
+    const { data } = await sb.from('peak_week_plans').select('*').eq('client_email', activeEmail).maybeSingle();
     const pwStart   = document.getElementById('e-pw-start')?.value || null;
     const stageDate = document.getElementById('e-stage')?.value    || null;
     const existing  = data?.days?.length === 7 ? data.days : null;
@@ -3177,7 +3174,7 @@
     if (!peakWeekPlan) return;
     const pwStart   = document.getElementById('e-pw-start')?.value || null;
     const stageDate = document.getElementById('e-stage')?.value    || null;
-    const { error } = await sbAdmin.from('peak_week_plans').upsert({
+    const { error } = await sb.from('peak_week_plans').upsert({
       client_email: activeEmail, coach_email: coachEmail,
       peak_week_start: pwStart, stage_date: stageDate,
       days: peakWeekPlan.days, updated_at: new Date().toISOString()
@@ -3219,7 +3216,7 @@
     statusEl.style.color = 'var(--muted)'; statusEl.textContent = 'שומר קבלה...';
 
     try {
-      const { data: existing } = await sbAdmin.from('receipts')
+      const { data: existing } = await sb.from('receipts')
         .select('id').eq('coach_email', coachEmail).order('id', { ascending: false }).limit(1);
       const nextNum = (existing && existing.length ? existing[0].id : 0) + 1;
       const year = new Date(date).getFullYear();
@@ -3245,7 +3242,7 @@
         business_name:  coachName || coachEmail,
       };
 
-      const { error } = await sbAdmin.from('receipts').insert(receiptRow);
+      const { error } = await sb.from('receipts').insert(receiptRow);
       if (error) throw new Error(error.message);
 
       btn.disabled = false; btn.textContent = '🖨 הנפק והדפס';
@@ -5349,9 +5346,9 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
   }
 
   async function uploadBrandFile(file, path) {
-    const { data, error } = await sbAdmin.storage.from('coach-assets').upload(path, file, { upsert: true, contentType: file.type });
+    const { data, error } = await sb.storage.from('coach-assets').upload(path, file, { upsert: true, contentType: file.type });
     if (error) throw error;
-    const { data: pub } = sbAdmin.storage.from('coach-assets').getPublicUrl(path);
+    const { data: pub } = sb.storage.from('coach-assets').getPublicUrl(path);
     return pub.publicUrl + '?t=' + Date.now();
   }
 
@@ -5382,7 +5379,7 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
         document.getElementById('cp-email').value = newEmail;
       }
 
-      const { error } = await sbAdmin.from('coaches').update(updates).eq('email', updates.email || coachEmail);
+      const { error } = await sb.from('coaches').update(updates).eq('email', updates.email || coachEmail);
       if (error) throw new Error(error.message);
 
       coachName  = newName;
@@ -5425,7 +5422,7 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
       if (logoUrl  !== undefined) updates.logo_url  = logoUrl  || null;
       if (coverUrl !== undefined) updates.cover_url = coverUrl || null;
 
-      const { error } = await sbAdmin.from('coaches').update(updates).eq('email', coachEmail);
+      const { error } = await sb.from('coaches').update(updates).eq('email', coachEmail);
       if (error) throw error;
 
       btn.disabled = false; btn.textContent = '💾 שמור מיתוג';
@@ -5594,14 +5591,14 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
 
     // Archive if status/goal changed
     if (clientCycle && (clientCycle.status!==status||clientCycle.goal!==goal)) {
-      await sbAdmin.from('cycle_history').insert({
+      await sb.from('cycle_history').insert({
         client_email:email, coach_email:coachEmail,
         status:clientCycle.status, goal:clientCycle.goal,
         details:clientCycle.details, start_date:clientCycle.start_date,
       });
     }
 
-    const { data, error } = await sbAdmin.from('cycles').upsert({
+    const { data, error } = await sb.from('cycles').upsert({
       client_email:email, coach_email:coachEmail,
       status, goal, details, start_date:sdate,
       compounds: compounds.length > 0 ? compounds : [],
@@ -5619,13 +5616,13 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
     if (!requireEdit()) return;
     if (!clientCycle || !activeEmail) return;
     if (!confirm('לסיים את הסייקל הנוכחי ולהעביר להיסטוריה?')) return;
-    await sbAdmin.from('cycle_history').insert({
+    await sb.from('cycle_history').insert({
       client_email:activeEmail, coach_email:coachEmail,
       status:clientCycle.status, goal:clientCycle.goal,
       details:clientCycle.details, start_date:clientCycle.start_date,
       compounds:clientCycle.compounds||null,
     });
-    await sbAdmin.from('cycles').delete().eq('client_email',activeEmail);
+    await sb.from('cycles').delete().eq('client_email',activeEmail);
     clientCycle = null;
     cycleCompounds = [{ name:'', dose:'', inj_per_week:'' }, { name:'', dose:'', inj_per_week:'' }];
     renderCycleEditor();
@@ -5785,12 +5782,12 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
       notes:notes||existing?.notes||null,
     };
 
-    const { data, error } = await sbAdmin.from('progress_entries')
+    const { data, error } = await sb.from('progress_entries')
       .upsert(payload,{ onConflict:'client_email,date' }).select().single();
     if(error){ toast('שגיאה: '+error.message,'err'); return; }
 
     if(w){
-      await sbAdmin.from('clients').update({ current_weight:w }).eq('email',email);
+      await sb.from('clients').update({ current_weight:w }).eq('email',email);
       const ci=clients.findIndex(c=>c.email===email);
       if(ci>=0) clients[ci].current_weight=w;
     }
@@ -5809,7 +5806,7 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
     if(bf===null) return;
     const val = parseFloat(bf.replace(',','.'));
     if(!val||val<3||val>65){ alert('% שומן לא תקין'); return; }
-    const { data, error } = await sbAdmin.from('progress_entries')
+    const { data, error } = await sb.from('progress_entries')
       .update({ body_fat_pct:val }).eq('id',id).select().single();
     if(error){ toast('שגיאה: '+error.message,'err'); return; }
     const idx=clientProgressEntries.findIndex(e=>e.id===id);
@@ -6350,7 +6347,7 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
     const wrap = document.getElementById('measurements-editor');
     if (wrap) wrap.innerHTML = '<div style="color:#444;font-size:0.85rem;padding:10px 0;">טוען...</div>';
     try {
-      const { data } = await sbAdmin.from('body_measurements')
+      const { data } = await sb.from('body_measurements')
         .select('*').eq('client_email', email)
         .order('date', { ascending: false });
       clientMeasurements = data || [];
@@ -6544,9 +6541,9 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
     try {
       let data, error;
       if (measEditId) {
-        ({ data, error } = await sbAdmin.from('body_measurements').update(payload).eq('id', measEditId).select().single());
+        ({ data, error } = await sb.from('body_measurements').update(payload).eq('id', measEditId).select().single());
       } else {
-        ({ data, error } = await sbAdmin.from('body_measurements').upsert(payload, { onConflict: 'client_email,date' }).select().single());
+        ({ data, error } = await sb.from('body_measurements').upsert(payload, { onConflict: 'client_email,date' }).select().single());
       }
       if (error) { toast('שגיאה: ' + error.message, 'err'); return; }
       const idx = clientMeasurements.findIndex(e => e.id === (measEditId || data.id));
@@ -6561,7 +6558,7 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
   async function deleteMeasurement(id) {
     if (!confirm('למחוק את המדידה הזו?')) return;
     try {
-      const { error } = await sbAdmin.from('body_measurements').delete().eq('id', id);
+      const { error } = await sb.from('body_measurements').delete().eq('id', id);
       if (error) { toast('שגיאה: ' + error.message, 'err'); return; }
       clientMeasurements = clientMeasurements.filter(e => e.id !== id);
       renderMeasurementsEditor();
