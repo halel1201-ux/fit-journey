@@ -861,12 +861,26 @@
     auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }
   });
 
-  // ─── AUTOPILOT ───────────────────────────────────────────────────────
+  // ─── AUTOPILOT (מנוי) ─────────────────────────────────────────────────
   let autopilotActive = false;
+  let autopilotUntil  = null;   // 'YYYY-MM-DD' או null
+  const AUTOPILOT_PLANS = [
+    { id: 'day',  days: 1, tokens: 250,  label: 'יום אחד' },
+    { id: '5day', days: 5, tokens: 1000, label: '5 ימים'  },
+  ];
+
+  function autopilotDaysLeft() {
+    if (!autopilotUntil) return 0;
+    const today = new Date(); today.setHours(0,0,0,0);
+    const until = new Date(autopilotUntil + 'T23:59:59');
+    return Math.max(0, Math.ceil((until - today) / 86400000));
+  }
+  function autopilotIsLive() { return autopilotActive && autopilotDaysLeft() > 0; }
 
   async function loadAutopilotState() {
-    const { data } = await sb.from('coaches').select('autopilot_active, whatsapp_number').eq('email', coachEmail).single();
+    const { data } = await sb.from('coaches').select('autopilot_active, autopilot_until').eq('email', coachEmail).single();
     autopilotActive = data?.autopilot_active ?? false;
+    autopilotUntil  = data?.autopilot_until ?? null;
     renderAutopilotBtn();
     const btn = document.getElementById('autopilot-btn');
     if (btn) btn.style.display = 'flex';
@@ -875,11 +889,12 @@
   function renderAutopilotBtn() {
     const btn = document.getElementById('autopilot-btn');
     if (!btn) return;
-    if (autopilotActive) {
+    if (autopilotIsLive()) {
+      const d = autopilotDaysLeft();
       btn.style.background = 'rgba(255,107,0,0.18)';
       btn.style.borderColor = 'rgba(255,107,0,0.6)';
       btn.style.color = '#FF6B00';
-      btn.innerHTML = '✈️ טייס <span style="font-size:0.62rem;background:#FF6B00;color:#000;border-radius:4px;padding:1px 4px;margin-right:3px;">פעיל</span>';
+      btn.innerHTML = `✈️ טייס <span style="font-size:0.62rem;background:#FF6B00;color:#000;border-radius:4px;padding:1px 4px;margin-right:3px;">${d} ימים</span>`;
     } else {
       btn.style.background = 'rgba(255,255,255,0.04)';
       btn.style.borderColor = 'rgba(255,255,255,0.15)';
@@ -888,25 +903,70 @@
     }
   }
 
-  async function toggleAutopilot() {
-    const newState = !autopilotActive;
-
-    if (newState) {
-      // Verify WhatsApp number is set
-      const { data: coachRow } = await sb.from('coaches').select('whatsapp_number').eq('email', coachEmail).single();
-      if (!coachRow?.whatsapp_number) {
-        const phone = prompt('להפעלת הטייס האוטומטי, הזן מספר WhatsApp שלך (עם קידומת מדינה, למשל: +972501234567):');
-        if (!phone || phone.trim().length < 10) { toast('מספר WhatsApp נדרש להפעלת הטייס', 'err'); return; }
-        await sbAdmin.from('coaches').update({ whatsapp_number: phone.trim() }).eq('email', coachEmail);
+  // לחיצה על הכפתור: אם פעיל — הצג סטטוס/כיבוי; אחרת — פתח בחירת מנוי
+  function toggleAutopilot() {
+    if (autopilotIsLive()) {
+      if (confirm(`✈️ טייס אוטומטי פעיל — נותרו ${autopilotDaysLeft()} ימים.\n\nלכבות עכשיו? (לא יינתן החזר טוקנים)`)) {
+        deactivateAutopilot();
       }
+      return;
     }
+    openAutopilotShop();
+  }
 
-    const { error } = await sbAdmin.from('coaches').update({ autopilot_active: newState }).eq('email', coachEmail);
-    if (error) { toast('שגיאה בעדכון הטייס: ' + error.message, 'err'); return; }
-
-    autopilotActive = newState;
+  async function deactivateAutopilot() {
+    const { error } = await sbAdmin.from('coaches').update({ autopilot_active: false }).eq('email', coachEmail);
+    if (error) { toast('שגיאה: ' + error.message, 'err'); return; }
+    autopilotActive = false;
     renderAutopilotBtn();
-    toast(newState ? '✈️ טייס אוטומטי הופעל — ה-AI יענה ללקוחות לאחר 2 דקות' : '✈️ טייס אוטומטי כובה', newState ? 'ok' : 'info');
+    toast('✈️ טייס אוטומטי כובה', 'info');
+  }
+
+  function openAutopilotShop() {
+    const rows = AUTOPILOT_PLANS.map(p => `
+      <button onclick="buyAutopilot('${p.id}')" style="display:flex;justify-content:space-between;align-items:center;width:100%;padding:14px 16px;margin-bottom:10px;background:rgba(255,107,0,0.06);border:1px solid rgba(255,107,0,0.3);border-radius:12px;cursor:pointer;font-family:'Heebo',sans-serif;">
+        <div style="text-align:right;">
+          <div style="font-size:1rem;font-weight:900;color:#fff;">${p.label}</div>
+          <div style="font-size:0.74rem;color:#888;">הבוט עונה ללקוחות בשמך — כל התשובות כלולות</div>
+        </div>
+        <div style="font-size:1.05rem;font-weight:900;color:var(--orange);white-space:nowrap;">${p.tokens.toLocaleString('he-IL')} טוקנים</div>
+      </button>`).join('');
+    document.getElementById('autopilot-shop-body').innerHTML = `
+      <div style="font-size:0.82rem;color:#aaa;margin-bottom:14px;">יתרה נוכחית: <strong style="color:var(--orange);">${coachTokens.toLocaleString('he-IL')}</strong> טוקנים${autopilotUntil && autopilotDaysLeft()>0 ? ` · פעיל עוד ${autopilotDaysLeft()} ימים (רכישה תאריך את המנוי)` : ''}</div>
+      ${rows}`;
+    document.getElementById('autopilot-shop-modal').style.display = 'flex';
+  }
+  function closeAutopilotShop() { document.getElementById('autopilot-shop-modal').style.display = 'none'; }
+
+  async function buyAutopilot(planId) {
+    const plan = AUTOPILOT_PLANS.find(p => p.id === planId);
+    if (!plan) return;
+    if (coachTokens < plan.tokens) {
+      closeAutopilotShop();
+      if (confirm(`אין מספיק טוקנים למנוי "${plan.label}".\nנדרש: ${plan.tokens} | נותר: ${coachTokens}\n\nלרכוש טוקנים?`)) openTokenShop();
+      return;
+    }
+    // חשב תאריך סיום — הארכה מהתוקף הקיים אם עדיין פעיל, אחרת מהיום
+    const base = (autopilotUntil && autopilotDaysLeft() > 0) ? new Date(autopilotUntil + 'T00:00:00') : new Date();
+    base.setDate(base.getDate() + plan.days);
+    const untilStr = base.toISOString().split('T')[0];
+    const newBal = coachTokens - plan.tokens;
+
+    const { error: tErr } = await sb.from('coach_tokens')
+      .upsert({ coach_email: coachEmail, balance: newBal, updated_at: new Date().toISOString() });
+    if (tErr) { toast('שגיאה בחיוב: ' + tErr.message, 'err'); return; }
+    const { error: cErr } = await sbAdmin.from('coaches')
+      .update({ autopilot_active: true, autopilot_until: untilStr, autopilot_plan: plan.id }).eq('email', coachEmail);
+    if (cErr) { toast('שגיאה בהפעלה: ' + cErr.message, 'err'); return; }
+
+    coachTokens = newBal;
+    autopilotActive = true;
+    autopilotUntil = untilStr;
+    renderTokenBadge();
+    renderAutopilotBtn();
+    sb.from('token_usage').insert({ coach_email: coachEmail, amount: plan.tokens, kind: 'subscription', label: `מנוי טייס אוטומטי — ${plan.label}`, balance_after: newBal }).then(()=>{});
+    closeAutopilotShop();
+    toast(`✈️ טייס אוטומטי הופעל ל-${plan.days === 1 ? 'יום' : plan.days + ' ימים'} — ה-AI יענה ללקוחות`, 'ok');
   }
 
   // ─── TOKEN SYSTEM ────────────────────────────────────────────────────
@@ -6569,6 +6629,18 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
       </div>
       <div id="sched-list" style="display:flex;flex-direction:column;gap:6px;"></div>
     </div>
+  </div>
+</div>
+
+<!-- ═══ AUTOPILOT SHOP MODAL ═══ -->
+<div id="autopilot-shop-modal" onclick="if(event.target===this)closeAutopilotShop()" style="position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,0.88);display:none;align-items:center;justify-content:center;padding:16px;">
+  <div style="background:#111;border:1px solid rgba(255,107,0,0.25);border-radius:16px;max-width:440px;width:100%;padding:20px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <div style="font-size:1.05rem;font-weight:900;color:#fff;">✈️ הפעלת טייס אוטומטי</div>
+      <button onclick="closeAutopilotShop()" style="background:none;border:none;color:#555;font-size:1.2rem;cursor:pointer;line-height:1;padding:2px 4px;">✕</button>
+    </div>
+    <div style="font-size:0.78rem;color:#888;margin-bottom:14px;">בזמן שהמנוי פעיל — ה-AI עונה ללקוחות בשמך אחרי 2 דקות. כל התשובות כלולות במחיר.</div>
+    <div id="autopilot-shop-body"></div>
   </div>
 </div>
 

@@ -166,12 +166,13 @@ async function processItem(item: { id: number; coach_email: string; client_email
       is_ai_reply: true, tokens_used: tokensBilled,
     })
 
-    // e. Deduct tokens
+    // e. Subscription model — no per-message deduction. Log for tracking only (amount 0).
     const { data: tokenRow } = await sb.from('coach_tokens').select('balance').eq('coach_email', item.coach_email).single()
-    await sb.from('coach_tokens').upsert(
-      { coach_email: item.coach_email, balance: Math.max(0, (tokenRow?.balance ?? 0) - tokensBilled), updated_at: new Date().toISOString() },
-      { onConflict: 'coach_email' },
-    )
+    await sb.from('token_usage').insert({
+      coach_email: item.coach_email, amount: 0, kind: 'autopilot',
+      label: `תשובה ל-${clientName} (${tokensBilled} טוקני AI · כלול במנוי)`,
+      balance_after: tokenRow?.balance ?? null,
+    })
 
     // f. Audit log
     const { data: logRow } = await sb.from('autopilot_logs').insert({
