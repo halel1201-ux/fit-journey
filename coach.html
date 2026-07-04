@@ -422,6 +422,7 @@
         <text x="12.5" y="11.5" font-family="Arial Black,sans-serif" font-size="7.5" font-weight="900" fill="#000" text-anchor="middle">FJ</text>
       </svg>
       <span id="token-balance">—</span>
+      <button class="btn-token-buy" onclick="openTokenHistory()" style="background:rgba(255,255,255,0.08);" title="היסטוריית שימוש">🧾</button>
       <button class="btn-token-buy" onclick="openTokenShop()">+ רכוש</button>
     </div>
     <div class="notif-bell" onclick="openNotifPanel()" id="notif-bell-wrap">
@@ -937,7 +938,7 @@
     if (tshopBal) tshopBal.textContent = coachTokens.toLocaleString('he-IL');
   }
 
-  async function deductTokens(amount, label) {
+  async function deductTokens(amount, label, kind = 'plan') {
     if (coachTokens < amount) {
       if (confirm(`אין מספיק טוקנים לבניית ${label}.\nנדרש: ${amount} | נותר: ${coachTokens}\n\nלחץ אישור לרכישת טוקנים`))
         openTokenShop();
@@ -949,6 +950,8 @@
     if (error) { alert('שגיאה בעדכון טוקנים: ' + error.message); return false; }
     coachTokens = newBal;
     renderTokenBadge();
+    // רישום להיסטוריית שימוש (לא חוסם — אם נכשל, החיוב עדיין תקף)
+    sb.from('token_usage').insert({ coach_email: coachEmail, amount, kind, label, balance_after: newBal }).then(()=>{});
     return true;
   }
 
@@ -960,6 +963,41 @@
     document.getElementById('token-shop-modal').style.display = 'flex';
   }
   function closeTokenShop() { document.getElementById('token-shop-modal').style.display = 'none'; }
+
+  // ─── TOKEN USAGE HISTORY ──────────────────────────────────────────────
+  const TU_KIND_LABEL = {
+    plan: '🏋️ תוכנית אימון', nutrition: '🥗 תפריט תזונה',
+    autopilot: '🤖 מאמן אוטומטי', purchase: '💰 רכישה',
+    admin_grant: '🎁 מענק', admin_set: '⚙️ קביעת יתרה', subscription: '📅 מנוי מאמן אוטומטי'
+  };
+  async function openTokenHistory() {
+    document.getElementById('token-history-modal').style.display = 'flex';
+    const body = document.getElementById('token-history-body');
+    body.innerHTML = '<div style="text-align:center;color:#555;padding:30px 0;">טוען...</div>';
+    const { data, error } = await sb.from('token_usage')
+      .select('*').eq('coach_email', coachEmail)
+      .order('created_at', { ascending: false }).limit(100);
+    if (error) { body.innerHTML = `<div style="color:#ff7070;padding:20px;text-align:center;">שגיאה: ${esc(error.message)}</div>`; return; }
+    if (!data || !data.length) { body.innerHTML = '<div style="text-align:center;color:#555;padding:30px 0;">אין תנועות טוקנים עדיין</div>'; return; }
+    body.innerHTML = data.map(r => {
+      const isCharge = r.amount > 0;                 // חיוב = ירידה ביתרה
+      const sign = isCharge ? '−' : '+';
+      const col  = isCharge ? '#ff7070' : '#4ade80';
+      const d = new Date(r.created_at).toLocaleString('he-IL', { day:'2-digit', month:'2-digit', year:'2-digit', hour:'2-digit', minute:'2-digit' });
+      const kindLbl = TU_KIND_LABEL[r.kind] || r.kind;
+      return `<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 6px;border-bottom:1px solid rgba(255,255,255,0.05);">
+        <div style="min-width:0;">
+          <div style="font-size:0.86rem;font-weight:700;color:#fff;">${kindLbl}</div>
+          <div style="font-size:0.7rem;color:#777;">${esc(r.label||'')} · ${d}</div>
+        </div>
+        <div style="text-align:left;flex-shrink:0;">
+          <div style="font-size:0.95rem;font-weight:900;color:${col};">${sign}${Math.abs(r.amount).toLocaleString('he-IL')}</div>
+          ${r.balance_after!=null?`<div style="font-size:0.66rem;color:#666;">יתרה: ${r.balance_after.toLocaleString('he-IL')}</div>`:''}
+        </div>
+      </div>`;
+    }).join('');
+  }
+  function closeTokenHistory() { document.getElementById('token-history-modal').style.display = 'none'; }
 
   function selectTokenPkg(idx) {
     _tshopSelected = TSHOP_PKGS[idx];
@@ -3510,7 +3548,7 @@
     const statusEl = document.getElementById('ai-status');
     const btn = document.getElementById('ai-gen-btn');
     if (!prompt) { statusEl.style.color = '#ff7070'; statusEl.textContent = 'יש לתאר את התוכנית קודם'; return; }
-    if (!await deductTokens(TOKEN_COST_PLAN, 'תוכנית אימון')) return;
+    if (!await deductTokens(TOKEN_COST_PLAN, 'תוכנית אימון', 'plan')) return;
 
     btn.disabled = true; btn.textContent = '⏳ בונה...';
     statusEl.style.color = 'var(--muted)'; statusEl.textContent = `Claude חושב... (${TOKEN_COST_PLAN} טוקנים)`;
@@ -3857,7 +3895,7 @@ Bro Split: 6-8 תרגילים לשריר, דגש על מבודדים, ניתן 2
     const statusEl = document.getElementById('nutri-ai-status');
     const btn      = document.getElementById('nutri-ai-btn');
     if (!prompt) { statusEl.style.color='#ff7070'; statusEl.textContent='יש לתאר את המטרה קודם'; return; }
-    if (!await deductTokens(TOKEN_COST_NUTRI, 'תפריט תזונה')) return;
+    if (!await deductTokens(TOKEN_COST_NUTRI, 'תפריט תזונה', 'nutrition')) return;
     const clientWeight = parseFloat(document.getElementById('e-weight').value) || null;
     const targetCal    = parseInt(document.getElementById('e-cal').value)    || null;
     const targetProt   = parseInt(document.getElementById('e-prot').value)   || null;
@@ -6530,6 +6568,19 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
         <button class="btn-sm btn-orange btn-add-sched" onclick="saveScheduledMessage()" style="align-self:flex-start;">+ הוסף תזמון</button>
       </div>
       <div id="sched-list" style="display:flex;flex-direction:column;gap:6px;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ TOKEN HISTORY MODAL ═══ -->
+<div id="token-history-modal" onclick="if(event.target===this)closeTokenHistory()" style="position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,0.88);display:none;align-items:center;justify-content:center;padding:16px;">
+  <div style="background:#111;border:1px solid rgba(255,255,255,0.1);border-radius:16px;max-width:520px;width:100%;max-height:82vh;display:flex;flex-direction:column;overflow:hidden;">
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:16px 18px;border-bottom:1px solid rgba(255,255,255,0.08);">
+      <div style="font-size:1.05rem;font-weight:900;color:#fff;">🧾 היסטוריית טוקנים</div>
+      <button onclick="closeTokenHistory()" style="background:none;border:none;color:#555;font-size:1.2rem;cursor:pointer;line-height:1;padding:2px 4px;">✕</button>
+    </div>
+    <div id="token-history-body" style="overflow-y:auto;padding:10px 14px;">
+      <div style="text-align:center;color:#555;padding:30px 0;">טוען...</div>
     </div>
   </div>
 </div>

@@ -336,6 +336,18 @@
 </div>
 
 <!-- ADD CLIENT MODAL -->
+<div class="modal-bg" id="coach-token-history-modal">
+  <div class="modal" style="max-width:520px;max-height:82vh;display:flex;flex-direction:column;overflow:hidden;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+      <h3 style="margin:0;">🧾 היסטוריית טוקנים — <span id="cth-coach-name"></span></h3>
+      <button onclick="closeCoachTokenHistory()" style="background:none;border:none;color:#777;font-size:1.2rem;cursor:pointer;">✕</button>
+    </div>
+    <div id="cth-body" style="overflow-y:auto;">
+      <div style="text-align:center;color:#555;padding:30px 0;">טוען...</div>
+    </div>
+  </div>
+</div>
+
 <div class="modal-bg" id="add-modal">
   <div class="modal">
     <h3>הוסף <span>לקוח חדש</span></h3>
@@ -1226,6 +1238,7 @@
               style="width:100px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:6px;color:#fff;font-family:'Heebo',sans-serif;font-size:0.78rem;padding:4px 8px;outline:none;"
               onclick="event.stopPropagation()"/>
             <button class="btn-sm btn-outline" style="font-size:0.7rem;padding:4px 9px;" onclick="event.stopPropagation();setCoachTokensDirect('${c.id}','${c.email}')">קבע</button>
+            <button class="btn-sm btn-outline" style="font-size:0.7rem;padding:4px 9px;" onclick="event.stopPropagation();openCoachTokenHistory('${c.email}','${esc(c.name||c.email)}')">🧾 היסטוריה</button>
           </div>
         </div>`;
 
@@ -1505,13 +1518,46 @@
     tokenRequestsCache = data || [];
   }
 
-  async function grantCoachTokens(email, amount) {
+  const CTH_KIND_LABEL = {
+    plan: '🏋️ תוכנית אימון', nutrition: '🥗 תפריט תזונה',
+    autopilot: '🤖 מאמן אוטומטי', purchase: '💰 רכישה',
+    admin_grant: '🎁 מענק', admin_set: '⚙️ קביעת יתרה', subscription: '📅 מנוי מאמן אוטומטי'
+  };
+  async function openCoachTokenHistory(email, name) {
+    document.getElementById('coach-token-history-modal').classList.add('open');
+    document.getElementById('cth-coach-name').textContent = name || email;
+    const body = document.getElementById('cth-body');
+    body.innerHTML = '<div style="text-align:center;color:#555;padding:30px 0;">טוען...</div>';
+    const { data, error } = await sbAdmin.from('token_usage')
+      .select('*').eq('coach_email', email)
+      .order('created_at', { ascending: false }).limit(200);
+    if (error) { body.innerHTML = `<div style="color:#ff7070;padding:20px;text-align:center;">שגיאה: ${esc(error.message)}</div>`; return; }
+    if (!data || !data.length) { body.innerHTML = '<div style="text-align:center;color:#555;padding:30px 0;">אין תנועות טוקנים</div>'; return; }
+    body.innerHTML = data.map(r => {
+      const isCharge = r.amount > 0;
+      const sign = isCharge ? '−' : '+';
+      const col  = isCharge ? '#ff7070' : '#4ade80';
+      const d = new Date(r.created_at).toLocaleString('he-IL', { day:'2-digit', month:'2-digit', year:'2-digit', hour:'2-digit', minute:'2-digit' });
+      const kindLbl = CTH_KIND_LABEL[r.kind] || r.kind;
+      return `<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 4px;border-bottom:1px solid rgba(255,255,255,0.05);">
+        <div style="min-width:0;"><div style="font-size:0.85rem;font-weight:700;color:#fff;">${kindLbl}</div>
+        <div style="font-size:0.68rem;color:#777;">${esc(r.label||'')} · ${d}</div></div>
+        <div style="text-align:left;flex-shrink:0;"><div style="font-size:0.92rem;font-weight:900;color:${col};">${sign}${Math.abs(r.amount).toLocaleString('he-IL')}</div>
+        ${r.balance_after!=null?`<div style="font-size:0.64rem;color:#666;">יתרה: ${r.balance_after.toLocaleString('he-IL')}</div>`:''}</div>
+      </div>`;
+    }).join('');
+  }
+  function closeCoachTokenHistory() { document.getElementById('coach-token-history-modal').classList.remove('open'); }
+
+  async function grantCoachTokens(email, amount, kind = 'purchase', label = 'רכישת טוקנים') {
     const cur = coachTokensCache[email] ?? 0;
     const newBal = cur + amount;
     const { error } = await sbAdmin.from('coach_tokens')
       .upsert({ coach_email: email, balance: newBal, updated_at: new Date().toISOString() }, { onConflict: 'coach_email' });
     if (error) { console.error('grantCoachTokens error:', error); toast('שגיאה: ' + error.message, 'err'); return; }
     coachTokensCache[email] = newBal;
+    // רישום להיסטוריה (amount שלילי = זיכוי/רכישה)
+    sbAdmin.from('token_usage').insert({ coach_email: email, amount: -amount, kind, label, balance_after: newBal }).then(()=>{});
     toast(`✓ נוספו ${amount} טוקנים (סה"כ: ${newBal})`, 'ok');
     renderCoachesTable();
   }
@@ -1520,10 +1566,13 @@
     const inp = document.getElementById(`tok-inp-${id}`);
     const val = parseInt(inp?.value);
     if (isNaN(val) || val < 0) { toast('הכנס מספר תקין', 'err'); return; }
+    const prev = coachTokensCache[email] ?? 0;
     const { error } = await sbAdmin.from('coach_tokens')
       .upsert({ coach_email: email, balance: val, updated_at: new Date().toISOString() }, { onConflict: 'coach_email' });
     if (error) { console.error('setCoachTokensDirect error:', error); toast('שגיאה: ' + error.message, 'err'); return; }
     coachTokensCache[email] = val;
+    // רישום להיסטוריה (הפרש מהיתרה הקודמת)
+    sbAdmin.from('token_usage').insert({ coach_email: email, amount: (prev - val), kind: 'admin_set', label: 'קביעת יתרה ידנית', balance_after: val }).then(()=>{});
     if (inp) inp.value = '';
     toast(`✓ יתרה קבועה ל-${val} טוקנים`, 'ok');
     renderCoachesTable();
