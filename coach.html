@@ -4530,7 +4530,7 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
   /* ── EXERCISE AUTOCOMPLETE ── */
   async function loadExerciseLibrary() {
     try {
-      const res = await fetch('/strength_exercises.json');
+      const res = await fetch('strength_exercises.json');
       const raw = await res.json();
       exerciseLibrary = raw.map(ex => {
         const md = ex.muscle_details || [];
@@ -4584,7 +4584,7 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
   }
   async function loadFoodItems() {
     try {
-      const res = await fetch('/food_all.json');
+      const res = await fetch('food_all.json');
       const raw = await res.json();
       const n = v => (v === null || v === '' || v === undefined) ? 0 : Math.round(Number(v) * 10) / 10;
       allFoodItems = raw.map(f => ({

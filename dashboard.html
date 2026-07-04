@@ -1260,7 +1260,7 @@
 
   async function loadExerciseDB() {
     try {
-      const r = await fetch('/strength_exercises.json');
+      const r = await fetch('strength_exercises.json');
       exerciseDB = await r.json();
       exerciseByName = {};
       exerciseDB.forEach(ex => {

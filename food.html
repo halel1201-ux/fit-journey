@@ -212,7 +212,7 @@
     }
     if (!session) { window.location.href = 'login.html'; return; }
 
-    const res = await fetch('/food_all.json');
+    const res = await fetch('food_all.json');
     const raw = await res.json();
     allFoods = raw.map(f => ({
       id:        f.product_id,
