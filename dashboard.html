@@ -2019,7 +2019,7 @@
         <div class="sets-head">
           <span></span><span>ק"ג</span><span>חזרות</span><span></span>
         </div>
-        ${ex.sets.map((s, si) => sRowHtml(ei, si, s)).join('')}
+        ${(() => { const nums = computeSetNumbers(ex.sets); return ex.sets.map((s, si) => sRowHtml(ei, si, s, nums[si])).join(''); })()}
       </div>`;
   }
 
@@ -2044,10 +2044,26 @@
     document.getElementById('session-body').innerHTML = html;
   }
 
-  const SET_TYPE_LABEL = { warm_up: 'חמ׳', working: '', failure: 'כשל' };
-  const SET_TYPE_COLOR = { warm_up: '#64b4ff', working: '', failure: 'var(--orange)' };
+  const SET_TYPE_LABEL = { warm_up: 'חמ׳', working: '', failure: 'כשל', drop: 'דרופ סט' };
+  const SET_TYPE_COLOR = { warm_up: '#64b4ff', working: '', failure: 'var(--orange)', drop: '#b478ff' };
 
-  function sRowHtml(ei, si, s) {
+  /* מספור סטים: רגיל = שלם, דרופ = הסט שלפניו + .5/.6/... */
+  function computeSetNumbers(sets) {
+    const nums = [];
+    let main = 0, frac = 5;
+    for (let i = 0; i < sets.length; i++) {
+      if ((sets[i].set_type || 'working') === 'drop') {
+        nums.push(main > 0 ? (main + frac / 10) : (frac / 10));
+        frac++;
+      } else {
+        main++; frac = 5;
+        nums.push(main);
+      }
+    }
+    return nums.map(n => Number.isInteger(n) ? String(n) : n.toFixed(1));
+  }
+
+  function sRowHtml(ei, si, s, dispNum) {
     const hasRange = s.reps_min > 0 || s.reps_max > 0;
     const rangeDisplay = hasRange ? `${s.reps_min}–${s.reps_max}` : '';
     const progHigh = s.suggested_high || 0;
@@ -2062,7 +2078,7 @@
       ? `<div style="font-size:0.58rem;font-weight:700;color:${typeColor};text-align:center;margin-top:1px;">${typeLabel}</div>` : '';
     return `<div class="s-row${s.completed ? ' done' : ''}" id="sr-${ei}-${si}">
       <div style="display:flex;flex-direction:column;align-items:center;">
-        <span class="s-label">סט ${si + 1}</span>
+        <span class="s-label">סט ${dispNum != null ? dispNum : si + 1}</span>
         ${typeBadge}
       </div>
       <div style="display:flex;flex-direction:column;align-items:center;">
@@ -2157,7 +2173,7 @@
         name: ex.name,
         sets: ex.sets
           .filter(s => s.completed || s.weight !== '' || s.reps !== '')
-          .map(s => ({ weight: s.weight, reps: s.reps, completed: s.completed }))
+          .map(s => ({ weight: s.weight, reps: s.reps, completed: s.completed, set_type: s.set_type || 'working' }))
       }))
       .filter(ex => ex.sets.length > 0);
 
@@ -2316,7 +2332,7 @@
               <div class="hist-ex">
                 <div class="hist-ex-name">${esc(ex.name)}</div>
                 <div class="hist-ex-sets">
-                  ${(ex.sets || []).map((s, i) => `סט ${i+1}: <strong>${s.weight || '—'} ק"ג × ${s.reps || '—'}</strong>`).join(' &nbsp;|&nbsp; ')}
+                  ${(() => { const nums = computeSetNumbers(ex.sets || []); return (ex.sets || []).map((s, i) => `סט ${nums[i]}${s.set_type==='drop'?' (דרופ)':''}: <strong>${s.weight || '—'} ק"ג × ${s.reps || '—'}</strong>`).join(' &nbsp;|&nbsp; '); })()}
                 </div>
               </div>
             `).join('')}

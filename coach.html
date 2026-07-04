@@ -113,6 +113,7 @@
     .set-type-sel:focus { border-color:var(--orange); }
     .set-type-sel.type-warm { border-color:rgba(100,180,255,0.4); color:#64b4ff; }
     .set-type-sel.type-failure { border-color:rgba(255,107,0,0.4); color:var(--orange); }
+    .set-type-sel.type-drop { border-color:rgba(180,120,255,0.45); color:#b478ff; }
     .sets-coach-row input { background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); border-radius:5px; color:#fff; font-family:'Heebo',sans-serif; font-size:0.82rem; padding:4px 6px; outline:none; width:100%; text-align:center; }
     .sets-coach-row input:focus { border-color:var(--orange); }
     .sets-coach-range { display:flex; align-items:center; gap:4px; }
@@ -3335,6 +3336,26 @@
     trainingPlan[di].exercises[ei].sets[si][field] = numFields.includes(field) ? +val : val;
   }
 
+  /* מספור סטים: סט רגיל = מספר שלם, דרופ = מספר הסט שלפניו + .5/.6/... */
+  function computeSetNumbers(sets) {
+    const nums = [];
+    let main = 0, frac = 5;
+    for (let i = 0; i < sets.length; i++) {
+      if ((sets[i].set_type || 'working') === 'drop') {
+        nums.push(main > 0 ? (main + frac / 10) : (frac / 10));
+        frac++;
+      } else {
+        main++; frac = 5;
+        nums.push(main);
+      }
+    }
+    return nums;
+  }
+  function coachSetLabel(sets, si) {
+    const n = computeSetNumbers(sets)[si];
+    return Number.isInteger(n) ? String(n) : n.toFixed(1);
+  }
+
   function addCoachSet(di, ei) {
     if (!Array.isArray(trainingPlan[di].exercises[ei].sets))
       trainingPlan[di].exercises[ei].sets = parseSetsToArray(trainingPlan[di].exercises[ei].sets);
@@ -3427,14 +3448,15 @@
         <div class="sets-coach-head"><span>סט</span><span style="text-align:center;">סוג</span><span style="text-align:center;">ק"ג מומלץ</span><span>טווח חזרות</span><span></span></div>
         ${sets.map((s, si) => {
           const st = s.set_type || 'working';
-          const stClass = st === 'warm_up' ? 'type-warm' : st === 'failure' ? 'type-failure' : '';
+          const stClass = st === 'warm_up' ? 'type-warm' : st === 'failure' ? 'type-failure' : st === 'drop' ? 'type-drop' : '';
           return `
           <div class="sets-coach-row">
-            <span style="font-size:0.8rem;font-weight:700;color:var(--muted);text-align:center;">${si+1}</span>
-            <select class="set-type-sel ${stClass}" onchange="updateCoachSet(${di},${ei},${si},'set_type',this.value);this.className='set-type-sel '+(this.value==='warm_up'?'type-warm':this.value==='failure'?'type-failure':'')">
+            <span style="font-size:0.8rem;font-weight:700;color:var(--muted);text-align:center;">${coachSetLabel(sets, si)}</span>
+            <select class="set-type-sel ${stClass}" onchange="updateCoachSet(${di},${ei},${si},'set_type',this.value);renderTrainingEditor()">
               <option value="warm_up" ${st==='warm_up'?'selected':''}>חמ׳</option>
               <option value="working" ${st==='working'?'selected':''}>עב׳</option>
               <option value="failure" ${st==='failure'?'selected':''}>כשל</option>
+              <option value="drop" ${st==='drop'?'selected':''}>דרופ</option>
             </select>
             <input type="number" step="0.5" min="0" value="${s.recommended_kg||0}" oninput="updateCoachSet(${di},${ei},${si},'recommended_kg',this.value)" placeholder="0"/>
             <div class="sets-coach-range">
