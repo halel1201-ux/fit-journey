@@ -1885,6 +1885,49 @@
     }
     renderSidebar();
     renderLobby();
+    loadUnreadCounts();
+    setupGlobalMsgRealtime();
+  }
+
+  // ─── UNREAD MESSAGES per client (red badge in sidebar) ───────────────
+  let clientUnread = {};
+  let globalMsgRealtime = null;
+  function _chatSeenKey() { return 'hf_coach_chatseen_' + coachEmail; }
+  function getChatSeen() { try { return JSON.parse(localStorage.getItem(_chatSeenKey()) || '{}'); } catch { return {}; } }
+  function markChatSeen(email) {
+    const s = getChatSeen(); s[email] = new Date().toISOString();
+    try { localStorage.setItem(_chatSeenKey(), JSON.stringify(s)); } catch {}
+    clientUnread[email] = 0;
+  }
+  async function loadUnreadCounts() {
+    const seen = getChatSeen();
+    const { data } = await sb.from('messages')
+      .select('client_email, sender_email, created_at')
+      .eq('coach_email', coachEmail)
+      .order('created_at', { ascending: false })
+      .limit(1000);
+    clientUnread = {};
+    (data || []).forEach(m => {
+      if (m.sender_email !== m.client_email) return;       // רק הודעות שהמתאמן שלח
+      if (m.client_email === activeEmail) return;          // צ'אט פתוח = נקרא
+      const seenT = seen[m.client_email];
+      if (!seenT || new Date(m.created_at) > new Date(seenT)) {
+        clientUnread[m.client_email] = (clientUnread[m.client_email] || 0) + 1;
+      }
+    });
+    renderSidebar();
+  }
+  function setupGlobalMsgRealtime() {
+    if (globalMsgRealtime) return; // once
+    globalMsgRealtime = sb.channel('coach-all-msgs')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `coach_email=eq.${coachEmail}` }, payload => {
+        const m = payload.new;
+        if (!m || m.sender_email !== m.client_email) return; // רק הודעות מהמתאמן
+        if (m.client_email === activeEmail) { markChatSeen(activeEmail); return; }
+        clientUnread[m.client_email] = (clientUnread[m.client_email] || 0) + 1;
+        renderSidebar();
+      })
+      .subscribe();
   }
 
   async function renderLobby() {
@@ -2090,6 +2133,10 @@
       const debtBadge = debtBal > 0
         ? `<span title="חוב פתוח" style="font-size:0.66rem;font-weight:900;color:${debtStatusColor(debtBal)};background:${debtStatusColor(debtBal)}1a;border:1px solid ${debtStatusColor(debtBal)}40;border-radius:8px;padding:1px 6px;flex-shrink:0;">₪${debtBal.toLocaleString()}</span>`
         : '';
+      const unread = clientUnread[c.email] || 0;
+      const unreadBadge = unread > 0
+        ? `<span title="הודעות שלא נקראו" style="font-size:0.68rem;font-weight:900;color:#fff;background:#ef4444;border-radius:10px;min-width:19px;height:19px;display:inline-flex;align-items:center;justify-content:center;padding:0 5px;flex-shrink:0;box-shadow:0 0 8px rgba(239,68,68,0.5);">${unread > 99 ? '99+' : unread}</span>`
+        : '';
       return `
       <div class="client-item ${c.email === activeEmail ? 'active' : ''}" onclick="selectClient('${c.email}')">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;">
@@ -2098,6 +2145,7 @@
             <div class="client-item-name" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(c.name)}</div>
           </div>
           <div style="display:flex;align-items:center;gap:5px;flex-shrink:0;">
+            ${unreadBadge}
             ${debtBadge}
             <span class="gender-tag ${c.gender === 'female' ? 'female' : 'male'}">${c.gender === 'female' ? '♀' : '♂'}</span>
           </div>
@@ -2111,6 +2159,7 @@
   async function selectClient(email) {
     activeEmail = email;
     currentPackage = null;
+    markChatSeen(email); // פתיחת המתאמן = ההודעות נקראו
     renderSidebar();
     closeMobileSidebar();
     const client = clients.find(c => c.email === email);
