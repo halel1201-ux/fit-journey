@@ -1106,19 +1106,20 @@
               <div style="font-size:0.75rem;color:var(--muted);margin-top:2px;">${esc(c.email)}${c.phone ? ' · ' + esc(c.phone) : ''}</div>
             </div>
             <div style="display:flex;gap:8px;flex-shrink:0;">
-              <button class="btn-sm btn-orange" onclick="approveCoach('${c.id}')">✓ אשר</button>
+              <button class="btn-sm btn-orange" onclick="approvePendingCoach('${c.id}')">✓ אשר</button>
               <button class="btn-sm btn-red" onclick="rejectCoach('${c.id}','${esc(c.name)}')">✕ דחה</button>
             </div>
           </div>`).join('')}
       </div>`;
   }
 
-  async function approveCoach(id) {
-    const { error } = await sb.from('coaches').update({ role: 'senior' }).eq('id', id);
-    if (error) { toast('שגיאה באישור', 'err'); return; }
+  // אישור מאמן ממתין → מאמן רגיל (צפייה בלבד). שדרוג ל-בכיר נעשה דרך כפתורי הרישיון.
+  async function approvePendingCoach(id) {
+    const { error } = await sbAdmin.from('coaches').update({ role: 'regular' }).eq('id', id);
+    if (error) { toast('שגיאה באישור: ' + error.message, 'err'); return; }
     const c = coachesList.find(x => x.id === id);
     if (c) c.role = 'regular';
-    toast('המאמן אושר ✓', 'ok');
+    toast('המאמן אושר כמאמן רגיל (צפייה) ✓', 'ok');
     renderPendingCoaches();
     renderCoachesTable();
   }

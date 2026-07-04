@@ -969,6 +969,7 @@
   function closeAutopilotShop() { document.getElementById('autopilot-shop-modal').style.display = 'none'; }
 
   async function buyAutopilot(planId) {
+    if (!requireEdit()) return;
     const plan = AUTOPILOT_PLANS.find(p => p.id === planId);
     if (!plan) return;
     if (coachTokens < plan.tokens) {
@@ -1327,6 +1328,7 @@
   }
 
   async function saveScheduledMessage() {
+    if (!requireEdit()) return;
     const msg = document.getElementById('sched-msg').value.trim();
     const isRecurring = document.querySelector('input[name="sched-type"]:checked').value === 'recurring';
     if (!msg) { toast('יש למלא הודעה', 'err'); return; }
@@ -1355,6 +1357,7 @@
   }
 
   async function deleteScheduledMessage(id) {
+    if (!requireEdit()) return;
     if (!confirm('למחוק תזמון זה?')) return;
     await sb.from('scheduled_messages').delete().eq('id', id);
     loadScheduledMessages();
@@ -1364,6 +1367,20 @@
   let coachName  = null;
   let coachPhone = null;
   let coachRole  = 'regular';
+  let canEdit    = false;   // senior/admin עורכים · regular צופה בלבד
+  function requireEdit() {
+    if (!canEdit) { toast('מצב צפייה בלבד — אין הרשאת עריכה', 'err'); return false; }
+    return true;
+  }
+  function showViewOnlyBanner() {
+    if (document.getElementById('view-only-banner')) return;
+    const b = document.createElement('div');
+    b.id = 'view-only-banner';
+    b.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9999;background:linear-gradient(90deg,#334155,#475569);color:#fff;text-align:center;padding:6px 12px;font-family:\'Heebo\',sans-serif;font-size:0.78rem;font-weight:700;box-shadow:0 2px 8px rgba(0,0,0,0.3);';
+    b.textContent = '👁 מצב צפייה בלבד — מאמן רגיל אינו יכול לערוך. לעריכה פנה למנהל.';
+    document.body.appendChild(b);
+    document.body.style.paddingTop = '30px';
+  }
   let clients     = [];
   let activeEmail = null;
   let currentPackage = null;
@@ -1763,7 +1780,9 @@
     coachName  = coach.name;
     coachPhone = coach.phone || null;
     coachRole  = coach.role || 'regular';
+    canEdit    = (coachRole === 'senior' || coachRole === 'admin');
     coachPlans = coach.plans || {};
+    if (!canEdit && coachRole !== 'pending') showViewOnlyBanner();
     document.getElementById('coach-brand').textContent = `FJ — ${coachName}`;
     loadTokens();
     loadAutopilotState();
@@ -1914,6 +1933,7 @@
     document.getElementById('add-err').style.display = 'none';
   }
   async function addClient() {
+    if (!requireEdit()) return;
     const name   = document.getElementById('new-name').value.trim();
     const email  = document.getElementById('new-email').value.trim();
     const start  = document.getElementById('new-start').value;
@@ -2447,6 +2467,7 @@
   }
 
   async function saveClientPackage() {
+    if (!requireEdit()) return;
     const months   = parseInt(document.getElementById('pkg-months')?.value || '1');
     const start    = document.getElementById('pkg-start')?.value;
     const end      = document.getElementById('pkg-end')?.value;
@@ -2710,6 +2731,7 @@
     document.getElementById('debt-charge-modal').style.display = 'none';
   }
   async function saveDebtCharge() {
+    if (!requireEdit()) return;
     const amount = parseFloat(document.getElementById('debt-charge-amount').value);
     if (!amount || amount <= 0) { toast('הכנס סכום תקין', 'err'); return; }
     const category = document.getElementById('debt-charge-category').value;
@@ -2736,6 +2758,7 @@
     document.getElementById('debt-payment-modal').style.display = 'none';
   }
   async function saveDebtPayment() {
+    if (!requireEdit()) return;
     const amount = parseFloat(document.getElementById('debt-payment-amount').value);
     if (!amount || amount <= 0) { toast('הכנס סכום תקין', 'err'); return; }
     const method = document.getElementById('debt-payment-method').value;
@@ -2752,6 +2775,7 @@
   }
 
   async function deleteDebtTxn(id) {
+    if (!requireEdit()) return;
     if (!confirm('למחוק תנועה זו?')) return;
     const { error } = await sb.from('client_debt_transactions').delete().eq('id', id);
     if (error) { toast('שגיאה: ' + error.message, 'err'); return; }
@@ -2864,6 +2888,7 @@
   function closeClientCard() { document.getElementById('client-card-modal').classList.remove('open'); }
 
   async function deleteClientCoach() {
+    if (!requireEdit()) return;
     const emailEl = document.getElementById('cc-email');
     const email = emailEl?.querySelector('a')?.textContent || emailEl?.textContent || '';
     const name  = document.getElementById('cc-name')?.textContent || email;
@@ -2901,6 +2926,7 @@
 
   /* ── SAVE PROFILE ── */
   async function saveProfile() {
+    if (!requireEdit()) return;
     const name   = document.getElementById('e-name').value.trim();
     const phone  = document.getElementById('e-phone').value.trim();
     const newEmail = document.getElementById('e-email')?.value.trim().toLowerCase() || activeEmail;
@@ -2940,6 +2966,7 @@
 
   /* הגדרת סיסמה ללקוח — מאמן בכיר בלבד (לקוחות מאמן רגיל מנוהלים ע"י אדמין) */
   async function setClientPassword() {
+    if (!requireEdit()) return;
     if (coachRole !== 'senior') { toast('פעולה זו מוגבלת למאמן בכיר', 'err'); return; }
     const phone = document.getElementById('e-phone').value.trim();
     const email = activeEmail;
@@ -3137,6 +3164,7 @@
   }
 
   async function savePeakWeekPlan() {
+    if (!requireEdit()) return;
     savePwDayToMemory();
     if (!peakWeekPlan) return;
     const pwStart   = document.getElementById('e-pw-start')?.value || null;
@@ -3634,6 +3662,7 @@
   }
 
   async function generatePlanWithAI() {
+    if (!requireEdit()) return;
     const prompt = document.getElementById('ai-prompt').value.trim();
     const statusEl = document.getElementById('ai-status');
     const btn = document.getElementById('ai-gen-btn');
@@ -3829,6 +3858,7 @@ Bro Split: 6-8 תרגילים לשריר, דגש על מבודדים, ניתן 2
   }
 
   async function saveTraining(silent) {
+    if (!requireEdit()) return;
     const planData = { active: trainingPlan, archive: trainingArchive };
     const { error } = await sb.from('training_plans').upsert({client_email:activeEmail,plan:planData,updated_at:new Date().toISOString()},{onConflict:'client_email'});
     if (silent) return !error;
@@ -3981,6 +4011,7 @@ Bro Split: 6-8 תרגילים לשריר, דגש על מבודדים, ניתן 2
   }
 
   async function generateNutritionWithAI() {
+    if (!requireEdit()) return;
     const prompt   = document.getElementById('nutri-ai-prompt').value.trim();
     const statusEl = document.getElementById('nutri-ai-status');
     const btn      = document.getElementById('nutri-ai-btn');
@@ -4218,6 +4249,7 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
   function addItem(mi)     { nutritionPlan[mi].items.push({food:'',quantity:'',calories:0,protein:0,carbs:0,fat:0}); renderNutritionEditor(); }
   function removeItem(mi,ii) { nutritionPlan[mi].items.splice(ii,1); renderNutritionEditor(); }
   async function saveNutrition() {
+    if (!requireEdit()) return;
     const { error } = await sb.from('nutrition_plans').upsert({client_email:activeEmail,plan:nutritionPlan,updated_at:new Date().toISOString()},{onConflict:'client_email'});
     error ? toast('שגיאה בשמירה','err') : toast('תפריט נשמר ✓','ok');
   }
@@ -5316,6 +5348,7 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
   }
 
   async function saveCoachPersonalInfo() {
+    if (!requireEdit()) return;
     const newName  = document.getElementById('cp-name').value.trim();
     const newPhone = document.getElementById('cp-phone').value.trim();
     const newEmail = document.getElementById('cp-email').value.trim().toLowerCase();
@@ -5361,6 +5394,7 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
   }
 
   async function saveBranding() {
+    if (!requireEdit()) return;
     const btn = document.getElementById('brand-save-btn');
     const msg = document.getElementById('brand-save-msg');
     btn.disabled = true; btn.textContent = '⏳ שומר...';
@@ -5547,6 +5581,7 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
   }
 
   async function saveCycleForClient() {
+    if (!requireEdit()) return;
     const email  = activeEmail; if (!email) return;
     const status = document.getElementById('cy-status').value;
     const goal   = document.getElementById('cy-goal').value;
@@ -5578,6 +5613,7 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
   }
 
   async function endCycleForClient() {
+    if (!requireEdit()) return;
     if (!clientCycle || !activeEmail) return;
     if (!confirm('לסיים את הסייקל הנוכחי ולהעביר להיסטוריה?')) return;
     await sbAdmin.from('cycle_history').insert({
@@ -5863,6 +5899,7 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
   }
 
   async function sendMessageAsCoach() {
+    if (!requireEdit()) return;
     const email = activeEmail; if (!email) return;
     const inp = document.getElementById('coach-chat-inp');
     const text = inp?.value.trim();
@@ -6093,6 +6130,7 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
   }
 
   async function sendCoachGroupMsg() {
+    if (!requireEdit()) return;
     const inp  = document.getElementById('coach-grp-inp');
     const text = inp?.value.trim();
     if (!text) return;
@@ -6487,6 +6525,7 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
   }
 
   async function saveMeasurement() {
+    if (!requireEdit()) return;
     const email = activeEmail; if (!email) return;
     const date = document.getElementById('mf-date')?.value;
     if (!date) { toast('יש לבחור תאריך', 'err'); return; }
