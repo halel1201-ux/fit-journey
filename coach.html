@@ -864,6 +864,16 @@
       body: (options && options.body) || "{}"
     });
   }
+  // קריאה לפעולות auth מאובטחות בשרת (set_password / rename_email)
+  async function adminCall(payload) {
+    const { data: { session } } = await sb.auth.getSession();
+    const res = await fetch(`${URL_}/functions/v1/admin`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "apikey": KEY, "Authorization": `Bearer ${session?.access_token || ""}` },
+      body: JSON.stringify(payload)
+    });
+    try { return await res.json(); } catch { return { error: "network" }; }
+  }
   const sb      = supabase.createClient(URL_, KEY);
   const sbAdmin = supabase.createClient(URL_, SERVICE_KEY, {
     auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }
@@ -2956,10 +2966,9 @@
       // עדכון המייל בכל הטבלאות בטרנזקציה אחת (RPC בצד ה-DB)
       const { error: rpcErr } = await sbAdmin.rpc('rename_client_email', { p_old: activeEmail, p_new: newEmail });
       if (rpcErr) { toast('שגיאה בשינוי מייל: ' + rpcErr.message, 'err'); return; }
-      // עדכון משתמש ההתחברות (Supabase Auth)
-      const { data: { users } } = await sbAdmin.auth.admin.listUsers({ perPage: 1000 });
-      const authUser = users?.find(u => u.email === activeEmail);
-      if (authUser) await sbAdmin.auth.admin.updateUserById(authUser.id, { email: newEmail, email_confirm: true });
+      // עדכון משתמש ההתחברות (Supabase Auth) — דרך שרת מאובטח
+      const _r = await adminCall({ action: 'rename_email', old_email: activeEmail, new_email: newEmail });
+      if (_r?.error) { toast('שגיאה בעדכון מייל התחברות: ' + _r.error, 'err'); return; }
       activeEmail = newEmail;
     }
     const updatePayload = { name, phone, coaching_start: start, coaching_end: end,
@@ -2982,17 +2991,8 @@
     const password = phone.replace(/\D/g, '');
     if (password.length < 6) { toast('מספר טלפון קצר מדי (מינימום 6 ספרות)', 'err'); return; }
 
-    const { data: { users }, error: listErr } = await sbAdmin.auth.admin.listUsers({ perPage: 1000 });
-    if (listErr) { toast('שגיאה: ' + listErr.message, 'err'); return; }
-
-    const user = users.find(u => u.email === email);
-    if (user) {
-      const { error } = await sbAdmin.auth.admin.updateUserById(user.id, { password });
-      if (error) { toast('שגיאה בעדכון סיסמה: ' + error.message, 'err'); return; }
-    } else {
-      const { error } = await sbAdmin.auth.admin.createUser({ email, password, email_confirm: true });
-      if (error) { toast('שגיאה ביצירת משתמש: ' + error.message, 'err'); return; }
-    }
+    const _r = await adminCall({ action: 'set_password', email, password });
+    if (_r?.error) { toast('שגיאה בהגדרת סיסמה: ' + _r.error, 'err'); return; }
     toast(`✓ סיסמה הוגדרה: ${password}`, 'ok');
   }
 
@@ -5374,13 +5374,8 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
         const ok = confirm(`שינוי מייל כניסה מ-\n${coachEmail}\nל-\n${newEmail}\n\nהשינוי ישפיע על כל הנתונים. האם להמשיך?`);
         if (!ok) { btn.disabled = false; btn.textContent = '💾 שמור פרטים אישיים'; return; }
 
-        const { data: listData, error: listErr } = await sbAdmin.auth.admin.listUsers({ perPage: 1000 });
-        if (listErr) throw new Error('שגיאה בטעינת משתמשים: ' + listErr.message);
-        const authUser = (listData?.users || []).find(u => u.email === coachEmail);
-        if (!authUser) throw new Error('משתמש לא נמצא בAuth — פנה לאדמין');
-
-        const { error: authErr } = await sbAdmin.auth.admin.updateUserById(authUser.id, { email: newEmail, email_confirm: true });
-        if (authErr) throw new Error('שגיאת Auth: ' + authErr.message);
+        const _r = await adminCall({ action: 'rename_email', old_email: coachEmail, new_email: newEmail });
+        if (_r?.error) throw new Error('שגיאת Auth: ' + _r.error);
 
         updates.email = newEmail;
         coachEmail = newEmail;
