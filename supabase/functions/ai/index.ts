@@ -8,7 +8,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const ANTHROPIC_KEY = Deno.env.get('ANTHROPIC_API_KEY')!
 const SUPABASE_URL  = Deno.env.get('SUPABASE_URL')!
-const ANON_KEY      = Deno.env.get('SUPABASE_ANON_KEY')!
+const ANON_KEY      = 'sb_publishable_k3M7SfBeiBGs3rTKewBzWQ_7RHRskB9' // publishable (public) key — independent of legacy keys
 
 const cors = {
   'Access-Control-Allow-Origin': '*',
