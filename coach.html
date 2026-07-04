@@ -2398,6 +2398,11 @@
         <div id="measurements-editor"><div style="color:#444;font-size:0.85rem;padding:10px 0;">טוען...</div></div>
       </div>
 
+      <div class="sec-card" id="body-album-card">
+        <div class="sec-card-title">📸 אלבום התקדמות</div>
+        <div id="body-album"><div style="color:#444;font-size:0.85rem;padding:10px 0;">טוען...</div></div>
+      </div>
+
       <div class="sec-card" id="sec-chat">
         <div class="sec-card-title">💬 צ'אט פרטי עם ${esc(client.name)}</div>
         <div id="chat-editor"><div style="color:#444;font-size:0.85rem;padding:10px 0;">טוען...</div></div>
@@ -2417,8 +2422,40 @@
     loadCycleForClient(client.email);
     loadProgressForClient(client.email);
     loadMeasurementsForClient(client.email);
+    loadBodyAlbum(client.email);
     loadMessagesForClient(client.email);
     loadCheckinsForClient(client.email);
+  }
+
+  /* ── אלבום התקדמות (תמונות גוף) ── */
+  async function loadBodyAlbum(email) {
+    const wrap = document.getElementById('body-album');
+    if (!wrap) return;
+    const { data, error } = await sb.from('body_photos')
+      .select('*').eq('client_email', email).order('uploaded_at', { ascending: false }).limit(24);
+    if (error) { wrap.innerHTML = `<div style="color:#ff7070;font-size:0.82rem;">שגיאה: ${esc(error.message)}</div>`; return; }
+    if (!data || !data.length) { wrap.innerHTML = '<div style="color:#555;font-size:0.83rem;padding:6px 0;">אין תמונות עדיין — יופיעו כאן כשתבנה תוכנית לפי תמונות.</div>'; return; }
+    const blocks = await Promise.all(data.map(async row => {
+      const urls = [];
+      for (const p of (row.photo_paths || [])) {
+        const { data: signed } = await sb.storage.from('body-photos').createSignedUrl(p, 3600);
+        if (signed?.signedUrl) urls.push(signed.signedUrl);
+      }
+      const d = new Date(row.uploaded_at).toLocaleDateString('he-IL', { day:'2-digit', month:'2-digit', year:'2-digit' });
+      const m = row.measurements || {};
+      const mStr = ['waist','shoulders','arm','leg','iliac'].filter(k=>m[k]).map(k=>({waist:'מותן',shoulders:'כתף',arm:'זרוע',leg:'רגל',iliac:'כסל'}[k]+' '+m[k])).join(' · ');
+      const wp = (row.weak_points||[]).length ? `<div style="font-size:0.68rem;color:#c4a5ff;margin-top:2px;">נקודות חלשות: ${(row.weak_points).map(esc).join(', ')}</div>` : '';
+      const imgs = urls.map(u=>`<a href="${u}" target="_blank"><img src="${u}" style="width:64px;height:64px;object-fit:cover;border-radius:6px;border:1px solid rgba(255,255,255,0.1);"/></a>`).join('');
+      return `<div style="padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.05);">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+          <div style="font-size:0.8rem;font-weight:800;color:#fff;">📅 ${d}</div>
+          <div style="font-size:0.68rem;color:#888;">${esc(mStr)}</div>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">${imgs||'<span style="font-size:0.72rem;color:#555;">התמונות אינן זמינות</span>'}</div>
+        ${wp}
+      </div>`;
+    }));
+    wrap.innerHTML = blocks.join('');
   }
 
   /* ── CLIENT CARD ── */
