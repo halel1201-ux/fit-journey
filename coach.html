@@ -855,7 +855,15 @@
   const URL_ = 'https://luwknflmhvcxgifzxgrk.supabase.co';
   const KEY  = 'sb_publishable_k3M7SfBeiBGs3rTKewBzWQ_7RHRskB9';
   const SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx1d2tuZmxtaHZjeGdpZnp4Z3JrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODg1MDIxNSwiZXhwIjoyMDk0NDI2MjE1fQ.8M2WqqUUM5VJD53LXKYCoF_KPD6bbCiOI0h9Xv49AfA';
-  const CLAUDE_KEY = atob('c2stYW50LWFwaTAzLVRFbWJWYk9YUHlTV2o1RVRnd2tCNmkwLWRWLUE2aUlSbzhCVE0xckJGaGxqUzE4V2hOOWdoOEhtVkgtOVYxUXlMSm01NE5QOTZGNTVBNF9GUS15NHlBLTViQXRnZ0FB');
+  const CLAUDE_KEY = ''; // מפתח AI הועבר ל-Edge Function בשרת
+  async function aiFetch(_url, options) {
+    const { data: { session } } = await sb.auth.getSession();
+    return fetch(`${URL_}/functions/v1/ai`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "apikey": KEY, "Authorization": `Bearer ${session?.access_token || ""}` },
+      body: (options && options.body) || "{}"
+    });
+  }
   const sb      = supabase.createClient(URL_, KEY);
   const sbAdmin = supabase.createClient(URL_, SERVICE_KEY, {
     auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }
@@ -1163,7 +1171,7 @@
       ? { ...bodyObj, messages: bodyObj.messages.map(m =>
             typeof m.content==='string' ? { ...m, content:[fileBlock,{type:'text',text:m.content}] } : m) }
       : bodyObj;
-    return fetch('https://api.anthropic.com/v1/messages', {
+    return aiFetch('', {
       method:'POST',
       headers:{ 'Content-Type':'application/json','x-api-key':CLAUDE_KEY,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true' },
       body: JSON.stringify(body)
@@ -3679,7 +3687,7 @@
         ? `\n\n## תבנית ברירת מחדל — חובה לפעול לפיה:\n${defaultTmpl}`
         : '';
       const hasFile = _pendingPlanFiles.length > 0;
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
+      const res = await aiFetch('', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -4029,7 +4037,7 @@ Bro Split: 6-8 תרגילים לשריר, דגש על מבודדים, ניתן 2
     statusEl.style.color = 'var(--muted)'; statusEl.textContent = 'Claude בונה תפריט...';
     const hasFile = _pendingNutriFiles.length > 0;
     try {
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
+      const res = await aiFetch('', {
         method: 'POST',
         headers: { 'Content-Type':'application/json','x-api-key':CLAUDE_KEY,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true' },
         body: JSON.stringify({

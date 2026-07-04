@@ -554,7 +554,15 @@
   // Service role key — replace with your actual key from Supabase > Settings > API > "secret key (default)"
   // ⚠️ Keep admin.html private — this key bypasses all security rules
   const SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx1d2tuZmxtaHZjeGdpZnp4Z3JrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODg1MDIxNSwiZXhwIjoyMDk0NDI2MjE1fQ.8M2WqqUUM5VJD53LXKYCoF_KPD6bbCiOI0h9Xv49AfA';
-  const CLAUDE_KEY = atob('c2stYW50LWFwaTAzLVRFbWJWYk9YUHlTV2o1RVRnd2tCNmkwLWRWLUE2aUlSbzhCVE0xckJGaGxqUzE4V2hOOWdoOEhtVkgtOVYxUXlMSm01NE5QOTZGNTVBNF9GUS15NHlBLTViQXRnZ0FB');
+  const CLAUDE_KEY = ''; // מפתח AI הועבר ל-Edge Function בשרת
+  async function aiFetch(_url, options) {
+    const { data: { session } } = await sb.auth.getSession();
+    return fetch(`${URL_}/functions/v1/ai`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "apikey": KEY, "Authorization": `Bearer ${session?.access_token || ""}` },
+      body: (options && options.body) || "{}"
+    });
+  }
   const ADMIN = 'halel1201@gmail.com';
   const sb = supabase.createClient(URL_, KEY);
   const sbAdmin = supabase.createClient(URL_, SERVICE_KEY, {
@@ -598,7 +606,7 @@
       ? { ...bodyObj, messages: bodyObj.messages.map(m =>
             typeof m.content==='string' ? { ...m, content:[fileBlock,{type:'text',text:m.content}] } : m) }
       : bodyObj;
-    return fetch('https://api.anthropic.com/v1/messages', {
+    return aiFetch('', {
       method:'POST',
       headers:{ 'Content-Type':'application/json','x-api-key':CLAUDE_KEY,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true' },
       body: JSON.stringify(body)
@@ -2066,7 +2074,7 @@
       const templateSection = useDefault
         ? `\n\n## תבנית ברירת מחדל — חובה לפעול לפיה:\n${defaultTmpl}`
         : '';
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
+      const res = await aiFetch('', {
         method: 'POST',
         headers: { 'Content-Type':'application/json','x-api-key':CLAUDE_KEY,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true' },
         body: JSON.stringify({
@@ -2248,7 +2256,7 @@ Bro Split: 6-8 תרגילים לשריר, דגש על מבודדים, ניתן 2
     btn.disabled = true; btn.textContent = '⏳ בונה...';
     statusEl.style.color = 'var(--muted)'; statusEl.textContent = 'Claude בונה תפריט...';
     try {
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
+      const res = await aiFetch('', {
         method: 'POST',
         headers: { 'Content-Type':'application/json','x-api-key':CLAUDE_KEY,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true' },
         body: JSON.stringify({
@@ -3154,7 +3162,7 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
       }
 
       statusEl.textContent = 'Claude בונה רשימה...';
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
+      const res = await aiFetch('', {
         method: 'POST',
         headers: { 'Content-Type':'application/json','x-api-key':CLAUDE_KEY,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true' },
         body: JSON.stringify({
@@ -3507,7 +3515,7 @@ difficulty: מתחיל | ביניים | מתקדם | כל הרמות
       }
 
       statusEl.textContent = 'Claude בונה רשימה...';
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
+      const res = await aiFetch('', {
         method: 'POST',
         headers: { 'Content-Type':'application/json','x-api-key':CLAUDE_KEY,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true' },
         body: JSON.stringify({

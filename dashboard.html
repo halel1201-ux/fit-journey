@@ -2449,7 +2449,15 @@
   }
 
   /* ── AI CHAT ── */
-  const CLAUDE_KEY = atob('c2stYW50LWFwaTAzLVRFbWJWYk9YUHlTV2o1RVRnd2tCNmkwLWRWLUE2aUlSbzhCVE0xckJGaGxqUzE4V2hOOWdoOEhtVkgtOVYxUXlMSm01NE5QOTZGNTVBNF9GUS15NHlBLTViQXRnZ0FB');
+  const CLAUDE_KEY = ''; // מפתח AI הועבר ל-Edge Function בשרת
+  async function aiFetch(_url, options) {
+    const { data: { session } } = await sb.auth.getSession();
+    return fetch(`${URL_}/functions/v1/ai`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "apikey": KEY, "Authorization": `Bearer ${session?.access_token || ""}` },
+      body: (options && options.body) || "{}"
+    });
+  }
   let aiChatHistory = [];
 
   function getRemaining() {
@@ -2537,7 +2545,7 @@ ${foodList || 'אין פריטים'}
         .filter(m => !m.loading)
         .map(m => ({ role: m.role === 'bot' ? 'assistant' : 'user', content: m.content }));
 
-      const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      const resp = await aiFetch('', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
