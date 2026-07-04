@@ -17,7 +17,7 @@ const sb = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: fal
 
 const TOKEN_MARKUP = 1.15
 const CLAUDE_MODEL = 'claude-haiku-4-5-20251001'
-const MAX_TOKENS   = 350
+const MAX_TOKENS   = 500
 
 const ESCALATION_PATTERNS = [
   /כא(ב|ו|י)(ת)?\s*(חד|חזק|נורא|מאוד|הרבה)/i,
@@ -35,7 +35,7 @@ function detectEscalation(text: string): boolean {
   return ESCALATION_PATTERNS.some(p => p.test(text))
 }
 
-function buildSystemPrompt(coachName: string, clientName: string, clientGoal: string | null, training: string | null, nutrition: string | null): string {
+function buildSystemPrompt(coachName: string, clientName: string, clientGoal: string | null, training: string | null, nutrition: string | null, foodToday: string, exLib: string): string {
   const goalMap: Record<string, string> = { cut: 'חיטוב', recomp: 'ריקומפוזיציה', mass: 'מסה', peak_week: 'פייק וויק' }
   const goalHeb = clientGoal ? (goalMap[clientGoal] ?? clientGoal) : 'לא הוגדרה'
   return `אתה עוזר ה-AI של מאמן הכושר ${coachName}, שמגיב ללקוחות בשמו כאשר הוא לא זמין.
@@ -43,8 +43,14 @@ function buildSystemPrompt(coachName: string, clientName: string, clientGoal: st
 מידע על הלקוח:
 שם: ${clientName}
 מטרה: ${goalHeb}
-תוכנית אימונים: ${training ? training.slice(0, 800) : 'לא נמצאה — תן עצה כללית בטוחה.'}
+תוכנית אימונים: ${training ? training.slice(0, 1200) : 'לא נמצאה — תן עצה כללית בטוחה.'}
 תפריט תזונה: ${nutrition ? nutrition.slice(0, 800) : 'לא נמצא — תן עצה כללית בטוחה.'}
+
+מה הלקוח אכל היום:
+${foodToday}
+
+מאגר התרגילים (שם [שריר/תת-שריר] 🎥קישור-סרטון):
+${exLib.slice(0, 6000)}
 
 כללים מחייבים:
 1. עברית ישראלית שוטפת, ידידותית, קצרה (3-4 משפטים מקסימום).
@@ -60,6 +66,18 @@ function buildSystemPrompt(coachName: string, clientName: string, clientGoal: st
 - דוגמה מפורקת — לאפה שווארמה: לאפה 90-120 גר' (~300 קק"ל) + בשר 150-200 גר' (~350-500) + טחינה/חומוס 2-3 כפות (~180-270) + סלט (~40). סה"כ ריאלי ~850-1150 קק"ל. (הטעות הנפוצה היא לזלזל בכמות הבשר, הלאפה והטחינה — אל תיתן מספרים נמוכים מדי!)
 - אם חסרים פרטים (גודל מנה, משקל) — שאל, או תן טווח עם הנחה מפורשת ("בהנחה של לאפה בינונית ו-150 גר' בשר...").
 - אם קיים תפריט של המאמן — התאם אליו והפנה אליו.
+
+שאלות על אוכל שאכל היום / מה נשאר לאכול:
+- התבסס על "מה הלקוח אכל היום" (למעלה) ועל היעד היומי. חשב כמה קלוריות/חלבון נותרו ליעד, והמלץ בהתאם.
+- אם שואל "מה עוד לאכול" — הצע אוכל שמשלים את החוסר (בעיקר חלבון אם חסר), רצוי מהתפריט של המאמן.
+
+החלפת תרגיל:
+- אם הלקוח רוצה להחליף תרגיל — המלץ על 1-2 תרגילים חלופיים **מאותה קבוצת שריר** (עדיף אותו תת-שריר) מתוך "מאגר התרגילים".
+- אל תמליץ על תרגיל שכבר נמצא באימון הנוכחי שלו (בדוק בתוכנית האימונים) — בלי כפילויות.
+
+איך לבצע תרגיל / טכניקה:
+- תן 2-3 דגשים טכניים קצרים וברורים.
+- אם לתרגיל יש 🎥 קישור-סרטון במאגר — צרף את הקישור המדויק ("הנה סרטון הדגמה: ...").
 
 פרוטוקול הסלמה — אם הלקוח מזכיר כאב חד, פציעה, דימום, חירום, תשלום/חיוב או מצוקה רגשית:
 ענה בדיוק: "שאלה חשובה, סימנתי אותה למאמן ויחזור אליך בהקדם 🙏 אם זה דחוף — פנה לגורם מקצועי."
@@ -125,23 +143,41 @@ async function processItem(item: { id: number; coach_email: string; client_email
     }
 
     // b. Fetch context
-    const [{ data: client }, { data: coach }, { data: training }, { data: nutrition }, { data: history }] = await Promise.all([
-      sb.from('clients').select('name, goal').eq('email', item.client_email).single(),
+    const today = new Date().toISOString().split('T')[0]
+    const [{ data: client }, { data: coach }, { data: training }, { data: nutrition }, { data: history }, { data: foodLogs }, { data: exLib }] = await Promise.all([
+      sb.from('clients').select('name, goal, target_calories, target_protein, target_carbs, target_fat').eq('email', item.client_email).single(),
       sb.from('coaches').select('name').eq('email', item.coach_email).single(),
       sb.from('training_plans').select('plan').eq('client_email', item.client_email).maybeSingle(),
       sb.from('nutrition_plans').select('plan').eq('client_email', item.client_email).maybeSingle(),
       sb.from('messages').select('sender_email, content')
         .eq('coach_email', item.coach_email).eq('client_email', item.client_email)
         .order('created_at', { ascending: false }).limit(8),
+      sb.from('food_logs').select('food_name, grams, calories, protein, carbs, fat, meal_type')
+        .eq('client_email', item.client_email).eq('log_date', today),
+      sb.from('exercises').select('name, muscle_group, sub_muscle_group, video_url'),
     ])
 
     const clientName = client?.name ?? item.client_email.split('@')[0]
     const coachName  = coach?.name  ?? 'המאמן'
 
+    // מה הלקוח אכל היום + כמה נותר ליעד
+    let foodToday = 'לא דיווח אוכל היום עדיין.'
+    if (foodLogs && foodLogs.length) {
+      const t = foodLogs.reduce((a: {cal:number;p:number;c:number;f:number}, x: {calories?:number;protein?:number;carbs?:number;fat?:number}) =>
+        ({ cal: a.cal + (+(x.calories ?? 0)), p: a.p + (+(x.protein ?? 0)), c: a.c + (+(x.carbs ?? 0)), f: a.f + (+(x.fat ?? 0)) }), { cal: 0, p: 0, c: 0, f: 0 })
+      const items = (foodLogs as {food_name?:string;grams?:number;calories?:number}[]).map(x => `${x.food_name} (${Math.round(+(x.grams ?? 0))}ג׳/${Math.round(+(x.calories ?? 0))} קק״ל)`).join(', ')
+      const tgt = client?.target_calories ? ` | יעד יומי: ${client.target_calories} קק״ל, חלבון ${client.target_protein ?? '?'}ג׳` : ''
+      foodToday = `סה״כ היום: ${Math.round(t.cal)} קק״ל · חלבון ${Math.round(t.p)}ג׳ · פחמ׳ ${Math.round(t.c)}ג׳ · שומן ${Math.round(t.f)}ג׳${tgt}\nפריטים: ${items}`
+    }
+    // מאגר תרגילים (לשם, שריר, וסרטון) — להחלפות והדגמות
+    const exText = (exLib as {name?:string;muscle_group?:string;sub_muscle_group?:string;video_url?:string}[] ?? [])
+      .map(e => `${e.name} [${e.muscle_group ?? ''}${e.sub_muscle_group ? '/' + e.sub_muscle_group : ''}]${e.video_url ? ' 🎥' + e.video_url : ''}`).join('\n')
+
     const systemPrompt = buildSystemPrompt(
       coachName, clientName, client?.goal ?? null,
       typeof training?.plan === 'string' ? training.plan : JSON.stringify(training?.plan ?? ''),
       typeof nutrition?.plan === 'string' ? nutrition.plan : JSON.stringify(nutrition?.plan ?? ''),
+      foodToday, exText,
     )
 
     const msgs: { role: 'user' | 'assistant'; content: string }[] =
