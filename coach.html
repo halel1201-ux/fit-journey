@@ -5946,6 +5946,9 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
       : '<div style="text-align:center;color:#444;padding:20px 0;font-size:0.84rem;">אין הודעות עדיין</div>';
 
     wrap.innerHTML = `
+      <div style="display:flex;justify-content:flex-end;margin-bottom:6px;">
+        ${coachMessages.length ? `<button onclick="clearChatWithClient()" title="מוחק אצל שני הצדדים" style="background:none;border:none;color:#888;font-size:0.72rem;cursor:pointer;padding:2px 4px;font-family:'Heebo',sans-serif;">🗑 נקה היסטוריה</button>` : ''}
+      </div>
       <div id="coach-chat-msgs" style="height:260px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding:12px 14px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:10px;margin-bottom:10px;">
         ${msgsHTML}
       </div>
@@ -5959,6 +5962,19 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
       </div>`;
     const msgsEl = document.getElementById('coach-chat-msgs');
     if (msgsEl) msgsEl.scrollTop = msgsEl.scrollHeight;
+  }
+
+  async function clearChatWithClient() {
+    if (!requireEdit()) return;
+    const email = activeEmail; if (!email) return;
+    if (!confirm('לנקות את כל היסטוריית הצ\'אט עם המתאמן?\n\nההודעות יימחקו אצל שני הצדדים (גם אצלך וגם אצל המתאמן) — הפעולה אינה הפיכה.')) return;
+    const { error } = await sb.from('messages').delete().eq('coach_email', coachEmail).eq('client_email', email);
+    if (error) { toast('שגיאה במחיקה: ' + error.message, 'err'); return; }
+    coachMessages = [];
+    renderCoachChat();
+    markChatSeen(email);
+    loadUnreadCounts();
+    toast('היסטוריית הצ\'אט נוקתה', 'ok');
   }
 
   async function sendMessageAsCoach() {
