@@ -409,11 +409,11 @@
   <div style="display:flex;gap:8px;align-items:center;">
     <span id="license-days-badge" style="display:none;padding:4px 10px;border-radius:8px;font-size:0.72rem;font-weight:700;"></span>
     <!-- Autopilot toggle -->
-    <button id="autopilot-btn" onclick="toggleAutopilot()" title="טייס אוטומטי — AI עונה ללקוחות כשאתה לא זמין"
+    <button id="autopilot-btn" onclick="toggleAutopilot()" title="מאמן אוטומטי — AI עונה ללקוחות כשאתה לא זמין"
       style="display:none;align-items:center;gap:5px;padding:4px 10px;border-radius:8px;font-size:0.72rem;font-weight:700;
              border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.04);color:#888;cursor:pointer;
              font-family:'Heebo',sans-serif;transition:all 0.25s;">
-      ✈️ טייס
+      🤖 מאמן אוטומטי
     </button>
     <div id="token-badge-wrap">
       <svg width="30" height="16" viewBox="0 0 30 16" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;">
@@ -894,35 +894,65 @@
       btn.style.background = 'rgba(255,107,0,0.18)';
       btn.style.borderColor = 'rgba(255,107,0,0.6)';
       btn.style.color = '#FF6B00';
-      btn.innerHTML = `✈️ טייס <span style="font-size:0.62rem;background:#FF6B00;color:#000;border-radius:4px;padding:1px 4px;margin-right:3px;">${d} ימים</span>`;
+      btn.innerHTML = `🤖 מאמן אוטומטי <span style="font-size:0.62rem;background:#FF6B00;color:#000;border-radius:4px;padding:1px 4px;margin-right:3px;">${d} ימים</span>`;
     } else {
       btn.style.background = 'rgba(255,255,255,0.04)';
       btn.style.borderColor = 'rgba(255,255,255,0.15)';
       btn.style.color = '#888';
-      btn.innerHTML = '✈️ טייס';
+      btn.innerHTML = '🤖 מאמן אוטומטי';
     }
   }
 
-  // לחיצה על הכפתור: אם פעיל — הצג סטטוס/כיבוי; אחרת — פתח בחירת מנוי
+  // לחיצה על הכפתור: אם פעיל — הצג סטטוס/יומן/כיבוי; אחרת — פתח בחירת מנוי
   function toggleAutopilot() {
-    if (autopilotIsLive()) {
-      if (confirm(`✈️ טייס אוטומטי פעיל — נותרו ${autopilotDaysLeft()} ימים.\n\nלכבות עכשיו? (לא יינתן החזר טוקנים)`)) {
-        deactivateAutopilot();
-      }
-      return;
-    }
+    if (autopilotIsLive()) { openAutopilotStatus(); return; }
     openAutopilotShop();
   }
+
+  function openAutopilotStatus() {
+    document.getElementById('autopilot-status-days').textContent = autopilotDaysLeft();
+    document.getElementById('autopilot-status-modal').style.display = 'flex';
+  }
+  function closeAutopilotStatus() { document.getElementById('autopilot-status-modal').style.display = 'none'; }
+
+  // ─── יומן שיחות מאמן אוטומטי (autopilot_logs) ─────────────────────────
+  async function openAutopilotLog() {
+    closeAutopilotStatus();
+    document.getElementById('autopilot-log-modal').style.display = 'flex';
+    const body = document.getElementById('autopilot-log-body');
+    body.innerHTML = '<div style="text-align:center;color:#555;padding:30px 0;">טוען...</div>';
+    const { data, error } = await sb.from('autopilot_logs')
+      .select('*').eq('coach_email', coachEmail)
+      .order('created_at', { ascending: false }).limit(100);
+    if (error) { body.innerHTML = `<div style="color:#ff7070;padding:20px;text-align:center;">שגיאה: ${esc(error.message)}</div>`; return; }
+    if (!data || !data.length) { body.innerHTML = '<div style="text-align:center;color:#555;padding:30px 0;">עדיין אין שיחות של המאמן האוטומטי</div>'; return; }
+    body.innerHTML = data.map(r => {
+      const d = new Date(r.created_at).toLocaleString('he-IL', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
+      const who = r.client_email.split('@')[0];
+      const esc2 = s => esc(s || '');
+      return `<div style="padding:12px;margin-bottom:10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+          <div style="font-size:0.82rem;font-weight:800;color:#fff;">👤 ${esc2(who)}${r.escalated?' <span style="color:#ff7070;font-size:0.66rem;">🚨 הוסלם</span>':''}</div>
+          <div style="font-size:0.66rem;color:#666;">${d}</div>
+        </div>
+        <div style="font-size:0.78rem;color:#bbb;margin-bottom:5px;"><span style="color:#888;">שאל:</span> ${esc2(r.client_message)}</div>
+        <div style="font-size:0.78rem;color:#c4a5ff;background:rgba(124,58,237,0.08);border-radius:6px;padding:6px 8px;"><span style="color:#a855f7;font-weight:700;">🤖 ענה:</span> ${esc2(r.ai_response)}</div>
+        <div style="font-size:0.64rem;color:#666;margin-top:5px;">${r.total_tokens||0} טוקני AI · כלול במנוי</div>
+      </div>`;
+    }).join('');
+  }
+  function closeAutopilotLog() { document.getElementById('autopilot-log-modal').style.display = 'none'; }
 
   async function deactivateAutopilot() {
     const { error } = await sbAdmin.from('coaches').update({ autopilot_active: false }).eq('email', coachEmail);
     if (error) { toast('שגיאה: ' + error.message, 'err'); return; }
     autopilotActive = false;
     renderAutopilotBtn();
-    toast('✈️ טייס אוטומטי כובה', 'info');
+    toast('🤖 מאמן אוטומטי כובה', 'info');
   }
 
   function openAutopilotShop() {
+    closeAutopilotStatus();
     const rows = AUTOPILOT_PLANS.map(p => `
       <button onclick="buyAutopilot('${p.id}')" style="display:flex;justify-content:space-between;align-items:center;width:100%;padding:14px 16px;margin-bottom:10px;background:rgba(255,107,0,0.06);border:1px solid rgba(255,107,0,0.3);border-radius:12px;cursor:pointer;font-family:'Heebo',sans-serif;">
         <div style="text-align:right;">
@@ -964,9 +994,9 @@
     autopilotUntil = untilStr;
     renderTokenBadge();
     renderAutopilotBtn();
-    sb.from('token_usage').insert({ coach_email: coachEmail, amount: plan.tokens, kind: 'subscription', label: `מנוי טייס אוטומטי — ${plan.label}`, balance_after: newBal }).then(()=>{});
+    sb.from('token_usage').insert({ coach_email: coachEmail, amount: plan.tokens, kind: 'subscription', label: `מנוי מאמן אוטומטי — ${plan.label}`, balance_after: newBal }).then(()=>{});
     closeAutopilotShop();
-    toast(`✈️ טייס אוטומטי הופעל ל-${plan.days === 1 ? 'יום' : plan.days + ' ימים'} — ה-AI יענה ללקוחות`, 'ok');
+    toast(`🤖 מאמן אוטומטי הופעל ל-${plan.days === 1 ? 'יום' : plan.days + ' ימים'} — ה-AI יענה ללקוחות`, 'ok');
   }
 
   // ─── TOKEN SYSTEM ────────────────────────────────────────────────────
@@ -5801,8 +5831,16 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
           } else {
             content = `<span style="white-space:pre-wrap;">${esc(m.content||'')}</span>`;
           }
+          const isAI = !!m.is_ai_reply;
+          const bubbleBg = isAI
+            ? 'background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;'
+            : (isMe ? 'background:linear-gradient(135deg,var(--orange),#FF8C00);color:#fff;' : 'background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);');
+          const aiTag = isAI
+            ? '<div style="font-size:0.6rem;font-weight:800;color:#c4a5ff;margin-bottom:2px;">🤖 מאמן אוטומטי</div>'
+            : '';
           return `<div style="display:flex;flex-direction:column;align-items:${isMe?'flex-end':'flex-start'};">
-            <div style="max-width:76%;padding:8px 12px;border-radius:${isMe?'12px 12px 4px 12px':'12px 12px 12px 4px'};font-size:0.84rem;line-height:1.5;word-break:break-word;${isMe?'background:linear-gradient(135deg,var(--orange),#FF8C00);color:#fff;':'background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);'}">${content}</div>
+            ${aiTag}
+            <div style="max-width:76%;padding:8px 12px;border-radius:${isMe?'12px 12px 4px 12px':'12px 12px 12px 4px'};font-size:0.84rem;line-height:1.5;word-break:break-word;${bubbleBg}">${content}</div>
             <div style="font-size:0.62rem;color:#555;margin-top:2px;">${date} · ${time}${isMe?'':' · '+esc(m.sender_email.split('@')[0])}</div>
           </div>`;
         }).join('')
@@ -6632,11 +6670,36 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
   </div>
 </div>
 
+<!-- ═══ AUTOPILOT STATUS MODAL ═══ -->
+<div id="autopilot-status-modal" onclick="if(event.target===this)closeAutopilotStatus()" style="position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,0.88);display:none;align-items:center;justify-content:center;padding:16px;">
+  <div style="background:#111;border:1px solid rgba(255,107,0,0.25);border-radius:16px;max-width:400px;width:100%;padding:20px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+      <div style="font-size:1.05rem;font-weight:900;color:#fff;">🤖 מאמן אוטומטי — פעיל</div>
+      <button onclick="closeAutopilotStatus()" style="background:none;border:none;color:#555;font-size:1.2rem;cursor:pointer;line-height:1;padding:2px 4px;">✕</button>
+    </div>
+    <div style="font-size:0.84rem;color:#aaa;margin-bottom:16px;">נותרו <strong style="color:var(--orange);"><span id="autopilot-status-days">—</span> ימים</strong> · ה-AI עונה ללקוחות בשמך. סיכום כל שיחה נשלח אליך בהתראה, וכל השיחות מתועדות ביומן.</div>
+    <button onclick="openAutopilotLog()" style="width:100%;padding:12px;margin-bottom:9px;background:rgba(124,58,237,0.15);border:1px solid rgba(168,85,247,0.4);border-radius:10px;color:#c4a5ff;font-family:'Heebo',sans-serif;font-weight:800;font-size:0.9rem;cursor:pointer;">📋 יומן שיחות</button>
+    <button onclick="openAutopilotShop()" style="width:100%;padding:12px;margin-bottom:9px;background:rgba(255,107,0,0.1);border:1px solid rgba(255,107,0,0.35);border-radius:10px;color:var(--orange);font-family:'Heebo',sans-serif;font-weight:800;font-size:0.9rem;cursor:pointer;">➕ הארך מנוי</button>
+    <button onclick="if(confirm('לכבות את המאמן האוטומטי? (לא יינתן החזר טוקנים)')){closeAutopilotStatus();deactivateAutopilot();}" style="width:100%;padding:12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.12);border-radius:10px;color:#999;font-family:'Heebo',sans-serif;font-weight:700;font-size:0.86rem;cursor:pointer;">⏸ כבה מנוי</button>
+  </div>
+</div>
+
+<!-- ═══ AUTOPILOT LOG MODAL ═══ -->
+<div id="autopilot-log-modal" onclick="if(event.target===this)closeAutopilotLog()" style="position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,0.88);display:none;align-items:center;justify-content:center;padding:16px;">
+  <div style="background:#111;border:1px solid rgba(168,85,247,0.25);border-radius:16px;max-width:560px;width:100%;max-height:82vh;display:flex;flex-direction:column;overflow:hidden;">
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:16px 18px;border-bottom:1px solid rgba(255,255,255,0.08);">
+      <div style="font-size:1.05rem;font-weight:900;color:#fff;">📋 יומן מאמן אוטומטי</div>
+      <button onclick="closeAutopilotLog()" style="background:none;border:none;color:#555;font-size:1.2rem;cursor:pointer;line-height:1;padding:2px 4px;">✕</button>
+    </div>
+    <div id="autopilot-log-body" style="overflow-y:auto;padding:12px 14px;"></div>
+  </div>
+</div>
+
 <!-- ═══ AUTOPILOT SHOP MODAL ═══ -->
 <div id="autopilot-shop-modal" onclick="if(event.target===this)closeAutopilotShop()" style="position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,0.88);display:none;align-items:center;justify-content:center;padding:16px;">
   <div style="background:#111;border:1px solid rgba(255,107,0,0.25);border-radius:16px;max-width:440px;width:100%;padding:20px;">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-      <div style="font-size:1.05rem;font-weight:900;color:#fff;">✈️ הפעלת טייס אוטומטי</div>
+      <div style="font-size:1.05rem;font-weight:900;color:#fff;">🤖 הפעלת מאמן אוטומטי</div>
       <button onclick="closeAutopilotShop()" style="background:none;border:none;color:#555;font-size:1.2rem;cursor:pointer;line-height:1;padding:2px 4px;">✕</button>
     </div>
     <div style="font-size:0.78rem;color:#888;margin-bottom:14px;">בזמן שהמנוי פעיל — ה-AI עונה ללקוחות בשמך אחרי 2 דקות. כל התשובות כלולות במחיר.</div>
