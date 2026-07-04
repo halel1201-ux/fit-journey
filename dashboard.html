@@ -1370,6 +1370,7 @@
     workoutSession.exercises[_swapEi].video_url = '';
     closeSwapModal();
     renderSession();
+    persistWorkout();
   }
 
   function openDemo(name, customUrl, demoExId) {
@@ -1520,6 +1521,7 @@
     trainingPlanLocal  = Array.isArray(tr?.plan) ? (tr.plan || []) : (tr?.plan?.active || []);
     nutritionPlanLocal = nu?.plan || [];
     renderTraining(trainingPlanLocal);
+    renderResumeBanner(); // אם יש אימון פעיל שנשמר — הצג באנר המשך
     workoutLogs = logs || [];
     renderHistory(logs || []);
     renderWeightRow();
@@ -1922,6 +1924,8 @@
     document.getElementById('workout-session').classList.add('open');
     document.body.style.overflow = 'hidden';
     workoutSession.timerInterval = setInterval(tickClock, 1000);
+    removeResumeBanner();
+    persistWorkout();
   }
 
   function formatSetsDisplay(sets) {
@@ -2083,13 +2087,13 @@
       </div>
       <div style="display:flex;flex-direction:column;align-items:center;">
         <input class="s-inp" type="number" min="0" step="0.5" value="${s.weight}" placeholder="${s.suggested_kg||0}"
-          oninput="workoutSession.exercises[${ei}].sets[${si}].weight=this.value"
+          oninput="workoutSession.exercises[${ei}].sets[${si}].weight=this.value;persistWorkoutDebounced()"
           style="${s.is_progression ? 'border-color:rgba(255,107,0,0.5);' : ''}"/>
         ${progLabel}
       </div>
       <div style="display:flex;flex-direction:column;align-items:center;">
         <input class="s-inp" type="number" min="0" value="${s.reps}" placeholder="${hasRange ? s.reps_max : '0'}"
-          oninput="workoutSession.exercises[${ei}].sets[${si}].reps=this.value"/>
+          oninput="workoutSession.exercises[${ei}].sets[${si}].reps=this.value;persistWorkoutDebounced()"/>
         ${rangeHint}
       </div>
       <button class="btn-done-set" onclick="toggleSet(${ei},${si})">${s.completed ? '✓' : '○'}</button>
@@ -2109,6 +2113,7 @@
       const rt = workoutSession.exercises[ei].restTime;
       if (rt > 0) startRest(rt);
     }
+    persistWorkout();
   }
 
   function fmtRest(s) {
@@ -2151,17 +2156,102 @@
     document.getElementById('rest-banner').classList.remove('on');
   }
 
-  function confirmCloseSession() {
-    if (confirm('לצאת מהאימון? ההתקדמות לא תישמר.')) closeSession();
+  // ─── ACTIVE WORKOUT PERSISTENCE (localStorage) ───────────────────────
+  function _awKey() { return currentEmail ? 'hf_active_workout_' + currentEmail : null; }
+  function persistWorkout() {
+    const key = _awKey();
+    if (!key || !workoutSession) return;
+    try {
+      const { timerInterval, restInterval, ...clean } = workoutSession;
+      localStorage.setItem(key, JSON.stringify(clean));
+    } catch (e) {}
   }
-
-  function closeSession() {
-    if (!workoutSession) return;
-    clearInterval(workoutSession.timerInterval);
-    clearInterval(workoutSession.restInterval);
-    workoutSession = null;
+  let _persistTimer = null;
+  function persistWorkoutDebounced() {
+    clearTimeout(_persistTimer);
+    _persistTimer = setTimeout(persistWorkout, 500);
+  }
+  function clearActiveWorkout() {
+    const key = _awKey();
+    if (key) { try { localStorage.removeItem(key); } catch (e) {} }
+  }
+  function hideSession() {
+    if (workoutSession) {
+      clearInterval(workoutSession.timerInterval);
+      clearInterval(workoutSession.restInterval);
+    }
     document.getElementById('workout-session').classList.remove('open');
     document.body.style.overflow = '';
+  }
+
+  // X — ממזער: שומר את האימון ומאפשר להמשיך אותו
+  function confirmCloseSession() {
+    if (!workoutSession) { hideSession(); return; }
+    if (confirm('לצאת מהאימון? הוא יישמר ותוכל להמשיך אותו בכל רגע.\n\n(לביטול מוחלט — לחץ "בטל אימון" בבאנר שיופיע)')) {
+      persistWorkout();
+      hideSession();
+      workoutSession = null;
+      renderResumeBanner();
+    }
+  }
+  // סיום/ביטול מוחלט — מנקה את המצב השמור
+  function closeSession() {
+    clearActiveWorkout();
+    hideSession();
+    workoutSession = null;
+    removeResumeBanner();
+  }
+  function cancelActiveWorkout() {
+    if (!confirm('לבטל את האימון הפעיל? כל מה שמילאת יימחק.')) return;
+    closeSession();
+  }
+
+  // ─── RESUME BANNER ───────────────────────────────────────────────────
+  function getSavedWorkout() {
+    const key = _awKey();
+    if (!key) return null;
+    try {
+      const raw = localStorage.getItem(key);
+      if (!raw) return null;
+      const s = JSON.parse(raw);
+      return (s && Array.isArray(s.exercises) && s.exercises.length) ? s : null;
+    } catch (e) { return null; }
+  }
+  function renderResumeBanner() {
+    const saved = getSavedWorkout();
+    removeResumeBanner();
+    if (!saved) return;
+    const filled = saved.exercises.reduce((a, ex) => a + (ex.sets || []).filter(s => s.completed || s.weight || s.reps).length, 0);
+    const b = document.createElement('div');
+    b.id = 'resume-workout-banner';
+    b.style.cssText = 'position:fixed;left:12px;right:12px;bottom:78px;z-index:2500;background:linear-gradient(135deg,rgba(255,107,0,0.96),rgba(255,140,0,0.96));border-radius:12px;padding:12px 14px;box-shadow:0 6px 24px rgba(0,0,0,0.4);display:flex;align-items:center;gap:10px;font-family:\'Heebo\',sans-serif;';
+    b.innerHTML = `
+      <div style="flex:1;color:#fff;">
+        <div style="font-weight:900;font-size:0.92rem;">⏸ אימון פעיל: ${esc(saved.dayName || '')}</div>
+        <div style="font-size:0.72rem;opacity:0.9;">${filled} סטים מולאו · לא נשלח עדיין</div>
+      </div>
+      <button onclick="resumeWorkout()" style="background:#fff;color:#FF6B00;border:none;border-radius:8px;padding:8px 14px;font-family:'Heebo',sans-serif;font-weight:900;font-size:0.84rem;cursor:pointer;">המשך ▶</button>
+      <button onclick="cancelActiveWorkout()" style="background:rgba(0,0,0,0.25);color:#fff;border:none;border-radius:8px;padding:8px 10px;font-family:'Heebo',sans-serif;font-weight:700;font-size:0.78rem;cursor:pointer;">בטל</button>`;
+    document.body.appendChild(b);
+  }
+  function removeResumeBanner() {
+    const el = document.getElementById('resume-workout-banner');
+    if (el) el.remove();
+  }
+  function resumeWorkout() {
+    const saved = getSavedWorkout();
+    if (!saved) { removeResumeBanner(); return; }
+    workoutSession = saved;
+    workoutSession.timerInterval = null;
+    workoutSession.restInterval = null;
+    workoutSession.restRemaining = 0;
+    document.getElementById('session-day').textContent = saved.dayName || '';
+    renderSession();
+    document.getElementById('workout-session').classList.add('open');
+    document.body.style.overflow = 'hidden';
+    workoutSession.timerInterval = setInterval(tickClock, 1000);
+    tickClock();
+    removeResumeBanner();
   }
 
   async function finishWorkout() {
