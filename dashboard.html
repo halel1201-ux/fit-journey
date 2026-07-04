@@ -1888,6 +1888,7 @@
           description: ex.description || '',
           video_url:   ex.video_url  || '',
           demo_ex_id:  ex.demo_ex_id || null,
+          technique:   ex.technique  || null,
           restTime: ex.rest_time || 90,
           linked_next: !!ex.linked_next,
           sets: setsArr.map((s, si) => {
@@ -2004,7 +2005,18 @@
     document.getElementById('session-clock').textContent = m + ':' + sec;
   }
 
+  const TECHNIQUES = {
+    myo_reps:   { name: 'מיו-רפס', explain: 'סט הפעלה 9-20 חזרות (עצור 1-2 לפני כשל) → מנוחה 10-15ש → מיני-סטים של 3-5 חזרות עם מנוחה 10-15ש → עד 5 מיני-סטים או ירידה בכוח. רישום: 15+3+3+3+3+2.' },
+    rest_pause: { name: 'רסט-פאוז', explain: 'סט עד כמעט כשל/כשל → מנוחה 10 שניות → עוד כמה חזרות. אפשר כמה מיני-סבבים.' },
+    slow_fast:  { name: '6 איטי 6 מהיר', explain: '6 חזרות איטיות ומבוקרות ומיד אחריהן 6 חזרות מהירות באותו סט.' },
+    isomix:     { name: 'איזומיקס', explain: 'אחרי כל חזרה מחזיקים את הכיווץ 5 שניות (זמן תחת מתח + קשר מוח-שריר).' },
+    isomix_adv: { name: 'איזומיקס מתקדם', explain: '5 חזרות + החזקה 5ש → 5 חזרות + החזקה 10ש → 5 חזרות + החזקה 15ש.' },
+    isoburst:   { name: 'איזובראסט', explain: 'משך ההחזקה = מספר החזרות ב-15ש הדינמיות. סט1 15ש+החזקה; סט2 60ש (4×15ש); סט3 30ש (2×15ש, Drop); סט4 45ש (3×15ש, +20% משקל).' },
+    drop_set:   { name: 'דרופ סט', explain: 'בסיום הסט מורידים משקל וממשיכים ללא מנוחה. אפשר טריפל דרופ (8/8/8).' },
+    negative:   { name: 'חזרה שלילית', explain: 'אתה בולם ומוריד את המשקל בשליטה, והספוטר מרים בשבילך בפאזה החיובית.' },
+  };
   function renderExBlock(ex, ei) {
+    const tech = ex.technique && ex.technique !== 'none' ? TECHNIQUES[ex.technique] : null;
     return `
       <div class="session-ex-block">
         <div class="session-ex-num">תרגיל ${ei + 1}</div>
@@ -2015,6 +2027,7 @@
             <button class="btn-swap" onclick="openSwapModal(${ei})">🔄 החלפה</button>
           </div>
         </div>
+        ${tech ? `<div style="margin:4px 0 6px;padding:8px 10px;background:rgba(124,58,237,0.12);border:1px solid rgba(168,85,247,0.4);border-radius:8px;font-size:0.8rem;line-height:1.5;color:#c4a5ff;"><strong style="color:#c4a5ff;">🎯 ${tech.name}:</strong> ${esc(tech.explain)}</div>` : ''}
         ${ex.description ? `<div class="session-ex-desc">${esc(ex.description)}</div>` : ''}
         <div class="rest-ctrl">
           <span class="rest-ctrl-lbl">⏱ מנוחה בין סטים:</span>

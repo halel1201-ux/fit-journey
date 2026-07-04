@@ -3484,6 +3484,33 @@
 
   /* ── TRAINING EDITOR ── */
   const MUSCLES = ['חזה','גב','כתפיים','יד קדמית','יד אחורית','אמות','4 ראשי','המסטרינג','ישבן','עגל','ליבה'];
+
+  /* ── ספריית טכניקות ── */
+  const TECHNIQUES = {
+    none:       { name: 'ללא טכניקה', explain: '' },
+    myo_reps:   { name: 'מיו-רפס', explain: 'סט הפעלה של 9-20 חזרות (עצור 1-2 חזרות לפני כשל) → מנוחה קצרה 10-15 שניות → מיני-סטים של 3-5 חזרות עם אותו משקל, מנוחה 10-15ש בין כל אחד → עד 5 מיני-סטים או עד ירידה בכוח. רישום: 15+3+3+3+3+2. מומלץ במכונות/כבלים/בידוד, לא בתרגילים מורכבים כבדים.' },
+    rest_pause: { name: 'רסט-פאוז', explain: 'סט עד כמעט כשל או כשל → מנוחה 10 שניות → עוד כמה חזרות. אפשר כמה מיני-סבבים לפי התוכנית. מתאים לתרגילים מורכבים; לא במשקולות חופשיות מעל הראש.' },
+    slow_fast:  { name: '6 איטי 6 מהיר', explain: '6 חזרות איטיות ומבוקרות ומיד אחריהן 6 חזרות מהירות באותו סט. מתאים לבידוד ולמורכבים. דוגמאות: Romanian Deadlift, Incline Chest Press, Lateral Raises.' },
+    isomix:     { name: 'איזומיקס', explain: 'אחרי כל חזרה מחזיקים את הכיווץ 5 שניות. מטרה: הארכת זמן תחת מתח (TUT), שליטה וקשר מוח-שריר. דוגמאות: Face Pull, Front Raise, Rope Triceps, Hamstring Curl.' },
+    isomix_adv: { name: 'איזומיקס מתקדם', explain: 'מבנה קבוע: 5 חזרות + החזקה 5 שניות → 5 חזרות + החזקה 10 שניות → 5 חזרות + החזקה 15 שניות. דוגמאות: Front Raise, Leg Curl.' },
+    isoburst:   { name: 'איזובראסט', explain: 'משך ההחזקה = מספר החזרות שבוצעו ב-15 שניות דינמיות (למשל 10 חזרות → החזקה 10ש). סט1: 15ש עבודה במשקל קל + החזקה. סט2: 60ש (4 מקטעי 15ש, החזקה אחרי כל מקטע). סט3: 30ש (2 מקטעים, אותו משקל, Drop Weight). סט4: 45ש (3 מקטעים, משקל +20%, הורדת משקל).' },
+    drop_set:   { name: 'דרופ סט', explain: 'בסיום הסט מורידים משקל וממשיכים ללא מנוחה. אפשר גם טריפל דרופ (8/8/8). דוגמאות: Incline Dumbbell Press, Tibialis Raise (בסט האחרון).' },
+    negative:   { name: 'חזרה שלילית', explain: 'המתאמן בולם ומוריד את המשקל בשליטה (פאזה אקסצנטרית), והספוטר מרים בשבילו את המשקל בפאזה החיובית.' },
+  };
+  /* בדיקת כללי שילוב ליום אימון — מחזיר מערך אזהרות */
+  function techniqueWarnings(day) {
+    const techs = (day.exercises || []).map(e => e.technique).filter(t => t && t !== 'none');
+    const uniq = [...new Set(techs)];
+    const muscles = day.muscles || [];
+    const isChestShoulder = muscles.includes('חזה') || muscles.includes('כתפיים');
+    const w = [];
+    if (uniq.length > 2) w.push('יותר מ-2 טכניקות שונות באימון — מומלץ עד 2.');
+    if (uniq.includes('isoburst') && (uniq.includes('isomix') || uniq.includes('isomix_adv')))
+      w.push('לא לשלב איזובראסט עם איזומיקס באותו אימון.');
+    if (uniq.includes('rest_pause') && uniq.includes('drop_set') && !isChestShoulder)
+      w.push('שילוב רסט-פאוז + דרופ סט מומלץ רק באימוני חזה/כתפיים.');
+    return w;
+  }
   function renderTrainingEditor() {
     const el = document.getElementById('training-editor');
     if (!el) return;
@@ -3501,6 +3528,7 @@
             ${MUSCLES.map(m=>`<button class="muscle-pill${(day.muscles||[]).includes(m)?' muscle-active':''}" onclick="toggleMuscle(${di},'${m}',this)">${m}</button>`).join('')}
           </div>
           ${renderExGroups(di, day.exercises||[])}
+          ${(() => { const w = techniqueWarnings(day); return w.length ? `<div style="margin:6px 0;padding:8px 10px;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.35);border-radius:6px;font-size:0.75rem;color:#fbbf24;">⚠️ ${w.map(x=>esc(x)).join('<br>⚠️ ')}</div>` : ''; })()}
           <button class="add-link" onclick="addExercise(${di})">+ הוסף תרגיל</button>
         </div>
       </div>`).join('');
@@ -3693,10 +3721,15 @@
         }).join('')}
         <button class="btn-add-set" onclick="addCoachSet(${di},${ei})">+ הוסף סט</button>
       </div>
-      <div style="display:flex;align-items:center;gap:10px;margin-top:8px;margin-bottom:7px;">
+      <div style="display:flex;align-items:center;gap:10px;margin-top:8px;margin-bottom:7px;flex-wrap:wrap;">
         <span style="font-size:0.75rem;font-weight:700;color:var(--muted);white-space:nowrap;">⏱ מנוחה בין סטים:</span>
         <select onchange="trainingPlan[${di}].exercises[${ei}].rest_time=+this.value" style="padding:6px 10px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:6px;color:#fff;font-family:'Heebo',sans-serif;font-size:0.82rem;outline:none;cursor:pointer;">${restHtml}</select>
+        <span style="font-size:0.75rem;font-weight:700;color:var(--muted);white-space:nowrap;">🎯 טכניקה:</span>
+        <select onchange="trainingPlan[${di}].exercises[${ei}].technique=this.value;renderTrainingEditor()" style="padding:6px 10px;background:${(ex.technique&&ex.technique!=='none')?'rgba(180,120,255,0.12)':'rgba(255,255,255,0.05)'};border:1px solid ${(ex.technique&&ex.technique!=='none')?'rgba(180,120,255,0.4)':'rgba(255,255,255,0.1)'};border-radius:6px;color:#fff;font-family:'Heebo',sans-serif;font-size:0.82rem;outline:none;cursor:pointer;">
+          ${Object.entries(TECHNIQUES).map(([k,t])=>`<option value="${k}" ${((ex.technique||'none')===k)?'selected':''}>${t.name}</option>`).join('')}
+        </select>
       </div>
+      ${(ex.technique && ex.technique!=='none' && TECHNIQUES[ex.technique]) ? `<div style="margin-bottom:7px;padding:8px 10px;background:rgba(124,58,237,0.08);border:1px solid rgba(168,85,247,0.3);border-radius:6px;font-size:0.76rem;line-height:1.5;color:#c4a5ff;"><strong style="color:#a855f7;">🎯 ${TECHNIQUES[ex.technique].name}:</strong> ${esc(TECHNIQUES[ex.technique].explain)}</div>` : ''}
       <textarea oninput="trainingPlan[${di}].exercises[${ei}].description=this.value" placeholder="טיפ / תיאור טכני לתרגיל (יוצג למתאמן בזמן האימון)..." style="width:100%;padding:7px 10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:6px;color:#fff;font-family:'Heebo',sans-serif;font-size:0.8rem;outline:none;resize:vertical;min-height:46px;direction:rtl;" onfocus="this.style.borderColor='rgba(255,107,0,0.4)'" onblur="this.style.borderColor='rgba(255,255,255,0.08)'">${esc(ex.description||ex.notes||'')}</textarea>
     </div>`;
   }
