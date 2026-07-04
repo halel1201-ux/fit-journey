@@ -879,16 +879,14 @@
   // ─── AUTOPILOT (מנוי) ─────────────────────────────────────────────────
   let autopilotActive = false;
   let autopilotUntil  = null;   // 'YYYY-MM-DD' או null
-  const AUTOPILOT_PLANS = [
-    { id: 'day',  days: 1, tokens: 250,  label: 'יום אחד' },
-    { id: '5day', days: 5, tokens: 1000, label: '5 ימים'  },
-  ];
+  const AUTOPILOT_RATE = 250; // טוקנים ליום
 
   function autopilotDaysLeft() {
     if (!autopilotUntil) return 0;
     const today = new Date(); today.setHours(0,0,0,0);
-    const until = new Date(autopilotUntil + 'T23:59:59');
-    return Math.max(0, Math.ceil((until - today) / 86400000));
+    const until = new Date(autopilotUntil + 'T00:00:00');
+    const diff = Math.floor((until - today) / 86400000);
+    return Math.max(0, diff + 1); // autopilot_until = היום האחרון (כולל), לכן +1
   }
   function autopilotIsLive() { return autopilotActive && autopilotDaysLeft() > 0; }
 
@@ -968,41 +966,60 @@
 
   function openAutopilotShop() {
     closeAutopilotStatus();
-    const rows = AUTOPILOT_PLANS.map(p => `
-      <button onclick="buyAutopilot('${p.id}')" style="display:flex;justify-content:space-between;align-items:center;width:100%;padding:14px 16px;margin-bottom:10px;background:rgba(255,107,0,0.06);border:1px solid rgba(255,107,0,0.3);border-radius:12px;cursor:pointer;font-family:'Heebo',sans-serif;">
-        <div style="text-align:right;">
-          <div style="font-size:1rem;font-weight:900;color:#fff;">${p.label}</div>
-          <div style="font-size:0.74rem;color:#888;">הבוט עונה ללקוחות בשמך — כל התשובות כלולות</div>
-        </div>
-        <div style="font-size:1.05rem;font-weight:900;color:var(--orange);white-space:nowrap;">${p.tokens.toLocaleString('he-IL')} טוקנים</div>
-      </button>`).join('');
+    const liveTxt = (autopilotUntil && autopilotDaysLeft() > 0) ? ` · פעיל עוד ${autopilotDaysLeft()} ימים (רכישה תאריך את המנוי)` : '';
+    const quick = [1,5,7,14,30].map(d =>
+      `<button onclick="document.getElementById('ap-days').value=${d};updateAutopilotCost()" style="flex:1;padding:7px 0;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:#bbb;font-family:'Heebo',sans-serif;font-size:0.78rem;cursor:pointer;">${d}</button>`
+    ).join('');
     document.getElementById('autopilot-shop-body').innerHTML = `
-      <div style="font-size:0.82rem;color:#aaa;margin-bottom:14px;">יתרה נוכחית: <strong style="color:var(--orange);">${coachTokens.toLocaleString('he-IL')}</strong> טוקנים${autopilotUntil && autopilotDaysLeft()>0 ? ` · פעיל עוד ${autopilotDaysLeft()} ימים (רכישה תאריך את המנוי)` : ''}</div>
-      ${rows}`;
+      <div style="font-size:0.82rem;color:#aaa;margin-bottom:4px;">יתרה נוכחית: <strong style="color:var(--orange);">${coachTokens.toLocaleString('he-IL')}</strong> טוקנים${liveTxt}</div>
+      <div style="font-size:0.76rem;color:#888;margin-bottom:14px;">${AUTOPILOT_RATE} טוקנים ליום · כל התשובות כלולות. הבוט עונה ללקוח <strong style="color:#c4a5ff;">בצ'אט שלו</strong> (כהודעה ממך), וסיכום מגיע להתראות + ליומן.</div>
+      <label style="font-size:0.82rem;color:#ccc;display:block;margin-bottom:6px;">כמה ימים תרצה?</label>
+      <div style="display:flex;gap:10px;align-items:center;margin-bottom:8px;">
+        <input id="ap-days" type="number" min="1" max="60" value="1" oninput="updateAutopilotCost()"
+          style="width:88px;padding:11px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,107,0,0.35);border-radius:10px;color:#fff;font-family:'Heebo',sans-serif;font-size:1.05rem;text-align:center;outline:none;"/>
+        <div style="flex:1;font-size:0.92rem;color:#aaa;">עלות: <strong id="ap-cost" style="color:var(--orange);font-size:1.15rem;">${AUTOPILOT_RATE.toLocaleString('he-IL')}</strong> טוקנים</div>
+      </div>
+      <div style="display:flex;gap:6px;margin-bottom:16px;">${quick}</div>
+      <button onclick="buyAutopilotDays(document.getElementById('ap-days').value)"
+        style="width:100%;padding:13px;background:linear-gradient(135deg,var(--orange),#FF8C00);border:none;border-radius:12px;color:#fff;font-family:'Heebo',sans-serif;font-weight:900;font-size:1rem;cursor:pointer;">💳 שלם והפעל</button>`;
     document.getElementById('autopilot-shop-modal').style.display = 'flex';
+  }
+  function updateAutopilotCost() {
+    const d = Math.max(0, parseInt(document.getElementById('ap-days')?.value) || 0);
+    const el = document.getElementById('ap-cost');
+    if (el) el.textContent = (d * AUTOPILOT_RATE).toLocaleString('he-IL');
   }
   function closeAutopilotShop() { document.getElementById('autopilot-shop-modal').style.display = 'none'; }
 
-  async function buyAutopilot(planId) {
+  async function buyAutopilotDays(daysInput) {
     if (!requireEdit()) return;
-    const plan = AUTOPILOT_PLANS.find(p => p.id === planId);
-    if (!plan) return;
-    if (coachTokens < plan.tokens) {
+    const days = parseInt(daysInput);
+    if (!days || days < 1) { toast('הזן מספר ימים תקין', 'err'); return; }
+    if (days > 60) { toast('מקסימום 60 ימים בכל רכישה', 'err'); return; }
+    const tokens = days * AUTOPILOT_RATE;
+    if (coachTokens < tokens) {
       closeAutopilotShop();
-      if (confirm(`אין מספיק טוקנים למנוי "${plan.label}".\nנדרש: ${plan.tokens} | נותר: ${coachTokens}\n\nלרכוש טוקנים?`)) openTokenShop();
+      if (confirm(`אין מספיק טוקנים ל-${days} ימים.\nנדרש: ${tokens.toLocaleString('he-IL')} | נותר: ${coachTokens.toLocaleString('he-IL')}\n\nלרכוש טוקנים?`)) openTokenShop();
       return;
     }
-    // חשב תאריך סיום — הארכה מהתוקף הקיים אם עדיין פעיל, אחרת מהיום
-    const base = (autopilotUntil && autopilotDaysLeft() > 0) ? new Date(autopilotUntil + 'T00:00:00') : new Date();
-    base.setDate(base.getDate() + plan.days);
-    const untilStr = base.toISOString().split('T')[0];
-    const newBal = coachTokens - plan.tokens;
+    // autopilot_until = היום האחרון (כולל). הארכה: מוסיפים ימים לתוקף הקיים; טרי: מהיום + (days-1)
+    let base;
+    if (autopilotUntil && autopilotDaysLeft() > 0) {
+      base = new Date(autopilotUntil + 'T00:00:00');
+      base.setDate(base.getDate() + days);
+    } else {
+      base = new Date(); base.setHours(0,0,0,0);
+      base.setDate(base.getDate() + days - 1);
+    }
+    // תאריך מקומי (לא UTC) כדי למנוע הזזה של יום באזור זמן ישראל
+    const untilStr = base.getFullYear() + '-' + String(base.getMonth()+1).padStart(2,'0') + '-' + String(base.getDate()).padStart(2,'0');
+    const newBal = coachTokens - tokens;
 
     const { error: tErr } = await sb.from('coach_tokens')
       .upsert({ coach_email: coachEmail, balance: newBal, updated_at: new Date().toISOString() });
     if (tErr) { toast('שגיאה בחיוב: ' + tErr.message, 'err'); return; }
     const { error: cErr } = await sb.from('coaches')
-      .update({ autopilot_active: true, autopilot_until: untilStr, autopilot_plan: plan.id }).eq('email', coachEmail);
+      .update({ autopilot_active: true, autopilot_until: untilStr, autopilot_plan: days + 'd' }).eq('email', coachEmail);
     if (cErr) { toast('שגיאה בהפעלה: ' + cErr.message, 'err'); return; }
 
     coachTokens = newBal;
@@ -1010,9 +1027,9 @@
     autopilotUntil = untilStr;
     renderTokenBadge();
     renderAutopilotBtn();
-    sb.from('token_usage').insert({ coach_email: coachEmail, amount: plan.tokens, kind: 'subscription', label: `מנוי מאמן אוטומטי — ${plan.label}`, balance_after: newBal }).then(()=>{});
+    sb.from('token_usage').insert({ coach_email: coachEmail, amount: tokens, kind: 'subscription', label: `מנוי מאמן אוטומטי — ${days} ימים`, balance_after: newBal }).then(()=>{});
     closeAutopilotShop();
-    toast(`🤖 מאמן אוטומטי הופעל ל-${plan.days === 1 ? 'יום' : plan.days + ' ימים'} — ה-AI יענה ללקוחות`, 'ok');
+    toast(`🤖 מאמן אוטומטי הופעל ל-${days} ימים — יענה ללקוחות תוך חצי דקה`, 'ok');
   }
 
   // ─── TOKEN SYSTEM ────────────────────────────────────────────────────
@@ -6716,7 +6733,7 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
       <div style="font-size:1.05rem;font-weight:900;color:#fff;">🤖 מאמן אוטומטי — פעיל</div>
       <button onclick="closeAutopilotStatus()" style="background:none;border:none;color:#555;font-size:1.2rem;cursor:pointer;line-height:1;padding:2px 4px;">✕</button>
     </div>
-    <div style="font-size:0.84rem;color:#aaa;margin-bottom:16px;">נותרו <strong style="color:var(--orange);"><span id="autopilot-status-days">—</span> ימים</strong> · ה-AI עונה ללקוחות בשמך. סיכום כל שיחה נשלח אליך בהתראה, וכל השיחות מתועדות ביומן.</div>
+    <div style="font-size:0.84rem;color:#aaa;margin-bottom:16px;">נותרו <strong style="color:var(--orange);"><span id="autopilot-status-days">—</span> ימים</strong> · ה-AI עונה תוך חצי דקה ישירות <strong style="color:#c4a5ff;">בצ'אט של הלקוח</strong> (הודעה שנראית ממך, מסומנת 🤖 אצלך). סיכום כל שיחה מגיע להתראות + ליומן כאן.</div>
     <button onclick="openAutopilotLog()" style="width:100%;padding:12px;margin-bottom:9px;background:rgba(124,58,237,0.15);border:1px solid rgba(168,85,247,0.4);border-radius:10px;color:#c4a5ff;font-family:'Heebo',sans-serif;font-weight:800;font-size:0.9rem;cursor:pointer;">📋 יומן שיחות</button>
     <button onclick="openAutopilotShop()" style="width:100%;padding:12px;margin-bottom:9px;background:rgba(255,107,0,0.1);border:1px solid rgba(255,107,0,0.35);border-radius:10px;color:var(--orange);font-family:'Heebo',sans-serif;font-weight:800;font-size:0.9rem;cursor:pointer;">➕ הארך מנוי</button>
     <button onclick="if(confirm('לכבות את המאמן האוטומטי? (לא יינתן החזר טוקנים)')){closeAutopilotStatus();deactivateAutopilot();}" style="width:100%;padding:12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.12);border-radius:10px;color:#999;font-family:'Heebo',sans-serif;font-weight:700;font-size:0.86rem;cursor:pointer;">⏸ כבה מנוי</button>
@@ -6741,7 +6758,7 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
       <div style="font-size:1.05rem;font-weight:900;color:#fff;">🤖 הפעלת מאמן אוטומטי</div>
       <button onclick="closeAutopilotShop()" style="background:none;border:none;color:#555;font-size:1.2rem;cursor:pointer;line-height:1;padding:2px 4px;">✕</button>
     </div>
-    <div style="font-size:0.78rem;color:#888;margin-bottom:14px;">בזמן שהמנוי פעיל — ה-AI עונה ללקוחות בשמך אחרי 2 דקות. כל התשובות כלולות במחיר.</div>
+    <div style="font-size:0.78rem;color:#888;margin-bottom:14px;">בזמן שהמנוי פעיל — ה-AI עונה ללקוחות בצ'אט שלהם תוך חצי דקה, כהודעה שנראית ממך. כל התשובות כלולות במחיר.</div>
     <div id="autopilot-shop-body"></div>
   </div>
 </div>
