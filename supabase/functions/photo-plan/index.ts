@@ -40,7 +40,7 @@ function analyze(gender: string, m: Record<string, number>) {
     if (m.shoulders > 0 && sh < shTarget) { weak.add('כתפיים'); if (gender !== 'female') weak.add('גב') }
 
     const arm = m.arm / m.waist
-    if (m.arm > 0 && arm < 0.6) { weak.add('יד קדמית'); weak.add('יד אחורית') }
+    if (m.arm > 0 && arm < 0.45) { weak.add('יד קדמית'); weak.add('יד אחורית') }
 
     if (gender !== 'female' && m.iliac > 0) {
       const il = m.iliac / m.waist

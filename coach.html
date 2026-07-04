@@ -3587,6 +3587,9 @@
     const cost = await photoPlanCost();
     document.getElementById('pp-cost').textContent = cost.toLocaleString('he-IL');
     document.getElementById('pp-status').textContent = '';
+    // start at step 1
+    document.getElementById('pp-step1').style.display = 'block';
+    document.getElementById('pp-step2').style.display = 'none';
     document.getElementById('photo-plan-modal').style.display = 'flex';
   }
   function _ppPreview(i) {
@@ -3595,28 +3598,41 @@
     const url = URL.createObjectURL(f);
     document.getElementById(`pp-prev-${i}`).innerHTML = `<img src="${url}" style="width:100%;height:100%;object-fit:cover;position:absolute;inset:0;"/>`;
   }
+  function photoPlanNext() {
+    // require at least one photo before moving to measurements
+    let n = 0;
+    for (let i = 0; i < 4; i++) { if (document.getElementById(`pp-photo-${i}`)?.files[0]) n++; }
+    const st = document.getElementById('pp-status');
+    if (n < 1) { st.style.color = '#ff7070'; st.textContent = 'העלה לפחות תמונה אחת'; return; }
+    st.textContent = '';
+    document.getElementById('pp-step1').style.display = 'none';
+    document.getElementById('pp-step2').style.display = 'block';
+  }
   function closePhotoPlanModal() { document.getElementById('photo-plan-modal').style.display = 'none'; }
 
-  async function runPhotoPlan() {
-    if (!requireEdit()) return;
+  let _ppRunning = false;
+  async function runPhotoPlan(skipMeasurements) {
+    if (!requireEdit() || _ppRunning) return;
     const st = document.getElementById('pp-status');
-    const btn = document.getElementById('pp-run-btn');
     const c = clients.find(x => x.email === activeEmail);
     const gender = c?.gender || 'male';
     // gather photos
     const files = [];
     for (let i = 0; i < 4; i++) { const f = document.getElementById(`pp-photo-${i}`)?.files[0]; if (f) files.push(f); }
     if (files.length < 1) { st.style.color = '#ff7070'; st.textContent = 'העלה לפחות תמונה אחת'; return; }
-    // gather + validate measurements
+    // measurements — validated only if not skipping
     const num = id => parseFloat(document.getElementById(id)?.value) || 0;
-    const m = { waist:num('pp-waist'), leg:num('pp-leg'), shoulders:num('pp-shoulders'), arm:num('pp-arm'), iliac:num('pp-iliac') };
-    const need = ['waist','leg','shoulders','arm'].concat(gender==='female'?[]:['iliac']);
-    for (const k of need) { if (m[k] < 15 || m[k] > 250) { st.style.color='#ff7070'; st.textContent='מלא את כל המדדים בטווח 15-250 ס״מ'; return; } }
+    let m = { waist:0, leg:0, shoulders:0, arm:0, iliac:0 };
+    if (!skipMeasurements) {
+      m = { waist:num('pp-waist'), leg:num('pp-leg'), shoulders:num('pp-shoulders'), arm:num('pp-arm'), iliac:num('pp-iliac') };
+      const need = ['waist','leg','shoulders','arm'].concat(gender==='female'?[]:['iliac']);
+      for (const k of need) { if (m[k] < 15 || m[k] > 250) { st.style.color='#ff7070'; st.textContent='מלא את כל ההיקפים בטווח 15-250 ס״מ (או לחץ דלג)'; return; } }
+    }
     const days = parseInt(document.getElementById('pp-days').value) || 4;
     const cost = await photoPlanCost();
     if (coachTokens < cost) { st.style.color='#ff7070'; st.textContent=`אין מספיק טוקנים (נדרש ${cost})`; closePhotoPlanModal(); openTokenShop(); return; }
 
-    btn.disabled = true; st.style.color = 'var(--muted)'; st.textContent = '⏳ מנתח תמונות ובונה תוכנית... (עד דקה)';
+    _ppRunning = true; st.style.color = 'var(--muted)'; st.textContent = '⏳ מנתח תמונות ובונה תוכנית... (עד דקה)';
     try {
       const images = [];
       for (const f of files) images.push({ media_type: f.type || 'image/jpeg', data: await _fileToBase64(f) });
@@ -3627,7 +3643,7 @@
         body: JSON.stringify({ client_email: activeEmail, gender, goal: c?.goal || 'recomp', days, measurements: m, images }),
       });
       const out = await resp.json();
-      if (out.error) { st.style.color='#ff7070'; st.textContent = out.error; btn.disabled = false; return; }
+      if (out.error) { st.style.color='#ff7070'; st.textContent = out.error; _ppRunning = false; return; }
 
       // upload photos to private bucket + save album row (best-effort)
       const paths = [];
@@ -3654,11 +3670,12 @@
       }));
       renderTrainingEditor();
       await deductTokens(cost, 'תוכנית לפי תמונות', 'photo_plan');
+      _ppRunning = false;
       closePhotoPlanModal();
       const wp = (out.weak_points || []).length ? ' · נקודות חלשות: ' + out.weak_points.join(', ') : '';
       toast('✅ תוכנית נבנתה לפי התמונות' + wp, 'ok');
     } catch (e) {
-      st.style.color = '#ff7070'; st.textContent = 'שגיאה: ' + (e.message || e); btn.disabled = false;
+      st.style.color = '#ff7070'; st.textContent = 'שגיאה: ' + (e.message || e); _ppRunning = false;
     }
   }
 
@@ -7006,21 +7023,31 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
     </div>
     <div style="font-size:0.78rem;color:#888;margin-bottom:16px;">מעלים 4 תמונות + מדדים. הקוד מחשב את היחסים והנקודות החלשות, ה-AI מנתח את התמונות, ובונה תוכנית מותאמת. התמונות נשמרות לאלבום ההתקדמות.</div>
 
-    <div style="font-size:0.8rem;font-weight:800;color:#c4a5ff;margin-bottom:8px;">📷 4 תמונות (קדמי · גב · צד · מכווץ)</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;" id="pp-photo-grid"></div>
-
-    <div style="font-size:0.8rem;font-weight:800;color:#c4a5ff;margin-bottom:8px;">📏 מדדים (ס״מ)</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:6px;">
-      <label style="font-size:0.74rem;color:#aaa;">מותן<input id="pp-waist" type="number" min="15" max="250" placeholder="80" style="width:100%;margin-top:3px;padding:8px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:#fff;font-family:'Heebo';outline:none;"/></label>
-      <label style="font-size:0.74rem;color:#aaa;">היקף רגל (ירך)<input id="pp-leg" type="number" min="15" max="250" placeholder="60" style="width:100%;margin-top:3px;padding:8px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:#fff;font-family:'Heebo';outline:none;"/></label>
-      <label style="font-size:0.74rem;color:#aaa;">כתפיים<input id="pp-shoulders" type="number" min="15" max="250" placeholder="120" style="width:100%;margin-top:3px;padding:8px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:#fff;font-family:'Heebo';outline:none;"/></label>
-      <label style="font-size:0.74rem;color:#aaa;">זרוע<input id="pp-arm" type="number" min="15" max="250" placeholder="38" style="width:100%;margin-top:3px;padding:8px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:#fff;font-family:'Heebo';outline:none;"/></label>
-      <label id="pp-iliac-wrap" style="font-size:0.74rem;color:#aaa;">כסל/אגן (גברים)<input id="pp-iliac" type="number" min="15" max="250" placeholder="95" style="width:100%;margin-top:3px;padding:8px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:#fff;font-family:'Heebo';outline:none;"/></label>
-      <label style="font-size:0.74rem;color:#aaa;">ימי אימון<select id="pp-days" style="width:100%;margin-top:3px;padding:8px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:#fff;font-family:'Heebo';outline:none;"><option value="3">3</option><option value="4" selected>4</option><option value="5">5</option><option value="6">6</option></select></label>
+    <!-- STEP 1: photos -->
+    <div id="pp-step1">
+      <div style="font-size:0.8rem;font-weight:800;color:#c4a5ff;margin-bottom:8px;">📷 העלה 4 תמונות (קדמי · גב · צד · מכווץ)</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;" id="pp-photo-grid"></div>
+      <div id="pp-client-info" style="font-size:0.72rem;color:#777;margin-bottom:12px;"></div>
+      <button onclick="photoPlanNext()" style="width:100%;padding:13px;background:linear-gradient(135deg,#7c3aed,#a855f7);border:none;border-radius:12px;color:#fff;font-family:'Heebo';font-weight:900;font-size:1rem;cursor:pointer;">✓ סיימתי — המשך למדדים</button>
     </div>
-    <div id="pp-client-info" style="font-size:0.72rem;color:#777;margin-bottom:14px;"></div>
 
-    <button id="pp-run-btn" onclick="runPhotoPlan()" style="width:100%;padding:13px;background:linear-gradient(135deg,#7c3aed,#a855f7);border:none;border-radius:12px;color:#fff;font-family:'Heebo';font-weight:900;font-size:1rem;cursor:pointer;">🚀 בנה תוכנית (<span id="pp-cost">500</span> טוקנים)</button>
+    <!-- STEP 2: measurements -->
+    <div id="pp-step2" style="display:none;">
+      <div style="font-size:0.8rem;font-weight:800;color:#c4a5ff;margin-bottom:4px;">📏 היקפים (ס״מ)</div>
+      <div style="font-size:0.72rem;color:#888;margin-bottom:10px;">מלא את ההיקפים לניתוח מדויק, או דלג לתוכנית ברירת מחדל (לפי התמונות בלבד).</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:6px;">
+        <label style="font-size:0.74rem;color:#aaa;">מותן<input id="pp-waist" type="number" min="15" max="250" placeholder="80" style="width:100%;margin-top:3px;padding:8px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:#fff;font-family:'Heebo';outline:none;"/></label>
+        <label style="font-size:0.74rem;color:#aaa;">היקף רגל (ירך)<input id="pp-leg" type="number" min="15" max="250" placeholder="60" style="width:100%;margin-top:3px;padding:8px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:#fff;font-family:'Heebo';outline:none;"/></label>
+        <label style="font-size:0.74rem;color:#aaa;">כתפיים<input id="pp-shoulders" type="number" min="15" max="250" placeholder="120" style="width:100%;margin-top:3px;padding:8px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:#fff;font-family:'Heebo';outline:none;"/></label>
+        <label style="font-size:0.74rem;color:#aaa;">זרוע<input id="pp-arm" type="number" min="15" max="250" placeholder="38" style="width:100%;margin-top:3px;padding:8px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:#fff;font-family:'Heebo';outline:none;"/></label>
+        <label id="pp-iliac-wrap" style="font-size:0.74rem;color:#aaa;">כסל/אגן (גברים)<input id="pp-iliac" type="number" min="15" max="250" placeholder="95" style="width:100%;margin-top:3px;padding:8px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:#fff;font-family:'Heebo';outline:none;"/></label>
+        <label style="font-size:0.74rem;color:#aaa;">ימי אימון<select id="pp-days" style="width:100%;margin-top:3px;padding:8px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:#fff;font-family:'Heebo';outline:none;"><option value="3">3</option><option value="4" selected>4</option><option value="5">5</option><option value="6">6</option></select></label>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:14px;">
+        <button onclick="runPhotoPlan(false)" style="flex:2;padding:13px;background:linear-gradient(135deg,#7c3aed,#a855f7);border:none;border-radius:12px;color:#fff;font-family:'Heebo';font-weight:900;font-size:0.95rem;cursor:pointer;">✅ אשר ושלח (<span id="pp-cost">500</span> טוקנים)</button>
+        <button onclick="runPhotoPlan(true)" style="flex:1;padding:13px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);border-radius:12px;color:#bbb;font-family:'Heebo';font-weight:700;font-size:0.9rem;cursor:pointer;">⏭ דלג</button>
+      </div>
+    </div>
     <div id="pp-status" style="font-size:0.8rem;text-align:center;margin-top:10px;min-height:18px;"></div>
   </div>
 </div>
