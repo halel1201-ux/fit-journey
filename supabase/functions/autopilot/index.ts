@@ -8,7 +8,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const SUPABASE_URL     = Deno.env.get('SUPABASE_URL')!
-const SERVICE_KEY      = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+const SERVICE_KEY      = Deno.env.get('ADMIN_DB_KEY')!  // new server-side key (old service_role retired)
 const ANTHROPIC_KEY    = Deno.env.get('ANTHROPIC_API_KEY')!
 const ONESIGNAL_APP_ID  = 'fe16a494-b8de-47e9-8a29-de052e048ec8'
 const ONESIGNAL_REST    = 'os_v2_app_7ylkjffy3zd6tcrj3ycs4beozaggpy5dukfe45efqruamrlljsrgz4rncsssvzvsbpt2df3zts2vdwcl2qg6zowamqntfmprxzppmjq'
