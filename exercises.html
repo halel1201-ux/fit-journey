@@ -196,7 +196,7 @@
       if (!session) { window.location.href = 'login.html'; return; }
 
       /* ── LOAD JSON ── */
-      const res = await fetch('/strength_exercises.json');
+      const res = await fetch('strength_exercises.json');
       if (!res.ok) throw new Error('fetch failed: ' + res.status);
       const raw = await res.json();
 
