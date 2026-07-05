@@ -3,17 +3,18 @@
 // (שני SW-ים נפרדים על "/" גורמים לבעיות הרשמה ל-Push, בעיקר ב-iOS Safari)
 importScripts('https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js');
 
-const CACHE = 'hf-v1';
+const CACHE = 'hf-v2'; // bumped: forces all installed clients to drop stale hf-v1 cache
 
+// relative paths — work from root AND from a subpath like /fit-journey/
 const STATIC = [
-  '/login.html',
-  '/index.html',
-  '/coach.html',
-  '/admin.html',
-  '/dashboard.html',
-  '/food.html',
-  '/manifest.json',
-  '/icon.svg',
+  './login.html',
+  './index.html',
+  './coach.html',
+  './admin.html',
+  './dashboard.html',
+  './food.html',
+  './manifest.json',
+  './icon.svg',
 ];
 
 /* ── Install: cache static files ── */
@@ -69,6 +70,6 @@ self.addEventListener('fetch', e => {
         }
         return res;
       })
-      .catch(() => caches.match(e.request).then(cached => cached || caches.match('/login.html')))
+      .catch(() => caches.match(e.request).then(cached => cached || caches.match('./login.html')))
   );
 });

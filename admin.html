@@ -3827,7 +3827,7 @@ CREATE POLICY IF NOT EXISTS "service_manage_progress" ON progress_entries FOR AL
 </script>
   <script>
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js').catch(e => console.warn('SW:', e));
+      navigator.serviceWorker.register('sw.js').catch(e => console.warn('SW:', e));
     }
   </script></body>
 </html>

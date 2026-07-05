@@ -2,8 +2,8 @@
   "name": "HF Online Coaching",
   "short_name": "HF Coaching",
   "description": "פלטפורמת ליווי כושר ותזונה אונליין — תוכניות אימון, תזונה וליווי אישי",
-  "start_url": "/login.html",
-  "scope": "/",
+  "start_url": "./login.html",
+  "scope": "./",
   "display": "standalone",
   "background_color": "#0a0a0a",
   "theme_color": "#FF6B00",
@@ -35,7 +35,7 @@
   "shortcuts": [
     {
       "name": "כניסה",
-      "url": "/login.html",
+      "url": "./login.html",
       "description": "כניסה למערכת"
     }
   ]
