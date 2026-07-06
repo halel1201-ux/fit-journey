@@ -3,7 +3,7 @@
 // (שני SW-ים נפרדים על "/" גורמים לבעיות הרשמה ל-Push, בעיקר ב-iOS Safari)
 importScripts('https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js');
 
-const CACHE = 'hf-v2'; // bumped: forces all installed clients to drop stale hf-v1 cache
+const CACHE = 'hf-v3'; // bumped: forces all installed clients to drop stale cache
 
 // relative paths — work from root AND from a subpath like /fit-journey/
 const STATIC = [
@@ -46,6 +46,13 @@ self.addEventListener('fetch', e => {
     url.protocol === 'chrome-extension:'
   ) {
     return; // don't call e.respondWith — browser fetches directly, body stream intact
+  }
+
+  /* Static JSON databases (strength_exercises.json, food_all.json, …) → bypass SW entirely.
+     These are large, same-origin, and must always load fresh from network. Never route them
+     through cache logic — a stale/faulty SW must not be able to break the exercise/food DB. */
+  if (url.pathname.endsWith('.json') && url.origin === self.location.origin) {
+    return;
   }
 
   /* Google Fonts → network first, cache fallback */

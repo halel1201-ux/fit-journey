@@ -4560,7 +4560,23 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
           thumb:            ex.thumb || '',
         };
       });
-    } catch(e) { exerciseLibrary = []; }
+    } catch(e) { exerciseLibrary = []; selfHealSW(); }
+  }
+
+  // one-shot SW self-heal: a stuck Service Worker can make fetch reject ("Failed to fetch"),
+  // leaving the exercise/food library empty. Nuke SW + caches and reload once (guarded).
+  async function selfHealSW() {
+    try {
+      if (sessionStorage.getItem('sw-healed')) return false;
+      if (!('serviceWorker' in navigator)) return false;
+      const regs = await navigator.serviceWorker.getRegistrations();
+      if (!regs.length) return false;
+      sessionStorage.setItem('sw-healed', '1');
+      await Promise.all(regs.map(r => r.unregister()));
+      if (window.caches) { const keys = await caches.keys(); await Promise.all(keys.map(k => caches.delete(k))); }
+      location.reload();
+      return true;
+    } catch(e) { return false; }
   }
 
   /* 3-tier fuzzy match (exact → substring → word-overlap) against exerciseLibrary, mirrors dashboard.html findExercise() */
@@ -4618,7 +4634,7 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
         cup_g:     n(f.grams_per_cup)        || null,
         portion_g: n(f.grams_per_portion)    || null,
       })).filter(f => f.name && (f.calories > 0 || f.protein > 0));
-    } catch(e) { allFoodItems = []; }
+    } catch(e) { allFoodItems = []; selfHealSW(); }
   }
   /* ── QUICK PREVIEW (current resolved video) ── */
   function previewExerciseMedia(di, ei) {

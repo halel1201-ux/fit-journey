@@ -212,31 +212,53 @@
     }
     if (!session) { window.location.href = 'login.html'; return; }
 
-    const res = await fetch('food_all.json');
-    const raw = await res.json();
-    allFoods = raw.map(f => ({
-      id:        f.product_id,
-      name:      (f.description || '').trim(),
-      english:   (f.english_description || '').trim(),
-      calories:  num(f.energy_value),
-      protein:   num(f.protein),
-      carbs:     num(f.carbohydrates),
-      fat:       num(f.fat),
-      fiber:     num(f.fiber),
-      sodium:    num(f.sodium),
-      serving_g: num(f.grams_per_portion) || num(f.grams_per_unit) || null,
-      unit_g:    num(f.grams_per_unit) || null,
-      tbsp_g:    num(f.grams_per_tablespoon) || null,
-      tsp_g:     num(f.grams_per_teaspoon) || null,
-      cup_g:     num(f.grams_per_cup) || null,
-      category:  autoCategory((f.description || '')),
-    })).sort((a, b) => a.name.localeCompare(b.name, 'he'));
+    try {
+      const res = await fetch('food_all.json');
+      if (!res.ok) throw new Error('fetch failed: ' + res.status);
+      const raw = await res.json();
+      allFoods = raw.map(f => ({
+        id:        f.product_id,
+        name:      (f.description || '').trim(),
+        english:   (f.english_description || '').trim(),
+        calories:  num(f.energy_value),
+        protein:   num(f.protein),
+        carbs:     num(f.carbohydrates),
+        fat:       num(f.fat),
+        fiber:     num(f.fiber),
+        sodium:    num(f.sodium),
+        serving_g: num(f.grams_per_portion) || num(f.grams_per_unit) || null,
+        unit_g:    num(f.grams_per_unit) || null,
+        tbsp_g:    num(f.grams_per_tablespoon) || null,
+        tsp_g:     num(f.grams_per_teaspoon) || null,
+        cup_g:     num(f.grams_per_cup) || null,
+        category:  autoCategory((f.description || '')),
+      })).sort((a, b) => a.name.localeCompare(b.name, 'he'));
 
-    document.getElementById('loader').style.opacity = '0';
-    setTimeout(() => document.getElementById('loader').style.display = 'none', 300);
-    document.getElementById('main').style.display = 'block';
-    renderTabs();
-    filterFoods();
+      document.getElementById('loader').style.opacity = '0';
+      setTimeout(() => document.getElementById('loader').style.display = 'none', 300);
+      document.getElementById('main').style.display = 'block';
+      renderTabs();
+      filterFoods();
+    } catch (err) {
+      // self-heal a stuck Service Worker (see below); if it can't, stop the infinite loader and show a clear error
+      if (await selfHealSW()) return;
+      const loader = document.getElementById('loader');
+      if (loader) loader.innerHTML = '<div style="text-align:center;color:#ff8080;padding:20px;">⚠️ שגיאה בטעינת מאגר המזון<br><span style="color:#888;font-size:0.85rem;">נסה לרענן את הדף</span></div>';
+    }
+  }
+
+  // one-shot SW self-heal: nukes a stuck Service Worker + caches, then reloads. Returns true if a reload was triggered.
+  async function selfHealSW() {
+    try {
+      if (sessionStorage.getItem('sw-healed')) return false;
+      if (!('serviceWorker' in navigator)) return false;
+      const regs = await navigator.serviceWorker.getRegistrations();
+      sessionStorage.setItem('sw-healed', '1');
+      await Promise.all(regs.map(r => r.unregister()));
+      if (window.caches) { const keys = await caches.keys(); await Promise.all(keys.map(k => caches.delete(k))); }
+      location.reload();
+      return true;
+    } catch(e) { return false; }
   }
 
   function renderTabs() {
@@ -406,7 +428,7 @@
 </script>
 <script>
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js').catch(e => console.warn('SW:', e));
+    navigator.serviceWorker.register('sw.js').then(reg => reg.update()).catch(e => console.warn('SW:', e));
   }
 </script>
 </body>

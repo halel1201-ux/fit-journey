@@ -221,11 +221,29 @@
       filterExercises();
 
     } catch(err) {
+      // self-heal: a stale/broken Service Worker can make fetch reject with "Failed to fetch".
+      // Unregister all SWs, clear caches, and reload once (guarded) so the DB loads fresh from network.
+      if (await selfHealSW()) return;
       hideLoader();
       document.getElementById('main').style.display = 'block';
       document.getElementById('exercises-grid').innerHTML =
-        `<div class="empty"><div class="empty-icon">⚠️</div><div>שגיאה בטעינה: ${err.message}</div></div>`;
+        `<div class="empty"><div class="empty-icon">⚠️</div><div>שגיאה בטעינה: ${err.message}</div><div style="margin-top:10px;font-size:0.85rem;color:#888;">נסה לרענן את הדף</div></div>`;
     }
+  }
+
+  // one-shot SW self-heal: nukes a stuck Service Worker + caches, then reloads. Returns true if a reload was triggered.
+  async function selfHealSW() {
+    try {
+      if (sessionStorage.getItem('sw-healed')) return false; // already tried this session — avoid reload loop
+      if (!('serviceWorker' in navigator)) return false;
+      const regs = await navigator.serviceWorker.getRegistrations();
+      if (!regs.length && (!window.caches)) return false;
+      sessionStorage.setItem('sw-healed', '1');
+      await Promise.all(regs.map(r => r.unregister()));
+      if (window.caches) { const keys = await caches.keys(); await Promise.all(keys.map(k => caches.delete(k))); }
+      location.reload();
+      return true;
+    } catch(e) { return false; }
   }
 
   function renderTabs() {
@@ -326,7 +344,7 @@
 </script>
 <script>
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js').catch(e => console.warn('SW:', e));
+    navigator.serviceWorker.register('sw.js').then(reg => reg.update()).catch(e => console.warn('SW:', e));
   }
 </script>
 </body>
