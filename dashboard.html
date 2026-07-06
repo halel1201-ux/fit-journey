@@ -888,6 +888,18 @@
   <!-- TAB: אימונים -->
   <div class="tab-page active" id="tab-workouts">
 
+    <!-- הצהרת בריאות — באנר אם טרם נחתמה -->
+    <div id="health-decl-banner" style="display:none;margin-bottom:16px;background:linear-gradient(135deg,rgba(255,107,0,0.12),rgba(255,215,0,0.06));border:1px solid rgba(255,107,0,0.4);border-radius:14px;padding:14px 16px;">
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+        <div style="font-size:1.6rem;">📝</div>
+        <div style="flex:1;min-width:180px;">
+          <div style="font-weight:900;font-size:0.95rem;color:#fff;">נדרשת חתימה על הצהרת בריאות</div>
+          <div style="font-size:0.78rem;color:#aaa;margin-top:2px;">כדי להתחיל להתאמן יש למלא ולחתום — לוקח דקה</div>
+        </div>
+        <button onclick="openHealthDecl()" style="padding:10px 20px;background:linear-gradient(135deg,#FF6B00,#FF8C00);color:#fff;border:none;border-radius:10px;font-family:'Heebo';font-weight:700;font-size:0.88rem;cursor:pointer;">✍️ לחתימה</button>
+      </div>
+    </div>
+
     <!-- CYCLE SECTION -->
     <div class="section" id="cycle-section" style="display:none;margin-bottom:20px;">
       <div class="sec-title"><span class="icon">🔄</span> הסייקל שלי</div>
@@ -1471,6 +1483,7 @@
     const { data: client } = await sb.from('clients').select('*').eq('email', email).single();
     clientData = client;
     sb.rpc('update_own_last_seen').then(() => {});
+    checkHealthDecl();
 
     document.getElementById('loader').style.opacity = '0';
     setTimeout(() => document.getElementById('loader').style.display = 'none', 300);
@@ -4635,6 +4648,121 @@ ${foodList || 'אין פריטים'}
     <button class="vol-btn-close" onclick="closeVolumeModal()">🔥 המשך כך!</button>
   </div>
 </div>
+<!-- ═══ HEALTH DECLARATION MODAL — הצהרת בריאות ═══ -->
+<div id="health-decl-modal" style="display:none;position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,0.92);align-items:center;justify-content:center;padding:14px;">
+  <div style="background:linear-gradient(160deg,#17181c 0%,#0d0e11 100%);border:1px solid rgba(255,107,0,0.4);border-radius:20px;max-width:480px;width:100%;max-height:92vh;display:flex;flex-direction:column;position:relative;">
+    <button onclick="closeHealthDecl()" style="position:absolute;top:12px;left:14px;background:none;border:none;color:#666;font-size:1.3rem;cursor:pointer;z-index:1;">✕</button>
+    <div style="text-align:center;padding:20px 20px 8px;">
+      <div style="font-weight:900;font-size:1.15rem;color:#fff;">📝 הצהרת בריאות</div>
+      <div style="font-size:0.75rem;color:#888;margin-top:3px;">סמן את התשובה הנכונה עבורך על כל שאלה</div>
+    </div>
+    <div style="overflow-y:auto;padding:10px 18px;flex:1;" id="health-decl-body">
+      <div id="hd-questions"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px;">
+        <div>
+          <div style="font-size:0.72rem;color:#888;margin-bottom:4px;">שם מלא *</div>
+          <input id="hd-name" style="width:100%;box-sizing:border-box;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:10px;color:#fff;font-family:'Heebo';font-size:0.9rem;padding:9px 12px;">
+        </div>
+        <div>
+          <div style="font-size:0.72rem;color:#888;margin-bottom:4px;">תעודת זהות</div>
+          <input id="hd-id" inputmode="numeric" style="width:100%;box-sizing:border-box;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:10px;color:#fff;font-family:'Heebo';font-size:0.9rem;padding:9px 12px;">
+        </div>
+      </div>
+      <div style="margin-top:14px;">
+        <div style="font-size:0.72rem;color:#888;margin-bottom:4px;">חתימה (צייר באצבע/עכבר) *</div>
+        <canvas id="hd-canvas" width="420" height="130" style="width:100%;height:130px;background:#fff;border-radius:10px;touch-action:none;cursor:crosshair;"></canvas>
+        <button onclick="hdClearSig()" style="margin-top:6px;padding:5px 12px;background:transparent;border:1px solid rgba(255,255,255,0.15);color:#999;border-radius:8px;font-family:'Heebo';font-size:0.75rem;cursor:pointer;">🗑 נקה חתימה</button>
+      </div>
+      <div style="font-size:0.68rem;color:#777;margin-top:12px;line-height:1.6;">
+        אני מצהיר/ה כי כל התשובות שמסרתי נכונות, כי אני כשיר/ה לפעילות גופנית, וכי אעדכן את המאמן על כל שינוי במצבי הבריאותי. חתימתי מהווה הסכמה לתקנון הליווי.
+      </div>
+    </div>
+    <div style="padding:12px 18px 16px;border-top:1px solid rgba(255,255,255,0.06);">
+      <button id="hd-submit" onclick="submitHealthDecl()" style="width:100%;padding:13px;background:linear-gradient(135deg,#FF6B00,#FF8C00);color:#fff;border:none;border-radius:12px;font-family:'Heebo';font-weight:800;font-size:1rem;cursor:pointer;">✍️ אשר וחתום</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  /* ── HEALTH DECLARATION (חתימה דיגיטלית) ── */
+  const HD_QUESTIONS = [
+    'האם רופא קבע שאתה סובל ממחלת לב או בעיה לבבית?',
+    'האם אתה חש כאבים בחזה בזמן מאמץ גופני?',
+    'האם חווית סחרחורת או איבוד הכרה בחודש האחרון?',
+    'האם אתה סובל מלחץ דם גבוה או סוכרת?',
+    'האם יש לך בעיה אורתופדית שעלולה להחמיר במאמץ?',
+    'האם אתה נוטל תרופות באופן קבוע?',
+    'האם עברת ניתוח בשנה האחרונה?',
+    'האם את בהריון? (אם רלוונטי)',
+  ];
+  let _hdSigDrawn = false;
+
+  async function checkHealthDecl() {
+    try {
+      const { data } = await sb.from('signed_documents').select('id').eq('client_email', currentEmail).eq('doc_type', 'health_declaration').limit(1);
+      const banner = document.getElementById('health-decl-banner');
+      if (banner) banner.style.display = (data && data.length) ? 'none' : 'block';
+    } catch (e) { /* silent */ }
+  }
+
+  function openHealthDecl() {
+    const wrap = document.getElementById('hd-questions');
+    wrap.innerHTML = HD_QUESTIONS.map((q, i) => `
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,0.05);">
+        <div style="font-size:0.82rem;color:#ddd;flex:1;">${q}</div>
+        <div style="display:flex;gap:6px;flex-shrink:0;">
+          <label style="display:flex;align-items:center;gap:3px;font-size:0.78rem;color:#aaa;cursor:pointer;"><input type="radio" name="hdq${i}" value="כן" style="accent-color:#FF6B00;">כן</label>
+          <label style="display:flex;align-items:center;gap:3px;font-size:0.78rem;color:#aaa;cursor:pointer;"><input type="radio" name="hdq${i}" value="לא" checked style="accent-color:#FF6B00;">לא</label>
+        </div>
+      </div>`).join('');
+    document.getElementById('hd-name').value = clientData?.name || '';
+    document.getElementById('health-decl-modal').style.display = 'flex';
+    hdInitCanvas();
+  }
+  function closeHealthDecl() { document.getElementById('health-decl-modal').style.display = 'none'; }
+
+  function hdInitCanvas() {
+    const cv = document.getElementById('hd-canvas');
+    const ctx = cv.getContext('2d');
+    ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, cv.width, cv.height);
+    ctx.strokeStyle = '#1a1a5e'; ctx.lineWidth = 2.2; ctx.lineCap = 'round';
+    _hdSigDrawn = false;
+    let drawing = false;
+    const pos = e => {
+      const r = cv.getBoundingClientRect();
+      return { x: (e.clientX - r.left) * (cv.width / r.width), y: (e.clientY - r.top) * (cv.height / r.height) };
+    };
+    cv.onpointerdown = e => { drawing = true; const p = pos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); cv.setPointerCapture(e.pointerId); };
+    cv.onpointermove = e => { if (!drawing) return; const p = pos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); _hdSigDrawn = true; };
+    cv.onpointerup = () => { drawing = false; };
+  }
+  function hdClearSig() { hdInitCanvas(); }
+
+  async function submitHealthDecl() {
+    const name = document.getElementById('hd-name').value.trim();
+    if (!name) { showDashToast('נא למלא שם מלא'); return; }
+    if (!_hdSigDrawn) { showDashToast('נא לחתום במסגרת הלבנה'); return; }
+    const btn = document.getElementById('hd-submit');
+    btn.disabled = true; btn.textContent = 'שומר...';
+    const answers = {};
+    HD_QUESTIONS.forEach((q, i) => {
+      answers[q] = (document.querySelector(`input[name="hdq${i}"]:checked`) || {}).value || 'לא';
+    });
+    const sig = document.getElementById('hd-canvas').toDataURL('image/png');
+    const { error } = await sb.from('signed_documents').insert({
+      client_email: currentEmail, coach_email: clientData?.coach_email,
+      doc_type: 'health_declaration', full_name: name,
+      id_number: document.getElementById('hd-id').value.trim() || null,
+      answers, signature_data: sig, user_agent: navigator.userAgent.slice(0, 200),
+    });
+    btn.disabled = false; btn.textContent = '✍️ אשר וחתום';
+    if (error) { showDashToast('שגיאה בשמירה: ' + error.message); return; }
+    closeHealthDecl();
+    document.getElementById('health-decl-banner').style.display = 'none';
+    showDashToast('הצהרת הבריאות נחתמה ✓');
+  }
+</script>
+
 <!-- ═══ LEAGUE MODAL — ליגת הקבוצה ═══ -->
 <div id="league-modal" style="display:none;position:fixed;inset:0;z-index:9997;background:rgba(0,0,0,0.9);align-items:center;justify-content:center;padding:16px;" onclick="if(event.target===this)closeLeague()">
   <div style="background:linear-gradient(160deg,#17181c 0%,#0d0e11 100%);border:1px solid rgba(255,107,0,0.4);border-radius:20px;box-shadow:0 0 60px rgba(255,107,0,0.25);max-width:440px;width:100%;max-height:85vh;display:flex;flex-direction:column;position:relative;">

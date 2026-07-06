@@ -2280,7 +2280,52 @@
     if (lobby) lobby.style.display = 'none';
     renderMain(client);
     loadClientReceipts(email);
+    loadHealthDeclStatus(email);
     if (client.goal === 'peak_week') loadPeakWeekPlan();
+  }
+
+  /* ── HEALTH DECLARATION status (חתימה דיגיטלית) ── */
+  let _lastSignedDoc = null;
+  async function loadHealthDeclStatus(email) {
+    const chip = document.getElementById('health-decl-chip');
+    if (!chip) return;
+    try {
+      const { data } = await sb.from('signed_documents').select('*').eq('client_email', email).eq('doc_type', 'health_declaration').order('signed_at', { ascending: false }).limit(1);
+      const doc = data?.[0] || null;
+      _lastSignedDoc = doc;
+      if (doc) {
+        const d = new Date(doc.signed_at).toLocaleDateString('he-IL');
+        chip.innerHTML = `<span style="color:#4ade80;font-weight:700;">📝 הצהרת בריאות ✓ נחתמה ${d}</span> <button onclick="viewSignedDoc()" style="margin-right:6px;padding:3px 10px;background:rgba(74,222,128,0.1);border:1px solid rgba(74,222,128,0.3);color:#4ade80;border-radius:8px;font-family:'Heebo';font-size:0.72rem;font-weight:700;cursor:pointer;">צפה</button>`;
+      } else {
+        chip.innerHTML = `<span style="color:#f87171;font-weight:700;">📝 הצהרת בריאות ✗ לא נחתמה</span> <button onclick="sendDeclReminder('${email}')" style="margin-right:6px;padding:3px 10px;background:rgba(248,113,113,0.1);border:1px solid rgba(248,113,113,0.3);color:#f87171;border-radius:8px;font-family:'Heebo';font-size:0.72rem;font-weight:700;cursor:pointer;">שלח תזכורת</button>`;
+      }
+    } catch (e) { chip.textContent = ''; }
+  }
+
+  function viewSignedDoc() {
+    const doc = _lastSignedDoc; if (!doc) return;
+    const answers = Object.entries(doc.answers || {}).map(([q, a]) =>
+      `<div style="display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.05);font-size:0.8rem;"><span style="color:#ccc;">${esc(q)}</span><b style="color:${a==='כן'?'#f87171':'#4ade80'};flex-shrink:0;">${esc(a)}</b></div>`).join('');
+    document.getElementById('signed-doc-body').innerHTML = `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;font-size:0.85rem;">
+        <div><span style="color:#888;">שם:</span> <b>${esc(doc.full_name)}</b></div>
+        <div><span style="color:#888;">ת"ז:</span> <b>${esc(doc.id_number || '—')}</b></div>
+        <div style="grid-column:1/-1;"><span style="color:#888;">נחתם:</span> <b>${new Date(doc.signed_at).toLocaleString('he-IL')}</b></div>
+      </div>
+      ${answers}
+      ${doc.signature_data ? `<div style="margin-top:14px;"><div style="font-size:0.72rem;color:#888;margin-bottom:4px;">חתימה:</div><img src="${doc.signature_data}" style="width:100%;max-width:300px;background:#fff;border-radius:10px;"/></div>` : ''}`;
+    document.getElementById('signed-doc-modal').style.display = 'flex';
+  }
+  function closeSignedDoc() { document.getElementById('signed-doc-modal').style.display = 'none'; }
+
+  async function sendDeclReminder(email) {
+    if (!requireEdit()) return;
+    const { error } = await sb.from('messages').insert({
+      coach_email: coachEmail, client_email: email, sender_email: coachEmail,
+      content: '📝 תזכורת: נשאר לך לחתום על הצהרת הבריאות באפליקציה — נכנסים לדף הבית ולוחצים "לחתימה". לוקח דקה 🙏',
+    });
+    if (error) { toast('שגיאה: ' + error.message, 'err'); return; }
+    toast('תזכורת נשלחה בצ׳אט ✓', 'ok');
   }
 
   function renderMain(client) {
@@ -2302,10 +2347,11 @@
       </div>
       <div class="sec-card">
         <div class="sec-card-title">פרטי מתאמן <span>${esc(client.name)}</span></div>
-        <div style="margin-bottom:16px;">
+        <div style="margin-bottom:16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
           <button class="client-card-badge" onclick="openClientCard('${esc(client.email)}')">
             👤 כרטיס קשר — ${esc(client.name)}
           </button>
+          <span id="health-decl-chip" style="font-size:0.78rem;color:#777;">📝 הצהרת בריאות: בודק...</span>
         </div>
         <div class="form-grid" style="margin-bottom:14px;">
           <div class="f-group"><label>שם</label><input id="e-name" value="${esc(client.name)}"/></div>
@@ -7282,6 +7328,15 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
       </button>
     </div>
 
+  </div>
+</div>
+
+<!-- ═══ SIGNED DOC VIEW MODAL — הצהרת בריאות חתומה ═══ -->
+<div id="signed-doc-modal" style="display:none;position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,0.9);align-items:center;justify-content:center;padding:16px;" onclick="if(event.target===this)closeSignedDoc()">
+  <div style="background:linear-gradient(160deg,#17181c 0%,#0d0e11 100%);border:1px solid rgba(74,222,128,0.35);border-radius:20px;max-width:460px;width:100%;max-height:88vh;display:flex;flex-direction:column;position:relative;">
+    <button onclick="closeSignedDoc()" style="position:absolute;top:12px;left:14px;background:none;border:none;color:#666;font-size:1.3rem;cursor:pointer;z-index:1;">✕</button>
+    <div style="text-align:center;padding:20px 20px 10px;font-weight:900;font-size:1.1rem;color:#fff;">📝 הצהרת בריאות חתומה</div>
+    <div id="signed-doc-body" style="overflow-y:auto;padding:6px 20px 20px;flex:1;"></div>
   </div>
 </div>
 
