@@ -4557,7 +4557,7 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
           muscle_group:     md[0] ? md[0].group : (ex.muscle_groups?.[0] || ''),
           sub_muscle_group: md[0] ? md[0].name  : '',
           video:            ex.video || '',
-          thumb:            `/thumbs/${ex.id}.jpg`,
+          thumb:            ex.thumb || '',
         };
       });
     } catch(e) { exerciseLibrary = []; }
@@ -7169,7 +7169,14 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
 
   <script>
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('sw.js').catch(e => console.warn('SW:', e));
+      // auto-reload once when a new SW takes control (fixes clients stuck on a stale cached page)
+      let _swReloaded = false;
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (_swReloaded) return; _swReloaded = true; location.reload();
+      });
+      navigator.serviceWorker.register('sw.js')
+        .then(reg => reg.update())
+        .catch(e => console.warn('SW:', e));
     }
   </script>
 

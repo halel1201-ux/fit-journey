@@ -4484,7 +4484,13 @@ ${foodList || 'אין פריטים'}
 </div>
   <script>
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('sw.js').catch(e => console.warn('SW:', e));
+      let _swReloaded = false;
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (_swReloaded) return; _swReloaded = true; location.reload();
+      });
+      navigator.serviceWorker.register('sw.js')
+        .then(reg => reg.update())
+        .catch(e => console.warn('SW:', e));
     }
   </script>
 
