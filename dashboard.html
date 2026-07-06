@@ -4594,6 +4594,13 @@ ${foodList || 'אין פריטים'}
   }
 
   init();
+  // safety net: if the loader is still visible after 14s, init failed/hung — show a recoverable message
+  setTimeout(function(){
+    var l=document.getElementById('loader');
+    if(l && getComputedStyle(l).display!=='none' && l.style.opacity!=='0'){
+      l.innerHTML='<div style="text-align:center;color:#ff8080;font-family:Heebo,sans-serif;padding:24px;line-height:1.6;">⚠️ הטעינה נכשלה — בדוק חיבור לאינטרנט<br><button onclick="location.reload()" style="margin-top:14px;padding:10px 24px;background:#FF6B00;color:#fff;border:none;border-radius:8px;font-family:Heebo;font-weight:700;font-size:1rem;cursor:pointer;">רענן</button></div>';
+    }
+  },14000);
 </script>
 
 <!-- ═══ VOLUME MODAL ═══ -->
