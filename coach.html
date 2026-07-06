@@ -2287,6 +2287,65 @@
     if (client.goal === 'peak_week') loadPeakWeekPlan();
   }
 
+  /* ── QUICK GENERATOR (המחולל המיידי — פרימיום, כרגע אדמין בלבד) ── */
+  function openQuickGen() {
+    if (coachRole !== 'admin') { toast('המחולל המיידי זמין בחבילת הפרימיום', 'err'); return; }
+    if (!activeEmail) { toast('בחר מתאמן קודם', 'err'); return; }
+    document.getElementById('qg-status').textContent = '';
+    document.getElementById('quickgen-modal').style.display = 'flex';
+  }
+  function closeQuickGen() { document.getElementById('quickgen-modal').style.display = 'none'; }
+
+  async function runQuickGen() {
+    const goal = document.getElementById('qg-goal').value;
+    const days = document.getElementById('qg-days').value;
+    const constraints = document.getElementById('qg-notes').value.trim();
+    const goalHeb = { mass: 'מסה', cut: 'חיטוב', recomp: 'ריקומפוזיציה' }[goal] || goal;
+    const statusEl = document.getElementById('qg-status');
+    const btn = document.getElementById('qg-run');
+
+    // compose prompts and feed the two EXISTING generators (reuses their full engines)
+    const trainInp = document.getElementById('ai-prompt');
+    const nutriInp = document.getElementById('nutri-ai-prompt');
+    if (!trainInp || !nutriInp) { statusEl.textContent = 'פתח קודם מתאמן (העורכים לא נטענו)'; return; }
+    trainInp.value = `תוכנית אימונים ${days} ימים בשבוע למטרת ${goalHeb}.${constraints ? ' מגבלות ודגשים: ' + constraints + '.' : ''} התאם עומסים ובחירת תרגילים למגבלות אם צוינו.`;
+    nutriInp.value = `תפריט תזונה למטרת ${goalHeb}.${constraints ? ' העדפות/רגישויות/מגבלות: ' + constraints + '.' : ''}`;
+
+    btn.disabled = true; btn.textContent = '⏳ בונה...';
+    const t0 = Date.now();
+    statusEl.style.color = 'var(--muted)';
+    statusEl.textContent = '⚡ בונה אימון + תפריט במקביל...';
+    const tick = setInterval(() => { statusEl.textContent = `⚡ בונה אימון + תפריט במקביל... ${((Date.now() - t0) / 1000).toFixed(1)}s`; }, 200);
+
+    const beforeTrain = JSON.stringify(trainingPlan);
+    const beforeNutri = JSON.stringify(nutritionPlan);
+    try {
+      await Promise.allSettled([generatePlanWithAI(), generateNutritionWithAI()]);
+    } finally { clearInterval(tick); }
+
+    const trainOk = JSON.stringify(trainingPlan) !== beforeTrain && (trainingPlan || []).length;
+    const nutriOk = JSON.stringify(nutritionPlan) !== beforeNutri && (nutritionPlan || []).length;
+    btn.disabled = false; btn.textContent = '⚡ בנה תוכנית מלאה';
+
+    if (!trainOk && !nutriOk) { statusEl.style.color = '#ff7070'; statusEl.textContent = 'הבנייה נכשלה — נסה שוב'; return; }
+
+    const secs = ((Date.now() - t0) / 1000).toFixed(1);
+    statusEl.style.color = '#4ade80';
+    statusEl.textContent = `✓ מוכן תוך ${secs} שניות (${trainOk ? 'אימון ✓' : 'אימון ✗'} · ${nutriOk ? 'תפריט ✓' : 'תפריט ✗'})`;
+
+    if (confirm(`התוכניות נבנו תוך ${secs} שניות!\n\nלשמור ולשלוח למתאמן עכשיו?\n(אפשר גם לערוך קודם בעורכים ולשמור ידנית)`)) {
+      if (trainOk) await saveTraining(true);
+      if (nutriOk) await saveNutrition();
+      toast('⚡ תוכנית מלאה נשמרה ונשלחה למתאמן', 'ok');
+      closeQuickGen();
+      document.querySelector('#training-editor')?.scrollIntoView({ behavior: 'smooth' });
+    } else {
+      closeQuickGen();
+      document.querySelector('#training-editor')?.scrollIntoView({ behavior: 'smooth' });
+      toast('התוכניות בעורכים — ערוך ושמור ידנית', 'ok');
+    }
+  }
+
   /* ── BUSINESS DASHBOARD (דשבורד עסקי) ── */
   async function openBizDash() {
     document.getElementById('bizdash-body').innerHTML = '<div style="text-align:center;color:#888;padding:36px;">טוען נתונים...</div>';
@@ -2455,6 +2514,7 @@ ${exLines || 'אין'}
       <!-- QUICK NAV -->
       <div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:20px;">
         <button onclick="openAiReport()" style="padding:6px 12px;background:linear-gradient(135deg,rgba(168,85,247,0.15),rgba(255,107,0,0.1));border:1px solid rgba(168,85,247,0.4);border-radius:20px;color:#c4a5ff;font-family:'Heebo',sans-serif;font-size:0.78rem;font-weight:700;cursor:pointer;white-space:nowrap;">📊 דוח AI</button>
+        ${coachRole === 'admin' ? `<button onclick="openQuickGen()" style="padding:6px 12px;background:linear-gradient(135deg,rgba(255,107,0,0.2),rgba(255,215,0,0.12));border:1px solid rgba(255,215,0,0.45);border-radius:20px;color:#FFD700;font-family:'Heebo',sans-serif;font-size:0.78rem;font-weight:700;cursor:pointer;white-space:nowrap;">⚡ מחולל מיידי <span style="font-size:0.6rem;opacity:0.7;">פרימיום</span></button>` : ''}
         ${[['🏋️ אימון','#training-editor'],['🥗 תזונה','#nutrition-editor'],['🔄 סייקל','#cycle-editor'],['📈 התקדמות','#progress-editor'],['📏 היקפים','#measurements-editor'],['💬 צ\'אט','#sec-chat'],['📋 צ\'ק-אין','#sec-checkin']].map(([l,t])=>
           `<button onclick="document.querySelector('${t}')?.scrollIntoView({behavior:'smooth',block:'start'})" style="padding:6px 12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:20px;color:var(--muted);font-family:'Heebo',sans-serif;font-size:0.78rem;font-weight:700;cursor:pointer;transition:all 0.15s;white-space:nowrap;" onmouseover="this.style.borderColor='rgba(255,107,0,0.4)';this.style.color='var(--orange)'" onmouseout="this.style.borderColor='rgba(255,255,255,0.1)';this.style.color='var(--muted)'">${l}</button>`
         ).join('')}
@@ -7442,6 +7502,40 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
       </button>
     </div>
 
+  </div>
+</div>
+
+<!-- ═══ QUICK GENERATOR MODAL — המחולל המיידי (פרימיום/אדמין) ═══ -->
+<div id="quickgen-modal" style="display:none;position:fixed;inset:0;z-index:9997;background:rgba(0,0,0,0.9);align-items:center;justify-content:center;padding:16px;" onclick="if(event.target===this)closeQuickGen()">
+  <div style="background:linear-gradient(160deg,#17181c 0%,#0d0e11 100%);border:1px solid rgba(255,215,0,0.4);border-radius:20px;box-shadow:0 0 60px rgba(255,215,0,0.15);max-width:430px;width:100%;position:relative;padding:24px 22px 20px;">
+    <button onclick="closeQuickGen()" style="position:absolute;top:12px;left:14px;background:none;border:none;color:#666;font-size:1.3rem;cursor:pointer;">✕</button>
+    <div style="text-align:center;margin-bottom:16px;">
+      <div style="font-size:1.9rem;">⚡</div>
+      <div style="font-weight:900;font-size:1.1rem;color:#fff;">המחולל המיידי</div>
+      <div style="font-size:0.72rem;color:#FFD700;margin-top:2px;">אימון + תפריט מלאים בזרימה אחת · פרימיום</div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+      <div>
+        <div style="font-size:0.72rem;color:#888;margin-bottom:4px;">מטרה</div>
+        <select id="qg-goal" style="width:100%;background:#1c1e24;border:1px solid rgba(255,255,255,0.12);border-radius:10px;color:#fff;font-family:'Heebo';font-size:0.88rem;padding:9px 10px;">
+          <option value="mass">מסה</option>
+          <option value="cut">חיטוב</option>
+          <option value="recomp">ריקומפוזיציה</option>
+        </select>
+      </div>
+      <div>
+        <div style="font-size:0.72rem;color:#888;margin-bottom:4px;">ימי אימון בשבוע</div>
+        <select id="qg-days" style="width:100%;background:#1c1e24;border:1px solid rgba(255,255,255,0.12);border-radius:10px;color:#fff;font-family:'Heebo';font-size:0.88rem;padding:9px 10px;">
+          <option>3</option><option selected>4</option><option>5</option><option>6</option>
+        </select>
+      </div>
+    </div>
+    <div style="margin-bottom:14px;">
+      <div style="font-size:0.72rem;color:#888;margin-bottom:4px;">מגבלות רפואיות / העדפות (חופשי)</div>
+      <textarea id="qg-notes" rows="2" placeholder="למשל: כאב בכתף שמאל, בלי חלב..." style="width:100%;box-sizing:border-box;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:10px;color:#fff;font-family:'Heebo';font-size:0.85rem;padding:9px 11px;resize:vertical;"></textarea>
+    </div>
+    <button id="qg-run" onclick="runQuickGen()" style="width:100%;padding:13px;background:linear-gradient(135deg,#FF6B00,#FF8C00);color:#fff;border:none;border-radius:12px;font-family:'Heebo';font-weight:800;font-size:1rem;cursor:pointer;box-shadow:0 4px 20px rgba(255,107,0,0.35);">⚡ בנה תוכנית מלאה</button>
+    <div id="qg-status" style="text-align:center;font-size:0.8rem;color:var(--muted);margin-top:10px;min-height:1.2em;"></div>
   </div>
 </div>
 
