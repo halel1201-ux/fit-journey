@@ -1105,6 +1105,28 @@
   const ONESIGNAL_REST_KEY = 'os_v2_app_7ylkjffy3zd6tcrj3ycs4beozaggpy5dukfe45efqruamrlljsrgz4rncsssvzvsbpt2df3zts2vdwcl2qg6zowamqntfmprxzppmjq';
 
   function initOneSignal(userEmail) {
+    // Native APK (Capacitor): use the OneSignal device SDK — real Android notifications.
+    // Permission is asked ONCE; the push subscription id is saved to push_tokens so the
+    // existing server send-code works unchanged. Web/PWA continues below as before.
+    if (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) {
+      const tryNative = () => {
+        const OS = window.plugins && window.plugins.OneSignal;
+        if (!OS) { setTimeout(tryNative, 600); return; }
+        try {
+          OS.initialize(ONESIGNAL_APP_ID);
+          const save = async () => {
+            try {
+              const subId = OS.User && OS.User.pushSubscription && OS.User.pushSubscription.id;
+              if (subId) await sb.from("push_tokens").upsert({ user_email: userEmail, onesignal_player_id: subId, updated_at: new Date().toISOString() }, { onConflict: "user_email" });
+            } catch(e) {}
+          };
+          OS.Notifications.requestPermission(true).then(() => { save(); setTimeout(save, 4000); });
+          if (OS.User && OS.User.pushSubscription && OS.User.pushSubscription.addEventListener) OS.User.pushSubscription.addEventListener("change", save);
+        } catch(e) {}
+      };
+      tryNative();
+      return; // skip the web SDK inside the native app
+    }
     window.OneSignalDeferred = window.OneSignalDeferred || [];
     OneSignalDeferred.push(async function(OneSignal) {
       try {
