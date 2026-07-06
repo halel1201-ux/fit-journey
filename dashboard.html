@@ -2045,6 +2045,43 @@
     drop_set:   { name: 'דרופ סט', explain: 'בסיום הסט מורידים משקל וממשיכים ללא מנוחה. אפשר טריפל דרופ (8/8/8).' },
     negative:   { name: 'חזרה שלילית', explain: 'אתה בולם ומוריד את המשקל בשליטה, והספוטר מרים בשבילך בפאזה החיובית.' },
   };
+  /* ── SET VIDEOS (תיעוד סטים לבדיקת המאמן — עד 1 לתרגיל, נשלח ב"סיים ושלח") ── */
+  let setVideos = {}; // exIndex → File
+
+  function attachSetVideo(ei, file) {
+    if (!file) return;
+    if (file.size > 80 * 1024 * 1024) { showDashToast('הסרטון גדול מדי (מקס׳ 80MB) — צלם קצר יותר'); return; }
+    setVideos[ei] = file;
+    const btn = document.getElementById(`setvid-btn-${ei}`);
+    if (btn) { btn.textContent = '🎥 ✓'; btn.style.borderColor = '#4ade80'; btn.style.color = '#4ade80'; }
+    showDashToast('הסרטון יישלח למאמן בסיום האימון ✓');
+  }
+
+  async function uploadSetVideos() {
+    const entries = Object.entries(setVideos);
+    if (!entries.length || !clientData?.coach_email) return 0;
+    let sent = 0;
+    for (const [ei, file] of entries) {
+      try {
+        const exName = workoutSession?.exercises?.[ei]?.name || `תרגיל ${+ei + 1}`;
+        const safe = exName.replace(/[^\w֐-׿-]/g, '-').slice(0, 40);
+        const ext = (file.name.split('.').pop() || 'mp4').slice(0, 5);
+        const path = `set-videos/${currentEmail}/${Date.now()}_${safe}.${ext}`;
+        const { error: upErr } = await sb.storage.from('client-files').upload(path, file, { upsert: false });
+        if (upErr) continue;
+        const { data: pub } = sb.storage.from('client-files').getPublicUrl(path);
+        await sb.from('messages').insert({
+          coach_email: clientData.coach_email, client_email: currentEmail, sender_email: currentEmail,
+          content: `🎥 תיעוד סט לבדיקה — ${exName} (${workoutSession?.dayName || 'אימון'})`,
+          file_url: pub.publicUrl, file_name: `${safe}.${ext}`,
+        });
+        sent++;
+      } catch (e) { /* keep going with the rest */ }
+    }
+    setVideos = {};
+    return sent;
+  }
+
   function renderExBlock(ex, ei) {
     const tech = ex.technique && ex.technique !== 'none' ? TECHNIQUES[ex.technique] : null;
     return `
@@ -2055,6 +2092,8 @@
           <div style="display:flex;gap:5px;flex-shrink:0;">
             <button class="btn-demo" onclick="openDemo('${ex.name.replace(/'/g,"\\'")}','${(ex.video_url||'').replace(/'/g,"\\'")}',${ex.demo_ex_id||'null'})">הדגמה ▶</button>
             <button class="btn-swap" onclick="openSwapModal(${ei})">🔄 החלפה</button>
+            <button class="btn-swap" id="setvid-btn-${ei}" onclick="document.getElementById('setvid-inp-${ei}').click()" title="צלם סט לבדיקת המאמן (עד סרטון אחד לתרגיל)" style="${setVideos[ei] ? 'border-color:#4ade80;color:#4ade80;' : ''}">${setVideos[ei] ? '🎥 ✓' : '🎥 תיעוד'}</button>
+            <input type="file" id="setvid-inp-${ei}" accept="video/*" capture="environment" style="display:none;" onchange="attachSetVideo(${ei}, this.files[0]); this.value='';">
           </div>
         </div>
         ${tech ? `<div style="margin:4px 0 6px;padding:8px 10px;background:rgba(124,58,237,0.12);border:1px solid rgba(168,85,247,0.4);border-radius:8px;font-size:0.8rem;line-height:1.5;color:#c4a5ff;"><strong style="color:#c4a5ff;">🎯 ${tech.name}:</strong> ${esc(tech.explain)}</div>` : ''}
@@ -2168,11 +2207,15 @@
   function startRest(seconds) {
     if (!workoutSession) return;
     clearInterval(workoutSession.restInterval);
+    // wall-clock based: the countdown is computed from a fixed end-timestamp, so
+    // switching apps (WhatsApp etc.) can't freeze it — background tabs throttle
+    // intervals, but on return the remaining time is exact.
+    workoutSession.restEndsAt = Date.now() + seconds * 1000;
     workoutSession.restRemaining = seconds;
     updateRestBanner();
     document.getElementById('rest-banner').classList.add('on');
     workoutSession.restInterval = setInterval(() => {
-      workoutSession.restRemaining--;
+      workoutSession.restRemaining = Math.max(0, Math.round((workoutSession.restEndsAt - Date.now()) / 1000));
       updateRestBanner();
       if (workoutSession.restRemaining <= 0) {
         clearInterval(workoutSession.restInterval);
@@ -2183,8 +2226,15 @@
           setTimeout(() => { b.style.background = ''; }, 300);
         }, 1000);
       }
-    }, 1000);
+    }, 500);
   }
+  // returning to the app → snap the countdown to the true remaining time immediately
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && workoutSession?.restEndsAt && workoutSession.restRemaining > 0) {
+      workoutSession.restRemaining = Math.max(0, Math.round((workoutSession.restEndsAt - Date.now()) / 1000));
+      updateRestBanner();
+    }
+  });
 
   function updateRestBanner() {
     const s = workoutSession.restRemaining;
@@ -2337,8 +2387,15 @@
       notes: `משך אימון: ${Math.floor(elapsed / 60)} דקות`,
       total_volume: totalVolume
     });
+    if (error) { btn.disabled = false; btn.textContent = '✓ סיים ושלח'; alert('שגיאה בשמירה: ' + error.message); return; }
+
+    // upload set videos (if any) → coach chat, before re-enabling the button
+    if (Object.keys(setVideos).length) {
+      btn.textContent = '🎥 שולח סרטונים למאמן...';
+      const sent = await uploadSetVideos();
+      if (sent > 0) showDashToast(`${sent} סרטוני תיעוד נשלחו למאמן ✓`);
+    }
     btn.disabled = false; btn.textContent = '✓ סיים ושלח';
-    if (error) { alert('שגיאה בשמירה: ' + error.message); return; }
 
     // PR detection
     const bestHist = {};
@@ -2717,17 +2774,18 @@ ${foodList || 'אין פריטים'}
             const rows = item.alternatives.map(a => {
               const af = foodItems.find(f=>f.id===a.food_id||f.name===a.name);
               if (!af||!af.calories) return '';
-              const g = Math.round(item.calories/af.calories*100);
+              const g = altGrams(item);
+              const aCal = Math.round(af.calories*g/100), aP = Math.round(af.protein*g/100);
               const chosen = alt && alt.name===af.name;
               return `<div onclick="selectAlt(${mi},${ii},${af.id})"
                 style="cursor:pointer;padding:8px 12px;border-radius:8px;border:1px solid ${chosen?'var(--orange)':'rgba(255,255,255,0.07)'};background:${chosen?'rgba(255,107,0,0.08)':'rgba(255,255,255,0.02)'};margin-bottom:5px;display:flex;justify-content:space-between;align-items:center;">
                 <span style="font-weight:700;">${esc(af.name)}</span>
-                <span style="color:var(--muted);font-size:0.75rem;">${g}g · ${Math.round(item.calories)} קק"ל${chosen?' ✓':''}</span>
+                <span style="color:var(--muted);font-size:0.75rem;">${g}g · ${aCal} קק"ל · P${aP}g${chosen?' ✓':''}</span>
               </div>`;
             }).join('');
             const clearBtn = alt?`<button onclick="clearAlt(${mi},${ii})" style="margin-top:4px;padding:4px 12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:6px;color:var(--muted);font-size:0.75rem;cursor:pointer;font-family:'Heebo',sans-serif;">↩ חזור למקורי</button>`:'';
             altPanelHtml = `<div style="margin-top:6px;padding:10px 12px;background:rgba(0,0,0,0.5);border:1px solid rgba(255,107,0,0.2);border-radius:10px;">
-              <div style="font-size:0.72rem;color:var(--muted);margin-bottom:8px;">בחר חלופה עם אותן קלוריות (${Math.round(item.calories)} קק"ל):</div>
+              <div style="font-size:0.72rem;color:var(--muted);margin-bottom:8px;">בחר חלופה — הקלוריות והערכים יתעדכנו לפי המוצר:</div>
               ${rows}${clearBtn}
             </div>`;
           }
@@ -2953,16 +3011,21 @@ ${foodList || 'אין פריטים'}
     renderNutriBody();
   }
 
+  // grams of the ORIGINAL item (same portion size for the swap — values change with the product)
+  function altGrams(item) {
+    const q = Math.round(parseFloat(item.quantity) || 0);
+    return q >= 20 ? q : 100; // unit-based/odd quantities fall back to 100g
+  }
   function selectAlt(mi, ii, foodId) {
     const item = nutritionPlanLocal[mi].items[ii];
     const af = (foodItems||[]).find(f=>f.id===foodId);
     if (!af || !af.calories) return;
-    const g = Math.round(item.calories / af.calories * 100);
+    const g = altGrams(item);
     const r = g / 100;
     altChoices[`${mi}_${ii}`] = {
       name:     af.name,
       grams:    g,
-      calories: Math.round(item.calories),
+      calories: Math.round(af.calories*r),
       protein:  Math.round(af.protein*r*10)/10,
       carbs:    Math.round(af.carbs*r*10)/10,
       fat:      Math.round(af.fat*r*10)/10,
