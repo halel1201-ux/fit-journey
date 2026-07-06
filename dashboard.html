@@ -576,16 +576,25 @@
     padding: 16px;
   }
   .vol-card {
-    background: linear-gradient(160deg, #1a1a1a 0%, #111 100%);
-    border: 1px solid rgba(255,107,0,0.45);
-    border-radius: 20px;
-    box-shadow: 0 0 60px rgba(255,107,0,0.3), 0 0 120px rgba(255,107,0,0.1);
-    padding: 36px 32px 28px;
-    max-width: 380px; width: 100%;
+    background:
+      radial-gradient(120% 80% at 50% 0%, rgba(255,107,0,0.14) 0%, rgba(255,107,0,0) 55%),
+      linear-gradient(160deg, #17181c 0%, #0d0e11 100%);
+    border: 1px solid rgba(255,107,0,0.4);
+    border-radius: 24px;
+    box-shadow: 0 0 60px rgba(255,107,0,0.3), 0 0 120px rgba(255,107,0,0.1), inset 0 1px 0 rgba(255,255,255,0.06);
+    padding: 30px 28px 26px;
+    max-width: 392px; width: 100%;
     text-align: center;
     position: relative;
     animation: vol-pop 0.4s cubic-bezier(0.34,1.56,0.64,1) forwards;
   }
+  .vol-brand {
+    font-family: 'Heebo', sans-serif; font-weight: 900; font-size: 0.82rem;
+    letter-spacing: 2px; margin-bottom: 2px;
+  }
+  .vol-brand .fit { color: #fff; }
+  .vol-brand .journey { background: linear-gradient(135deg,#FF6B00,#FFD700); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .vol-brand-sub { font-size: 0.62rem; letter-spacing: 4px; color: rgba(255,255,255,0.32); margin-bottom: 14px; }
   @keyframes vol-pop {
     from { transform: scale(0.7); opacity: 0; }
     to   { transform: scale(1);   opacity: 1; }
@@ -633,15 +642,18 @@
     margin-bottom: 24px;
   }
   .vol-sets-breakdown {
-    display: flex; justify-content: center; gap: 18px;
-    margin-bottom: 20px;
+    display: grid; grid-template-columns: repeat(3,1fr); gap: 10px;
+    margin-bottom: 22px;
   }
   .vol-stat {
     text-align: center;
+    background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
+    border: 1px solid rgba(255,107,0,0.22);
+    border-radius: 14px; padding: 14px 6px 11px;
   }
-  .vol-stat-num { font-size: 1.2rem; font-weight: 900; color: var(--orange, #FF6B00); }
-  .vol-stat-lbl { font-size: 0.72rem; color: #777; }
-  .vol-divider { width: 1px; background: rgba(255,255,255,0.1); }
+  .vol-stat-num { font-size: 1.55rem; font-weight: 900; color: #FF8C00; line-height: 1; }
+  .vol-stat-lbl { font-size: 0.72rem; color: rgba(255,255,255,0.5); margin-top: 5px; }
+  .vol-divider { display: none; }
   .vol-btn-close {
     width: 100%; padding: 13px;
     background: linear-gradient(135deg, #FF6B00, #FF8C00);
@@ -3605,7 +3617,15 @@ ${foodList || 'אין פריטים'}
 
   function showVolumeModal(currentVol, prevVol, totalSets, exCount, durationMin, dayName) {
     const m = getVolMilestone(currentVol);
-    lastVolumeShareData = { vol: currentVol, totalSets, exCount, durationMin, dayName: dayName || '', emoji: m.emoji };
+
+    // compute comparison vs previous workout (for both modal + story image)
+    let vsDir = 'first', vsPct = 0;
+    if (prevVol > 0) {
+      const diff = currentVol - prevVol;
+      vsPct = Math.round(Math.abs(diff) / prevVol * 100);
+      vsDir = diff > 0 ? 'up' : (diff < 0 ? 'down' : 'same');
+    }
+    lastVolumeShareData = { vol: currentVol, totalSets, exCount, durationMin, dayName: dayName || '', emoji: m.emoji, milestone: m.text, vsDir, vsPct };
 
     document.getElementById('vol-emoji').textContent = m.emoji;
     document.getElementById('vol-compare-text').textContent = m.text;
@@ -3614,15 +3634,10 @@ ${foodList || 'אין פריטים'}
     document.getElementById('vol-stat-dur').textContent = durationMin;
 
     const vsEl = document.getElementById('vol-vs-badge');
-    if (prevVol > 0) {
-      const diff = currentVol - prevVol;
-      const pct = Math.round(Math.abs(diff) / prevVol * 100);
-      if (diff > 0)      vsEl.innerHTML = `<span style="color:#4ade80">↑ ${pct}%</span> מהאימון הקודם`;
-      else if (diff < 0) vsEl.innerHTML = `<span style="color:#f87171">↓ ${pct}%</span> מהאימון הקודם`;
-      else               vsEl.innerHTML = `<span style="color:#aaa">⟷ זהה לאימון הקודם</span>`;
-    } else {
-      vsEl.innerHTML = '⭐ האימון הראשון שלך ביום הזה!';
-    }
+    if (vsDir === 'up')        vsEl.innerHTML = `<span style="color:#4ade80">↑ ${vsPct}%</span> מהאימון הקודם`;
+    else if (vsDir === 'down') vsEl.innerHTML = `<span style="color:#f87171">↓ ${vsPct}%</span> מהאימון הקודם`;
+    else if (vsDir === 'same') vsEl.innerHTML = `<span style="color:#aaa">⟷ זהה לאימון הקודם</span>`;
+    else                       vsEl.innerHTML = '⭐ האימון הראשון שלך ביום הזה!';
 
     document.getElementById('vol-number').textContent = '0 ק"ג';
     const modal = document.getElementById('volume-modal');
@@ -3669,63 +3684,191 @@ ${foodList || 'אין פריטים'}
       const canvas = document.createElement('canvas');
       canvas.width = W; canvas.height = H;
       const ctx = canvas.getContext('2d');
+      const CX = W / 2;
 
-      const bg = ctx.createLinearGradient(0, 0, 0, H);
-      bg.addColorStop(0, '#1a1a1a'); bg.addColorStop(1, '#0a0a0a');
+      // helpers ─────────────────────────────────────────────
+      const rr = (x, y, w, h, r) => {
+        ctx.beginPath();
+        ctx.moveTo(x + r, y);
+        ctx.arcTo(x + w, y, x + w, y + h, r);
+        ctx.arcTo(x + w, y + h, x, y + h, r);
+        ctx.arcTo(x, y + h, x, y, r);
+        ctx.arcTo(x, y, x + w, y, r);
+        ctx.closePath();
+      };
+
+      // ── deep layered background ──
+      const bg = ctx.createLinearGradient(0, 0, W, H);
+      bg.addColorStop(0, '#0c0d10'); bg.addColorStop(0.5, '#121316'); bg.addColorStop(1, '#08080a');
       ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
 
-      const glow = ctx.createRadialGradient(W/2, H*0.42, 60, W/2, H*0.42, 700);
-      glow.addColorStop(0, 'rgba(255,107,0,0.35)');
-      glow.addColorStop(1, 'rgba(255,107,0,0)');
-      ctx.fillStyle = glow; ctx.fillRect(0, 0, W, H);
-
-      ctx.direction = 'rtl';
-      ctx.textAlign = 'center';
-
-      ctx.font = '120px Heebo, sans-serif';
-      ctx.fillText(d.emoji || '💪', W/2, H*0.27);
-
-      ctx.font = '700 34px Heebo, sans-serif';
-      ctx.fillStyle = '#888';
-      ctx.fillText('נפח אימון כולל', W/2, H*0.37);
-
-      const numGrad = ctx.createLinearGradient(W*0.2, 0, W*0.8, 0);
-      numGrad.addColorStop(0, '#FF6B00'); numGrad.addColorStop(1, '#FFD700');
-      ctx.font = '900 130px Heebo, sans-serif';
-      ctx.fillStyle = numGrad;
-      ctx.fillText(`${Math.round(d.vol).toLocaleString('he-IL')} ק"ג`, W/2, H*0.47);
-
-      if (d.dayName) {
-        ctx.font = '700 44px Heebo, sans-serif';
-        ctx.fillStyle = '#fff';
-        ctx.fillText(d.dayName, W/2, H*0.54);
+      // subtle tech dot-grid (AI feel)
+      ctx.fillStyle = 'rgba(255,255,255,0.028)';
+      for (let gy = 90; gy < H - 60; gy += 46) {
+        for (let gx = 60; gx < W - 40; gx += 46) { ctx.beginPath(); ctx.arc(gx, gy, 1.6, 0, Math.PI * 2); ctx.fill(); }
       }
 
+      // warm hero glow behind the number
+      const glow = ctx.createRadialGradient(CX, H * 0.40, 40, CX, H * 0.40, 780);
+      glow.addColorStop(0, 'rgba(255,120,0,0.34)');
+      glow.addColorStop(0.55, 'rgba(255,90,0,0.08)');
+      glow.addColorStop(1, 'rgba(255,90,0,0)');
+      ctx.fillStyle = glow; ctx.fillRect(0, 0, W, H);
+
+      // corner vignette for depth
+      const vig = ctx.createRadialGradient(CX, H / 2, H * 0.30, CX, H / 2, H * 0.72);
+      vig.addColorStop(0, 'rgba(0,0,0,0)'); vig.addColorStop(1, 'rgba(0,0,0,0.55)');
+      ctx.fillStyle = vig; ctx.fillRect(0, 0, W, H);
+
+      ctx.textAlign = 'center';
+
+      // ── top brand lockup ──
+      ctx.direction = 'ltr';
+      ctx.font = '900 42px Heebo, sans-serif';
+      ctx.fillStyle = '#fff';
+      ctx.textAlign = 'center';
+      const brandY = 150;
+      // "FIT" white + "JOURNEY" gradient
+      ctx.textAlign = 'left';
+      const bTxt1 = 'FIT ', bTxt2 = 'JOURNEY';
+      const w1 = ctx.measureText(bTxt1).width, w2 = ctx.measureText(bTxt2).width;
+      const bStart = CX - (w1 + w2) / 2;
+      ctx.fillStyle = '#fff'; ctx.fillText(bTxt1, bStart, brandY);
+      const brandGrad = ctx.createLinearGradient(bStart + w1, 0, bStart + w1 + w2, 0);
+      brandGrad.addColorStop(0, '#FF6B00'); brandGrad.addColorStop(1, '#FFD700');
+      ctx.fillStyle = brandGrad; ctx.fillText(bTxt2, bStart + w1, brandY);
+      // divider + tagline
+      ctx.textAlign = 'center';
+      ctx.strokeStyle = 'rgba(255,107,0,0.5)'; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.moveTo(CX - 60, brandY + 26); ctx.lineTo(CX + 60, brandY + 26); ctx.stroke();
+      ctx.font = '600 24px Heebo, sans-serif'; ctx.fillStyle = 'rgba(255,255,255,0.4)';
+      ctx.direction = 'rtl';
+      ctx.fillText('ד ו ח   א י מ ו ן', CX, brandY + 66);
+
+      // ── milestone emoji in a glowing ring ──
+      const emY = H * 0.235, emR = 96;
+      const ringGlow = ctx.createRadialGradient(CX, emY, 20, CX, emY, emR + 30);
+      ringGlow.addColorStop(0, 'rgba(255,107,0,0.30)'); ringGlow.addColorStop(1, 'rgba(255,107,0,0)');
+      ctx.fillStyle = ringGlow; ctx.beginPath(); ctx.arc(CX, emY, emR + 30, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(CX, emY, emR, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(255,255,255,0.03)'; ctx.fill();
+      ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(255,107,0,0.55)'; ctx.stroke();
+      ctx.font = '108px Heebo, sans-serif'; ctx.textAlign = 'center';
+      ctx.fillText(d.emoji || '💪', CX, emY + 40);
+
+      // ── hero volume number ──
+      ctx.direction = 'rtl';
+      ctx.font = '700 32px Heebo, sans-serif';
+      ctx.fillStyle = 'rgba(255,255,255,0.5)';
+      ctx.fillText('נ פ ח   א י מ ו ן   כ ו ל ל', CX, H * 0.355);
+
+      const numTxt = Math.round(d.vol).toLocaleString('he-IL');
+      const numGrad = ctx.createLinearGradient(W * 0.15, 0, W * 0.85, 0);
+      numGrad.addColorStop(0, '#FF6B00'); numGrad.addColorStop(0.5, '#FF9500'); numGrad.addColorStop(1, '#FFD700');
+      ctx.font = '900 172px Heebo, sans-serif';
+      ctx.save();
+      ctx.shadowColor = 'rgba(255,107,0,0.45)'; ctx.shadowBlur = 44;
+      ctx.fillStyle = numGrad;
+      ctx.fillText(numTxt, CX, H * 0.44);
+      ctx.restore();
+      ctx.font = '700 40px Heebo, sans-serif'; ctx.fillStyle = 'rgba(255,255,255,0.75)';
+      ctx.fillText('ק ״ ג', CX, H * 0.475);
+
+      // ── day pill + vs-badge row ──
+      let pillY = H * 0.515;
+      if (d.dayName) {
+        ctx.font = '800 34px Heebo, sans-serif';
+        const dw = ctx.measureText(d.dayName).width + 56;
+        rr(CX - dw / 2, pillY - 34, dw, 56, 28);
+        ctx.fillStyle = 'rgba(255,255,255,0.06)'; ctx.fill();
+        ctx.lineWidth = 1.5; ctx.strokeStyle = 'rgba(255,255,255,0.14)'; ctx.stroke();
+        ctx.fillStyle = '#fff'; ctx.fillText(d.dayName, CX, pillY + 5);
+        pillY += 92;
+      }
+
+      // vs previous workout badge (prominent)
+      if (d.vsDir && d.vsDir !== 'first') {
+        let txt, col, bgcol;
+        if (d.vsDir === 'up')        { txt = `↑ ${d.vsPct}%  מהאימון הקודם`; col = '#4ade80'; bgcol = 'rgba(74,222,128,0.12)'; }
+        else if (d.vsDir === 'down') { txt = `↓ ${d.vsPct}%  מהאימון הקודם`; col = '#f87171'; bgcol = 'rgba(248,113,113,0.12)'; }
+        else                         { txt = `⟷  זהה לאימון הקודם`;        col = '#cbd5e1'; bgcol = 'rgba(203,213,225,0.10)'; }
+        ctx.font = '800 34px Heebo, sans-serif';
+        const vw = ctx.measureText(txt).width + 60;
+        rr(CX - vw / 2, pillY - 36, vw, 60, 30);
+        ctx.fillStyle = bgcol; ctx.fill();
+        ctx.lineWidth = 1.5; ctx.strokeStyle = col + '55'; ctx.stroke();
+        ctx.fillStyle = col; ctx.fillText(txt, CX, pillY + 4);
+      } else {
+        ctx.font = '800 34px Heebo, sans-serif';
+        const txt = '⭐  האימון הראשון ביום הזה';
+        const vw = ctx.measureText(txt).width + 60;
+        rr(CX - vw / 2, pillY - 36, vw, 60, 30);
+        ctx.fillStyle = 'rgba(255,215,0,0.12)'; ctx.fill();
+        ctx.lineWidth = 1.5; ctx.strokeStyle = 'rgba(255,215,0,0.4)'; ctx.stroke();
+        ctx.fillStyle = '#FFD700'; ctx.fillText(txt, CX, pillY + 4);
+      }
+
+      // ── glass stat cards ──
       const stats = [
         { num: d.totalSets, lbl: 'סטים' },
-        { num: d.exCount, lbl: 'תרגילים' },
+        { num: d.exCount,   lbl: 'תרגילים' },
         { num: d.durationMin, lbl: 'דקות' }
       ];
-      const statY = H*0.63, gap = 220, startX = W/2 - gap;
+      const cardW = 268, cardH = 210, cgap = 26;
+      const totalW = cardW * 3 + cgap * 2;
+      const cy = H * 0.60;
+      let cx0 = CX - totalW / 2;
       stats.forEach((s, i) => {
-        const x = startX + i*gap;
-        ctx.font = '900 56px Heebo, sans-serif';
-        ctx.fillStyle = '#FF6B00';
-        ctx.fillText(String(s.num), x, statY);
-        ctx.font = '400 28px Heebo, sans-serif';
-        ctx.fillStyle = '#888';
-        ctx.fillText(s.lbl, x, statY + 44);
+        const x = cx0 + i * (cardW + cgap);
+        rr(x, cy, cardW, cardH, 26);
+        const cg = ctx.createLinearGradient(x, cy, x, cy + cardH);
+        cg.addColorStop(0, 'rgba(255,255,255,0.06)'); cg.addColorStop(1, 'rgba(255,255,255,0.02)');
+        ctx.fillStyle = cg; ctx.fill();
+        ctx.lineWidth = 1.5; ctx.strokeStyle = 'rgba(255,107,0,0.22)'; ctx.stroke();
+        // number
+        ctx.font = '900 78px Heebo, sans-serif';
+        ctx.fillStyle = '#FF8C00';
+        ctx.fillText(String(s.num), x + cardW / 2, cy + 108);
+        // label
+        ctx.direction = 'rtl';
+        ctx.font = '600 32px Heebo, sans-serif';
+        ctx.fillStyle = 'rgba(255,255,255,0.55)';
+        ctx.fillText(s.lbl, x + cardW / 2, cy + 162);
       });
 
-      ctx.font = '400 26px Heebo, sans-serif';
-      ctx.fillStyle = '#555';
-      ctx.fillText(new Date().toLocaleDateString('he-IL'), W/2, H*0.71);
+      // ── milestone motivational line ──
+      if (d.milestone) {
+        ctx.direction = 'rtl';
+        ctx.font = '700 36px Heebo, sans-serif';
+        ctx.fillStyle = 'rgba(255,255,255,0.82)';
+        // wrap if long
+        const maxW = W - 160;
+        let line = d.milestone;
+        if (ctx.measureText(line).width > maxW) {
+          const words = line.split(' '); let l1 = '', l2 = '';
+          for (const w of words) { if (ctx.measureText((l1 + w)).width < maxW) l1 += w + ' '; else l2 += w + ' '; }
+          ctx.fillText(l1.trim(), CX, H * 0.755);
+          ctx.fillText(l2.trim(), CX, H * 0.755 + 48);
+        } else {
+          ctx.fillText(line, CX, H * 0.76);
+        }
+      }
 
-      ctx.font = '700 30px Heebo, sans-serif';
-      ctx.fillStyle = 'rgba(255,255,255,0.55)';
+      // ── bottom accent line + footer ──
+      const fY = H - 150;
+      const lg = ctx.createLinearGradient(CX - 200, 0, CX + 200, 0);
+      lg.addColorStop(0, 'rgba(255,107,0,0)'); lg.addColorStop(0.5, 'rgba(255,107,0,0.7)'); lg.addColorStop(1, 'rgba(255,107,0,0)');
+      ctx.fillStyle = lg; rr(CX - 200, fY, 400, 4, 2); ctx.fill();
+
+      ctx.direction = 'rtl';
+      ctx.font = '500 30px Heebo, sans-serif';
+      ctx.fillStyle = 'rgba(255,255,255,0.45)';
+      ctx.fillText(new Date().toLocaleDateString('he-IL', { day: 'numeric', month: 'long', year: 'numeric' }), CX, fY + 54);
+
       ctx.direction = 'ltr';
-      ctx.textAlign = 'right';
-      ctx.fillText('by fitjourney', W - 36, H - 36);
+      ctx.font = '800 30px Heebo, sans-serif';
+      ctx.fillStyle = 'rgba(255,140,0,0.85)';
+      ctx.fillText('@ fitjourney', CX, fY + 100);
 
       canvas.toBlob(resolve, 'image/png');
     });
@@ -4457,6 +4600,8 @@ ${foodList || 'אין פריטים'}
 <div id="volume-modal" onclick="if(event.target===this)closeVolumeModal()">
   <div class="vol-card">
     <button class="vol-close-btn" onclick="closeVolumeModal()">✕</button>
+    <div class="vol-brand"><span class="fit">FIT</span> <span class="journey">JOURNEY</span></div>
+    <div class="vol-brand-sub">ד ו ח&nbsp;&nbsp;א י מ ו ן</div>
     <div class="vol-emoji-big" id="vol-emoji">💪</div>
     <div class="vol-label">נפח אימון כולל</div>
     <div class="vol-number" id="vol-number">0 ק"ג</div>
@@ -4467,12 +4612,10 @@ ${foodList || 'אין פריטים'}
         <div class="vol-stat-num" id="vol-stat-sets">—</div>
         <div class="vol-stat-lbl">סטים</div>
       </div>
-      <div class="vol-divider"></div>
       <div class="vol-stat">
         <div class="vol-stat-num" id="vol-stat-ex">—</div>
         <div class="vol-stat-lbl">תרגילים</div>
       </div>
-      <div class="vol-divider"></div>
       <div class="vol-stat">
         <div class="vol-stat-num" id="vol-stat-dur">—</div>
         <div class="vol-stat-lbl">דקות</div>
