@@ -73,11 +73,12 @@ Deno.serve(async (req) => {
     const emails = team.map(t => t.email)
 
     // 5. batched month data
-    const [{ data: workouts }, { data: foods }, { data: checkins }, { data: notifs }] = await Promise.all([
+    const [{ data: workouts }, { data: foods }, { data: checkins }, { data: notifs }, { data: stepsRows }] = await Promise.all([
       admin.from('workout_logs').select('client_email,log_date,total_volume').gte('log_date', monthStart).lt('log_date', nextMonth).in('client_email', emails),
       admin.from('food_logs').select('client_email,log_date').gte('log_date', monthStart).lt('log_date', nextMonth).in('client_email', emails),
       admin.from('checkins').select('client_email,week_date').gte('week_date', monthStart).lt('week_date', nextMonth).in('client_email', emails),
       admin.from('coach_notifications').select('client_email,data,created_at').eq('coach_email', coachEmail).gte('created_at', monthStart).lt('created_at', nextMonth).in('client_email', emails),
+      admin.from('daily_steps').select('client_email,steps').gte('date', monthStart).lt('date', nextMonth).in('client_email', emails),
     ])
 
     // 6. aggregate per member
@@ -87,15 +88,18 @@ Deno.serve(async (req) => {
     ;(foods || []).forEach(f => A(f.client_email).nutriDays.add(f.log_date))
     ;(checkins || []).forEach(c => { A(c.client_email).checkins++ })
     ;(notifs || []).forEach(n => { const prs = n.data?.prs; if (Array.isArray(prs) && prs.length) A(n.client_email).prs += prs.length })
+    const stepsBy: Record<string, number> = {}
+    ;(stepsRows || []).forEach(s => { stepsBy[s.client_email] = (stepsBy[s.client_email] || 0) + (s.steps || 0) })
 
     const rows = team.map(t => {
       const a = agg[t.email] || { workouts: [], volume: 0, nutriDays: new Set(), checkins: 0, prs: 0 }
       const streak = longestStreak(a.workouts)
-      const points = a.workouts.length * 10 + a.nutriDays.size * 5 + a.checkins * 15 + a.prs * 20 + streak * 5
+      const steps = stepsBy[t.email] || 0
+      const points = a.workouts.length * 10 + a.nutriDays.size * 5 + a.checkins * 15 + a.prs * 20 + streak * 5 + Math.floor(steps / 1000)
       return {
         email: t.email, name: t.name || t.email.split('@')[0],
         points, workouts: a.workouts.length, nutriDays: a.nutriDays.size,
-        checkins: a.checkins, prs: a.prs, streak, volume: Math.round(a.volume),
+        checkins: a.checkins, prs: a.prs, streak, steps, volume: Math.round(a.volume),
         titles: [] as string[],
         medal: points >= 500 ? 'gold' : points >= 250 ? 'silver' : points >= 100 ? 'bronze' : null,
       }
@@ -111,6 +115,8 @@ Deno.serve(async (req) => {
       if (byVolume.volume > 0) byVolume.titles.push('🏋️ מפלצת נפח')
       const byNutri = [...withActivity].sort((a, b) => b.nutriDays - a.nutriDays)[0]
       if (byNutri.nutriDays >= 5) byNutri.titles.push('🥗 מלך/מלכת העקביות')
+      const bySteps = [...withActivity].sort((a, b) => b.steps - a.steps)[0]
+      if (bySteps.steps >= 10000) bySteps.titles.push('🚶 מלך/מלכת הצעדים')
     }
 
     return json({ month: ym, rows, me: email, coach: coachEmail })

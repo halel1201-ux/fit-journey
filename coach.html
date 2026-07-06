@@ -7582,7 +7582,7 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
       <div style="text-align:center;color:#666;padding:30px;">טוען...</div>
     </div>
     <div style="padding:10px 18px 16px;border-top:1px solid rgba(255,255,255,0.06);font-size:0.68rem;color:#666;text-align:center;line-height:1.7;">
-      אימון 10 נק׳ · יום תזונה 5 נק׳ · צ׳ק-אין 15 נק׳ · שיא אישי 20 נק׳ · יום רצף 5 נק׳<br>
+      אימון 10 · יום תזונה 5 · צ׳ק-אין 15 · שיא 20 · יום רצף 5 · 1,000 צעדים = 1 נק׳<br>
       🥉 100+ &nbsp; 🥈 250+ &nbsp; 🥇 500+ · מתאפס כל חודש
     </div>
   </div>
@@ -7636,6 +7636,7 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
       if (r.checkins) stats.push(`📋 ${r.checkins}`);
       if (r.prs) stats.push(`🏆 ${r.prs}`);
       if (r.streak >= 2) stats.push(`🔥 רצף ${r.streak}`);
+      if (r.steps >= 1000) stats.push(`🚶 ${(r.steps/1000).toFixed(1)}K צעדים`);
       return `<div style="display:flex;align-items:center;gap:10px;padding:10px 10px;margin-bottom:6px;border-radius:12px;background:${isMe?'rgba(255,107,0,0.1)':'rgba(255,255,255,0.03)'};border:1px solid ${isMe?'rgba(255,107,0,0.4)':'rgba(255,255,255,0.06)'};">
         <div style="width:26px;text-align:center;font-size:1.05rem;flex-shrink:0;">${rankIcon}</div>
         <div style="flex:1;min-width:0;">

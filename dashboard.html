@@ -900,6 +900,17 @@
       </div>
     </div>
 
+    <!-- STEPS CARD — מד צעדים -->
+    <div style="margin-bottom:16px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:12px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+      <div style="font-size:1.5rem;">🚶</div>
+      <div style="flex:1;min-width:120px;">
+        <div style="font-size:0.72rem;color:#888;">צעדים היום</div>
+        <div style="font-weight:900;font-size:1.25rem;color:#fff;" id="steps-today">0</div>
+      </div>
+      <button onclick="togglePedometer()" id="pedo-btn" style="padding:8px 14px;background:rgba(255,107,0,0.12);border:1px solid rgba(255,107,0,0.4);color:var(--orange);border-radius:10px;font-family:'Heebo';font-weight:700;font-size:0.8rem;cursor:pointer;">▶ מצב הליכה</button>
+      <button onclick="manualSteps()" style="padding:8px 14px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.15);color:#ccc;border-radius:10px;font-family:'Heebo';font-weight:700;font-size:0.8rem;cursor:pointer;">✎ עדכן ידני</button>
+    </div>
+
     <!-- CYCLE SECTION -->
     <div class="section" id="cycle-section" style="display:none;margin-bottom:20px;">
       <div class="sec-title"><span class="icon">🔄</span> הסייקל שלי</div>
@@ -1486,6 +1497,7 @@
     clientData = client;
     sb.rpc('update_own_last_seen').then(() => {});
     checkHealthDecl();
+    loadStepsToday();
 
     document.getElementById('loader').style.opacity = '0';
     setTimeout(() => document.getElementById('loader').style.display = 'none', 300);
@@ -2045,6 +2057,63 @@
     drop_set:   { name: 'דרופ סט', explain: 'בסיום הסט מורידים משקל וממשיכים ללא מנוחה. אפשר טריפל דרופ (8/8/8).' },
     negative:   { name: 'חזרה שלילית', explain: 'אתה בולם ומוריד את המשקל בשליטה, והספוטר מרים בשבילך בפאזה החיובית.' },
   };
+  /* ── STEP COUNTER (מד צעדים: חיישן בזמן שהאפליקציה פתוחה + עדכון ידני) ── */
+  let _stepsToday = 0, _pedoOn = false, _pedoCount = 0, _lastStepAt = 0, _pedoSaveTimer = null;
+
+  async function loadStepsToday() {
+    try {
+      const { data } = await sb.from('daily_steps').select('steps').eq('client_email', currentEmail).eq('date', todayStr()).maybeSingle();
+      _stepsToday = data?.steps || 0;
+      renderSteps();
+    } catch (e) {}
+  }
+  function renderSteps() {
+    const el = document.getElementById('steps-today');
+    if (el) el.textContent = (_stepsToday + _pedoCount).toLocaleString('he-IL');
+  }
+  async function saveSteps() {
+    if (_pedoCount > 0) { _stepsToday += _pedoCount; _pedoCount = 0; }
+    await sb.from('daily_steps').upsert({ client_email: currentEmail, date: todayStr(), steps: _stepsToday, source: 'sensor', updated_at: new Date().toISOString() }, { onConflict: 'client_email,date' });
+    renderSteps();
+  }
+  function _onMotion(e) {
+    const a = e.accelerationIncludingGravity; if (!a) return;
+    const mag = Math.sqrt(a.x * a.x + a.y * a.y + a.z * a.z);
+    const now = Date.now();
+    if (mag > 11.8 && now - _lastStepAt > 320) { _lastStepAt = now; _pedoCount++; renderSteps(); }
+  }
+  async function togglePedometer() {
+    const btn = document.getElementById('pedo-btn');
+    if (_pedoOn) {
+      window.removeEventListener('devicemotion', _onMotion);
+      clearInterval(_pedoSaveTimer);
+      _pedoOn = false;
+      btn.textContent = '▶ מצב הליכה'; btn.style.background = 'rgba(255,107,0,0.12)';
+      await saveSteps();
+      showDashToast('הצעדים נשמרו ✓');
+      return;
+    }
+    // iOS requires an explicit permission request from a user gesture
+    if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
+      try { if (await DeviceMotionEvent.requestPermission() !== 'granted') { showDashToast('אין הרשאה לחיישן התנועה'); return; } } catch (e) { showDashToast('אין הרשאה לחיישן התנועה'); return; }
+    }
+    _pedoOn = true; _pedoCount = 0;
+    window.addEventListener('devicemotion', _onMotion);
+    _pedoSaveTimer = setInterval(saveSteps, 60000); // autosave once a minute while walking
+    btn.textContent = '⏸ עצור ושמור'; btn.style.background = 'rgba(74,222,128,0.15)';
+    showDashToast('מצב הליכה פעיל — השאר את האפליקציה פתוחה 🚶');
+  }
+  async function manualSteps() {
+    const v = prompt('כמה צעדים עשית היום? (מתוך אפליקציית הבריאות בטלפון)', _stepsToday || '');
+    if (v === null) return;
+    const n = parseInt(String(v).replace(/[^\d]/g, ''), 10);
+    if (isNaN(n) || n < 0 || n > 200000) { showDashToast('מספר לא תקין'); return; }
+    _stepsToday = n; _pedoCount = 0;
+    await sb.from('daily_steps').upsert({ client_email: currentEmail, date: todayStr(), steps: n, source: 'manual', updated_at: new Date().toISOString() }, { onConflict: 'client_email,date' });
+    renderSteps();
+    showDashToast('צעדים עודכנו ✓ (נספר בליגה)');
+  }
+
   /* ── SET VIDEOS (תיעוד סטים לבדיקת המאמן — עד 1 לתרגיל, נשלח ב"סיים ושלח") ── */
   let setVideos = {}; // exIndex → File
 
@@ -4889,7 +4958,7 @@ ${foodList || 'אין פריטים'}
       <div style="text-align:center;color:#666;padding:30px;">טוען...</div>
     </div>
     <div style="padding:10px 18px 16px;border-top:1px solid rgba(255,255,255,0.06);font-size:0.68rem;color:#666;text-align:center;line-height:1.7;">
-      אימון 10 נק׳ · יום תזונה 5 נק׳ · צ׳ק-אין 15 נק׳ · שיא אישי 20 נק׳ · יום רצף 5 נק׳<br>
+      אימון 10 · יום תזונה 5 · צ׳ק-אין 15 · שיא 20 · יום רצף 5 · 1,000 צעדים = 1 נק׳<br>
       🥉 100+ &nbsp; 🥈 250+ &nbsp; 🥇 500+ · מתאפס כל חודש
     </div>
   </div>
@@ -4943,6 +5012,7 @@ ${foodList || 'אין פריטים'}
       if (r.checkins) stats.push(`📋 ${r.checkins}`);
       if (r.prs) stats.push(`🏆 ${r.prs}`);
       if (r.streak >= 2) stats.push(`🔥 רצף ${r.streak}`);
+      if (r.steps >= 1000) stats.push(`🚶 ${(r.steps/1000).toFixed(1)}K צעדים`);
       return `<div style="display:flex;align-items:center;gap:10px;padding:10px 10px;margin-bottom:6px;border-radius:12px;background:${isMe?'rgba(255,107,0,0.1)':'rgba(255,255,255,0.03)'};border:1px solid ${isMe?'rgba(255,107,0,0.4)':'rgba(255,255,255,0.06)'};">
         <div style="width:26px;text-align:center;font-size:1.05rem;flex-shrink:0;">${rankIcon}</div>
         <div style="flex:1;min-width:0;">
