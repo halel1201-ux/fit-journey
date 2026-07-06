@@ -4635,6 +4635,86 @@ ${foodList || 'אין פריטים'}
     <button class="vol-btn-close" onclick="closeVolumeModal()">🔥 המשך כך!</button>
   </div>
 </div>
+<!-- ═══ LEAGUE MODAL — ליגת הקבוצה ═══ -->
+<div id="league-modal" style="display:none;position:fixed;inset:0;z-index:9997;background:rgba(0,0,0,0.9);align-items:center;justify-content:center;padding:16px;" onclick="if(event.target===this)closeLeague()">
+  <div style="background:linear-gradient(160deg,#17181c 0%,#0d0e11 100%);border:1px solid rgba(255,107,0,0.4);border-radius:20px;box-shadow:0 0 60px rgba(255,107,0,0.25);max-width:440px;width:100%;max-height:85vh;display:flex;flex-direction:column;position:relative;">
+    <button onclick="closeLeague()" style="position:absolute;top:12px;left:14px;background:none;border:none;color:#666;font-size:1.3rem;cursor:pointer;z-index:1;">✕</button>
+    <div style="text-align:center;padding:22px 20px 12px;">
+      <div style="font-size:2rem;">🏆</div>
+      <div style="font-weight:900;font-size:1.15rem;color:#fff;">ליגת הקבוצה</div>
+      <div id="league-month" style="font-size:0.78rem;color:#888;margin-top:2px;"></div>
+    </div>
+    <div id="league-body" style="overflow-y:auto;padding:0 16px 8px;flex:1;">
+      <div style="text-align:center;color:#666;padding:30px;">טוען...</div>
+    </div>
+    <div style="padding:10px 18px 16px;border-top:1px solid rgba(255,255,255,0.06);font-size:0.68rem;color:#666;text-align:center;line-height:1.7;">
+      אימון 10 נק׳ · יום תזונה 5 נק׳ · צ׳ק-אין 15 נק׳ · שיא אישי 20 נק׳ · יום רצף 5 נק׳<br>
+      🥉 100+ &nbsp; 🥈 250+ &nbsp; 🥇 500+ · מתאפס כל חודש
+    </div>
+  </div>
+</div>
+
+<script>
+  /* ── LEAGUE (gamification) ── */
+  let _leagueCache = null, _leagueCacheAt = 0;
+  const MEDAL_ICON = { gold: '🥇', silver: '🥈', bronze: '🥉' };
+
+  function heMonth(ym) {
+    const m = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
+    return m[(+ym.slice(5,7))-1] + ' ' + ym.slice(0,4);
+  }
+
+  async function openLeague() {
+    document.getElementById('league-modal').style.display = 'flex';
+    if (_leagueCache && Date.now() - _leagueCacheAt < 5*60*1000) { renderLeague(_leagueCache); return; }
+    try {
+      const { data: { session } } = await sb.auth.getSession();
+      const res = await fetch(`${URL_}/functions/v1/leaderboard`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'apikey': KEY, 'Authorization': `Bearer ${session?.access_token || ''}` },
+        body: '{}',
+      });
+      const j = await res.json();
+      if (j.error) throw new Error(j.error);
+      _leagueCache = j; _leagueCacheAt = Date.now();
+      renderLeague(j);
+    } catch (e) {
+      document.getElementById('league-body').innerHTML = '<div style="text-align:center;color:#ff8080;padding:30px;">שגיאה בטעינת הליגה — נסה שוב</div>';
+    }
+  }
+  function closeLeague() { document.getElementById('league-modal').style.display = 'none'; }
+
+  function renderLeague(j) {
+    document.getElementById('league-month').textContent = heMonth(j.month);
+    const esc2 = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    if (!j.rows?.length) {
+      document.getElementById('league-body').innerHTML = '<div style="text-align:center;color:#666;padding:30px;">אין עדיין נתונים החודש — צאו להתאמן! 💪</div>';
+      return;
+    }
+    document.getElementById('league-body').innerHTML = j.rows.map((r, i) => {
+      const isMe = r.email === j.me;
+      const rankIcon = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `<span style="color:#666;font-size:0.8rem;font-weight:900;">${i+1}</span>`;
+      const medal = r.medal ? ` ${MEDAL_ICON[r.medal]}` : '';
+      const titles = (r.titles||[]).map(t => `<span style="font-size:0.62rem;background:rgba(255,215,0,0.1);border:1px solid rgba(255,215,0,0.3);color:#FFD700;border-radius:10px;padding:1px 7px;">${esc2(t)}</span>`).join(' ');
+      const stats = [];
+      if (r.workouts) stats.push(`🏋️ ${r.workouts}`);
+      if (r.nutriDays) stats.push(`🥗 ${r.nutriDays}`);
+      if (r.checkins) stats.push(`📋 ${r.checkins}`);
+      if (r.prs) stats.push(`🏆 ${r.prs}`);
+      if (r.streak >= 2) stats.push(`🔥 רצף ${r.streak}`);
+      return `<div style="display:flex;align-items:center;gap:10px;padding:10px 10px;margin-bottom:6px;border-radius:12px;background:${isMe?'rgba(255,107,0,0.1)':'rgba(255,255,255,0.03)'};border:1px solid ${isMe?'rgba(255,107,0,0.4)':'rgba(255,255,255,0.06)'};">
+        <div style="width:26px;text-align:center;font-size:1.05rem;flex-shrink:0;">${rankIcon}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-weight:800;font-size:0.9rem;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc2(r.name)}${medal}${isMe?' <span style="font-size:0.62rem;color:var(--orange);">(אני)</span>':''}</div>
+          ${titles ? `<div style="margin-top:3px;display:flex;gap:4px;flex-wrap:wrap;">${titles}</div>` : ''}
+          ${stats.length ? `<div style="font-size:0.68rem;color:#888;margin-top:3px;">${stats.join(' · ')}</div>` : ''}
+        </div>
+        <div style="font-weight:900;font-size:1.05rem;color:var(--orange);flex-shrink:0;">${r.points}<span style="font-size:0.6rem;color:#888;"> נק׳</span></div>
+      </div>`;
+    }).join('');
+  }
+</script>
+
   <script>
     if ('serviceWorker' in navigator) {
       let _swReloaded = false;
@@ -4675,6 +4755,7 @@ ${foodList || 'אין פריטים'}
       👥 הקבוצה
       <span class="chat-tab-badge" id="grp-tab-badge" style="display:none;"></span>
     </button>
+    <button class="chat-ov-tab" onclick="openLeague()" style="flex:0 0 auto;">🏆 ליגה</button>
   </div>
 
   <!-- Messages body -->
