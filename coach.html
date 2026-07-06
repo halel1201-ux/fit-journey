@@ -452,7 +452,10 @@
   <div class="sidebar" id="sidebar">
     <div class="sidebar-head">
       <span class="sidebar-title">המתאמנים שלי</span>
-      <button class="btn-sm btn-orange" id="btn-add-client" style="display:none;font-size:0.75rem;padding:5px 10px;" onclick="openAddModal()">+ הוסף</button>
+      <div style="display:flex;align-items:center;gap:6px;">
+        <button title="דשבורד עסקי" onclick="openBizDash()" style="background:rgba(255,215,0,0.08);border:1px solid rgba(255,215,0,0.3);color:#FFD700;border-radius:8px;padding:4px 8px;font-size:0.75rem;cursor:pointer;">📈</button>
+        <button class="btn-sm btn-orange" id="btn-add-client" style="display:none;font-size:0.75rem;padding:5px 10px;" onclick="openAddModal()">+ הוסף</button>
+      </div>
     </div>
     <div style="padding:8px 10px;border-bottom:1px solid rgba(255,255,255,0.05);">
       <input id="client-search" type="text" placeholder="🔍 חיפוש מתאמן..." oninput="renderSidebar()"
@@ -2283,6 +2286,51 @@
     loadHealthDeclStatus(email);
     if (client.goal === 'peak_week') loadPeakWeekPlan();
   }
+
+  /* ── BUSINESS DASHBOARD (דשבורד עסקי) ── */
+  async function openBizDash() {
+    document.getElementById('bizdash-body').innerHTML = '<div style="text-align:center;color:#888;padding:36px;">טוען נתונים...</div>';
+    document.getElementById('bizdash-modal').style.display = 'flex';
+    try {
+      const now = new Date();
+      const monthStart = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-01`;
+      const [{ data: recMonth }, { data: recAll }, { data: pkgs }] = await Promise.all([
+        sb.from('receipts').select('amount').eq('coach_email', coachEmail).gte('receipt_date', monthStart),
+        sb.from('receipts').select('amount').eq('coach_email', coachEmail),
+        sb.from('client_packages').select('amount_total,amount_paid,status').eq('coach_email', coachEmail),
+      ]);
+      const sum = a => (a||[]).reduce((s,r)=>s+(+r.amount||0),0);
+      const revMonth = sum(recMonth), revAll = sum(recAll);
+      const openPkg = (pkgs||[]).reduce((s,p)=>s+Math.max(0,(+p.amount_total||0)-(+p.amount_paid||0)),0);
+      const todayS = todayStr();
+      const active = clients.filter(c=>c.coaching_end && c.coaching_end >= todayS).length;
+      const newThisMonth = clients.filter(c=>(c.created_at||'').slice(0,10) >= monthStart).length;
+      const debts = Object.values(clientDebtMap||{}).reduce((s,v)=>s+Math.max(0,v),0);
+      const churnCount = Object.keys(churnAlerts||{}).length;
+      const heMonthName = now.toLocaleDateString('he-IL',{month:'long'});
+
+      const card = (icon,label,val,color) => `
+        <div style="background:linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.02));border:1px solid rgba(255,255,255,0.09);border-radius:14px;padding:14px 12px;text-align:center;">
+          <div style="font-size:1.3rem;">${icon}</div>
+          <div style="font-size:1.25rem;font-weight:900;color:${color};margin-top:2px;">${val}</div>
+          <div style="font-size:0.68rem;color:#888;margin-top:2px;">${label}</div>
+        </div>`;
+      document.getElementById('bizdash-body').innerHTML = `
+        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;">
+          ${card('💰',`הכנסות ${heMonthName}`,`₪${revMonth.toLocaleString()}`,'#4ade80')}
+          ${card('🏦','סה"כ הכנסות',`₪${revAll.toLocaleString()}`,'#4ade80')}
+          ${card('👥','מתאמנים פעילים',active,'#fff')}
+          ${card('✨',`חדשים ב${heMonthName}`,newThisMonth,'#FFD700')}
+          ${card('⏳','חובות פתוחים',`₪${debts.toLocaleString()}`, debts>0?'#f87171':'#4ade80')}
+          ${card('📄','יתרת חבילות לגבייה',`₪${openPkg.toLocaleString()}`, openPkg>0?'#fbbf24':'#4ade80')}
+          ${card('🚨','בסיכון נטישה',churnCount, churnCount>0?'#f87171':'#4ade80')}
+          ${card('🪙','טוקנים',typeof coachTokens!=='undefined'?coachTokens:'—','#c4a5ff')}
+        </div>`;
+    } catch(e) {
+      document.getElementById('bizdash-body').innerHTML = '<div style="text-align:center;color:#ff8080;padding:30px;">שגיאה בטעינת הנתונים</div>';
+    }
+  }
+  function closeBizDash() { document.getElementById('bizdash-modal').style.display = 'none'; }
 
   /* ── AI PROGRESS REPORT (דוח AI ב-30 שניות) ── */
   async function openAiReport() {
@@ -7394,6 +7442,18 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
       </button>
     </div>
 
+  </div>
+</div>
+
+<!-- ═══ BUSINESS DASHBOARD MODAL — דשבורד עסקי ═══ -->
+<div id="bizdash-modal" style="display:none;position:fixed;inset:0;z-index:9997;background:rgba(0,0,0,0.9);align-items:center;justify-content:center;padding:16px;" onclick="if(event.target===this)closeBizDash()">
+  <div style="background:linear-gradient(160deg,#17181c 0%,#0d0e11 100%);border:1px solid rgba(255,215,0,0.35);border-radius:20px;box-shadow:0 0 60px rgba(255,215,0,0.15);max-width:440px;width:100%;max-height:88vh;display:flex;flex-direction:column;position:relative;">
+    <button onclick="closeBizDash()" style="position:absolute;top:12px;left:14px;background:none;border:none;color:#666;font-size:1.3rem;cursor:pointer;z-index:1;">✕</button>
+    <div style="text-align:center;padding:20px 20px 12px;">
+      <div style="font-size:1.8rem;">📈</div>
+      <div style="font-weight:900;font-size:1.1rem;color:#fff;">דשבורד עסקי</div>
+    </div>
+    <div id="bizdash-body" style="overflow-y:auto;padding:4px 18px 20px;flex:1;"></div>
   </div>
 </div>
 
