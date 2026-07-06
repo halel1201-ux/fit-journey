@@ -572,6 +572,8 @@
   }
   const ADMIN = 'halel1201@gmail.com';
   const sb = supabase.createClient(URL_, KEY);
+  // local (Israel) calendar day as YYYY-MM-DD — avoids the UTC off-by-one that toISOString() causes after midnight
+  function todayStr(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
   const sbAdmin = sb; // מפתח השירות הוסר מהדפדפן — פעולות רצות תחת RLS / דרך Edge Functions
 
   // ─── AI file-attachment utilities ─────────────────────────────────────
@@ -1205,7 +1207,7 @@
         if (r === 'senior') {
           const ls = c.license_start || '';
           const le = c.license_end   || '';
-          const today = new Date().toISOString().split('T')[0];
+          const today = todayStr();
           const expired = le && le < today;
           const daysLeft = le ? Math.ceil((new Date(le + 'T23:59:59') - new Date()) / 864e5) : null;
           const statusClr = expired ? '#ff7070' : (daysLeft !== null && daysLeft <= 7 ? '#FFD700' : '#70dd70');
@@ -1449,7 +1451,7 @@
   }
 
   async function approveCoach(id, months) {
-    const today = new Date().toISOString().split('T')[0];
+    const today = todayStr();
     const endDate = new Date();
     endDate.setMonth(endDate.getMonth() + months);
     const licEnd = endDate.toISOString().split('T')[0];
@@ -1469,12 +1471,12 @@
     const endInput = document.getElementById(`lic-end-${id}`);
     const startInput = document.getElementById(`lic-start-${id}`);
     if (!endInput) return;
-    const base = (endInput.value && endInput.value >= new Date().toISOString().split('T')[0])
+    const base = (endInput.value && endInput.value >= todayStr())
       ? new Date(endInput.value) : new Date();
     base.setMonth(base.getMonth() + months);
     const newEnd = base.toISOString().split('T')[0];
     endInput.value = newEnd;
-    if (startInput && !startInput.value) startInput.value = new Date().toISOString().split('T')[0];
+    if (startInput && !startInput.value) startInput.value = todayStr();
   }
 
   async function saveCoachLicense(id) {
@@ -3597,7 +3599,7 @@ difficulty: מתחיל | ביניים | מתקדם | כל הרמות
     document.body.style.overflow = 'hidden';
     if (recLogs !== null) { renderRecBody(); return; }
     document.getElementById('rec-body').innerHTML = '<div style="text-align:center;padding:40px;color:#444;">טוען נתונים...</div>';
-    const today = new Date().toISOString().split('T')[0];
+    const today = todayStr();
     const [{ data: logs }, { data: cls }, { data: steps }] = await Promise.all([
       sb.from('workout_logs').select('client_email,log_date,exercises'),
       sb.from('clients').select('email,name'),
@@ -3720,7 +3722,7 @@ difficulty: מתחיל | ביניים | מתקדם | כל הרמות
   async function logSteps() {
     const val = parseInt(document.getElementById('steps-inp').value);
     if (!val || val < 0) return;
-    const today = new Date().toISOString().split('T')[0];
+    const today = todayStr();
     const btn = document.querySelector('.btn-save-steps');
     btn.disabled = true; btn.textContent = 'שומר...';
     const { error } = await sb.from('steps_logs').upsert(

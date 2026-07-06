@@ -1072,6 +1072,8 @@
   const URL_ = 'https://luwknflmhvcxgifzxgrk.supabase.co';
   const KEY  = 'sb_publishable_k3M7SfBeiBGs3rTKewBzWQ_7RHRskB9';
   const sb   = supabase.createClient(URL_, KEY);
+  // local (Israel) calendar day as YYYY-MM-DD — avoids the UTC off-by-one that toISOString() causes after midnight
+  function todayStr(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
 
   const ONESIGNAL_APP_ID  = 'fe16a494-b8de-47e9-8a29-de052e048ec8';
   const ONESIGNAL_REST_KEY = 'os_v2_app_7ylkjffy3zd6tcrj3ycs4beozaggpy5dukfe45efqruamrlljsrgz4rncsssvzvsbpt2df3zts2vdwcl2qg6zowamqntfmprxzppmjq';
@@ -1581,7 +1583,7 @@
     const { data } = await sb.from('peak_week_plans').select('*').eq('client_email', email).maybeSingle();
     if (!data || !data.days?.length) { card.style.display = 'none'; return; }
 
-    const today     = new Date().toISOString().split('T')[0];
+    const today     = todayStr();
     const pwStart   = data.peak_week_start;
     const stageDate = data.stage_date;
     const days      = data.days;
@@ -1695,7 +1697,7 @@
     btn.disabled = true; btn.textContent = 'שולח...';
     const { error } = await sb.from('client_debt_transactions').insert({
       client_email: currentEmail, coach_email: coachMail, type: 'payment', status: 'pending',
-      category: method, amount, note, txn_date: new Date().toISOString().split('T')[0],
+      category: method, amount, note, txn_date: todayStr(),
       created_by: clientData?.name || currentEmail
     });
     btn.disabled = false; btn.textContent = 'שלח לאישור';
@@ -2313,7 +2315,7 @@
     btn.disabled = true; btn.textContent = 'שומר...';
     const { error } = await sb.from('workout_logs').insert({
       client_email: currentEmail,
-      log_date: new Date().toISOString().split('T')[0],
+      log_date: todayStr(),
       day_name: workoutSession.dayName,
       exercises,
       notes: `משך אימון: ${Math.floor(elapsed / 60)} דקות`,
@@ -2601,7 +2603,7 @@ ${foodList || 'אין פריטים'}
   async function openNutrition() {
     if (foodItems === null || foodLogs === null || recipes === null) {
       document.getElementById('nutri-body').innerHTML = '<div class="empty">טוען...</div>';
-      const today = new Date().toISOString().split('T')[0];
+      const today = todayStr();
       const [fiRes, flRes, recRes] = await Promise.all([
         foodItems === null ? sb.from('food_items').select('*').order('name') : Promise.resolve({ data: null }),
         foodLogs  === null ? sb.from('food_logs').select('*').eq('client_email', currentEmail).eq('log_date', today).order('created_at') : Promise.resolve({ data: null }),
@@ -2826,7 +2828,7 @@ ${foodList || 'אין פריטים'}
 
     const btn = document.querySelector('.btn-add-food');
     if (btn) { btn.disabled=true; btn.textContent='מוסיף...'; }
-    const today = new Date().toISOString().split('T')[0];
+    const today = todayStr();
     const { data, error } = await sb.from('food_logs').insert({
       client_email: currentEmail, log_date: today,
       food_name: name, grams, calories: cal, protein: prot, carbs: carb, fat, meal_type: nutriMeal
@@ -2848,7 +2850,7 @@ ${foodList || 'אין פריטים'}
   async function logMeal(mi) {
     const meal = nutritionPlanLocal[mi];
     if (!meal) return;
-    const today = new Date().toISOString().split('T')[0];
+    const today = todayStr();
     const mealKey = 'plan__' + meal.meal;
     const inserts = (meal.items||[]).map((item,ii) => {
       const alt = altChoices[`${mi}_${ii}`];
@@ -2874,7 +2876,7 @@ ${foodList || 'אין פריטים'}
     const meal = nutritionPlanLocal[mi];
     if (!meal) return;
     const mealKey = 'plan__' + meal.meal;
-    const today = new Date().toISOString().split('T')[0];
+    const today = todayStr();
     const { error } = await sb.from('food_logs').delete()
       .eq('client_email', currentEmail).eq('meal_type', mealKey).eq('log_date', today);
     if (error) return;
@@ -3196,7 +3198,7 @@ ${foodList || 'אין פריטים'}
   async function openRecords() {
     if (recLogs !== null) { renderRecBody(); return; }
     document.getElementById('rec-body').innerHTML = '<div class="empty">טוען נתונים...</div>';
-    const today = new Date().toISOString().split('T')[0];
+    const today = todayStr();
     const [{ data: logs }, { data: clients }, { data: steps }, { data: allExs }] = await Promise.all([
       sb.from('workout_logs').select('client_email,log_date,exercises'),
       sb.from('clients').select('email,name,coach_email'),
@@ -3376,7 +3378,7 @@ ${foodList || 'אין פריטים'}
   async function logSteps() {
     const val = parseInt(document.getElementById('steps-inp').value);
     if (!val || val < 0) return;
-    const today = new Date().toISOString().split('T')[0];
+    const today = todayStr();
     const btn = document.querySelector('.btn-save-steps');
     btn.disabled = true; btn.textContent = 'שומר...';
     const { error } = await sb.from('steps_logs').upsert(
@@ -3470,7 +3472,7 @@ ${foodList || 'אין פריטים'}
     const kg = parseFloat(val.replace(',', '.'));
     if (!kg || kg < 20 || kg > 500) { alert('משקל לא תקין'); return; }
 
-    const today = new Date().toISOString().split('T')[0];
+    const today = todayStr();
     // Update clients table (backward compat)
     await sb.from('clients').update({ current_weight: kg }).eq('email', currentEmail);
     // Upsert today's progress entry
@@ -3492,7 +3494,7 @@ ${foodList || 'אין פריטים'}
 
   /* ── WATER ── */
   async function loadWaterData() {
-    const today = new Date().toISOString().split('T')[0];
+    const today = todayStr();
     const { data } = await sb.from('food_logs')
       .select('*').eq('client_email', currentEmail).eq('log_date', today).eq('meal_type', 'מים');
     waterLogs = data || [];
@@ -3514,7 +3516,7 @@ ${foodList || 'אין פריטים'}
   }
 
   async function addWater(ml) {
-    const today = new Date().toISOString().split('T')[0];
+    const today = todayStr();
     const { data, error } = await sb.from('food_logs').insert({
       client_email: currentEmail, log_date: today,
       food_name: '💧 מים', grams: ml,
@@ -3551,7 +3553,7 @@ ${foodList || 'אין פריטים'}
     if (!name) { document.getElementById('mf-name')?.focus(); return; }
     const btn = document.getElementById('btn-manual-add');
     if (btn) { btn.disabled = true; btn.textContent = 'מוסיף...'; }
-    const today = new Date().toISOString().split('T')[0];
+    const today = todayStr();
     const { data, error } = await sb.from('food_logs').insert({
       client_email: currentEmail, log_date: today,
       food_name: name, grams: 0, calories: cal, protein: prot, carbs: carb, fat, meal_type: nutriMeal
@@ -4535,7 +4537,7 @@ ${foodList || 'אין פריטים'}
       const v = parseFloat(inp.value);
       if (v > 0) m[inp.dataset.mkey] = v;
     });
-    const today = new Date().toISOString().split('T')[0];
+    const today = todayStr();
     try {
       const { error } = await sb.from('progress_entries').upsert({
         client_email: currentEmail,

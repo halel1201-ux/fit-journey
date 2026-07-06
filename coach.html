@@ -874,6 +874,8 @@
     try { return await res.json(); } catch { return { error: "network" }; }
   }
   const sb      = supabase.createClient(URL_, KEY);
+  // local (Israel) calendar day as YYYY-MM-DD — avoids the UTC off-by-one that toISOString() causes after midnight
+  function todayStr(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
   const sbAdmin = sb; // מפתח השירות הוסר מהדפדפן — פעולות רצות תחת RLS / דרך Edge Functions
 
   // ─── AUTOPILOT (מנוי) ─────────────────────────────────────────────────
@@ -1304,7 +1306,7 @@
       list.innerHTML = '<div style="color:#444;font-size:0.82rem;text-align:center;padding:20px 0;">אין הודעות מתוזמנות</div>';
       return;
     }
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = todayStr();
     list.innerHTML = data.map(m => {
       if (m.recurring) {
         const sentToday = m.last_sent_date === todayStr;
@@ -1826,7 +1828,7 @@
 
     // בדיקת תוקף רישיון — מאמן בכיר בלבד
     if (coachRole === 'senior') {
-      const today = new Date().toISOString().split('T')[0];
+      const today = todayStr();
       const licEnd = coach.license_end;
       if (!licEnd || licEnd < today) {
         document.getElementById('loader').style.display = 'none';
@@ -2469,7 +2471,7 @@
 
   function renderPackageCard() {
     const p = currentPackage;
-    const today = new Date().toISOString().split('T')[0];
+    const today = todayStr();
     if (!p) {
       return `<div class="sec-card" id="pkg-card">
         <div class="sec-card-title">📦 חבילת מנוי <span style="color:#666;font-size:0.78rem;font-weight:500;">אין חבילה פעילה</span></div>
@@ -2739,7 +2741,7 @@
           </div>
           <div class="f-group" style="margin-bottom:12px;">
             <label>תאריך</label>
-            <input id="debt-charge-date" type="date" value="${new Date().toISOString().split('T')[0]}"/>
+            <input id="debt-charge-date" type="date" value="${todayStr()}"/>
           </div>
           <div class="f-group" style="margin-bottom:14px;">
             <label>הערות</label>
@@ -2767,7 +2769,7 @@
           </div>
           <div class="f-group" style="margin-bottom:12px;">
             <label>תאריך</label>
-            <input id="debt-payment-date" type="date" value="${new Date().toISOString().split('T')[0]}"/>
+            <input id="debt-payment-date" type="date" value="${todayStr()}"/>
           </div>
           <div class="f-group" style="margin-bottom:14px;">
             <label>הערות</label>
@@ -2843,7 +2845,7 @@
     document.getElementById('debt-charge-amount').value = '';
     document.getElementById('debt-charge-desc').value = '';
     document.getElementById('debt-charge-note').value = '';
-    document.getElementById('debt-charge-date').value = new Date().toISOString().split('T')[0];
+    document.getElementById('debt-charge-date').value = todayStr();
     document.getElementById('debt-charge-modal').style.display = 'flex';
   }
   function closeDebtChargeModal() {
@@ -2855,7 +2857,7 @@
     if (!amount || amount <= 0) { toast('הכנס סכום תקין', 'err'); return; }
     const category = document.getElementById('debt-charge-category').value;
     const description = document.getElementById('debt-charge-desc').value.trim();
-    const date = document.getElementById('debt-charge-date').value || new Date().toISOString().split('T')[0];
+    const date = document.getElementById('debt-charge-date').value || todayStr();
     const note = document.getElementById('debt-charge-note').value.trim();
     const { error } = await sb.from('client_debt_transactions').insert({
       client_email: activeEmail, coach_email: coachEmail, type: 'charge', status: 'approved',
@@ -2870,7 +2872,7 @@
   function openDebtPaymentModal() {
     document.getElementById('debt-payment-amount').value = '';
     document.getElementById('debt-payment-note').value = '';
-    document.getElementById('debt-payment-date').value = new Date().toISOString().split('T')[0];
+    document.getElementById('debt-payment-date').value = todayStr();
     document.getElementById('debt-payment-modal').style.display = 'flex';
   }
   function closeDebtPaymentModal() {
@@ -2881,7 +2883,7 @@
     const amount = parseFloat(document.getElementById('debt-payment-amount').value);
     if (!amount || amount <= 0) { toast('הכנס סכום תקין', 'err'); return; }
     const method = document.getElementById('debt-payment-method').value;
-    const date = document.getElementById('debt-payment-date').value || new Date().toISOString().split('T')[0];
+    const date = document.getElementById('debt-payment-date').value || todayStr();
     const note = document.getElementById('debt-payment-note').value.trim();
     const { error } = await sb.from('client_debt_transactions').insert({
       client_email: activeEmail, coach_email: coachEmail, type: 'payment', status: 'approved',
@@ -2928,7 +2930,7 @@
     if (!confirm(`לאפס את יתרת החוב (${balance.toLocaleString()} ₪)? הפעולה תתועד כתשלום מלא בהיסטוריה.`)) return;
     const { error } = await sb.from('client_debt_transactions').insert({
       client_email: activeEmail, coach_email: coachEmail, type: 'payment', status: 'approved',
-      category: 'איפוס יתרה', amount: balance, note: 'איפוס חוב ע"י המאמן', txn_date: new Date().toISOString().split('T')[0],
+      category: 'איפוס יתרה', amount: balance, note: 'איפוס חוב ע"י המאמן', txn_date: todayStr(),
       created_by: coachName || coachEmail
     });
     if (error) { toast('שגיאה: ' + error.message, 'err'); return; }
@@ -3209,7 +3211,7 @@
     const pwStart   = document.getElementById('e-pw-start')?.value || null;
     const stageDate = document.getElementById('e-stage')?.value    || null;
     el.innerHTML = peakWeekPlan.days.map((d, i) => {
-      const isToday = pwStart ? new Date(new Date(pwStart).getTime() + i * 864e5).toISOString().split('T')[0] === new Date().toISOString().split('T')[0] : false;
+      const isToday = pwStart ? new Date(new Date(pwStart).getTime() + i * 864e5).toISOString().split('T')[0] === todayStr() : false;
       const isStage = stageDate && pwStart ? new Date(new Date(pwStart).getTime() + i * 864e5).toISOString().split('T')[0] === stageDate : false;
       const active  = i === pwActiveDay;
       return `<button onclick="switchPwDay(${i})" style="padding:6px 12px;border-radius:8px;font-family:'Heebo',sans-serif;font-size:0.78rem;font-weight:${active?'900':'700'};cursor:pointer;border:1px solid ${isStage?'rgba(255,215,0,0.7)':active?'rgba(255,215,0,0.6)':'rgba(255,255,255,0.12)'};background:${active?'rgba(255,215,0,0.15)':'rgba(255,255,255,0.03)'};color:${isStage?'#FFD700':active?'#FFD700':'#aaa'};">
@@ -3290,7 +3292,7 @@
   function openReceiptModal() {
     if (!activeEmail) { toast('בחר לקוח קודם', 'err'); return; }
     document.getElementById('rec-amount').value  = '';
-    document.getElementById('rec-date').value    = new Date().toISOString().split('T')[0];
+    document.getElementById('rec-date').value    = todayStr();
     document.getElementById('rec-desc').value    = '';
     document.getElementById('rec-method').value  = '';
     document.getElementById('rec-notes').value   = '';
@@ -5063,7 +5065,7 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
     document.getElementById('rec-body').innerHTML='<div style="text-align:center;padding:40px;color:#444;">טוען נתונים...</div>';
     const clientEmails = clients.map(c=>c.email);
     if(!clientEmails.length){ recLogs=[]; recSteps=[]; renderRecBody(); return; }
-    const today=new Date().toISOString().split('T')[0];
+    const today=todayStr();
     const recExNames = new Set(Object.values(RECORD_EXERCISES).flat().map(n => normalizeRecEx(n)));
     const allExs = exerciseLibrary.map(e => ({ name: e.name, muscle_group: e.muscle_group, compound: recExNames.has(normalizeRecEx(e.name)) }));
     const [{ data: logs },{ data: steps }] = await Promise.all([
@@ -5160,7 +5162,7 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
   async function logSteps() {
     const val=parseInt(document.getElementById('steps-inp').value);
     if(!val||val<0) return;
-    const today=new Date().toISOString().split('T')[0];
+    const today=todayStr();
     const btn=document.querySelector('.btn-save-steps');
     btn.disabled=true; btn.textContent='שומר...';
     const { error } = await sb.from('steps_logs').upsert({client_email:coachEmail,steps:val,log_date:today},{onConflict:'client_email,log_date'});
@@ -5449,7 +5451,7 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
 
   /* ── MANUAL INCOME ── */
   function openIncomeModal() {
-    const today = new Date().toISOString().split('T')[0];
+    const today = todayStr();
     document.getElementById('inc-desc').value   = '';
     document.getElementById('inc-amount').value = '';
     document.getElementById('inc-date').value   = today;
@@ -5777,7 +5779,7 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
         </div>
         <div class="f-group">
           <label>תאריך התחלה</label>
-          <input type="date" id="cy-start" value="${cy?.start_date||new Date().toISOString().split('T')[0]}"/>
+          <input type="date" id="cy-start" value="${cy?.start_date||todayStr()}"/>
         </div>
       </div>
       <div class="f-group" style="margin-bottom:16px;">
@@ -5866,7 +5868,7 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
     const status = document.getElementById('cy-status').value;
     const goal   = document.getElementById('cy-goal').value;
     const details= document.getElementById('cy-details').value.trim();
-    const sdate  = document.getElementById('cy-start').value || new Date().toISOString().split('T')[0];
+    const sdate  = document.getElementById('cy-start').value || todayStr();
     const compounds = getCompoundsFromDOM().filter(c => c.name || c.dose || c.inj_per_week);
 
     // Archive if status/goal changed
@@ -5928,7 +5930,7 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
   function renderProgressEditor() {
     const wrap = document.getElementById('progress-editor');
     if (!wrap) return;
-    const today   = new Date().toISOString().split('T')[0];
+    const today   = todayStr();
     const entries = clientProgressEntries;
     const latest  = entries[0];
 
@@ -6563,7 +6565,7 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
 
   async function checkAndSendWeeklySummary() {
     if (new Date().getDay() !== 6) return; // רק בשבת (6)
-    const today   = new Date().toISOString().split('T')[0];
+    const today   = todayStr();
     // האם כבר נשלח היום?
     try {
       const { data: existing } = await sb.from('group_messages')
@@ -6789,7 +6791,7 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
     if (!overlay) return;
     const cols = getMeasCols();
     const existing = id ? clientMeasurements.find(e => e.id === id) : null;
-    const today = new Date().toISOString().split('T')[0];
+    const today = todayStr();
     const dateVal = existing?.date || today;
 
     const fields = cols.map(c => `

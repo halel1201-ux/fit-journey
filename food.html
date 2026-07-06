@@ -174,6 +174,8 @@
   const URL_ = 'https://luwknflmhvcxgifzxgrk.supabase.co';
   const KEY  = 'sb_publishable_k3M7SfBeiBGs3rTKewBzWQ_7RHRskB9';
   const sb   = supabase.createClient(URL_, KEY);
+  // local (Israel) calendar day as YYYY-MM-DD — avoids the UTC off-by-one that toISOString() causes after midnight
+  function todayStr(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
 
   const CAT_ORDER = ['הכל','מקור חלבון','פחמימות','ירקות','פירות','חלבי','שומנים','חטיפים ומתוקים','שתייה','כללי'];
   const CAT_ICONS = { 'הכל':'🍽️','מקור חלבון':'💪','פחמימות':'🍞','ירקות':'🥦','פירות':'🍎','חלבי':'🧀','שומנים':'🥑','חטיפים ומתוקים':'🍫','שתייה':'🥤','כללי':'📦' };
@@ -398,7 +400,7 @@
     if (!session) { status.style.color = '#ff7070'; status.textContent = 'לא מחובר'; btn.disabled = false; btn.textContent = 'הוסף ליומן'; return; }
 
     const r = g / 100;
-    const today = new Date().toISOString().split('T')[0];
+    const today = todayStr();
     const { error } = await sb.from('food_logs').insert({
       client_email: session.user.email,
       log_date:     today,
