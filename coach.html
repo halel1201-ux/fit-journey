@@ -1856,6 +1856,7 @@
       if (bl2) bl2.style.display = 'flex';
     }
     await Promise.all([loadClients(), loadExerciseLibrary(), loadFoodItems()]);
+    loadChurnAlerts();
     document.getElementById('loader').style.display = 'none';
     loadNotifications();
 
@@ -2028,6 +2029,82 @@
     toast(`${name} נוסף בהצלחה ✓`, 'ok');
   }
 
+  /* ── CHURN ALERTS (מניעת נטישה) ── */
+  let churnAlerts = {}; // client_email → newest 'new' alert
+
+  async function loadChurnAlerts() {
+    try {
+      const { data } = await sb.from('churn_alerts')
+        .select('*')
+        .eq('coach_email', coachEmail)
+        .eq('status', 'new')
+        .order('created_at', { ascending: false });
+      churnAlerts = {};
+      (data || []).forEach(a => { if (!churnAlerts[a.client_email]) churnAlerts[a.client_email] = a; });
+      renderSidebar();
+    } catch (e) { /* silent */ }
+  }
+
+  let _churnOpenEmail = null;
+  function openChurnModal(email) {
+    const a = churnAlerts[email];
+    if (!a) return;
+    _churnOpenEmail = email;
+    document.getElementById('churn-client-name').textContent = a.client_name || email.split('@')[0];
+    document.getElementById('churn-score').textContent = a.risk_score + '%';
+    document.getElementById('churn-score').style.color = a.risk_score >= 80 ? '#f87171' : '#fbbf24';
+    document.getElementById('churn-reasons').innerHTML = (a.reasons || []).map(r => `<div style="padding:4px 0;color:#ddd;font-size:0.86rem;">• ${esc(r)}</div>`).join('') || '<div style="color:#777;">—</div>';
+    document.getElementById('churn-msg').value = a.suggested_message || '';
+    document.getElementById('churn-modal').style.display = 'flex';
+  }
+  function closeChurnModal() { document.getElementById('churn-modal').style.display = 'none'; _churnOpenEmail = null; }
+
+  async function churnSetStatus(email, status) {
+    const a = churnAlerts[email]; if (!a) return;
+    await sb.from('churn_alerts').update({ status }).eq('id', a.id);
+    delete churnAlerts[email];
+    renderSidebar();
+  }
+
+  async function churnSendChat() {
+    if (!requireEdit()) return;
+    const email = _churnOpenEmail; const a = churnAlerts[email]; if (!a) return;
+    const text = document.getElementById('churn-msg').value.trim();
+    if (!text) { toast('אין הודעה לשליחה', 'err'); return; }
+    const { error } = await sb.from('messages').insert({
+      coach_email: coachEmail, client_email: email, sender_email: coachEmail, content: text,
+    });
+    if (error) { toast('שגיאה: ' + error.message, 'err'); return; }
+    try {
+      const { data: tok } = await sb.from('push_tokens').select('onesignal_player_id').eq('user_email', email).maybeSingle();
+      if (tok?.onesignal_player_id) await sendPush([tok.onesignal_player_id], '💬 הודעה חדשה מהמאמן', text.slice(0, 80));
+    } catch (e) { /* silent */ }
+    await churnSetStatus(email, 'sent');
+    closeChurnModal();
+    toast('ההודעה נשלחה בצ׳אט ✓', 'ok');
+  }
+
+  async function churnCopyWA() {
+    if (!requireEdit()) return;
+    const email = _churnOpenEmail; const a = churnAlerts[email]; if (!a) return;
+    const text = document.getElementById('churn-msg').value.trim();
+    try { await navigator.clipboard.writeText(text); } catch (e) {}
+    const phone = (clients.find(c => c.email === email)?.phone || '').replace(/\D/g, '');
+    const intl = phone.startsWith('0') ? '972' + phone.slice(1) : phone;
+    if (intl) window.open(`https://wa.me/${intl}?text=${encodeURIComponent(text)}`, '_blank');
+    else toast('ההודעה הועתקה (אין טלפון ללקוח)', 'ok');
+    await churnSetStatus(email, 'sent');
+    closeChurnModal();
+  }
+
+  async function churnDismiss() {
+    if (!requireEdit()) return;
+    const email = _churnOpenEmail;
+    await churnSetStatus(email, 'dismissed');
+    closeChurnModal();
+    toast('ההתראה נסגרה', 'ok');
+  }
+
   /* ── NOTIFICATIONS ── */
   let coachNotifs = [];
 
@@ -2056,6 +2133,13 @@
       list.innerHTML = coachNotifs.map(n => {
         const d = n.data || {};
         const dateStr = new Date(n.created_at).toLocaleString('he-IL', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+        if (d.kind === 'churn_risk') {
+          return `<div class="notif-card${n.read ? '' : ' unread'}" onclick="closeNotifPanel && closeNotifPanel(); openChurnModal('${n.client_email}')" style="border-right:3px solid #dc2626;">
+            <div class="notif-card-name">🚨 ${esc(n.client_name || n.client_email.split('@')[0])} — סיכון נטישה ${d.score||0}%</div>
+            <div class="notif-card-meta">${esc((d.reasons||[]).join(' · '))}</div>
+            <div class="notif-time">${dateStr}</div>
+          </div>`;
+        }
         if (d.kind === 'payment_claim') {
           return `<div class="notif-card${n.read ? '' : ' unread'}" onclick="notifGoClient('${n.client_email}')" style="border-right:3px solid #FFD700;">
             <div class="notif-card-name">${esc(n.client_name || n.client_email.split('@')[0])}</div>
@@ -2140,6 +2224,10 @@
       const unreadBadge = unread > 0
         ? `<span title="הודעות שלא נקראו" style="font-size:0.68rem;font-weight:900;color:#fff;background:#ef4444;border-radius:10px;min-width:19px;height:19px;display:inline-flex;align-items:center;justify-content:center;padding:0 5px;flex-shrink:0;box-shadow:0 0 8px rgba(239,68,68,0.5);">${unread > 99 ? '99+' : unread}</span>`
         : '';
+      const churn = churnAlerts[c.email];
+      const churnBadge = churn
+        ? `<span title="סיכון נטישה — לחץ לפרטים" onclick="event.stopPropagation();openChurnModal('${c.email}')" style="font-size:0.66rem;font-weight:900;color:#fff;background:linear-gradient(135deg,#dc2626,#991b1b);border-radius:8px;padding:1px 6px;flex-shrink:0;cursor:pointer;box-shadow:0 0 8px rgba(220,38,38,0.55);">🚨 ${churn.risk_score}%</span>`
+        : '';
       return `
       <div class="client-item ${c.email === activeEmail ? 'active' : ''}" onclick="selectClient('${c.email}')">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;">
@@ -2148,6 +2236,7 @@
             <div class="client-item-name" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(c.name)}</div>
           </div>
           <div style="display:flex;align-items:center;gap:5px;flex-shrink:0;">
+            ${churnBadge}
             ${unreadBadge}
             ${debtBadge}
             <span class="gender-tag ${c.gender === 'female' ? 'female' : 'male'}">${c.gender === 'female' ? '♀' : '♂'}</span>
@@ -7190,6 +7279,29 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
       </button>
     </div>
 
+  </div>
+</div>
+
+<!-- ═══ CHURN ALERT MODAL — מניעת נטישה ═══ -->
+<div id="churn-modal" style="display:none;position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,0.88);align-items:center;justify-content:center;padding:16px;" onclick="if(event.target===this)closeChurnModal()">
+  <div style="background:linear-gradient(160deg,#17181c 0%,#0d0e11 100%);border:1px solid rgba(220,38,38,0.45);border-radius:20px;box-shadow:0 0 60px rgba(220,38,38,0.25);padding:26px 24px 22px;max-width:420px;width:100%;position:relative;">
+    <button onclick="closeChurnModal()" style="position:absolute;top:12px;left:14px;background:none;border:none;color:#666;font-size:1.3rem;cursor:pointer;">✕</button>
+    <div style="text-align:center;margin-bottom:14px;">
+      <div style="font-size:2.2rem;">🚨</div>
+      <div style="font-weight:900;font-size:1.1rem;color:#fff;margin-top:4px;"><span id="churn-client-name"></span> בסיכון נטישה</div>
+      <div style="font-weight:900;font-size:1.6rem;" id="churn-score"></div>
+    </div>
+    <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:10px 14px;margin-bottom:12px;">
+      <div style="font-size:0.72rem;color:#888;letter-spacing:1px;margin-bottom:4px;">מה זוהה</div>
+      <div id="churn-reasons"></div>
+    </div>
+    <div style="font-size:0.72rem;color:#888;letter-spacing:1px;margin-bottom:5px;">✨ הודעת החזרה מוכנה (אפשר לערוך)</div>
+    <textarea id="churn-msg" rows="4" style="width:100%;background:rgba(255,255,255,0.05);border:1px solid rgba(255,107,0,0.3);border-radius:12px;color:#fff;font-family:'Heebo',sans-serif;font-size:0.9rem;padding:10px 12px;resize:vertical;box-sizing:border-box;"></textarea>
+    <div style="display:flex;gap:8px;margin-top:14px;">
+      <button onclick="churnSendChat()" style="flex:1;padding:11px;background:linear-gradient(135deg,#FF6B00,#FF8C00);color:#fff;border:none;border-radius:10px;font-family:'Heebo';font-weight:700;font-size:0.88rem;cursor:pointer;">💬 שלח בצ׳אט</button>
+      <button onclick="churnCopyWA()" style="flex:1;padding:11px;background:#25d366;color:#fff;border:none;border-radius:10px;font-family:'Heebo';font-weight:700;font-size:0.88rem;cursor:pointer;">וואטסאפ</button>
+    </div>
+    <button onclick="churnDismiss()" style="width:100%;margin-top:8px;padding:9px;background:transparent;border:1px solid rgba(255,255,255,0.15);color:#999;border-radius:10px;font-family:'Heebo';font-size:0.82rem;cursor:pointer;">התעלם מההתראה</button>
   </div>
 </div>
 
