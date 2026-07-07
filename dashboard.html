@@ -888,6 +888,16 @@
   <!-- TAB: אימונים -->
   <div class="tab-page active" id="tab-workouts">
 
+    <!-- כרטיס "היום שלי" — מרכז אימון/תזונה/צעדים/רצף -->
+    <div id="today-card" style="display:none;margin-bottom:18px;background:radial-gradient(130% 90% at 50% 0%,rgba(255,107,0,0.13) 0%,rgba(255,107,0,0) 55%),linear-gradient(160deg,#17181c 0%,#0d0e11 100%);border:1px solid rgba(255,107,0,0.32);border-radius:18px;padding:18px 18px 16px;box-shadow:0 8px 30px rgba(0,0,0,0.35);">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px;">
+        <div style="font-weight:900;font-size:1.15rem;color:#fff;" id="today-greet">היום שלי</div>
+        <div style="font-size:0.72rem;color:#888;" id="today-date"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;" id="today-tiles"></div>
+      <div id="today-cta" style="margin-top:12px;"></div>
+    </div>
+
     <!-- הצהרת בריאות — באנר אם טרם נחתמה -->
     <div id="health-decl-banner" style="display:none;margin-bottom:16px;background:linear-gradient(135deg,rgba(255,107,0,0.12),rgba(255,215,0,0.06));border:1px solid rgba(255,107,0,0.4);border-radius:14px;padding:14px 16px;">
       <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
@@ -1588,6 +1598,7 @@
     renderResumeBanner(); // אם יש אימון פעיל שנשמר — הצג באנר המשך
     workoutLogs = logs || [];
     renderHistory(logs || []);
+    renderTodayCard(); // כרטיס "היום שלי" (משתמש ב-workoutLogs + trainingPlanLocal + steps + יעד תזונה)
     renderWeightRow();
     await loadWaterData();
     await Promise.all([loadCycle(), loadProgressEntries(), loadCoachBranding(client.coach_email), loadMessages(), loadCheckin()]);
@@ -2079,6 +2090,78 @@
     drop_set:   { name: 'דרופ סט', explain: 'בסיום הסט מורידים משקל וממשיכים ללא מנוחה. אפשר טריפל דרופ (8/8/8).' },
     negative:   { name: 'חזרה שלילית', explain: 'אתה בולם ומוריד את המשקל בשליטה, והספוטר מרים בשבילך בפאזה החיובית.' },
   };
+  /* ── "היום שלי" — כרטיס פתיחה שמרכז הכל מנתונים קיימים ── */
+  function workoutStreak() {
+    // consecutive days (ending today or yesterday) with at least one workout_log
+    const days = new Set((workoutLogs || []).map(l => l.log_date));
+    if (!days.size) return 0;
+    let streak = 0;
+    const d = new Date();
+    // allow the streak to still "count" if today isn't logged yet but yesterday was
+    if (!days.has(todayStr())) d.setDate(d.getDate() - 1);
+    for (;;) {
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      if (days.has(key)) { streak++; d.setDate(d.getDate() - 1); } else break;
+    }
+    return streak;
+  }
+
+  async function renderTodayCard() {
+    const card = document.getElementById('today-card');
+    if (!card) return;
+    // greeting by hour
+    const h = new Date().getHours();
+    const greet = h < 11 ? 'בוקר טוב' : h < 17 ? 'צהריים טובים' : h < 22 ? 'ערב טוב' : 'לילה טוב';
+    const fname = (clientData?.name || '').split(' ')[0] || '';
+    document.getElementById('today-greet').textContent = `${greet}${fname ? ', ' + fname : ''} 👋`;
+    document.getElementById('today-date').textContent = new Date().toLocaleDateString('he-IL', { weekday: 'long', day: 'numeric', month: 'long' });
+
+    // WORKOUT — done today? which day to suggest?
+    const doneToday = (workoutLogs || []).some(l => l.log_date === todayStr());
+    const hasPlan = (trainingPlanLocal || []).length > 0;
+
+    // NUTRITION — remaining (needs today's food; getRemaining uses foodLogs which may be null → light fetch)
+    let calLeft = null, calTarget = clientData?.target_calories || 0;
+    try {
+      if (foodLogs === null) {
+        const { data } = await sb.from('food_logs').select('calories').eq('client_email', currentEmail).eq('log_date', todayStr());
+        const eaten = (data || []).reduce((a, l) => a + (l.calories || 0), 0);
+        calLeft = calTarget ? Math.round(calTarget - eaten) : null;
+      } else {
+        calLeft = calTarget ? getRemaining().cal : null;
+      }
+    } catch (e) {}
+
+    const steps = _stepsToday + _pedoCount;
+    const streak = workoutStreak();
+
+    const tile = (icon, label, value, sub, color) => `
+      <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:13px;padding:12px 12px;">
+        <div style="font-size:0.7rem;color:#888;margin-bottom:3px;">${icon} ${label}</div>
+        <div style="font-weight:900;font-size:1.15rem;color:${color};line-height:1.15;">${value}</div>
+        ${sub ? `<div style="font-size:0.66rem;color:#777;margin-top:2px;">${sub}</div>` : ''}
+      </div>`;
+
+    const workoutTile = doneToday
+      ? tile('🏋️', 'אימון היום', '✓ הושלם', 'כל הכבוד!', '#4ade80')
+      : tile('🏋️', 'אימון היום', hasPlan ? 'מחכה לך' : 'אין תוכנית', hasPlan ? 'לחץ להתחלה למטה' : 'פנה למאמן', '#FF8C00');
+    const nutriTile = calLeft === null
+      ? tile('🍽️', 'תזונה', '—', 'לא הוגדר יעד', '#aaa')
+      : tile('🍽️', 'נותרו היום', `${calLeft.toLocaleString('he-IL')}`, `מתוך ${calTarget.toLocaleString('he-IL')} קק"ל`, calLeft < 0 ? '#f87171' : '#fff');
+    const stepsTile = tile('🚶', 'צעדים', steps.toLocaleString('he-IL'), steps >= 10000 ? '🎯 יעד הושג!' : 'יעד: 10,000', steps >= 10000 ? '#4ade80' : '#fff');
+    const streakTile = tile('🔥', 'רצף אימונים', streak > 0 ? `${streak} ימים` : 'אין רצף', streak >= 3 ? 'אלוף! שמור על זה' : 'התחל היום', streak >= 3 ? '#FFD700' : '#fff');
+
+    document.getElementById('today-tiles').innerHTML = workoutTile + nutriTile + stepsTile + streakTile;
+
+    const cta = document.getElementById('today-cta');
+    if (!doneToday && hasPlan) {
+      cta.innerHTML = `<button onclick="document.getElementById('training-wrap')?.scrollIntoView({behavior:'smooth',block:'start'})" style="width:100%;padding:12px;background:linear-gradient(135deg,#FF6B00,#FF8C00);color:#fff;border:none;border-radius:12px;font-family:'Heebo';font-weight:800;font-size:0.95rem;cursor:pointer;box-shadow:0 4px 16px rgba(255,107,0,0.3);">▶ לאימון של היום</button>`;
+    } else if (calLeft !== null && calLeft > 0) {
+      cta.innerHTML = `<button onclick="switchTab('nutrition')" style="width:100%;padding:11px;background:rgba(255,255,255,0.06);color:#fff;border:1px solid rgba(255,255,255,0.15);border-radius:12px;font-family:'Heebo';font-weight:700;font-size:0.9rem;cursor:pointer;">🍽️ מה עוד לאכול היום?</button>`;
+    } else { cta.innerHTML = ''; }
+    card.style.display = 'block';
+  }
+
   /* ── STEP COUNTER (מד צעדים: חיישן בזמן שהאפליקציה פתוחה + עדכון ידני) ── */
   let _stepsToday = 0, _pedoOn = false, _pedoCount = 0, _lastStepAt = 0, _pedoSaveTimer = null;
 
@@ -2133,6 +2216,7 @@
     _stepsToday = n; _pedoCount = 0;
     await sb.from('daily_steps').upsert({ client_email: currentEmail, date: todayStr(), steps: n, source: 'manual', updated_at: new Date().toISOString() }, { onConflict: 'client_email,date' });
     renderSteps();
+    if (document.getElementById('today-card')?.style.display !== 'none') renderTodayCard();
     showDashToast('צעדים עודכנו ✓ (נספר בליגה)');
   }
 
