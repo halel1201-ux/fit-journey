@@ -2122,6 +2122,15 @@
     while (d.getDay() === 5 || d.getDay() === 6) d = new Date(d.getTime() - 24 * 3600 * 1000);
     return d;
   }
+  async function reportInjury() {
+    const note = prompt('תאר את הפציעה (המאמן יראה את זה בכרטיס שלך):');
+    if (!note || !note.trim()) return;
+    const injuries = [...(clientData.injuries || []), { note: note.trim(), by: 'client', at: new Date().toISOString() }];
+    const { error } = await sb.from('clients').update({ injuries }).eq('email', currentEmail);
+    if (error) { showDashToast('שגיאה בשמירה'); return; }
+    clientData.injuries = injuries;
+    showDashToast('הפציעה דווחה למאמן ✓');
+  }
   let _studioBookings = [], _studioSlots = [];
   async function renderStudioClient() {
     const wrap = document.getElementById('studio-section'); if (!wrap) return;
@@ -2166,7 +2175,10 @@
           <div style="font-weight:900;font-size:1.05rem;color:#fff;">🎫 כרטיסיית האימונים שלי</div>
           <div style="text-align:left;"><div style="font-size:0.68rem;color:#888;">נשארו</div><div style="font-weight:900;font-size:1.5rem;color:${remaining <= 2 ? '#f87171' : '#FFD700'};">${remaining}</div></div>
         </div>
-        <div style="font-size:0.72rem;color:#888;margin-bottom:12px;">ביטול עד יום עסקים לפני האימון → האימון חוזר לכרטיסייה. בתוך 24 שעות — נשרף.</div>
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+          <div style="font-size:0.72rem;color:#888;">ביטול עד יום עסקים לפני האימון → חוזר לכרטיסייה. בתוך 24ש — נשרף.</div>
+          <button onclick="reportInjury()" style="padding:5px 12px;background:rgba(248,113,113,0.1);border:1px solid rgba(248,113,113,0.35);color:#f87171;border-radius:8px;font-family:'Heebo';font-size:0.72rem;font-weight:700;cursor:pointer;">🩹 דווח פציעה</button>
+        </div>
         <div style="font-size:0.78rem;font-weight:800;color:#aaa;margin-bottom:6px;">📅 שעות פעילות (שבועיים קרובים)</div>
         ${slotRows}
       </div>`;

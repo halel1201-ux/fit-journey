@@ -2885,6 +2885,24 @@ ${exLines || 'אין'}
 
   /* ── HEALTH DECLARATION status (חתימה דיגיטלית) ── */
   let _lastSignedDoc = null;
+  async function addInjury() {
+    if (!requireEdit()) return;
+    const note = prompt('תיאור הפציעה (למשל: כאב בכתף שמאל):');
+    if (!note || !note.trim()) return;
+    const c = clients.find(x => x.email === activeEmail); if (!c) return;
+    const injuries = [...(c.injuries || []), { note: note.trim(), by: 'coach', at: new Date().toISOString() }];
+    const { error } = await sb.from('clients').update({ injuries }).eq('email', activeEmail);
+    if (error) { toast('שגיאה: ' + error.message, 'err'); return; }
+    c.injuries = injuries; renderMain(c); toast('פציעה נוספה', 'ok');
+  }
+  async function removeInjury(idx) {
+    if (!requireEdit()) return;
+    const c = clients.find(x => x.email === activeEmail); if (!c) return;
+    const injuries = (c.injuries || []).filter((_, i) => i !== idx);
+    await sb.from('clients').update({ injuries }).eq('email', activeEmail);
+    c.injuries = injuries; renderMain(c); toast('הוסר', 'ok');
+  }
+
   async function loadHealthDeclStatus(email) {
     const chip = document.getElementById('health-decl-chip');
     if (!chip) return;
@@ -2954,6 +2972,15 @@ ${exLines || 'אין'}
           </button>
           <span id="health-decl-chip" style="font-size:0.78rem;color:#777;">📝 הצהרת בריאות: בודק...</span>
         </div>
+        <div id="injuries-block" style="margin-bottom:14px;padding:10px 14px;border-radius:12px;background:${(client.injuries&&client.injuries.length)?'rgba(248,113,113,0.08)':'rgba(255,255,255,0.03)'};border:1px solid ${(client.injuries&&client.injuries.length)?'rgba(248,113,113,0.35)':'rgba(255,255,255,0.08)'};">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+            <div style="font-weight:800;font-size:0.86rem;color:${(client.injuries&&client.injuries.length)?'#f87171':'#aaa'};">🩹 פציעות ${(client.injuries&&client.injuries.length)?`(${client.injuries.length})`:'— אין'}</div>
+            <button class="btn-sm btn-outline" onclick="addInjury()" style="font-size:0.7rem;">+ הוסף</button>
+          </div>
+          ${(client.injuries||[]).map((inj,i)=>`<div style="display:flex;justify-content:space-between;gap:8px;font-size:0.78rem;color:#ddd;padding:4px 0;border-top:1px solid rgba(255,255,255,0.05);margin-top:5px;">
+            <span>• ${esc(inj.note||'')} <span style="color:#777;font-size:0.68rem;">(${inj.by==='client'?'דיווח הלקוח':'מאמן'})</span></span>
+            <button onclick="removeInjury(${i})" style="background:none;border:none;color:#f87171;cursor:pointer;font-size:0.9rem;">✕</button></div>`).join('')}
+        </div>
         <div class="form-grid" style="margin-bottom:14px;">
           <div class="f-group"><label>שם</label><input id="e-name" value="${esc(client.name)}"/></div>
           <div class="f-group"><label>טלפון</label><input id="e-phone" value="${esc(phone)}" placeholder="050-0000000" type="tel" style="direction:ltr;text-align:right;"/></div>
@@ -2966,6 +2993,15 @@ ${exLines || 'אין'}
           </div>
           <div class="f-group"><label>תחילת ליווי</label><input id="e-start" type="date" value="${client.coaching_start || ''}"/></div>
           <div class="f-group"><label>סיום ליווי</label><input id="e-end" type="date" value="${client.coaching_end || ''}"/></div>
+          ${isStudioOwner ? `
+          <div class="f-group"><label>סוג לקוח</label>
+            <select id="e-client-type">
+              <option value="coaching" ${(client.client_type||'coaching')==='coaching'?'selected':''}>ליווי (תקופה)</option>
+              <option value="studio" ${client.client_type==='studio'?'selected':''}>סטודיו (כרטיסייה)</option>
+              <option value="both" ${client.client_type==='both'?'selected':''}>גם וגם</option>
+            </select></div>
+          <div class="f-group"><label>אימונים בכרטיסייה 🎫</label><input id="e-sessions" type="number" min="0" value="${client.sessions_remaining||0}"/></div>
+          ` : ''}
           <div class="f-group">
             <label>מין</label>
             <select id="e-gender">
@@ -3818,6 +3854,13 @@ ${exLines || 'אין'}
                 target_calories: cal, target_protein: prot, target_carbs: carb, target_fat: fat,
                 target_water: water, current_weight: weight, gender,
                 goal: goal || null, peak_week_start: pwStart || null, stage_date: stageDate || null };
+    if (isStudioOwner) {
+      const ct = document.getElementById('e-client-type')?.value || 'coaching';
+      updatePayload.client_type = ct;
+      updatePayload.sessions_remaining = parseInt(document.getElementById('e-sessions')?.value) || 0;
+      // link studio clients to this owner (so slots/bookings RLS + capacity work)
+      updatePayload.studio_owner_email = (ct === 'studio' || ct === 'both') ? coachEmail : null;
+    }
     const { error } = await sb.from('clients').update(updatePayload).eq('email', activeEmail);
     if (error) { toast('שגיאה בשמירה: ' + error.message, 'err'); return; }
     await loadClients();
