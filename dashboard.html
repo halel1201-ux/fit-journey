@@ -376,6 +376,8 @@
     .s-inp { padding: 8px 6px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; color: var(--white); font-family: 'Heebo', sans-serif; font-size: 0.9rem; outline: none; text-align: center; width: 100%; }
     .s-inp:focus { border-color: rgba(255,107,0,0.6); }
     .s-inp::placeholder { color: #444; font-size: 0.78rem; }
+    /* watermark: last session's value shown faint+italic behind the empty field, you write over it */
+    .s-inp.watermark::placeholder { color: rgba(255,140,0,0.4); font-style: italic; font-weight: 700; opacity: 1; }
     .btn-done-set { width: 36px; height: 36px; border-radius: 8px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.12); color: #555; font-size: 1rem; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.18s; }
     .btn-done-set:hover { border-color: rgba(60,210,60,0.5); color: #4ade80; }
     .s-row.done .btn-done-set { background: rgba(60,210,60,0.14); border-color: rgba(60,210,60,0.45); color: #4ade80; }
@@ -1986,14 +1988,14 @@
               reps_min: s.reps_min || 0,
               reps_max: s.reps_max || 0,
               set_type: setType,
-              // weight autofill for EVERY set (progression on failure sets, else last session's weight / plan value)
-              weight: isProgression ? String(sugKg) : (s.recommended_kg ? String(s.recommended_kg) : (prevW > 0 ? String(prevW) : '')),
+              // fields start EMPTY — last session shows as a faint watermark (placeholder) the trainee writes over
+              weight: '',
               suggested_kg:  sugKg || s.recommended_kg || 0,
               suggested_high: sugHigh,
               prev_weight:   prevW,
               prev_reps:     prevR,
               is_progression: isProgression,
-              reps: prevR > 0 ? String(prevR) : '',
+              reps: '',
               completed: false
             };
           })
@@ -2363,13 +2365,13 @@
         ${(s.prev_weight > 0 || s.prev_reps > 0) ? `<div style="font-size:0.56rem;color:#666;text-align:center;margin-top:1px;white-space:nowrap;">קודם: ${s.prev_weight || 0}×${s.prev_reps || 0}</div>` : ''}
       </div>
       <div style="display:flex;flex-direction:column;align-items:center;">
-        <input class="s-inp" type="number" min="0" step="0.5" value="${s.weight}" placeholder="${s.suggested_kg||0}"
+        <input class="s-inp watermark" type="number" min="0" step="0.5" value="${s.weight}" placeholder="${s.is_progression ? (s.suggested_kg||'') : (s.prev_weight || s.suggested_kg || '')}"
           oninput="workoutSession.exercises[${ei}].sets[${si}].weight=this.value;persistWorkoutDebounced()"
           style="${s.is_progression ? 'border-color:rgba(255,107,0,0.5);' : ''}"/>
         ${progLabel}
       </div>
       <div style="display:flex;flex-direction:column;align-items:center;">
-        <input class="s-inp" type="number" min="0" value="${s.reps}" placeholder="${hasRange ? s.reps_max : '0'}"
+        <input class="s-inp watermark" type="number" min="0" value="${s.reps}" placeholder="${s.prev_reps || (hasRange ? s.reps_max : '')}"
           oninput="workoutSession.exercises[${ei}].sets[${si}].reps=this.value;persistWorkoutDebounced()"/>
         ${rangeHint}
       </div>
@@ -3939,6 +3941,16 @@ ${foodList || 'אין פריטים'}
 
   let lastVolumeShareData = null;
 
+  // varied motivation lines by how the workout compared to last time
+  const MOTIVATION = {
+    big:  ['אלוף אמיתי! 🏆', 'מפלצת! ממשיכים ככה 🔥', 'שיא חדש בדרך — אין עליך!', 'פשוט חיה 💪', 'טירוף! הגוף שלך משתדרג'],
+    up:   ['אתה בדרך הנכונה 👏', 'תמשיך ככה, זה עובד!', 'התקדמות יפה — כל אימון חזק יותר', 'עוד צעד קדימה 🚀', 'ככה בונים תוצאות', 'המשקל עולה, המחויבות ניכרת'],
+    same: ['יציבות זו כוח — שמור על הקצב', 'איתן כסלע 🪨 בדיוק כמו שעבר', 'עקביות מנצחת כישרון — כל הכבוד', 'שומר על הרמה, מכאן פורצים'],
+    down: ['יום פחות? קורה לאלופים 💪 הבא שלך', 'לא כל יום שיא — העיקר שהגעת', 'התאוששות היא חלק מהתהליך, כבוד שבאת', 'ירידה קטנה, לא נסיגה — נצמד לתוכנית'],
+    first:['התחלה מצוינת! מכאן רק עולים 🚀', 'האימון הראשון ביום הזה — ברוך הבא למסלול!', 'צעד ראשון נעשה — עכשיו בונים מומנטום 🔥'],
+  };
+  const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+
   function showVolumeModal(currentVol, prevVol, totalSets, exCount, durationMin, dayName) {
     const m = getVolMilestone(currentVol);
 
@@ -3949,7 +3961,8 @@ ${foodList || 'אין פריטים'}
       vsPct = Math.round(Math.abs(diff) / prevVol * 100);
       vsDir = diff > 0 ? 'up' : (diff < 0 ? 'down' : 'same');
     }
-    lastVolumeShareData = { vol: currentVol, totalSets, exCount, durationMin, dayName: dayName || '', emoji: m.emoji, milestone: m.text, vsDir, vsPct };
+    const motivation = pick(vsDir === 'up' ? (vsPct >= 10 ? MOTIVATION.big : MOTIVATION.up) : MOTIVATION[vsDir]);
+    lastVolumeShareData = { vol: currentVol, totalSets, exCount, durationMin, dayName: dayName || '', emoji: m.emoji, milestone: m.text, vsDir, vsPct, motivation };
 
     document.getElementById('vol-emoji').textContent = m.emoji;
     document.getElementById('vol-compare-text').textContent = m.text;
@@ -3958,10 +3971,12 @@ ${foodList || 'אין פריטים'}
     document.getElementById('vol-stat-dur').textContent = durationMin;
 
     const vsEl = document.getElementById('vol-vs-badge');
-    if (vsDir === 'up')        vsEl.innerHTML = `<span style="color:#4ade80">↑ ${vsPct}%</span> מהאימון הקודם`;
-    else if (vsDir === 'down') vsEl.innerHTML = `<span style="color:#f87171">↓ ${vsPct}%</span> מהאימון הקודם`;
-    else if (vsDir === 'same') vsEl.innerHTML = `<span style="color:#aaa">⟷ זהה לאימון הקודם</span>`;
+    if (vsDir === 'up')        vsEl.innerHTML = `<span style="color:#4ade80">📈 התקדמות ב-${vsPct}%</span> מאימון שעבר`;
+    else if (vsDir === 'down') vsEl.innerHTML = `<span style="color:#f87171">↓ ${vsPct}%</span> מאימון שעבר`;
+    else if (vsDir === 'same') vsEl.innerHTML = `<span style="color:#aaa">⟷ זהה לאימון שעבר</span>`;
     else                       vsEl.innerHTML = '⭐ האימון הראשון שלך ביום הזה!';
+    const motEl = document.getElementById('vol-motivation');
+    if (motEl) motEl.textContent = motivation;
 
     document.getElementById('vol-number').textContent = '0 ק"ג';
     const modal = document.getElementById('volume-modal');
@@ -4938,6 +4953,7 @@ ${foodList || 'אין פריטים'}
     <div class="vol-number" id="vol-number">0 ק"ג</div>
     <div class="vol-compare-text" id="vol-compare-text"></div>
     <div class="vol-vs-badge" id="vol-vs-badge"></div>
+    <div id="vol-motivation" style="font-size:0.92rem;font-weight:800;color:#FFD700;margin:-6px 0 18px;line-height:1.4;"></div>
     <div class="vol-sets-breakdown">
       <div class="vol-stat">
         <div class="vol-stat-num" id="vol-stat-sets">—</div>
