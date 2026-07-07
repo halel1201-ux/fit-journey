@@ -883,6 +883,98 @@
   const sb      = supabase.createClient(URL_, KEY);
   // local (Israel) calendar day as YYYY-MM-DD — avoids the UTC off-by-one that toISOString() causes after midnight
   function todayStr(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+
+  /* ══ COACH ACTIVITY GUARD — audit/detection (fire-and-forget, never blocks UI) ══ */
+  const CA_SESSION = (() => { try { let s = localStorage.getItem('ca_sid'); if (!s) { s = (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random()); localStorage.setItem('ca_sid', s); } return s; } catch(e) { return 'no-ls'; } })();
+  let _caBuf = [];
+  let _caFlushTimer = null;
+  function caFlush() {
+    if (!_caBuf.length) return;
+    const rows = _caBuf; _caBuf = [];
+    try { sb.from('coach_activity').insert(rows).then(() => {}, () => {}); } catch(e) {}
+  }
+  // event → coach_activity. Admin is NOT tracked (would be noise). Severe events flush immediately + alert admin.
+  function caTrack(event, meta, severity) {
+    try {
+      if (!coachEmail || coachRole === 'admin') return;
+      const row = { coach_email: coachEmail, coach_role: coachRole || null, event, severity: severity || 'info', meta: meta || {}, session_id: CA_SESSION, ua: (navigator.userAgent || '').slice(0, 200) };
+      _caBuf.push(row);
+      if (row.severity === 'alert') { caFlush(); caNotifyAdmin(event, row.meta); }
+      else { clearTimeout(_caFlushTimer); _caFlushTimer = setTimeout(caFlush, 5000); if (_caBuf.length >= 15) caFlush(); }
+    } catch(e) {}
+  }
+  // best-effort flush when leaving the page
+  window.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') caFlush(); });
+  window.addEventListener('pagehide', caFlush);
+  // severe event → server-side admin alert (bell + push). Identity is taken from the JWT server-side.
+  async function caNotifyAdmin(event, meta) {
+    try {
+      const { data: { session } } = await sb.auth.getSession();
+      if (!session) return;
+      fetch(`${URL_}/functions/v1/coach-alert`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'apikey': KEY, 'Authorization': `Bearer ${session.access_token}` },
+        body: JSON.stringify({ event, meta: meta || {}, coach_role: coachRole || '', session_id: CA_SESSION }),
+      }).catch(() => {});
+    } catch(e) {}
+  }
+
+  /* ── detection: rapid mass-access (scraping) ── */
+  let _caAccess = [];
+  let _caRapidFlagged = false;
+  function caRapidCheck() {
+    const now = Date.now();
+    _caAccess.push(now);
+    _caAccess = _caAccess.filter(t => now - t < 60000); // last 60s
+    if (_caAccess.length > 12 && !_caRapidFlagged) {
+      _caRapidFlagged = true;
+      caTrack('rapid_access', { count: _caAccess.length, window_s: 60 }, 'alert');
+      setTimeout(() => { _caRapidFlagged = false; }, 120000); // re-arm after 2 min
+    }
+  }
+
+  /* ── deterrence + detection guards (run once, for non-admin coaches) ── */
+  let _caGuardsOn = false;
+  function caInitGuards() {
+    if (_caGuardsOn || !coachEmail || coachRole === 'admin') return;
+    _caGuardsOn = true;
+
+    // 1. traceable watermark overlay (coach email + date) over the whole app — shows up in screenshots
+    try {
+      const wm = document.createElement('div');
+      const tag = `${coachEmail} · ${todayStr()}`;
+      wm.setAttribute('aria-hidden', 'true');
+      wm.style.cssText = 'position:fixed;inset:0;z-index:5;pointer-events:none;opacity:0.05;overflow:hidden;font-family:Heebo,sans-serif;font-weight:900;color:#fff;';
+      let cells = '';
+      for (let i = 0; i < 60; i++) cells += `<span style="display:inline-block;transform:rotate(-30deg);white-space:nowrap;font-size:14px;margin:34px 30px;">${tag}</span>`;
+      wm.innerHTML = `<div style="display:flex;flex-wrap:wrap;width:200%;height:200%;">${cells}</div>`;
+      document.body.appendChild(wm);
+    } catch(e) {}
+
+    // 2. copy on sensitive content → log (length only, never the content itself)
+    document.addEventListener('copy', () => {
+      try {
+        const len = (window.getSelection() || '').toString().length;
+        if (len > 40) caTrack('copy', { chars: len }, 'warn');
+      } catch(e) {}
+    });
+
+    // 3. print / save-as-pdf attempt
+    window.addEventListener('beforeprint', () => caTrack('print', {}, 'warn'));
+
+    // 4. right-click on data areas → log (deterrent; not blocked so normal use isn't harmed)
+    document.addEventListener('contextmenu', (e) => {
+      const inMain = e.target.closest && e.target.closest('#main-area');
+      if (inMain) caTrack('context_menu', {}, 'info');
+    });
+
+    // 5. devtools open heuristic (once per session)
+    let _dtFlagged = false;
+    setInterval(() => {
+      const gap = Math.abs((window.outerWidth - window.innerWidth)) > 220 || Math.abs((window.outerHeight - window.innerHeight)) > 220;
+      if (gap && !_dtFlagged) { _dtFlagged = true; caTrack('devtools', {}, 'warn'); }
+    }, 4000);
+  }
   const sbAdmin = sb; // מפתח השירות הוסר מהדפדפן — פעולות רצות תחת RLS / דרך Edge Functions
 
   // ─── AUTOPILOT (מנוי) ─────────────────────────────────────────────────
@@ -1891,6 +1983,11 @@
     // בדיקה תקופתית של הודעות מתוזמנות/חזרה יומית כל עוד הדשבורד פתוח
     loadScheduledMessages();
     setInterval(loadScheduledMessages, 5 * 60 * 1000);
+
+    // activity guard — session start + periodic heartbeat (so a disabled tracker shows as a gap)
+    caTrack('tracker_start', { clients: (clients || []).length });
+    caInitGuards();
+    setInterval(() => caTrack('heartbeat', {}), 5 * 60 * 1000);
   }
 
   async function loadClients() {
@@ -2279,6 +2376,7 @@
   async function selectClient(email) {
     activeEmail = email;
     currentPackage = null;
+    caTrack('view_client', { client: email }); caRapidCheck(); // activity guard
     markChatSeen(email); // פתיחת המתאמן = ההודעות נקראו
     renderSidebar();
     closeMobileSidebar();
