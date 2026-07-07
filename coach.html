@@ -954,9 +954,100 @@
   function studioTab(tab) {
     const body = document.getElementById('studio-tab-body'); if (!body) return;
     document.querySelectorAll('#studio-tabs [data-st]').forEach(b => b.className = 'btn-sm ' + (b.dataset.st === tab ? 'btn-orange' : 'btn-outline'));
-    if (tab === 'calendar')      body.innerHTML = `<div class="sec-card"><div style="color:#888;padding:20px;text-align:center;">📅 יומן השיבוצים — נבנה בשלב הבא</div></div>`;
+    if (tab === 'calendar')      renderStudioCalendarTab();
     else if (tab === 'coaches')  renderStudioCoachesTab();
     else if (tab === 'packages') renderStudioPackagesTab();
+  }
+
+  /* ── CALENDAR tab (owner view: define slots, approve coaches, see bookings) ── */
+  let _studioCalFrom = null;
+  async function loadStudioSlots(fromDate, toDate) {
+    const [{ data: slots }, { data: cbk }, { data: bk }] = await Promise.all([
+      sb.from('studio_slots').select('*').eq('owner_email', coachEmail).gte('slot_start', fromDate).lte('slot_start', toDate).order('slot_start'),
+      sb.from('studio_coach_bookings').select('*').eq('owner_email', coachEmail),
+      sb.from('studio_bookings').select('*').eq('owner_email', coachEmail).neq('status', 'cancelled'),
+    ]);
+    studioSlots = slots || [];
+    studioSlots.forEach(s => {
+      s._coaches = (cbk || []).filter(c => c.slot_id === s.id);
+      s._bookings = (bk || []).filter(b => b.slot_id === s.id);
+    });
+  }
+  function fmtSlotTime(iso) { return new Date(iso).toLocaleString('he-IL', { weekday: 'short', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }); }
+
+  async function renderStudioCalendarTab() {
+    const body = document.getElementById('studio-tab-body');
+    body.innerHTML = `<div class="sec-card" style="margin-bottom:14px;">
+        <div class="sec-card-title">➕ הוסף שעת פעילות</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:end;">
+          <div><div style="font-size:0.7rem;color:#888;margin-bottom:3px;">תאריך ושעה</div>
+            <input id="slot-dt" type="datetime-local" style="padding:9px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:#fff;font-family:'Heebo';"/></div>
+          <div><div style="font-size:0.7rem;color:#888;margin-bottom:3px;">משך (דק׳)</div>
+            <input id="slot-dur" type="number" value="60" min="15" step="15" style="width:80px;padding:9px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:#fff;font-family:'Heebo';"/></div>
+          <div><div style="font-size:0.7rem;color:#888;margin-bottom:3px;">מקס׳ מתאמנים</div>
+            <input id="slot-max" type="number" value="6" min="1" style="width:80px;padding:9px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:#fff;font-family:'Heebo';"/></div>
+          <button class="btn-sm btn-orange" onclick="addStudioSlot()">הוסף</button>
+        </div>
+      </div>
+      <div class="sec-card"><div class="sec-card-title">📅 שעות קרובות (7 ימים)</div><div id="studio-slots-list"><div style="color:#666;padding:14px;">טוען...</div></div></div>`;
+    const from = new Date(); from.setHours(0, 0, 0, 0);
+    const to = new Date(from.getTime() + 7 * 864e5);
+    await loadStudioSlots(from.toISOString(), to.toISOString());
+    renderStudioSlotsList();
+  }
+
+  function renderStudioSlotsList() {
+    const el = document.getElementById('studio-slots-list'); if (!el) return;
+    if (!studioSlots.length) { el.innerHTML = '<div style="color:#666;padding:14px;text-align:center;">אין שעות פעילות. הוסף למעלה.</div>'; return; }
+    el.innerHTML = studioSlots.map(s => {
+      const bookedCount = (s._bookings || []).length;
+      const approvedCoach = (s._coaches || []).find(c => c.status === 'approved');
+      const pendingCoaches = (s._coaches || []).filter(c => c.status === 'pending');
+      const coachLine = approvedCoach
+        ? `<span style="color:#4ade80;">👤 ${esc(approvedCoach.coach_email.split('@')[0])}</span>`
+        : (pendingCoaches.length ? `<span style="color:#fbbf24;">⏳ ${pendingCoaches.length} ממתינים לאישור</span>` : `<span style="color:#666;">אין מאמן</span>`);
+      const pendBtns = pendingCoaches.map(c => `<button class="btn-sm btn-outline" onclick="approveSlotCoach(${c.id},'${esc(c.coach_email)}')" style="font-size:0.66rem;border-color:rgba(74,222,128,0.4);color:#4ade80;">✓ ${esc(c.coach_email.split('@')[0])}</button>`).join(' ');
+      const bookedNames = (s._bookings || []).map(b => esc((b.client_email||'').split('@')[0]) + (b.workout ? ` <span style="color:#888;">(${esc(b.workout)})</span>` : '')).join(' · ');
+      return `<div style="padding:11px 13px;border-bottom:1px solid rgba(255,255,255,0.05);">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+          <div style="font-weight:800;color:#fff;">${fmtSlotTime(s.slot_start)}</div>
+          <div style="font-size:0.78rem;color:${bookedCount>=s.max_trainees?'#f87171':'#aaa'};">👥 ${bookedCount}/${s.max_trainees} · ${coachLine}</div>
+          <button class="btn-sm btn-outline" onclick="deleteStudioSlot(${s.id})" style="font-size:0.66rem;border-color:rgba(248,113,113,0.35);color:#f87171;">מחק</button>
+        </div>
+        ${pendBtns ? `<div style="margin-top:6px;display:flex;gap:5px;flex-wrap:wrap;align-items:center;"><span style="font-size:0.7rem;color:#888;">אשר מאמן:</span> ${pendBtns}</div>` : ''}
+        ${bookedNames ? `<div style="margin-top:5px;font-size:0.74rem;color:#bbb;">${bookedNames}</div>` : ''}
+      </div>`;
+    }).join('');
+  }
+
+  async function addStudioSlot() {
+    if (!requireEdit()) return;
+    const dt = document.getElementById('slot-dt').value;
+    if (!dt) { toast('בחר תאריך ושעה', 'err'); return; }
+    const dur = parseInt(document.getElementById('slot-dur').value) || 60;
+    const max = parseInt(document.getElementById('slot-max').value) || 1;
+    const start = new Date(dt);
+    const end = new Date(start.getTime() + dur * 60000);
+    const { error } = await sb.from('studio_slots').insert({ owner_email: coachEmail, slot_start: start.toISOString(), slot_end: end.toISOString(), max_trainees: max });
+    if (error) { toast('שגיאה: ' + error.message, 'err'); return; }
+    renderStudioCalendarTab();
+    toast('שעת פעילות נוספה ✓', 'ok');
+  }
+  async function deleteStudioSlot(id) {
+    if (!requireEdit()) return;
+    if (!confirm('למחוק את השעה? כל השיבוצים בה יבוטלו.')) return;
+    await sb.from('studio_slots').delete().eq('id', id).eq('owner_email', coachEmail);
+    renderStudioCalendarTab();
+    toast('נמחק', 'ok');
+  }
+  async function approveSlotCoach(bookingId, coachEmail_) {
+    if (!requireEdit()) return;
+    const slot = studioSlots.find(s => (s._coaches || []).some(c => c.id === bookingId));
+    // approve this coach, reject the other pending for the same slot
+    await sb.from('studio_coach_bookings').update({ status: 'approved' }).eq('id', bookingId);
+    if (slot) await sb.from('studio_coach_bookings').update({ status: 'rejected' }).eq('slot_id', slot.id).neq('id', bookingId).eq('status', 'pending');
+    renderStudioCalendarTab();
+    toast(`${coachEmail_.split('@')[0]} אושר לשעה ✓`, 'ok');
   }
 
   /* ── COACHES tab ── */
