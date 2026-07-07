@@ -1949,6 +1949,7 @@
     if (!day) return;
     const dayName = day.name || day.day || '';
     const suggestions = calcProgressionSuggestions(dayName);
+    const prevReps = lastSessionReps(dayName);
     workoutSession = {
       dayName,
       startTime: Date.now(),
@@ -1958,6 +1959,7 @@
       exercises: (day.exercises || []).map(ex => {
         const setsArr = parseSetsToArray(ex.sets);
         const prevSetWeights = suggestions[ex.name] || []; // per-set weights from last session
+        const prevSetReps = prevReps[ex.name] || [];       // per-set reps from last session
         return {
           name: ex.name,
           description: ex.description || '',
@@ -1978,16 +1980,20 @@
             const sugLow  = isProgression ? Math.round(prevW * 1.01 * 2) / 2 : 0;
             const sugHigh = isProgression ? Math.round(prevW * 1.02 * 2) / 2 : 0;
             const sugKg   = sugLow;
+            // reps autofill: this set's previous reps, else last set's reps
+            const prevR = prevSetReps[si] > 0 ? prevSetReps[si] : (prevSetReps[prevSetReps.length - 1] || 0);
             return {
               reps_min: s.reps_min || 0,
               reps_max: s.reps_max || 0,
               set_type: setType,
-              weight: isProgression ? String(sugKg) : (s.recommended_kg ? String(s.recommended_kg) : ''),
+              // weight autofill for EVERY set (progression on failure sets, else last session's weight / plan value)
+              weight: isProgression ? String(sugKg) : (s.recommended_kg ? String(s.recommended_kg) : (prevW > 0 ? String(prevW) : '')),
               suggested_kg:  sugKg || s.recommended_kg || 0,
               suggested_high: sugHigh,
               prev_weight:   prevW,
+              prev_reps:     prevR,
               is_progression: isProgression,
-              reps: '',
+              reps: prevR > 0 ? String(prevR) : '',
               completed: false
             };
           })
@@ -2070,6 +2076,19 @@
       });
     }
     return result;
+  }
+
+  // per-set reps from the MOST RECENT logged session of this day (autofill "previous")
+  function lastSessionReps(dayName) {
+    const dayLogs = (workoutLogs || []).filter(l => l.day_name === dayName);
+    if (!dayLogs.length) return {};
+    const prev = dayLogs[0]; // workoutLogs is ordered newest-first
+    const out = {};
+    (prev.exercises || []).forEach(ex => {
+      const reps = (ex.sets || []).map(s => parseInt(s.reps) || 0);
+      if (reps.some(r => r > 0)) out[ex.name] = reps;
+    });
+    return out;
   }
 
   function tickClock() {
@@ -2341,6 +2360,7 @@
       <div style="display:flex;flex-direction:column;align-items:center;">
         <span class="s-label">סט ${dispNum != null ? dispNum : si + 1}</span>
         ${typeBadge}
+        ${(s.prev_weight > 0 || s.prev_reps > 0) ? `<div style="font-size:0.56rem;color:#666;text-align:center;margin-top:1px;white-space:nowrap;">קודם: ${s.prev_weight || 0}×${s.prev_reps || 0}</div>` : ''}
       </div>
       <div style="display:flex;flex-direction:column;align-items:center;">
         <input class="s-inp" type="number" min="0" step="0.5" value="${s.weight}" placeholder="${s.suggested_kg||0}"
