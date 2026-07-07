@@ -310,6 +310,7 @@
     <button class="btn-sm btn-outline" id="btn-rc-view" onclick="toggleRecipeView()" style="border-color:rgba(255,215,0,0.35);color:#FFD700;">🍳 מתכונים</button>
     <button class="btn-sm btn-outline" id="btn-fi-view" onclick="toggleFoodView()" style="border-color:rgba(74,222,128,0.35);color:#4ade80;">🥦 מזון</button>
     <button class="btn-sm btn-outline" onclick="openCoachesView()" style="border-color:rgba(100,180,255,0.35);color:#64b4ff;">👥 מאמנים</button>
+    <button class="btn-sm btn-outline" onclick="openActivityView()" style="border-color:rgba(248,113,113,0.4);color:#f87171;">🛡️ פעילות</button>
     <button class="btn-sm btn-outline" onclick="openRecords()" style="border-color:rgba(255,215,0,0.35);color:#FFD700;">🏆 שיאים</button>
     <a href="coach.html" class="btn-sm btn-outline" style="text-decoration:none;border-color:rgba(255,107,0,0.4);color:var(--orange);">🎓 מאמן</a>
     <a href="dashboard.html" class="btn-sm btn-outline" style="text-decoration:none;border-color:rgba(255,255,255,0.2);color:var(--white);">👤 מתאמן</a>
@@ -1083,6 +1084,81 @@
     if (btn) btn.innerHTML = pendingCount > 0
       ? `👥 מאמנים <span style="display:inline-block;background:#FF6B00;color:#fff;border-radius:10px;font-size:0.68rem;font-weight:900;padding:1px 6px;margin-right:4px;">${pendingCount}</span>`
       : '👥 מאמנים';
+  }
+
+  /* ══ COACH ACTIVITY GUARD — admin view (🛡️ פעילות מאמנים) ══ */
+  const CA_SEV = { alert: { c: '#f87171', bg: 'rgba(248,113,113,0.12)', l: '🚨 חמור' }, warn: { c: '#fbbf24', bg: 'rgba(251,191,36,0.1)', l: '⚠️ אזהרה' }, info: { c: '#8aa', bg: 'rgba(255,255,255,0.03)', l: 'מידע' } };
+  const CA_EVENT_HE = { tracker_start: 'התחברות לפאנל', heartbeat: 'פעיל', view_client: 'צפייה בלקוח', open_plan: 'פתיחת תוכנית', copy: 'העתקת טקסט', print: 'הדפסה / שמירת PDF', context_menu: 'קליק ימני', devtools: 'פתיחת DevTools', rapid_access: 'גישה מהירה להרבה לקוחות (חשד לגרידה)', export: 'ייצוא מידע' };
+
+  async function openActivityView() {
+    activeEmail = null;
+    renderSidebar();
+    document.getElementById('main-area').innerHTML = `
+      <div class="sec-card" style="margin-bottom:16px;">
+        <div class="sec-card-title">🛡️ הגנת מידע — פעילות מאמנים
+          <button class="btn-sm btn-outline" onclick="loadActivity()" style="font-size:0.72rem;">רענן</button>
+        </div>
+        <div style="font-size:0.76rem;color:#888;margin-bottom:12px;">מעקב על פעולות מאמנים לזיהוי העתקה/גניבת מידע. אירועים חמורים גם שולחים לך התראה.</div>
+        <div id="activity-flagged"></div>
+        <div id="activity-summary" style="margin:14px 0;"></div>
+        <div id="activity-feed"></div>
+      </div>`;
+    loadActivity();
+  }
+
+  async function loadActivity() {
+    const feed = document.getElementById('activity-feed');
+    if (feed) feed.innerHTML = '<div style="color:#666;padding:14px;">טוען...</div>';
+    const dayAgo = new Date(Date.now() - 7 * 864e5).toISOString();
+    const { data, error } = await sb.from('coach_activity').select('*').gte('created_at', dayAgo).order('created_at', { ascending: false }).limit(400);
+    if (error) { if (feed) feed.innerHTML = `<div style="color:#f87171;padding:14px;">שגיאה: ${esc(error.message)}</div>`; return; }
+    const rows = data || [];
+
+    // flagged (alert/warn) up top
+    const flagged = rows.filter(r => r.severity !== 'info').slice(0, 30);
+    document.getElementById('activity-flagged').innerHTML = flagged.length
+      ? `<div style="font-size:0.78rem;font-weight:800;color:#f87171;margin-bottom:6px;">🚩 אירועים מסומנים (7 ימים)</div>` +
+        flagged.map(caRow).join('')
+      : `<div style="font-size:0.8rem;color:#4ade80;padding:8px 0;">✓ אין אירועים חשודים ב-7 הימים האחרונים</div>`;
+
+    // per-coach summary
+    const by = {};
+    rows.forEach(r => { const b = (by[r.coach_email] ??= { email: r.coach_email, role: r.coach_role, views: 0, alerts: 0, warns: 0, last: r.created_at }); if (r.event === 'view_client') b.views++; if (r.severity === 'alert') b.alerts++; if (r.severity === 'warn') b.warns++; });
+    const sum = Object.values(by).sort((a, b) => b.alerts - a.alerts || b.views - a.views);
+    document.getElementById('activity-summary').innerHTML = sum.length
+      ? `<div style="font-size:0.78rem;font-weight:800;color:#aaa;margin-bottom:6px;">סיכום פר-מאמן (7 ימים)</div>
+         <div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:0.8rem;min-width:420px;">
+         <tr style="color:#888;font-size:0.7rem;"><th style="text-align:right;padding:6px;">מאמן</th><th style="padding:6px;">תפקיד</th><th style="padding:6px;">צפיות</th><th style="padding:6px;">אזהרות</th><th style="padding:6px;">חמורים</th><th style="padding:6px;">פעיל אחרון</th></tr>
+         ${sum.map(s => `<tr style="border-top:1px solid rgba(255,255,255,0.05);">
+           <td style="padding:6px;font-weight:700;color:#fff;">${esc(s.email)}</td>
+           <td style="padding:6px;text-align:center;color:#888;">${esc(s.role || '')}</td>
+           <td style="padding:6px;text-align:center;">${s.views}</td>
+           <td style="padding:6px;text-align:center;color:${s.warns ? '#fbbf24' : '#555'};">${s.warns}</td>
+           <td style="padding:6px;text-align:center;color:${s.alerts ? '#f87171' : '#555'};font-weight:900;">${s.alerts}</td>
+           <td style="padding:6px;text-align:center;color:#777;font-size:0.72rem;">${new Date(s.last).toLocaleString('he-IL', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</td>
+         </tr>`).join('')}</table></div>`
+      : '';
+
+    // full feed
+    if (feed) feed.innerHTML = `<div style="font-size:0.78rem;font-weight:800;color:#aaa;margin:14px 0 6px;">יומן מלא (${rows.length})</div>` +
+      (rows.length ? rows.slice(0, 200).map(caRow).join('') : '<div style="color:#666;padding:10px;">אין פעילות</div>');
+  }
+
+  function caRow(r) {
+    const s = CA_SEV[r.severity] || CA_SEV.info;
+    const ev = CA_EVENT_HE[r.event] || r.event;
+    const t = new Date(r.created_at).toLocaleString('he-IL', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+    const metaBits = [];
+    if (r.meta?.client) metaBits.push('לקוח: ' + r.meta.client);
+    if (r.meta?.count) metaBits.push(r.meta.count + ' פתיחות/דקה');
+    if (r.meta?.chars) metaBits.push(r.meta.chars + ' תווים');
+    return `<div style="display:flex;justify-content:space-between;gap:10px;padding:8px 12px;margin-bottom:4px;border-radius:9px;background:${s.bg};border:1px solid ${r.severity === 'info' ? 'rgba(255,255,255,0.05)' : s.c + '44'};">
+      <div style="min-width:0;">
+        <div style="font-size:0.84rem;font-weight:700;color:${s.c};">${esc(ev)}</div>
+        <div style="font-size:0.72rem;color:#999;">${esc(r.coach_email)}${metaBits.length ? ' · ' + esc(metaBits.join(' · ')) : ''}</div>
+      </div>
+      <div style="font-size:0.68rem;color:#666;white-space:nowrap;flex-shrink:0;">${t}</div>
+    </div>`;
   }
 
   async function openCoachesView() {
