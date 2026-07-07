@@ -923,6 +923,9 @@
       <button onclick="manualSteps()" style="padding:8px 14px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.15);color:#ccc;border-radius:10px;font-family:'Heebo';font-weight:700;font-size:0.8rem;cursor:pointer;">✎ עדכן ידני</button>
     </div>
 
+    <!-- STUDIO SECTION (studio clients: punch card + booking) -->
+    <div id="studio-section" style="display:none;margin-bottom:20px;"></div>
+
     <!-- CYCLE SECTION -->
     <div class="section" id="cycle-section" style="display:none;margin-bottom:20px;">
       <div class="sec-title"><span class="icon">🔄</span> הסייקל שלי</div>
@@ -1601,6 +1604,7 @@
     workoutLogs = logs || [];
     renderHistory(logs || []);
     renderTodayCard(); // כרטיס "היום שלי" (משתמש ב-workoutLogs + trainingPlanLocal + steps + יעד תזונה)
+    if (clientData?.studio_owner_email && (clientData.client_type === 'studio' || clientData.client_type === 'both')) renderStudioClient();
     renderWeightRow();
     await loadWaterData();
     await Promise.all([loadCycle(), loadProgressEntries(), loadCoachBranding(client.coach_email), loadMessages(), loadCheckin()]);
@@ -2111,6 +2115,95 @@
     drop_set:   { name: 'דרופ סט', explain: 'בסיום הסט מורידים משקל וממשיכים ללא מנוחה. אפשר טריפל דרופ (8/8/8).' },
     negative:   { name: 'חזרה שלילית', explain: 'אתה בולם ומוריד את המשקל בשליטה, והספוטר מרים בשבילך בפאזה החיובית.' },
   };
+  /* ══ STUDIO CLIENT — punch card + self-booking ══ */
+  // free-cancel deadline = 1 business day (24h) before the slot; if that lands on Fri/Sat (IL weekend), move earlier
+  function freeCancelDeadline(slotStartIso) {
+    let d = new Date(new Date(slotStartIso).getTime() - 24 * 3600 * 1000);
+    while (d.getDay() === 5 || d.getDay() === 6) d = new Date(d.getTime() - 24 * 3600 * 1000);
+    return d;
+  }
+  let _studioBookings = [], _studioSlots = [];
+  async function renderStudioClient() {
+    const wrap = document.getElementById('studio-section'); if (!wrap) return;
+    const owner = clientData.studio_owner_email;
+    const from = new Date(); from.setHours(0, 0, 0, 0);
+    const to = new Date(from.getTime() + 14 * 864e5);
+    const [{ data: slots }, { data: myBk }, { data: coachBk }] = await Promise.all([
+      sb.from('studio_slots').select('*').eq('owner_email', owner).gte('slot_start', from.toISOString()).lte('slot_start', to.toISOString()).order('slot_start'),
+      sb.from('studio_bookings').select('*').eq('owner_email', owner).eq('client_email', currentEmail).neq('status', 'cancelled'),
+      sb.from('studio_coach_bookings').select('slot_id,coach_email,status').eq('owner_email', owner).eq('status', 'approved'),
+    ]);
+    _studioSlots = slots || []; _studioBookings = myBk || [];
+    const coachOf = {}; (coachBk || []).forEach(c => coachOf[c.slot_id] = c.coach_email);
+    // count bookings per slot (for capacity) — needs a count; RLS lets client read only own+studio-visible, so use a head count
+    const remaining = clientData.sessions_remaining || 0;
+    const myBySlot = {}; _studioBookings.forEach(b => myBySlot[b.slot_id] = b);
+
+    const slotRows = _studioSlots.map(s => {
+      const mine = myBySlot[s.id];
+      const coach = coachOf[s.id];
+      const when = new Date(s.slot_start).toLocaleString('he-IL', { weekday: 'short', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+      const coachTxt = coach ? `👤 ${esc(coach.split('@')[0])}` : '<span style="color:#888;">מאמן טרם נקבע</span>';
+      if (mine) {
+        const dl = freeCancelDeadline(s.slot_start);
+        const refundable = new Date() < dl;
+        return `<div style="padding:10px 12px;border-bottom:1px solid rgba(255,255,255,0.05);background:rgba(74,222,128,0.06);border-radius:8px;margin-bottom:5px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+            <div><div style="font-weight:800;color:#4ade80;">✓ ${when}</div><div style="font-size:0.74rem;color:#aaa;">${coachTxt}${mine.workout ? ` · 🏋️ ${esc(mine.workout)}` : ''}</div></div>
+            <button onclick="studioCancel(${mine.id},'${s.slot_start}')" style="padding:6px 12px;background:rgba(248,113,113,0.1);border:1px solid rgba(248,113,113,0.35);color:#f87171;border-radius:8px;font-family:'Heebo';font-size:0.74rem;font-weight:700;cursor:pointer;">ביטול${refundable ? '' : ' (ללא זיכוי)'}</button>
+          </div></div>`;
+      }
+      return `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid rgba(255,255,255,0.05);">
+        <div><div style="font-weight:700;color:#fff;">${when}</div><div style="font-size:0.74rem;color:#aaa;">${coachTxt} · עד ${s.max_trainees} מתאמנים</div></div>
+        <button onclick="studioBook(${s.id},'${s.slot_start}','${coach ? esc(coach) : ''}')" ${remaining <= 0 ? 'disabled style="opacity:0.4;"' : ''} style="padding:6px 14px;background:linear-gradient(135deg,#FF6B00,#FF8C00);color:#fff;border:none;border-radius:8px;font-family:'Heebo';font-size:0.74rem;font-weight:700;cursor:pointer;">שבץ אותי</button>
+      </div>`;
+    }).join('') || '<div style="color:#666;padding:14px;text-align:center;">אין שעות פתוחות כרגע.</div>';
+
+    wrap.style.display = 'block';
+    wrap.innerHTML = `
+      <div style="background:radial-gradient(120% 80% at 50% 0%,rgba(255,215,0,0.1),transparent 60%),linear-gradient(160deg,#17181c,#0d0e11);border:1px solid rgba(255,215,0,0.3);border-radius:16px;padding:16px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+          <div style="font-weight:900;font-size:1.05rem;color:#fff;">🎫 כרטיסיית האימונים שלי</div>
+          <div style="text-align:left;"><div style="font-size:0.68rem;color:#888;">נשארו</div><div style="font-weight:900;font-size:1.5rem;color:${remaining <= 2 ? '#f87171' : '#FFD700'};">${remaining}</div></div>
+        </div>
+        <div style="font-size:0.72rem;color:#888;margin-bottom:12px;">ביטול עד יום עסקים לפני האימון → האימון חוזר לכרטיסייה. בתוך 24 שעות — נשרף.</div>
+        <div style="font-size:0.78rem;font-weight:800;color:#aaa;margin-bottom:6px;">📅 שעות פעילות (שבועיים קרובים)</div>
+        ${slotRows}
+      </div>`;
+  }
+
+  async function studioBook(slotId, slotStart, coachEmail) {
+    if ((clientData.sessions_remaining || 0) <= 0) { showDashToast('אין אימונים בכרטיסייה — פנה לבעל הסטודיו'); return; }
+    // capacity guard: count current bookings for the slot
+    const { count } = await sb.from('studio_bookings').select('id', { count: 'exact', head: true }).eq('slot_id', slotId).neq('status', 'cancelled');
+    const slot = _studioSlots.find(s => s.id === slotId);
+    if (slot && count != null && count >= slot.max_trainees) { showDashToast('השעה מלאה 😕'); renderStudioClient(); return; }
+    // book + deduct one punch (reserve)
+    const { error } = await sb.from('studio_bookings').insert({ slot_id: slotId, owner_email: clientData.studio_owner_email, client_email: currentEmail, coach_email: coachEmail || null, status: 'booked', punched: true });
+    if (error) { showDashToast(error.message.includes('duplicate') ? 'כבר שובצת לשעה' : 'שגיאה בשיבוץ'); return; }
+    const newRem = (clientData.sessions_remaining || 0) - 1;
+    await sb.from('clients').update({ sessions_remaining: newRem }).eq('email', currentEmail);
+    await sb.from('studio_punch_log').insert({ owner_email: clientData.studio_owner_email, client_email: currentEmail, delta: -1, reason: 'booking', by_email: currentEmail });
+    clientData.sessions_remaining = newRem;
+    renderStudioClient(); renderTodayCard();
+    showDashToast('שובצת ✓ · אימון ירד מהכרטיסייה');
+  }
+
+  async function studioCancel(bookingId, slotStart) {
+    const dl = freeCancelDeadline(slotStart);
+    const refundable = new Date() < dl;
+    if (!confirm(refundable ? 'לבטל את השיבוץ? האימון יחזור לכרטיסייה.' : 'לבטל? זה בתוך 24 שעות — האימון לא יוחזר לכרטיסייה.')) return;
+    await sb.from('studio_bookings').update({ status: 'cancelled', cancelled_at: new Date().toISOString(), credited: refundable }).eq('id', bookingId).eq('client_email', currentEmail);
+    if (refundable) {
+      const newRem = (clientData.sessions_remaining || 0) + 1;
+      await sb.from('clients').update({ sessions_remaining: newRem }).eq('email', currentEmail);
+      await sb.from('studio_punch_log').insert({ owner_email: clientData.studio_owner_email, client_email: currentEmail, delta: 1, reason: 'cancel_refund', by_email: currentEmail });
+      clientData.sessions_remaining = newRem;
+      showDashToast('בוטל · האימון הוחזר לכרטיסייה ✓');
+    } else showDashToast('בוטל · האימון נשרף (בתוך 24 שעות)');
+    renderStudioClient(); renderTodayCard();
+  }
+
   /* ── "היום שלי" — כרטיס פתיחה שמרכז הכל מנתונים קיימים ── */
   function workoutStreak() {
     // consecutive days (ending today or yesterday) with at least one workout_log
