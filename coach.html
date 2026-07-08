@@ -442,6 +442,7 @@
       <a href="food.html?from=coach" class="btn-sm btn-outline" style="text-decoration:none;">🥗 מזון</a>
       <a href="coach-guide.html" class="btn-sm btn-outline" style="text-decoration:none;border-color:rgba(255,255,255,0.15);color:#666;">📖 מדריך</a>
       <a id="btn-trainee-link" href="dashboard.html" style="display:none;" class="btn-sm btn-outline">החלף מצב — מתאמן</a>
+      <button class="btn-sm btn-outline" onclick="goHomeCoach()" title="חזרה לפאנל">🏠 בית</button>
       <button class="btn-sm btn-outline" onclick="logout()">יציאה</button>
     </div>
   </div>
@@ -3245,7 +3246,7 @@ ${exLines || 'אין'}
       const imgs = urls.map(u=>`<a href="${u}" target="_blank"><img src="${u}" style="width:64px;height:64px;object-fit:cover;border-radius:6px;border:1px solid rgba(255,255,255,0.1);"/></a>`).join('');
       return `<div style="padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.05);">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-          <div style="font-size:0.8rem;font-weight:800;color:#fff;">📅 ${d}</div>
+          <div style="font-size:0.8rem;font-weight:800;color:#fff;">📅 ${d} ${row.source==='client'?'<span style="font-size:0.6rem;font-weight:700;color:#4ade80;background:rgba(74,222,128,0.12);border:1px solid rgba(74,222,128,0.3);border-radius:6px;padding:1px 6px;margin-right:4px;">📤 הועלה ע״י הלקוח</span>':''}</div>
           <div style="font-size:0.68rem;color:#888;">${esc(mStr)}</div>
         </div>
         <div style="display:flex;gap:6px;flex-wrap:wrap;">${imgs||'<span style="font-size:0.72rem;color:#555;">התמונות אינן זמינות</span>'}</div>
@@ -3920,6 +3921,12 @@ ${exLines || 'אין'}
     el.textContent = msg; el.className = 'toast '+type+' show';
     setTimeout(() => el.classList.remove('show'), 2500);
   }
+  function goHomeCoach() {
+    // return to the coach main panel — reload is the safe, always-correct reset
+    // (studio/client views replace #main-area, so a soft reset can't reliably rebuild the lobby)
+    if (activeEmail || !document.getElementById('lobby-view')) { location.reload(); return; }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
   async function logout() { await sb.auth.signOut(); window.location.href = 'login.html'; }
 
   /* ══════════════════════════════════════════════════════
@@ -4153,8 +4160,19 @@ ${exLines || 'אין'}
       const { error } = await sb.from('receipts').insert(receiptRow);
       if (error) throw new Error(error.message);
 
+      // auto-deduct the receipt amount from the client's debt (receipt = proof of payment)
+      let debtMsg = '';
+      try {
+        await sb.from('client_debt_transactions').insert({
+          client_email: activeEmail, coach_email: coachEmail, type: 'payment', status: 'approved',
+          category: method || 'קבלה', amount, note: `תשלום ע״פ קבלה ${receiptNumber}`, txn_date: date, created_by: coachName || coachEmail
+        });
+        await refreshDebtUI();
+        debtMsg = ' · קוזז מהחוב';
+      } catch (e) { /* debt deduction is best-effort */ }
+
       btn.disabled = false; btn.textContent = '🖨 הנפק והדפס';
-      statusEl.style.color = '#4ade80'; statusEl.textContent = `✓ קבלה ${receiptNumber} נשמרה`;
+      statusEl.style.color = '#4ade80'; statusEl.textContent = `✓ קבלה ${receiptNumber} נשמרה${debtMsg}`;
 
       const newRow = { ...receiptRow, id: (existing?.[0]?.id ?? 0) + 1, receipt_number: receiptNumber };
       clientReceiptsList.unshift(newRow);

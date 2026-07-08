@@ -770,6 +770,7 @@
   <div style="display:flex;gap:8px;align-items:center;">
     <a id="btn-admin-link" href="admin.html" style="display:none;padding:7px 18px;background:linear-gradient(135deg,var(--orange),#FF8C00);border-radius:6px;color:#fff;font-family:'Heebo',sans-serif;font-size:0.85rem;font-weight:700;text-decoration:none;">פאנל ניהול</a>
     <a id="btn-coach-link" href="coach.html" style="display:none;padding:7px 18px;background:transparent;border:1px solid rgba(255,107,0,0.4);border-radius:6px;color:var(--orange);font-family:'Heebo',sans-serif;font-size:0.85rem;font-weight:700;text-decoration:none;">החלף מצב — מאמן</a>
+    <button class="btn-logout" onclick="goHome()" title="דף הבית">🏠</button>
     <button class="btn-logout" onclick="forceAppUpdate()" title="עדכון האפליקציה">🔄</button>
     <button class="btn-logout" onclick="logout()">יציאה</button>
   </div>
@@ -925,6 +926,17 @@
 
     <!-- STUDIO SECTION (studio clients: punch card + booking) -->
     <div id="studio-section" style="display:none;margin-bottom:20px;"></div>
+
+    <!-- PROGRESS PHOTOS (client uploads → coach album) -->
+    <div id="progress-photos-section" style="margin-bottom:20px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:16px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap;">
+        <div style="font-weight:900;font-size:1rem;color:#fff;">📸 תמונות התקדמות</div>
+        <button onclick="document.getElementById('progress-photo-input').click()" id="pp-btn" style="padding:7px 14px;background:linear-gradient(135deg,#FF6B00,#FF8C00);color:#fff;border:none;border-radius:10px;font-family:'Heebo';font-weight:700;font-size:0.8rem;cursor:pointer;">📷 העלה תמונה</button>
+        <input type="file" id="progress-photo-input" accept="image/*" multiple style="display:none;" onchange="uploadProgressPhotos(this.files); this.value='';">
+      </div>
+      <div style="font-size:0.72rem;color:#888;margin-bottom:10px;">התמונות נשלחות למאמן שלך ומופיעות באלבום ההתקדמות שלך (מתוארכות).</div>
+      <div id="pp-gallery" style="display:flex;gap:8px;flex-wrap:wrap;"></div>
+    </div>
 
     <!-- CYCLE SECTION -->
     <div class="section" id="cycle-section" style="display:none;margin-bottom:20px;">
@@ -1604,6 +1616,7 @@
     workoutLogs = logs || [];
     renderHistory(logs || []);
     renderTodayCard(); // כרטיס "היום שלי" (משתמש ב-workoutLogs + trainingPlanLocal + steps + יעד תזונה)
+    loadProgressPhotos();
     if (clientData?.studio_owner_email && (clientData.client_type === 'studio' || clientData.client_type === 'both')) renderStudioClient();
     renderWeightRow();
     await loadWaterData();
@@ -1856,10 +1869,49 @@
     document.getElementById('renewal-sent').style.display = 'block';
   }
 
+  // count sets in an exercise (array length / number / "4x8" string)
+  function setCount(sets) {
+    if (Array.isArray(sets)) return sets.length;
+    if (typeof sets === 'number') return sets;
+    if (typeof sets === 'string') { const m = sets.match(/\d+/); return m ? parseInt(m[0]) : 0; }
+    return 0;
+  }
+  // weekly sets per muscle group across the whole plan
+  function weeklyMuscleSets(plan) {
+    const t = {};
+    (plan || []).forEach(day => (day.exercises || []).forEach(ex => {
+      const db = (typeof findExercise === 'function') ? findExercise(ex.name) : null;
+      const group = ex.muscle_group || db?.muscle_details?.[0]?.group || db?.muscle_groups?.[0] || 'אחר';
+      t[group] = (t[group] || 0) + setCount(ex.sets);
+    }));
+    return t;
+  }
+  function muscleBarsHtml(plan) {
+    const t = weeklyMuscleSets(plan);
+    const entries = Object.entries(t).filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1]);
+    if (!entries.length) return '';
+    const max = Math.max(...entries.map(e => e[1]));
+    // color hint by volume: <10 low(gray) 10-20 good(orange) >20 high(gold)
+    const bars = entries.map(([g, v]) => {
+      const pct = Math.round(v / max * 100);
+      const col = v >= 20 ? '#FFD700' : v >= 10 ? '#FF8C00' : '#888';
+      return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;">
+        <div style="width:66px;font-size:0.74rem;color:#ccc;text-align:left;flex-shrink:0;">${esc(g)}</div>
+        <div style="flex:1;height:16px;background:rgba(255,255,255,0.05);border-radius:8px;overflow:hidden;"><div style="width:${pct}%;height:100%;background:${col};border-radius:8px;"></div></div>
+        <div style="width:52px;font-size:0.74rem;font-weight:800;color:${col};text-align:right;flex-shrink:0;">${v} סטים</div>
+      </div>`;
+    }).join('');
+    return `<div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,107,0,0.2);border-radius:14px;padding:14px 16px;margin-bottom:16px;">
+      <div style="font-weight:900;font-size:0.92rem;color:#fff;margin-bottom:10px;">📊 נפח שבועי — סטים לכל שריר</div>
+      ${bars}
+      <div style="font-size:0.64rem;color:#666;margin-top:6px;">מתחת ל-10 נמוך · 10–20 טוב · מעל 20 גבוה</div>
+    </div>`;
+  }
+
   function renderTraining(plan) {
     const wrap = document.getElementById('training-wrap');
     if (!plan.length) { wrap.innerHTML = '<div class="empty">תוכנית אימונים תתווסף בקרוב 💪</div>'; return; }
-    wrap.innerHTML = plan.map((day, di) => `
+    wrap.innerHTML = muscleBarsHtml(plan) + plan.map((day, di) => `
       <div class="day-card" id="day-${di}">
         <div class="day-header" onclick="toggleDay(${di})">
           <span style="flex:1;">
@@ -1928,6 +1980,13 @@
     }).join('');
   }
 
+  function goHome() {
+    // close any overlay/session and return to the trainee home (workouts tab, top)
+    try { document.querySelectorAll('.overlay,.chat-overlay,.ai-chat-panel,[id$="-overlay"]').forEach(o => o.classList && o.classList.remove('open')); } catch (e) {}
+    document.body.style.overflow = '';
+    if (typeof switchTab === 'function') switchTab('workouts');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
   async function logout() {
     await sb.auth.signOut();
     window.location.href = 'login.html';
@@ -2142,6 +2201,45 @@
       document.body.appendChild(m);
     }
     m.style.display = 'flex';
+  }
+
+  /* ── PROGRESS PHOTOS (client → coach album) ── */
+  async function loadProgressPhotos() {
+    const g = document.getElementById('pp-gallery'); if (!g) return;
+    try {
+      const { data } = await sb.from('body_photos').select('*').eq('client_email', currentEmail).order('uploaded_at', { ascending: false }).limit(12);
+      if (!data || !data.length) { g.innerHTML = '<div style="font-size:0.76rem;color:#666;">עדיין אין תמונות. העלה את הראשונה 📷</div>'; return; }
+      const cells = [];
+      for (const row of data) {
+        const d = new Date(row.uploaded_at).toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit', year: '2-digit' });
+        for (const p of (row.photo_paths || [])) {
+          const { data: signed } = await sb.storage.from('body-photos').createSignedUrl(p, 3600);
+          if (signed?.signedUrl) cells.push(`<a href="${signed.signedUrl}" target="_blank" title="${d}" style="position:relative;"><img src="${signed.signedUrl}" style="width:76px;height:76px;object-fit:cover;border-radius:8px;border:1px solid rgba(255,255,255,0.1);"/><span style="position:absolute;bottom:2px;right:2px;background:rgba(0,0,0,0.7);color:#fff;font-size:0.56rem;padding:1px 4px;border-radius:4px;">${d}</span></a>`);
+        }
+      }
+      g.innerHTML = cells.join('') || '<div style="font-size:0.76rem;color:#666;">אין תמונות.</div>';
+    } catch (e) { /* silent */ }
+  }
+  async function uploadProgressPhotos(files) {
+    if (!files || !files.length) return;
+    const btn = document.getElementById('pp-btn'); const prev = btn.textContent;
+    btn.disabled = true; btn.textContent = 'מעלה...';
+    try {
+      const paths = [];
+      const ts = Date.now();
+      for (let i = 0; i < Math.min(files.length, 6); i++) {
+        const f = files[i];
+        const ext = (f.type.split('/')[1] || 'jpg').replace('jpeg', 'jpg');
+        const path = `${currentEmail}/${ts}_${i}.${ext}`;
+        const { error: upErr } = await sb.storage.from('body-photos').upload(path, f, { upsert: true, contentType: f.type });
+        if (!upErr) paths.push(path);
+      }
+      if (!paths.length) { showDashToast('ההעלאה נכשלה'); btn.disabled = false; btn.textContent = prev; return; }
+      await sb.from('body_photos').insert({ client_email: currentEmail, coach_email: clientData?.coach_email || null, photo_paths: paths, source: 'client' });
+      showDashToast(`${paths.length} תמונות נשלחו למאמן ✓`);
+      loadProgressPhotos();
+    } catch (e) { showDashToast('שגיאה בהעלאה'); }
+    btn.disabled = false; btn.textContent = prev;
   }
 
   async function reportInjury() {
