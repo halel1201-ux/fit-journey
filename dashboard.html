@@ -2202,7 +2202,7 @@
         <button onclick="document.getElementById('studio-terms-modal').style.display='none'" style="position:absolute;top:12px;left:14px;background:none;border:none;color:#666;font-size:1.3rem;cursor:pointer;">✕</button>
         <div style="font-weight:900;font-size:1.1rem;color:#fff;margin-bottom:14px;">📄 תנאי שימוש — כרטיסיית אימונים</div>
         <div style="font-size:0.86rem;line-height:1.75;color:#ddd;">
-          <div style="padding:7px 0;border-bottom:1px solid rgba(255,255,255,0.06);"><b style="color:#FFD700;">🎫 שיבוץ</b> — כל שיבוץ לאימון מוריד אימון אחד מהכרטיסייה שלך.</div>
+          <div style="padding:7px 0;border-bottom:1px solid rgba(255,255,255,0.06);"><b style="color:#FFD700;">🎫 ניקוב</b> — האימון יורד מהכרטיסייה אוטומטית <b>24 שעות לפני</b> תחילת האימון.</div>
           <div style="padding:7px 0;border-bottom:1px solid rgba(255,255,255,0.06);"><b style="color:#4ade80;">↩️ ביטול עם זיכוי</b> — ביטול עד <b>יום עסקים אחד</b> לפני האימון מחזיר את האימון לכרטיסייה (סופ״ש לא נספר).</div>
           <div style="padding:7px 0;border-bottom:1px solid rgba(255,255,255,0.06);"><b style="color:#f87171;">🔥 ביטול מאוחר</b> — ביטול בתוך <b>24 שעות</b> לפני האימון — האימון נשרף ולא מוחזר.</div>
           <div style="padding:7px 0;"><b style="color:#c4a5ff;">✏️ יתרה</b> — רק בעל הסטודיו יכול לעדכן ידנית את מספר האימונים שנותרו.</div>
@@ -2340,7 +2340,7 @@
       <div style="background:radial-gradient(120% 80% at 50% 0%,rgba(255,215,0,0.1),transparent 60%),linear-gradient(160deg,#17181c,#0d0e11);border:1px solid rgba(255,215,0,0.3);border-radius:16px;padding:16px;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
           <div style="font-weight:900;font-size:1.05rem;color:#fff;">🎫 כרטיסיית האימונים שלי</div>
-          <div style="text-align:left;"><div style="font-size:0.68rem;color:#888;">נשארו</div><div style="font-weight:900;font-size:1.5rem;color:${remaining <= 2 ? '#f87171' : '#FFD700'};">${remaining}</div></div>
+          <div style="text-align:left;"><div style="font-size:0.68rem;color:#888;">נשארו</div><div style="font-weight:900;font-size:1.5rem;color:${remaining <= 2 ? '#f87171' : '#FFD700'};">${remaining}</div>${_studioBookings.length ? `<div style="font-size:0.62rem;color:#888;">${_studioBookings.length} משובצים</div>` : ''}</div>
         </div>
         <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
           <a onclick="openStudioTerms()" style="font-size:0.72rem;color:#f87171;font-weight:700;cursor:pointer;text-decoration:underline;">📄 תנאי שימוש — ניקוב וביטול</a>
@@ -2352,34 +2352,25 @@
   }
 
   async function studioBook(slotId, slotStart, coachEmail) {
-    if ((clientData.sessions_remaining || 0) <= 0) { showDashToast('אין אימונים בכרטיסייה — פנה לבעל הסטודיו'); return; }
-    // capacity guard: count current bookings for the slot
+    // exact-24h model: booking does NOT deduct now — a cron punches 24h before the slot.
+    // overbooking guard: active (booked) reservations must not exceed the remaining balance.
+    const activeCount = _studioBookings.length; // booked, non-cancelled, loaded in renderStudioClient
+    if (activeCount >= (clientData.sessions_remaining || 0)) { showDashToast('כל האימונים בכרטיסייה כבר משובצים — בטל שיבוץ או פנה לבעל הסטודיו'); return; }
     const { count } = await sb.from('studio_bookings').select('id', { count: 'exact', head: true }).eq('slot_id', slotId).neq('status', 'cancelled');
     const slot = _studioSlots.find(s => s.id === slotId);
     if (slot && count != null && count >= slot.max_trainees) { showDashToast('השעה מלאה 😕'); renderStudioClient(); return; }
-    // book + deduct one punch (reserve)
-    const { error } = await sb.from('studio_bookings').insert({ slot_id: slotId, owner_email: clientData.studio_owner_email, client_email: currentEmail, coach_email: coachEmail || null, status: 'booked', punched: true });
+    const { error } = await sb.from('studio_bookings').insert({ slot_id: slotId, owner_email: clientData.studio_owner_email, client_email: currentEmail, coach_email: coachEmail || null, status: 'booked', punched: false });
     if (error) { showDashToast(error.message.includes('duplicate') ? 'כבר שובצת לשעה' : 'שגיאה בשיבוץ'); return; }
-    const newRem = (clientData.sessions_remaining || 0) - 1;
-    await sb.from('clients').update({ sessions_remaining: newRem }).eq('email', currentEmail);
-    await sb.from('studio_punch_log').insert({ owner_email: clientData.studio_owner_email, client_email: currentEmail, delta: -1, reason: 'booking', by_email: currentEmail });
-    clientData.sessions_remaining = newRem;
     renderStudioClient(); renderTodayCard();
-    showDashToast('שובצת ✓ · אימון ירד מהכרטיסייה');
+    showDashToast('שובצת ✓ · האימון יינוקב 24 שעות לפני');
   }
 
   async function studioCancel(bookingId, slotStart) {
-    const dl = freeCancelDeadline(slotStart);
-    const refundable = new Date() < dl;
-    if (!confirm(refundable ? 'לבטל את השיבוץ? האימון יחזור לכרטיסייה.' : 'לבטל? זה בתוך 24 שעות — האימון לא יוחזר לכרטיסייה.')) return;
-    await sb.from('studio_bookings').update({ status: 'cancelled', cancelled_at: new Date().toISOString(), credited: refundable }).eq('id', bookingId).eq('client_email', currentEmail);
-    if (refundable) {
-      const newRem = (clientData.sessions_remaining || 0) + 1;
-      await sb.from('clients').update({ sessions_remaining: newRem }).eq('email', currentEmail);
-      await sb.from('studio_punch_log').insert({ owner_email: clientData.studio_owner_email, client_email: currentEmail, delta: 1, reason: 'cancel_refund', by_email: currentEmail });
-      clientData.sessions_remaining = newRem;
-      showDashToast('בוטל · האימון הוחזר לכרטיסייה ✓');
-    } else showDashToast('בוטל · האימון נשרף (בתוך 24 שעות)');
+    const bk = _studioBookings.find(b => b.id === bookingId);
+    const punched = !!bk?.punched; // once punched (inside 24h) it's burned
+    if (!confirm(punched ? 'לבטל? האימון כבר נוקב (בתוך 24 שעות) ולא יוחזר.' : 'לבטל את השיבוץ? האימון עדיין לא נוקב — לא יגרע מהכרטיסייה.')) return;
+    await sb.from('studio_bookings').update({ status: 'cancelled', cancelled_at: new Date().toISOString() }).eq('id', bookingId).eq('client_email', currentEmail);
+    showDashToast(punched ? 'בוטל · האימון נשרף (נוקב בתוך 24 שעות)' : 'בוטל · לא נגרע מהכרטיסייה ✓');
     renderStudioClient(); renderTodayCard();
   }
 
