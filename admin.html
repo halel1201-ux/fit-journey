@@ -1172,6 +1172,12 @@
         </div>
         <div id="token-requests-wrap"><div style="font-size:0.8rem;color:#555;">טוען...</div></div>
       </div>
+      <div class="sec-card" style="margin-bottom:16px;">
+        <div class="sec-card-title">🏢 בקשות הרחבה — סטודיו (DLC)
+          <button class="btn-sm btn-outline" onclick="loadStudioDlcRequests()" style="font-size:0.72rem;">רענן</button>
+        </div>
+        <div id="studio-dlc-wrap"><div style="font-size:0.8rem;color:#555;">טוען...</div></div>
+      </div>
       <div class="sec-card">
         <div class="sec-card-title">👥 ניהול מאמנים
           <button class="btn-sm btn-orange" onclick="openAddCoachModal()">+ הוסף מאמן</button>
@@ -1181,6 +1187,7 @@
     await Promise.all([loadCoachTokens(), loadTokenRequests()]);
     renderTokenRequestsSection();
     renderCoachesTable();
+    loadStudioDlcRequests();
   }
 
   function renderPendingCoaches() {
@@ -1226,9 +1233,9 @@
   }
 
   const coachExpanded = {};
-  const ROLE_LABEL = {regular:'מאמן',senior:'בכיר',admin:'אדמין'};
-  const ROLE_BG    = {regular:'rgba(255,255,255,0.07)',senior:'rgba(255,215,0,0.14)',admin:'rgba(255,107,0,0.16)'};
-  const ROLE_CLR   = {regular:'#888',senior:'#FFD700',admin:'#FF6B00'};
+  const ROLE_LABEL = {regular:'מאמן',senior:'בכיר',admin:'אדמין',studio_owner:'🏢 בעל סטודיו'};
+  const ROLE_BG    = {regular:'rgba(255,255,255,0.07)',senior:'rgba(255,215,0,0.14)',admin:'rgba(255,107,0,0.16)',studio_owner:'rgba(255,215,0,0.14)'};
+  const ROLE_CLR   = {regular:'#888',senior:'#FFD700',admin:'#FF6B00',studio_owner:'#FFD700'};
 
   function renderCoachesTable() {
     renderPendingCoaches();
@@ -1249,6 +1256,7 @@
         const roleSelect = `<select style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:6px;color:#fff;font-family:'Heebo',sans-serif;font-size:0.78rem;padding:4px 8px;outline:none;cursor:pointer;" onchange="changeCoachRole('${c.id}',this.value)">
           <option value="regular" ${r==='regular'?'selected':''}>מאמן רגיל</option>
           <option value="senior"  ${r==='senior'?'selected':''}>מאמן בכיר</option>
+          <option value="studio_owner" ${r==='studio_owner'?'selected':''}>🏢 בעל סטודיו</option>
           <option value="admin"   ${r==='admin'?'selected':''}>אדמין</option>
         </select>`;
 
@@ -1518,13 +1526,62 @@
     toast('מאמן נמחק', 'ok');
   }
 
+  /* ── studio DLC approvals ── */
+  async function loadStudioDlcRequests() {
+    const wrap = document.getElementById('studio-dlc-wrap'); if (!wrap) return;
+    const { data, error } = await sb.from('studio_dlc').select('*').order('created_at', { ascending: false }).limit(50);
+    if (error) { wrap.innerHTML = `<div style="color:#f87171;font-size:0.8rem;">שגיאה: ${esc(error.message)}</div>`; return; }
+    const quotes = (data || []).filter(d => d.status === 'quote');
+    if (!quotes.length) { wrap.innerHTML = '<div style="font-size:0.82rem;color:#4ade80;">✓ אין בקשות ממתינות</div>'; return; }
+    const KIND = { clients_50: '+50 מתאמנים', coach: '+מאמן', base: 'בסיס' };
+    wrap.innerHTML = quotes.map(d => `
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid rgba(255,255,255,0.05);">
+        <div><b style="color:#fff;">${esc(d.owner_email)}</b> · ${KIND[d.kind] || d.kind}${d.qty > 1 ? ' ×' + d.qty : ''} <span style="color:#FF8C00;">₪${(d.monthly_price * d.qty).toLocaleString()}/ח׳</span></div>
+        <div style="display:flex;gap:6px;">
+          <button class="btn-sm btn-orange" style="font-size:0.72rem;" onclick="approveStudioDlc(${d.id},'${d.owner_email}','${d.kind}',${d.qty})">אשר</button>
+          <button class="btn-sm btn-outline" style="font-size:0.72rem;border-color:rgba(248,113,113,0.35);color:#f87171;" onclick="rejectStudioDlc(${d.id})">דחה</button>
+        </div>
+      </div>`).join('');
+  }
+  async function approveStudioDlc(id, owner, kind, qty) {
+    await sb.from('studio_dlc').update({ status: 'active' }).eq('id', id);
+    // bump the studio capacity
+    const { data: st } = await sb.from('studios').select('*').eq('owner_email', owner).maybeSingle();
+    if (st) {
+      const patch = {};
+      if (kind === 'clients_50') patch.client_capacity = (st.client_capacity || 50) + 50 * qty;
+      if (kind === 'coach')      patch.coach_capacity  = (st.coach_capacity || 1) + 1 * qty;
+      if (Object.keys(patch).length) await sb.from('studios').update(patch).eq('owner_email', owner);
+    }
+    loadStudioDlcRequests();
+    toast('ההרחבה אושרה · התקרה עודכנה ✓', 'ok');
+  }
+  async function rejectStudioDlc(id) {
+    await sb.from('studio_dlc').update({ status: 'cancelled' }).eq('id', id);
+    loadStudioDlcRequests();
+    toast('נדחה', 'ok');
+  }
+
   async function changeCoachRole(id, role) {
-    const { error } = await sb.from('coaches').update({ role }).eq('id', id);
-    if (error) { toast('שגיאה בעדכון דרגה', 'err'); return; }
     const c = coachesList.find(c => c.id === id);
-    if (c) c.role = role;
+    const payload = { role };
+    // becoming a studio owner → give a license (like senior) + provision the studio + 2500 tokens
+    if (role === 'studio_owner' && c) {
+      const today = todayStr();
+      const licEnd = new Date(); licEnd.setMonth(licEnd.getMonth() + 1);
+      payload.license_start = today; payload.license_end = licEnd.toISOString().slice(0, 10);
+    }
+    const { error } = await sb.from('coaches').update(payload).eq('id', id);
+    if (error) { toast('שגיאה בעדכון דרגה', 'err'); return; }
+    if (role === 'studio_owner' && c) {
+      await sb.from('studios').upsert({ owner_email: c.email, name: c.name || 'הסטודיו', client_capacity: 50, coach_capacity: 1 }, { onConflict: 'owner_email' });
+      // ensure 2500 tokens baseline
+      const { data: tok } = await sb.from('coach_tokens').select('balance').eq('coach_email', c.email).maybeSingle();
+      if (!tok || (tok.balance || 0) < 2500) await grantCoachTokens(c.email, 2500 - (tok?.balance || 0));
+      Object.assign(c, payload);
+      toast('הפך לבעל סטודיו · סטודיו + רישיון + 2,500 טוקנים הופעלו ✓', 'ok');
+    } else { if (c) c.role = role; toast('דרגה עודכנה ✓', 'ok'); }
     renderCoachesTable();
-    toast('דרגה עודכנה ✓', 'ok');
   }
 
   async function approveCoach(id, months) {

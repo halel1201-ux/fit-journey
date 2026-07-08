@@ -1055,7 +1055,17 @@
         ? `<span style="color:#4ade80;">👤 ${esc(approvedCoach.coach_email.split('@')[0])}</span>`
         : (pendingCoaches.length ? `<span style="color:#fbbf24;">⏳ ${pendingCoaches.length} ממתינים לאישור</span>` : `<span style="color:#666;">אין מאמן</span>`);
       const pendBtns = pendingCoaches.map(c => `<button class="btn-sm btn-outline" onclick="approveSlotCoach(${c.id},'${esc(c.coach_email)}')" style="font-size:0.66rem;border-color:rgba(74,222,128,0.4);color:#4ade80;">✓ ${esc(c.coach_email.split('@')[0])}</button>`).join(' ');
-      const bookedNames = (s._bookings || []).map(b => esc((b.client_email||'').split('@')[0]) + (b.workout ? ` <span style="color:#888;">(${esc(b.workout)})</span>` : '')).join(' · ');
+      const editable = (new Date(s.slot_start).getTime() - Date.now()) > 15 * 3600 * 1000; // owner may set workout until 15h before
+      const bookedRows = (s._bookings || []).map(b => {
+        const nm = esc((b.client_email || '').split('@')[0]);
+        return `<div style="display:flex;align-items:center;gap:6px;padding:4px 0;font-size:0.74rem;">
+          <span style="color:#bbb;min-width:70px;">${nm}</span>
+          ${editable
+            ? `<input id="bwk-${b.id}" value="${esc(b.workout || '')}" placeholder="אימון..." style="flex:1;min-width:0;padding:3px 8px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:6px;color:#fff;font-family:'Heebo';font-size:0.72rem;"/>
+               <button class="btn-sm btn-orange" style="font-size:0.62rem;padding:3px 8px;" onclick="setBookingWorkout(${b.id})">שמור</button>`
+            : `<span style="color:#888;">🏋️ ${esc(b.workout || 'לא הוגדר')} <span style="color:#666;">(נעול)</span></span>`}
+        </div>`;
+      }).join('');
       return `<div style="padding:11px 13px;border-bottom:1px solid rgba(255,255,255,0.05);">
         <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
           <div style="font-weight:800;color:#fff;">${fmtSlotTime(s.slot_start)}</div>
@@ -1063,7 +1073,7 @@
           <button class="btn-sm btn-outline" onclick="deleteStudioSlot(${s.id})" style="font-size:0.66rem;border-color:rgba(248,113,113,0.35);color:#f87171;">מחק</button>
         </div>
         ${pendBtns ? `<div style="margin-top:6px;display:flex;gap:5px;flex-wrap:wrap;align-items:center;"><span style="font-size:0.7rem;color:#888;">אשר מאמן:</span> ${pendBtns}</div>` : ''}
-        ${bookedNames ? `<div style="margin-top:5px;font-size:0.74rem;color:#bbb;">${bookedNames}</div>` : ''}
+        ${bookedRows ? `<div style="margin-top:6px;padding-top:5px;border-top:1px solid rgba(255,255,255,0.04);"><div style="font-size:0.66rem;color:#777;margin-bottom:2px;">מתאמנים ואימון:</div>${bookedRows}</div>` : ''}
       </div>`;
     }).join('');
   }
@@ -1087,6 +1097,15 @@
     await sb.from('studio_slots').delete().eq('id', id).eq('owner_email', coachEmail);
     renderStudioCalendarTab();
     toast('נמחק', 'ok');
+  }
+  async function setBookingWorkout(bookingId) {
+    if (!requireEdit()) return;
+    const val = (document.getElementById('bwk-' + bookingId)?.value || '').trim();
+    const { error } = await sb.from('studio_bookings').update({ workout: val || null }).eq('id', bookingId).eq('owner_email', coachEmail);
+    if (error) { toast('שגיאה: ' + error.message, 'err'); return; }
+    const s = studioSlots.find(x => (x._bookings || []).some(b => b.id === bookingId));
+    const b = s && s._bookings.find(x => x.id === bookingId); if (b) b.workout = val;
+    toast('האימון נשמר ✓', 'ok');
   }
   async function approveSlotCoach(bookingId, coachEmail_) {
     if (!requireEdit()) return;
