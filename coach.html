@@ -1842,6 +1842,7 @@
   let coachPhone = null;
   let coachRole  = 'regular';
   let isStudioOwner = false;
+  let isPremium  = false;   // premium subscription → instant generator unlocked
   let studioData = null;    // studios row for a studio owner
   let canEdit    = false;   // senior/admin/studio_owner עורכים · regular צופה בלבד
   function requireEdit() {
@@ -2257,6 +2258,7 @@
     coachPhone = coach.phone || null;
     coachRole  = coach.role || 'regular';
     isStudioOwner = (coachRole === 'studio_owner');       // studio owner = senior-level access + studio management
+    isPremium  = (coachRole === 'admin') || (!!coach.premium_until && coach.premium_until >= todayStr());  // premium = instant generator ("second coach") unlocked
     canEdit    = (coachRole === 'senior' || coachRole === 'admin' || isStudioOwner);
     coachPlans = coach.plans || {};
     if (!canEdit && coachRole !== 'pending') showViewOnlyBanner();
@@ -2736,7 +2738,7 @@
 
   /* ── QUICK GENERATOR (המחולל המיידי — פרימיום, כרגע אדמין בלבד) ── */
   function openQuickGen() {
-    if (coachRole !== 'admin') { toast('המחולל המיידי זמין בחבילת הפרימיום', 'err'); return; }
+    if (!isPremium) { toast('המחולל המיידי זמין בחבילת הפרימיום', 'err'); return; }
     if (!activeEmail) { toast('בחר מתאמן קודם', 'err'); return; }
     document.getElementById('qg-status').textContent = '';
     document.getElementById('quickgen-modal').style.display = 'flex';
@@ -2979,7 +2981,7 @@ ${exLines || 'אין'}
       <!-- QUICK NAV -->
       <div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:20px;">
         <button onclick="openAiReport()" style="padding:6px 12px;background:linear-gradient(135deg,rgba(168,85,247,0.15),rgba(255,107,0,0.1));border:1px solid rgba(168,85,247,0.4);border-radius:20px;color:#c4a5ff;font-family:'Heebo',sans-serif;font-size:0.78rem;font-weight:700;cursor:pointer;white-space:nowrap;">📊 דוח AI</button>
-        ${coachRole === 'admin' ? `<button onclick="openQuickGen()" style="padding:6px 12px;background:linear-gradient(135deg,rgba(255,107,0,0.2),rgba(255,215,0,0.12));border:1px solid rgba(255,215,0,0.45);border-radius:20px;color:#FFD700;font-family:'Heebo',sans-serif;font-size:0.78rem;font-weight:700;cursor:pointer;white-space:nowrap;">⚡ מחולל מיידי <span style="font-size:0.6rem;opacity:0.7;">פרימיום</span></button>` : ''}
+        ${isPremium ? `<button onclick="openQuickGen()" style="padding:6px 12px;background:linear-gradient(135deg,rgba(255,107,0,0.2),rgba(255,215,0,0.12));border:1px solid rgba(255,215,0,0.45);border-radius:20px;color:#FFD700;font-family:'Heebo',sans-serif;font-size:0.78rem;font-weight:700;cursor:pointer;white-space:nowrap;">⚡ מחולל מיידי <span style="font-size:0.6rem;opacity:0.7;">פרימיום</span></button>` : ''}
         ${[['🏋️ אימון','#training-editor'],['🥗 תזונה','#nutrition-editor'],['🔄 סייקל','#cycle-editor'],['📈 התקדמות','#progress-editor'],['📏 היקפים','#measurements-editor'],['💬 צ\'אט','#sec-chat'],['📋 צ\'ק-אין','#sec-checkin']].map(([l,t])=>
           `<button onclick="document.querySelector('${t}')?.scrollIntoView({behavior:'smooth',block:'start'})" style="padding:6px 12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:20px;color:var(--muted);font-family:'Heebo',sans-serif;font-size:0.78rem;font-weight:700;cursor:pointer;transition:all 0.15s;white-space:nowrap;" onmouseover="this.style.borderColor='rgba(255,107,0,0.4)';this.style.color='var(--orange)'" onmouseout="this.style.borderColor='rgba(255,255,255,0.1)';this.style.color='var(--muted)'">${l}</button>`
         ).join('')}

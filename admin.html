@@ -1341,6 +1341,12 @@
             <button class="btn-sm btn-outline" style="font-size:0.7rem;padding:4px 9px;" onclick="event.stopPropagation();setCoachTokensDirect('${c.id}','${c.email}')">קבע</button>
             <button class="btn-sm btn-outline" style="font-size:0.7rem;padding:4px 9px;" onclick="event.stopPropagation();openCoachTokenHistory('${c.email}','${esc(c.name||c.email)}')">🧾 היסטוריה</button>
           </div>
+          <div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,215,0,0.12);display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+            <span style="font-size:0.72rem;font-weight:700;color:#FFD700;">⭐ פרימיום (מחולל מיידי):</span>
+            <span style="font-size:0.72rem;color:${c.premium_until && c.premium_until >= todayStr() ? '#4ade80' : '#888'};">${c.premium_until ? (c.premium_until >= todayStr() ? 'פעיל עד ' + c.premium_until : 'פג ' + c.premium_until) : 'לא פעיל'}</span>
+            <button class="btn-sm btn-orange" style="font-size:0.7rem;padding:4px 9px;" onclick="event.stopPropagation();grantPremium('${c.id}','${c.email}',1)">+חודש +2,500 טוקנים</button>
+            ${c.premium_until ? `<button class="btn-sm btn-outline" style="font-size:0.7rem;padding:4px 9px;border-color:rgba(248,113,113,0.35);color:#f87171;" onclick="event.stopPropagation();revokePremium('${c.id}')">בטל</button>` : ''}
+          </div>
         </div>`;
 
         const pendingApproveHtml = r === 'pending' ? `
@@ -1524,6 +1530,27 @@
     await loadCoaches();
     renderCoachesTable();
     toast('מאמן נמחק', 'ok');
+  }
+
+  /* ── premium subscription (unlocks the instant generator + token boost) ── */
+  async function grantPremium(id, email, months) {
+    const c = coachesList.find(x => x.id === id);
+    const base = (c?.premium_until && c.premium_until >= todayStr()) ? new Date(c.premium_until) : new Date();
+    base.setMonth(base.getMonth() + months);
+    const until = base.toISOString().slice(0, 10);
+    const { error } = await sb.from('coaches').update({ premium_until: until }).eq('id', id);
+    if (error) { toast('שגיאה: ' + error.message, 'err'); return; }
+    if (c) c.premium_until = until;
+    await grantCoachTokens(email, 2500);  // premium bundles +2,500 tokens
+    renderCoachesTable();
+    toast('פרימיום הופעל · +2,500 טוקנים ✓', 'ok');
+  }
+  async function revokePremium(id) {
+    if (!confirm('לבטל פרימיום למאמן?')) return;
+    await sb.from('coaches').update({ premium_until: null }).eq('id', id);
+    const c = coachesList.find(x => x.id === id); if (c) c.premium_until = null;
+    renderCoachesTable();
+    toast('פרימיום בוטל', 'ok');
   }
 
   /* ── studio DLC approvals ── */
