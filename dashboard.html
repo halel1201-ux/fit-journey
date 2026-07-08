@@ -927,6 +927,15 @@
     <!-- STUDIO SECTION (studio clients: punch card + booking) -->
     <div id="studio-section" style="display:none;margin-bottom:20px;"></div>
 
+    <!-- AI INJURY GUIDANCE (shown only when the client has injuries) -->
+    <div id="injury-ai-section" style="display:none;margin-bottom:20px;background:radial-gradient(120% 80% at 50% 0%,rgba(168,85,247,0.1),transparent 60%),linear-gradient(160deg,#17181c,#0d0e11);border:1px solid rgba(168,85,247,0.35);border-radius:14px;padding:16px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
+        <div style="font-weight:900;font-size:1rem;color:#fff;">🩹 הנחיות אימון לפי הפציעות שלך</div>
+        <button onclick="injuryGuidance(true)" id="inj-ai-btn" style="padding:6px 12px;background:rgba(168,85,247,0.15);border:1px solid rgba(168,85,247,0.4);color:#c4a5ff;border-radius:9px;font-family:'Heebo';font-size:0.76rem;font-weight:700;cursor:pointer;">🤖 מה להימנע?</button>
+      </div>
+      <div id="inj-ai-body" style="font-size:0.86rem;color:#ddd;line-height:1.7;"></div>
+    </div>
+
     <!-- PROGRESS PHOTOS (client uploads → coach album) -->
     <div id="progress-photos-section" style="margin-bottom:20px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:16px;">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap;">
@@ -1617,6 +1626,7 @@
     renderHistory(logs || []);
     renderTodayCard(); // כרטיס "היום שלי" (משתמש ב-workoutLogs + trainingPlanLocal + steps + יעד תזונה)
     loadProgressPhotos();
+    initInjuryGuidance();
     if (clientData?.studio_owner_email && (clientData.client_type === 'studio' || clientData.client_type === 'both')) renderStudioClient();
     renderWeightRow();
     await loadWaterData();
@@ -2203,6 +2213,42 @@
     m.style.display = 'flex';
   }
 
+  /* ── AI injury guidance — exercises to avoid based on the client's injuries ── */
+  let _injGuideDone = false;
+  function initInjuryGuidance() {
+    const sec = document.getElementById('injury-ai-section'); if (!sec) return;
+    const has = (clientData?.injuries || []).length > 0;
+    sec.style.display = has ? 'block' : 'none';
+    if (has && !_injGuideDone) injuryGuidance(false);
+  }
+  async function injuryGuidance(force) {
+    const body = document.getElementById('inj-ai-body'); const btn = document.getElementById('inj-ai-btn');
+    if (!body) return;
+    const injuries = (clientData?.injuries || []).map(i => i.note).filter(Boolean);
+    if (!injuries.length) { body.textContent = 'אין פציעות מדווחות.'; return; }
+    // cache per session unless forced
+    if (_injGuideDone && !force) return;
+    body.innerHTML = '<div style="color:#888;">🤖 מנתח את הפציעות מול התרגילים שלך...</div>';
+    if (btn) { btn.disabled = true; btn.textContent = 'מנתח...'; }
+    try {
+      const planEx = [...new Set((trainingPlanLocal || []).flatMap(d => (d.exercises || []).map(e => e.name)))].slice(0, 40);
+      const sys = `אתה פיזיותרפיסט-ספורט. בהינתן פציעות של מתאמן ורשימת תרגילים בתוכנית שלו, החזר בעברית קצר וברור:
+🚫 להימנע: תרגילים מהרשימה שעלולים להחמיר את הפציעה (עם סיבה במילה-שתיים)
+✅ חלופה בטוחה: לכל תרגיל שסימנת להימנע — חלופה שעובדת אותו שריר בלי להעמיס על הפגוע
+⚠️ דגש כללי אחד לאימון עם הפציעה.
+אם תרגיל מהרשימה בטוח — אל תזכיר אותו. תמציתי, בולטים, בלי הקדמות. זו הנחיה כללית ולא ייעוץ רפואי — הוסף שורת סיום קצרה שכדאי להתייעץ עם רופא/פיזיו.`;
+      const resp = await aiFetch('', { body: JSON.stringify({
+        model: 'claude-sonnet-4-6', max_tokens: 600, system: sys,
+        messages: [{ role: 'user', content: `פציעות: ${injuries.join('; ')}\nתרגילים בתוכנית: ${planEx.join(', ') || 'לא הוגדרה תוכנית'}` }],
+      }) });
+      const data = await resp.json();
+      const text = data.content?.[0]?.text || 'שגיאה בקבלת ההנחיות';
+      body.innerHTML = `<div style="white-space:pre-wrap;">${esc(text)}</div>`;
+      _injGuideDone = true;
+    } catch (e) { body.innerHTML = '<div style="color:#ff8080;">שגיאה בניתוח — נסה שוב</div>'; }
+    if (btn) { btn.disabled = false; btn.textContent = '🔄 רענן'; }
+  }
+
   /* ── PROGRESS PHOTOS (client → coach album) ── */
   async function loadProgressPhotos() {
     const g = document.getElementById('pp-gallery'); if (!g) return;
@@ -2249,6 +2295,7 @@
     const { error } = await sb.from('clients').update({ injuries }).eq('email', currentEmail);
     if (error) { showDashToast('שגיאה בשמירה'); return; }
     clientData.injuries = injuries;
+    _injGuideDone = false; initInjuryGuidance(); // show/refresh AI guidance for the new injury
     showDashToast('הפציעה דווחה למאמן ✓');
   }
   let _studioBookings = [], _studioSlots = [];
