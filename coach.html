@@ -2733,6 +2733,7 @@
     renderMain(client);
     loadClientReceipts(email);
     loadHealthDeclStatus(email);
+    loadLastReport(email);
     if (client.goal === 'peak_week') loadPeakWeekPlan();
   }
 
@@ -2898,12 +2899,52 @@ ${exLines || 'אין'}
       window._lastAiReport = text;
       document.getElementById('ai-report-body').innerHTML =
         `<div style="white-space:pre-wrap;font-size:0.88rem;line-height:1.7;color:#e5e5e5;">${esc(text)}</div>
-         <button onclick="navigator.clipboard.writeText(window._lastAiReport).then(()=>toast('הדוח הועתק ✓','ok'))" style="margin-top:14px;width:100%;padding:10px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);color:#fff;border-radius:10px;font-family:'Heebo';font-weight:700;font-size:0.85rem;cursor:pointer;">📋 העתק דוח</button>`;
+         <div style="display:flex;gap:8px;margin-top:14px;">
+           <button onclick="approveSendReport()" style="flex:1;padding:11px;background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;border:none;border-radius:10px;font-family:'Heebo';font-weight:800;font-size:0.88rem;cursor:pointer;">📩 אשר ושלח ללקוח</button>
+           <button onclick="navigator.clipboard.writeText(window._lastAiReport).then(()=>toast('הדוח הועתק ✓','ok'))" style="flex:0 0 auto;padding:11px 16px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);color:#fff;border-radius:10px;font-family:'Heebo';font-weight:700;font-size:0.85rem;cursor:pointer;">📋 העתק</button>
+         </div>`;
     } catch (e) {
       document.getElementById('ai-report-body').innerHTML = '<div style="text-align:center;color:#ff8080;padding:30px;">שגיאה ביצירת הדוח — נסה שוב</div>';
     }
   }
   function closeAiReport() { document.getElementById('ai-report-modal').style.display = 'none'; }
+
+  // approve the AI report → save it + deliver to the client's chat
+  async function approveSendReport() {
+    if (!requireEdit()) return;
+    const email = activeEmail; const text = window._lastAiReport;
+    if (!email || !text) return;
+    await sb.from('client_ai_reports').insert({ coach_email: coachEmail, client_email: email, content: text });
+    await sb.from('messages').insert({
+      coach_email: coachEmail, client_email: email, sender_email: coachEmail,
+      content: '📊 דוח התקדמות מהמאמן:\n\n' + text,
+    });
+    try {
+      const { data: tok } = await sb.from('push_tokens').select('onesignal_player_id').eq('user_email', email).maybeSingle();
+      if (tok?.onesignal_player_id) await sendPush([tok.onesignal_player_id], '📊 דוח התקדמות חדש', 'המאמן שלח לך סיכום התקדמות');
+    } catch (e) {}
+    _lastReportSent = new Date().toISOString();
+    closeAiReport();
+    toast('הדוח נשלח ללקוח ✓', 'ok');
+  }
+  // weekly cadence: last report sent date for the active client (shown on the card)
+  let _lastReportSent = null;
+  async function loadLastReport(email) {
+    try {
+      const { data } = await sb.from('client_ai_reports').select('sent_at').eq('client_email', email).order('sent_at', { ascending: false }).limit(1).maybeSingle();
+      _lastReportSent = data?.sent_at || null;
+    } catch (e) { _lastReportSent = null; }
+    const chip = document.getElementById('report-cadence-chip');
+    if (chip) {
+      if (!_lastReportSent) chip.innerHTML = '<span style="color:#fbbf24;">📊 טרם נשלח דוח</span>';
+      else {
+        const days = Math.floor((Date.now() - new Date(_lastReportSent)) / 864e5);
+        chip.innerHTML = days >= 7
+          ? `<span style="color:#fbbf24;">📊 דוח אחרון לפני ${days} ימים · מומלץ דוח שבועי</span>`
+          : `<span style="color:#4ade80;">📊 דוח נשלח לפני ${days} ימים ✓</span>`;
+      }
+    }
+  }
 
   /* ── HEALTH DECLARATION status (חתימה דיגיטלית) ── */
   let _lastSignedDoc = null;
@@ -2993,6 +3034,7 @@ ${exLines || 'אין'}
             👤 כרטיס קשר — ${esc(client.name)}
           </button>
           <span id="health-decl-chip" style="font-size:0.78rem;color:#777;">📝 הצהרת בריאות: בודק...</span>
+          <span id="report-cadence-chip" style="font-size:0.76rem;"></span>
         </div>
         <div id="injuries-block" style="margin-bottom:14px;padding:10px 14px;border-radius:12px;background:${(client.injuries&&client.injuries.length)?'rgba(248,113,113,0.08)':'rgba(255,255,255,0.03)'};border:1px solid ${(client.injuries&&client.injuries.length)?'rgba(248,113,113,0.35)':'rgba(255,255,255,0.08)'};">
           <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
