@@ -927,6 +927,9 @@
     <!-- STUDIO SECTION (studio clients: punch card + booking) -->
     <div id="studio-section" style="display:none;margin-bottom:20px;"></div>
 
+    <!-- REFERRAL CARD (invite a friend) -->
+    <div id="referral-card" style="display:none;margin-bottom:20px;"></div>
+
     <!-- AI INJURY GUIDANCE (shown only when the client has injuries) -->
     <div id="injury-ai-section" style="display:none;margin-bottom:20px;background:radial-gradient(120% 80% at 50% 0%,rgba(168,85,247,0.1),transparent 60%),linear-gradient(160deg,#17181c,#0d0e11);border:1px solid rgba(168,85,247,0.35);border-radius:14px;padding:16px;">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
@@ -1629,6 +1632,7 @@
     initInjuryGuidance();
     if (clientData?.studio_owner_email && (clientData.client_type === 'studio' || clientData.client_type === 'both')) renderStudioClient();
     renderWeightRow();
+    renderReferralCard();
     await loadWaterData();
     await Promise.all([loadCycle(), loadProgressEntries(), loadCoachBranding(client.coach_email), loadMessages(), loadCheckin()]);
     initPeriodCard(); // כרטיס מחזור לנשים
@@ -2331,6 +2335,45 @@
     showDashToast('הפציעה דווחה למאמן ✓');
   }
   let _studioBookings = [], _studioSlots = [];
+  /* 🎁 REFERRAL — the client's personal code + one-tap WhatsApp share */
+  async function renderReferralCard() {
+    const card = document.getElementById('referral-card'); if (!card || !clientData) return;
+    let code = clientData.referral_code;
+    if (!code) {
+      // lazily generate a unique short code and persist it
+      for (let attempt = 0; attempt < 5 && !code; attempt++) {
+        const base = (currentEmail.split('@')[0].replace(/[^a-z0-9]/gi, '').slice(0, 4).toUpperCase() || 'FIT');
+        const cand = base + Math.random().toString(36).slice(2, 6).toUpperCase();
+        const { error } = await sb.from('clients').update({ referral_code: cand }).eq('email', currentEmail).is('referral_code', null);
+        if (!error) { const { data: c2 } = await sb.from('clients').select('referral_code').eq('email', currentEmail).maybeSingle(); code = c2?.referral_code; }
+      }
+      clientData.referral_code = code;
+    }
+    if (!code) return;
+    const shareMsg = `היי! אני מתאמן/ת בליווי אישי והתוצאות מדברות 💪 בוא/י להצטרף — תגיד/י שהקוד שלי הוא ${code} ושנינו נקבל מתנה! 🎁`;
+    card.style.display = 'block';
+    card.innerHTML = `
+      <div style="background:radial-gradient(120% 80% at 50% 0%,rgba(255,215,0,0.1),transparent 60%),linear-gradient(160deg,#17181c,#0d0e11);border:1px solid rgba(255,215,0,0.3);border-radius:16px;padding:16px;">
+        <div style="font-weight:900;font-size:1.02rem;color:#fff;margin-bottom:4px;">🎁 הזמן חבר — ושניכם מרוויחים</div>
+        <div style="font-size:0.78rem;color:#aaa;margin-bottom:12px;">שתף את הקוד האישי שלך. חבר שיצטרף — שניכם מקבלים מתנה מהמאמן.</div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+          <div onclick="copyReferralCode('${code}')" style="flex:1;min-width:120px;text-align:center;background:rgba(255,215,0,0.08);border:1px dashed rgba(255,215,0,0.5);border-radius:10px;padding:10px;cursor:pointer;">
+            <div style="font-size:0.62rem;color:#888;">הקוד שלי (לחץ להעתקה)</div>
+            <div style="font-weight:900;font-size:1.3rem;color:#FFD700;letter-spacing:2px;">${code}</div>
+          </div>
+          <button onclick="shareReferral('${encodeURIComponent(shareMsg)}')" style="padding:12px 16px;background:linear-gradient(135deg,#25D366,#128C7E);color:#fff;border:none;border-radius:10px;font-family:'Heebo';font-size:0.84rem;font-weight:800;cursor:pointer;white-space:nowrap;">📲 שתף בוואטסאפ</button>
+        </div>
+      </div>`;
+  }
+  function copyReferralCode(code) {
+    navigator.clipboard?.writeText(code).then(() => showDashToast('הקוד הועתק ✓'), () => showDashToast(code));
+  }
+  function shareReferral(encMsg) {
+    const msg = decodeURIComponent(encMsg);
+    if (navigator.share) { navigator.share({ text: msg }).catch(() => {}); }
+    else { window.open('https://wa.me/?text=' + encMsg, '_blank'); }
+  }
+
   async function renderStudioClient() {
     const wrap = document.getElementById('studio-section'); if (!wrap) return;
     const owner = clientData.studio_owner_email;

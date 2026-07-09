@@ -481,6 +481,8 @@
         <div class="kpi-card" style="--kc:#fb923c;"><div class="kpi-val" id="kpi-debt-clients">—</div><div class="kpi-label">מתאמנים עם חוב</div></div>
       </div>
       <button onclick="openLtvReport()" style="width:100%;margin-bottom:20px;padding:10px;background:linear-gradient(135deg,rgba(167,139,250,0.15),rgba(255,107,0,0.1));border:1px solid rgba(167,139,250,0.4);border-radius:12px;color:#c4b5fd;font-family:'Heebo',sans-serif;font-size:0.85rem;font-weight:800;cursor:pointer;transition:all 0.15s;" onmouseover="this.style.borderColor='rgba(167,139,250,0.7)'" onmouseout="this.style.borderColor='rgba(167,139,250,0.4)'">📊 דוח LTV + שימור לקוחות (קוהורט)</button>
+      <!-- הפניות ממתינות (חבר מביא חבר) -->
+      <div id="lobby-referrals"></div>
       <!-- מתאמנים שדורשים תשומת לב -->
       <div id="lobby-alerts"></div>
       <div style="text-align:center;color:#333;font-size:0.85rem;margin-top:24px;">← בחר מתאמן מהרשימה לעריכה</div>
@@ -665,6 +667,7 @@
           </select>
         </div>
       </div>
+      <div class="f-group"><label>🎁 קוד חבר שהזמין (אופציונלי)</label><input id="new-refcode" placeholder="קוד הפניה" style="direction:ltr;text-align:right;text-transform:uppercase;"/></div>
     </div>
     <div id="add-err" style="margin-top:12px;font-size:0.82rem;color:#ff7070;display:none;"></div>
     <div class="modal-actions">
@@ -2849,6 +2852,8 @@
       })),
     ];
 
+    renderReferrals();
+
     const alertsEl = document.getElementById('lobby-alerts');
     if (!alertsEl) return;
     if (!alerts.length) { alertsEl.innerHTML = ''; return; }
@@ -2960,9 +2965,39 @@
       <div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:10px 14px;">${topClients}</div>`;
   }
 
+  /* 🎁 REFERRALS — pending referrals in the lobby + one-click reward of both sides */
+  async function renderReferrals() {
+    const box = document.getElementById('lobby-referrals'); if (!box) return;
+    const { data: refs } = await sb.from('referrals').select('*').eq('coach_email', coachEmail).eq('status', 'pending').order('created_at', { ascending: false });
+    if (!refs || !refs.length) { box.innerHTML = ''; return; }
+    const nameOf = e => clients.find(c => c.email === e)?.name || e.split('@')[0];
+    box.innerHTML = `
+      <div style="font-size:0.78rem;font-weight:900;color:var(--muted);margin-bottom:10px;letter-spacing:0.5px;">🎁 הפניות ממתינות לתגמול</div>
+      ${refs.map(r => `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;background:rgba(255,215,0,0.06);border:1px solid rgba(255,215,0,0.28);border-radius:12px;padding:10px 14px;margin-bottom:8px;flex-wrap:wrap;">
+        <div style="font-size:0.82rem;color:#ddd;"><b style="color:#FFD700;">${esc(nameOf(r.referrer_email))}</b> הזמין את <b style="color:#fff;">${esc(r.referee_name || nameOf(r.referee_email))}</b></div>
+        <button class="btn-sm btn-orange" style="font-size:0.72rem;" onclick="rewardReferral(${r.id})">✓ תגמל את שניהם</button>
+      </div>`).join('')}`;
+  }
+  async function rewardReferral(id) {
+    if (!requireEdit()) return;
+    const { data: r } = await sb.from('referrals').select('*').eq('id', id).eq('coach_email', coachEmail).maybeSingle();
+    if (!r) return;
+    const note = prompt('מה התגמול שנתת לשני הצדדים? (יירשם ויישלח כהודעה לשניהם)', 'אימון מתנה 🎁');
+    if (note === null) return;
+    const { error } = await sb.from('referrals').update({ status: 'rewarded', reward_note: note, rewarded_at: new Date().toISOString() }).eq('id', id).eq('coach_email', coachEmail);
+    if (error) { toast('שגיאה: ' + error.message, 'err'); return; }
+    // congratulate both sides in chat
+    await sb.from('messages').insert([
+      { coach_email: coachEmail, client_email: r.referrer_email, sender_email: coachEmail, content: `🎁 תודה שהבאת חבר! התגמול שלך: ${note}. כל הכבוד 🙌` },
+      { coach_email: coachEmail, client_email: r.referee_email, sender_email: coachEmail, content: `🎁 ברוך הבא! קיבלת מתנת הצטרפות: ${note}. בוא נתחיל חזק 💪` },
+    ]);
+    renderReferrals();
+    toast('שני הצדדים תוגמלו ✓', 'ok');
+  }
+
   function openAddModal() {
     document.getElementById('add-modal').classList.add('open');
-    ['new-name','new-email','new-start','new-end'].forEach(id => document.getElementById(id).value = '');
+    ['new-name','new-email','new-start','new-end','new-refcode'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
     document.getElementById('add-err').style.display = 'none';
   }
   function closeAddModal() {
@@ -2981,13 +3016,21 @@
     const btn    = document.getElementById('add-btn');
     errEl.style.display = 'none';
     if (!name || !email || !start || !end) { errEl.textContent = 'יש למלא את כל השדות'; errEl.style.display = 'block'; return; }
+    const refCode = (document.getElementById('new-refcode')?.value || '').trim().toUpperCase();
     btn.disabled = true; btn.textContent = 'מוסיף...';
-    const { error } = await sb.from('clients').insert({ email, name, coaching_start: start, coaching_end: end, plan_type: plan, gender, coach_email: coachEmail });
+    const { error } = await sb.from('clients').insert({ email, name, coaching_start: start, coaching_end: end, plan_type: plan, gender, coach_email: coachEmail, referred_by_code: refCode || null });
     btn.disabled = false; btn.textContent = 'הוסף מתאמן';
     if (error) { errEl.textContent = error.message; errEl.style.display = 'block'; return; }
+    // 🎁 attribute the referral to whoever owns that code (a client of this coach)
+    if (refCode) {
+      const { data: referrer } = await sb.from('clients').select('email').eq('coach_email', coachEmail).eq('referral_code', refCode).maybeSingle();
+      if (referrer && referrer.email !== email) {
+        await sb.from('referrals').insert({ coach_email: coachEmail, referrer_email: referrer.email, referee_email: email, referee_name: name, status: 'pending' });
+      }
+    }
     closeAddModal();
     await loadClients();
-    toast(`${name} נוסף בהצלחה ✓`, 'ok');
+    toast(`${name} נוסף בהצלחה ✓${refCode ? ' · הפניה נרשמה 🎁' : ''}`, 'ok');
   }
 
   /* ── CHURN ALERTS (מניעת נטישה) ── */
