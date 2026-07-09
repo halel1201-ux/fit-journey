@@ -919,7 +919,8 @@
         <div style="display:flex;gap:8px;flex-wrap:wrap;" id="studio-tabs">
           <button class="btn-sm btn-orange" data-st="calendar" onclick="studioTab('calendar')">📅 יומן שיבוצים</button>
           <button class="btn-sm btn-outline" data-st="coaches" onclick="studioTab('coaches')">👥 מאמנים</button>
-          <button class="btn-sm btn-outline" data-st="packages" onclick="studioTab('packages')">📦 חבילות וחוזים</button>
+          <button class="btn-sm btn-outline" data-st="clientpkg" onclick="studioTab('clientpkg')">🎟️ חבילות ללקוחות</button>
+          <button class="btn-sm btn-outline" data-st="packages" onclick="studioTab('packages')">📦 המנוי שלי</button>
         </div>
       </div>
       <div id="studio-tab-body"></div>`;
@@ -1005,7 +1006,138 @@
     document.querySelectorAll('#studio-tabs [data-st]').forEach(b => b.className = 'btn-sm ' + (b.dataset.st === tab ? 'btn-orange' : 'btn-outline'));
     if (tab === 'calendar')      renderStudioCalendarTab();
     else if (tab === 'coaches')  renderStudioCoachesTab();
+    else if (tab === 'clientpkg') renderStudioClientPkgTab();
     else if (tab === 'packages') renderStudioPackagesTab();
+  }
+
+  /* ── CLIENT PACKAGES tab (owner-defined catalog: sessions + coaching-period) ── */
+  let studioPackages = [], studioPkgOrders = [];
+  async function loadStudioPackages() {
+    const [{ data: pk }, { data: ord }] = await Promise.all([
+      sb.from('studio_packages').select('*').eq('owner_email', coachEmail).order('id'),
+      sb.from('studio_package_orders').select('*').eq('owner_email', coachEmail).eq('status', 'requested').order('created_at', { ascending: false }),
+    ]);
+    studioPackages = pk || []; studioPkgOrders = ord || [];
+  }
+  async function renderStudioClientPkgTab() {
+    const body = document.getElementById('studio-tab-body');
+    body.innerHTML = '<div class="sec-card"><div style="color:#666;padding:14px;">טוען...</div></div>';
+    await loadStudioPackages();
+    const reqRows = studioPkgOrders.length ? studioPkgOrders.map(o => `
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:9px 12px;border-bottom:1px solid rgba(255,255,255,0.05);">
+        <div><b style="color:#fff;">${esc(o.client_email.split('@')[0])}</b> · ${esc(o.name)} <span style="color:#888;font-size:0.72rem;">(${o.kind==='sessions'?o.sessions+' אימונים':o.months+' חודשים'} · ₪${o.price})</span></div>
+        <div style="display:flex;gap:5px;">
+          <button class="btn-sm btn-orange" style="font-size:0.7rem;" onclick="approvePkgOrder(${o.id})">אשר והחל</button>
+          <button class="btn-sm btn-outline" style="font-size:0.7rem;border-color:rgba(248,113,113,0.35);color:#f87171;" onclick="rejectPkgOrder(${o.id})">דחה</button>
+        </div>
+      </div>`).join('') : '<div style="color:#4ade80;font-size:0.82rem;padding:8px;">✓ אין בקשות ממתינות</div>';
+    const pkgRows = studioPackages.length ? studioPackages.map(p => `
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:9px 12px;border-bottom:1px solid rgba(255,255,255,0.05);">
+        <div><b style="color:#fff;">${esc(p.name)}</b> <span style="font-size:0.72rem;color:${p.kind==='sessions'?'#FFD700':'#4ade80'};">${p.kind==='sessions'?'🎫 '+p.sessions+' אימונים':'⏳ '+p.months+' חודשים'}</span> <span style="color:#FF8C00;font-weight:800;">₪${p.price}</span>${p.active?'':' <span style="color:#888;font-size:0.7rem;">(לא פעיל)</span>'}</div>
+        <button onclick="deleteStudioPackage(${p.id})" style="background:none;border:none;color:#f87171;cursor:pointer;">✕</button>
+      </div>`).join('') : '<div style="color:#666;padding:10px;">אין חבילות עדיין</div>';
+    body.innerHTML = `
+      <div class="sec-card" style="margin-bottom:14px;">
+        <div class="sec-card-title">📥 בקשות חבילה ממתינות</div>
+        ${reqRows}
+      </div>
+      <div class="sec-card">
+        <div class="sec-card-title">🎟️ קטלוג החבילות שלי</div>
+        <div style="font-size:0.75rem;color:#888;margin-bottom:12px;">חבילות שהלקוחות שלך יכולים להתחיל/לחדש לפיהן. אימונים = כרטיסיית ניקוב · ליווי = תקופה.</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+          <input id="pk-name" placeholder="שם החבילה" style="grid-column:1/-1;padding:8px 10px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:#fff;font-family:'Heebo';"/>
+          <select id="pk-kind" onchange="document.getElementById('pk-qty-wrap').innerHTML=this.value==='sessions'?'<input id=pk-qty type=number placeholder=\\'מס׳ אימונים\\' min=1 style=&quot;width:100%;padding:8px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:#fff;font-family:Heebo;&quot;>':'<input id=pk-qty type=number placeholder=\\'מס׳ חודשים\\' min=1 style=&quot;width:100%;padding:8px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:#fff;font-family:Heebo;&quot;>';" style="padding:8px;background:#1c1e24;border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:#fff;font-family:'Heebo';">
+            <option value="sessions">🎫 חבילת אימונים</option>
+            <option value="period">⏳ חבילת ליווי</option>
+          </select>
+          <div id="pk-qty-wrap"><input id="pk-qty" type="number" placeholder="מס׳ אימונים" min="1" style="width:100%;padding:8px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:#fff;font-family:'Heebo';"/></div>
+          <input id="pk-price" type="number" placeholder="מחיר ₪" min="0" style="grid-column:1/-1;padding:8px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:#fff;font-family:'Heebo';"/>
+        </div>
+        <button class="btn-sm btn-orange" style="width:100%;margin-bottom:14px;" onclick="addStudioPackage()">+ הוסף חבילה</button>
+        ${pkgRows}
+      </div>`;
+  }
+  async function addStudioPackage() {
+    if (!requireEdit()) return;
+    const name = (document.getElementById('pk-name').value||'').trim();
+    const kind = document.getElementById('pk-kind').value;
+    const qty = parseInt(document.getElementById('pk-qty').value)||0;
+    const price = parseInt(document.getElementById('pk-price').value)||0;
+    if (!name) { toast('הזן שם חבילה','err'); return; }
+    if (qty <= 0) { toast(kind==='sessions'?'הזן מס׳ אימונים':'הזן מס׳ חודשים','err'); return; }
+    const { error } = await sb.from('studio_packages').insert({ owner_email: coachEmail, name, kind, sessions: kind==='sessions'?qty:0, months: kind==='period'?qty:0, price });
+    if (error) { toast('שגיאה: '+error.message,'err'); return; }
+    renderStudioClientPkgTab(); toast('חבילה נוספה ✓','ok');
+  }
+  async function deleteStudioPackage(id) {
+    if (!confirm('למחוק חבילה מהקטלוג?')) return;
+    await sb.from('studio_packages').delete().eq('id', id).eq('owner_email', coachEmail);
+    renderStudioClientPkgTab(); toast('נמחק','ok');
+  }
+  // apply a package to a client (renew/start) — the single source of truth for both flows
+  async function applyPackageToClient(clientEmail, pkg, orderId) {
+    const { data: cl } = await sb.from('clients').select('sessions_remaining,coaching_end,client_type').eq('email', clientEmail).maybeSingle();
+    if (!cl) { toast('לקוח לא נמצא','err'); return false; }
+    const patch = {};
+    if (pkg.kind === 'sessions') {
+      patch.sessions_remaining = (cl.sessions_remaining||0) + (pkg.sessions||0);
+      patch.client_type = cl.client_type === 'coaching' ? 'both' : (cl.client_type || 'studio');
+      if (patch.client_type === 'coaching') patch.client_type = 'both';
+      patch.studio_owner_email = coachEmail;
+    } else {
+      const base = cl.coaching_end && cl.coaching_end >= todayStr() ? new Date(cl.coaching_end) : new Date();
+      base.setMonth(base.getMonth() + (pkg.months||0));
+      patch.coaching_end = base.toISOString().slice(0,10);
+      patch.client_type = cl.client_type === 'studio' ? 'both' : (cl.client_type || 'coaching');
+      if (patch.client_type === 'studio') patch.client_type = 'both';
+      patch.studio_owner_email = coachEmail;
+    }
+    const { error } = await sb.from('clients').update(patch).eq('email', clientEmail);
+    if (error) { toast('שגיאה: '+error.message,'err'); return false; }
+    await sb.from('studio_package_orders').insert({ owner_email: coachEmail, client_email: clientEmail, package_id: pkg.id||null, name: pkg.name, kind: pkg.kind, sessions: pkg.sessions||0, months: pkg.months||0, price: pkg.price||0, status: 'active', applied: true, approved_at: new Date().toISOString() });
+    if (orderId) await sb.from('studio_package_orders').update({ status: 'active', applied: true, approved_at: new Date().toISOString() }).eq('id', orderId);
+    return true;
+  }
+  async function approvePkgOrder(orderId) {
+    if (!requireEdit()) return;
+    const o = studioPkgOrders.find(x=>x.id===orderId); if (!o) return;
+    const ok = await applyPackageToClient(o.client_email, { id:o.package_id, name:o.name, kind:o.kind, sessions:o.sessions, months:o.months, price:o.price }, orderId);
+    if (ok) { await loadClients(); renderStudioClientPkgTab(); toast('החבילה הוחלה ללקוח ✓','ok'); }
+  }
+  async function rejectPkgOrder(orderId) {
+    await sb.from('studio_package_orders').update({ status:'rejected' }).eq('id', orderId).eq('owner_email', coachEmail);
+    renderStudioClientPkgTab(); toast('נדחה','ok');
+  }
+
+  // owner assigns/renews a package to a client directly from the client card
+  async function openAssignPackage(clientEmail) {
+    if (!requireEdit()) return;
+    await loadStudioPackages();
+    const cl = clients.find(c=>c.email===clientEmail);
+    const active = studioPackages.filter(p=>p.active);
+    if (!active.length) { toast('קודם הגדר חבילות בקטלוג 🎟️','err'); return; }
+    const rows = active.map(p => `
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 12px;border:1px solid rgba(255,255,255,0.08);border-radius:10px;margin-bottom:6px;">
+        <div><b style="color:#fff;">${esc(p.name)}</b> <span style="font-size:0.74rem;color:${p.kind==='sessions'?'#FFD700':'#4ade80'};">${p.kind==='sessions'?'🎫 '+p.sessions+' אימונים':'⏳ '+p.months+' חודשים'} · ₪${p.price}</span></div>
+        <button class="btn-sm btn-orange" style="font-size:0.72rem;" onclick="assignPkg('${esc(clientEmail)}',${p.id})">החל</button>
+      </div>`).join('');
+    document.getElementById('studio-modal-body').innerHTML = `
+      <div style="font-weight:900;font-size:1.05rem;color:#fff;margin-bottom:4px;">🎟️ חבילה ל-${esc(cl?.name||clientEmail.split('@')[0])}</div>
+      <div style="font-size:0.74rem;color:#888;margin-bottom:6px;">כרטיסייה: ${cl?.sessions_remaining||0} אימונים · ליווי עד: ${cl?.coaching_end||'—'}</div>
+      <div style="font-size:0.7rem;color:#888;margin-bottom:12px;">חבילת אימונים תתווסף לכרטיסייה · חבילת ליווי תאריך את תקופת הליווי.</div>
+      ${rows}`;
+    document.getElementById('studio-modal').style.display = 'flex';
+  }
+  async function assignPkg(clientEmail, pkgId) {
+    const p = studioPackages.find(x=>x.id===pkgId); if (!p) return;
+    if (!confirm(`להחיל "${p.name}" ל-${clientEmail}?`)) return;
+    const ok = await applyPackageToClient(clientEmail, p, null);
+    if (ok) {
+      document.getElementById('studio-modal').style.display='none';
+      await loadClients();
+      const c = clients.find(x=>x.email===clientEmail); if (c && activeEmail===clientEmail) renderMain(c);
+      toast('החבילה הוחלה ✓','ok');
+    }
   }
 
   /* ── CALENDAR tab (owner view: define slots, approve coaches, see bookings) ── */
@@ -3295,6 +3427,7 @@ ${exLines || 'אין'}
           </button>
           <span id="health-decl-chip" style="font-size:0.78rem;color:#777;">📝 הצהרת בריאות: בודק...</span>
           <span id="report-cadence-chip" style="font-size:0.76rem;"></span>
+          ${isStudioOwner ? `<button class="btn-sm btn-outline" onclick="openAssignPackage('${esc(client.email)}')" style="font-size:0.72rem;border-color:rgba(255,215,0,0.4);color:#FFD700;">🎟️ חבילה / חידוש</button>` : ''}
         </div>
         <div id="injuries-block" style="margin-bottom:14px;padding:10px 14px;border-radius:12px;background:${(client.injuries&&client.injuries.length)?'rgba(248,113,113,0.08)':'rgba(255,255,255,0.03)'};border:1px solid ${(client.injuries&&client.injuries.length)?'rgba(248,113,113,0.35)':'rgba(255,255,255,0.08)'};">
           <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
