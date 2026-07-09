@@ -483,6 +483,8 @@
       <button onclick="openLtvReport()" style="width:100%;margin-bottom:20px;padding:10px;background:linear-gradient(135deg,rgba(167,139,250,0.15),rgba(255,107,0,0.1));border:1px solid rgba(167,139,250,0.4);border-radius:12px;color:#c4b5fd;font-family:'Heebo',sans-serif;font-size:0.85rem;font-weight:800;cursor:pointer;transition:all 0.15s;" onmouseover="this.style.borderColor='rgba(167,139,250,0.7)'" onmouseout="this.style.borderColor='rgba(167,139,250,0.4)'">📊 דוח LTV + שימור לקוחות (קוהורט)</button>
       <!-- הפניות ממתינות (חבר מביא חבר) -->
       <div id="lobby-referrals"></div>
+      <!-- Win-Back — לקוחות שנטשו וכדאי להחזיר -->
+      <div id="lobby-winback"></div>
       <!-- מתאמנים שדורשים תשומת לב -->
       <div id="lobby-alerts"></div>
       <div style="text-align:center;color:#333;font-size:0.85rem;margin-top:24px;">← בחר מתאמן מהרשימה לעריכה</div>
@@ -2878,6 +2880,7 @@
     ];
 
     renderReferrals();
+    renderWinBack();
 
     const alertsEl = document.getElementById('lobby-alerts');
     if (!alertsEl) return;
@@ -2988,6 +2991,50 @@
 
       <div style="font-weight:800;font-size:0.9rem;color:#fff;margin-bottom:6px;">🏆 5 הלקוחות המובילים ב-LTV</div>
       <div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:10px 14px;">${topClients}</div>`;
+  }
+
+  /* 🔄 WIN-BACK — churned clients worth re-engaging (computed from loaded clients).
+     Window: coaching ended 14–120 days ago, no active card, not frozen, not yet
+     sent a win-back offer. One click sends a personalised comeback message. */
+  function winBackList() {
+    const today = todayStr();
+    const dayMs = 86400000, now = Date.now();
+    return clients.filter(c => {
+      if (c.frozen_until && c.frozen_until >= today) return false;
+      if ((c.sessions_remaining || 0) > 0) return false;           // still has a card
+      if (c.winback_sent_at) return false;                         // already reached out
+      if (!c.coaching_end) return false;
+      const daysSince = Math.floor((now - new Date(c.coaching_end + 'T12:00:00').getTime()) / dayMs);
+      return daysSince >= 14 && daysSince <= 120;                  // churned but reachable
+    });
+  }
+  function renderWinBack() {
+    const box = document.getElementById('lobby-winback'); if (!box) return;
+    const list = winBackList();
+    if (!list.length) { box.innerHTML = ''; return; }
+    box.innerHTML = `
+      <div style="font-size:0.78rem;font-weight:900;color:var(--muted);margin-bottom:10px;letter-spacing:0.5px;">🔄 שווה להחזיר — לקוחות שנטשו</div>
+      ${list.map(c => {
+        const days = Math.floor((Date.now() - new Date(c.coaching_end + 'T12:00:00').getTime()) / 86400000);
+        return `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;background:rgba(168,85,247,0.06);border:1px solid rgba(168,85,247,0.28);border-radius:12px;padding:10px 14px;margin-bottom:8px;flex-wrap:wrap;">
+          <div style="font-size:0.82rem;color:#ddd;"><b style="color:#fff;">${esc(c.name)}</b> <span style="color:#888;font-size:0.72rem;">· סיים לפני ${days} ימים</span></div>
+          <button class="btn-sm btn-orange" style="font-size:0.72rem;" onclick="sendWinBack('${esc(c.email)}')">🔄 שלח הצעת חזרה</button>
+        </div>`;
+      }).join('')}`;
+  }
+  async function sendWinBack(email) {
+    if (!requireEdit()) return;
+    const c = clients.find(x => x.email === email); if (!c) return;
+    const first = (c.name || '').split(' ')[0] || '';
+    const dflt = `היי ${first}! 👋 מזמן לא התאמנו יחד — התגעגעתי. חזרתי אליך עם הצעה מיוחדת לחזרה לתהליך. מתי נוח לך לדבר? בוא נחזיר אותך לכושר 💪`;
+    const msg = prompt('הודעת חזרה ללקוח (אפשר לערוך):', dflt);
+    if (msg === null) return;
+    const { error } = await sb.from('messages').insert({ coach_email: coachEmail, client_email: email, sender_email: coachEmail, content: msg });
+    if (error) { toast('שגיאה: ' + error.message, 'err'); return; }
+    await sb.from('clients').update({ winback_sent_at: new Date().toISOString() }).eq('email', email).eq('coach_email', coachEmail);
+    c.winback_sent_at = new Date().toISOString();
+    renderWinBack();
+    toast('הצעת חזרה נשלחה ✓', 'ok');
   }
 
   /* 🎁 REFERRALS — pending referrals in the lobby + one-click reward of both sides */
