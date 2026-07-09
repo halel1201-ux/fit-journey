@@ -2051,6 +2051,7 @@
           technique:   ex.technique  || null,
           restTime: ex.rest_time || 90,
           linked_next: !!ex.linked_next,
+          overloadTip: computeOverloadTip(setsArr, prevSetReps, prevSetWeights),
           sets: setsArr.map((s, si) => {
             const setType = s.set_type || 'working';
             // Use this set's prev weight (or last set's weight if not enough sets)
@@ -2159,6 +2160,33 @@
       });
     }
     return result;
+  }
+
+  /* 📈 PROGRESSIVE OVERLOAD — actionable per-exercise tip from last session's
+     reps vs. the prescribed range. Hit the top → raise weight; below → hold and
+     fix form; within → same weight, chase an extra rep. */
+  function computeOverloadTip(setsArr, prevReps, prevWeights) {
+    if (!prevReps || !prevReps.length || !prevWeights || !prevWeights.some(w => w > 0)) return null;
+    let hit = 0, below = 0, tot = 0;
+    setsArr.forEach((s, si) => {
+      const target = s.reps_max || s.reps_min || 0;
+      const r = prevReps[si] || 0;
+      if (!target || !r) return;
+      tot++;
+      if (r >= target) hit++;
+      else if (r < (s.reps_min || target)) below++;
+    });
+    if (!tot) return null;
+    const topW = Math.max(...prevWeights.filter(w => w > 0));
+    if (hit >= Math.ceil(tot * 0.6)) {
+      const inc = topW < 20 ? 1 : topW < 40 ? 2.5 : Math.round(topW * 0.025 * 2) / 2;
+      const newW = Math.round((topW + inc) * 2) / 2;
+      return { icon: '📈', color: '#4ade80', text: `הגעת ליעד החזרות בפעם הקודמת — נסה להעלות ל-${newW} ק״ג` };
+    }
+    if (below >= Math.ceil(tot * 0.6)) {
+      return { icon: '🔧', color: '#fbbf24', text: `שמור על ${topW} ק״ג והתמקד בטכניקה עד שתגיע לטווח החזרות` };
+    }
+    return { icon: '💪', color: '#7dd3fc', text: `אותו משקל (${topW} ק״ג) — שאף לעוד חזרה בכל סט` };
   }
 
   // per-set reps from the MOST RECENT logged session of this day (autofill "previous")
@@ -2713,6 +2741,7 @@
             <input type="file" id="setvid-inp-${ei}" accept="video/*" capture="environment" style="display:none;" onchange="attachSetVideo(${ei}, this.files[0]); this.value='';">
           </div>
         </div>
+        ${ex.overloadTip ? `<div style="margin:4px 0 6px;padding:7px 10px;background:${ex.overloadTip.color}14;border:1px solid ${ex.overloadTip.color}55;border-radius:8px;font-size:0.78rem;line-height:1.45;color:${ex.overloadTip.color};">${ex.overloadTip.icon} <strong>עומס מתקדם:</strong> ${esc(ex.overloadTip.text)}</div>` : ''}
         ${tech ? `<div style="margin:4px 0 6px;padding:8px 10px;background:rgba(124,58,237,0.12);border:1px solid rgba(168,85,247,0.4);border-radius:8px;font-size:0.8rem;line-height:1.5;color:#c4a5ff;"><strong style="color:#c4a5ff;">🎯 ${tech.name}:</strong> ${esc(tech.explain)}</div>` : ''}
         ${ex.description ? `<div class="session-ex-desc">${esc(ex.description)}</div>` : ''}
         <div class="rest-ctrl">
