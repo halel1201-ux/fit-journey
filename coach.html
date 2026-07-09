@@ -1428,13 +1428,22 @@
     const ct = studioClassTypes.find(t=>t.id===s.class_type_id);
     const coachOpts = [`<option value="">— ללא —</option>`, `<option value="${esc(coachEmail)}" ${s.coach_email===coachEmail?'selected':''}>${esc(coachName||coachEmail)} (אני)</option>`, ...studioCoaches.map(c=>`<option value="${esc(c.coach_email)}" ${s.coach_email===c.coach_email?'selected':''}>${esc(c.coach_email.split('@')[0])}</option>`)].join('');
     const editable = (new Date(s.slot_start).getTime() - Date.now()) > 15*3600*1000;
+    const happened = new Date(s.slot_start).getTime() <= Date.now(); // class started/passed → attendance can be marked
+    const attBtns = b => {
+      const yes = b.attended === true, no = b.attended === false;
+      return `<span style="display:inline-flex;gap:3px;">
+        <button onclick="markAttendance(${b.id},true)" title="הגיע" style="padding:3px 7px;border-radius:6px;cursor:pointer;font-size:0.72rem;border:1px solid ${yes?'#4ade80':'rgba(255,255,255,0.15)'};background:${yes?'rgba(74,222,128,0.18)':'transparent'};color:${yes?'#4ade80':'#888'};">✅</button>
+        <button onclick="markAttendance(${b.id},false)" title="לא הגיע (No-Show)" style="padding:3px 7px;border-radius:6px;cursor:pointer;font-size:0.72rem;border:1px solid ${no?'#f87171':'rgba(255,255,255,0.15)'};background:${no?'rgba(248,113,113,0.18)':'transparent'};color:${no?'#f87171':'#888'};">🚫</button>
+      </span>`;
+    };
     const bookedRows = (s._bookings||[]).map(b => {
       const nm = esc((b.client_email||'').split('@')[0]);
-      return `<div style="display:flex;align-items:center;gap:6px;padding:5px 0;font-size:0.76rem;border-bottom:1px solid rgba(255,255,255,0.04);">
+      return `<div style="display:flex;align-items:center;gap:6px;padding:5px 0;font-size:0.76rem;border-bottom:1px solid rgba(255,255,255,0.04);flex-wrap:wrap;">
         <span style="color:#ddd;min-width:70px;">${nm}</span>
         ${editable ? `<input id="bwk-${b.id}" value="${esc(b.workout||'')}" placeholder="סוג אימון..." style="flex:1;min-width:0;padding:3px 8px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:6px;color:#fff;font-family:'Heebo';font-size:0.72rem;"/>
           <button class="btn-sm btn-orange" style="font-size:0.62rem;padding:3px 8px;" onclick="setBookingWorkout(${b.id})">✓</button>`
-          : `<span style="color:#888;">🏋️ ${esc(b.workout||'—')}</span>`}
+          : `<span style="flex:1;color:#888;">🏋️ ${esc(b.workout||'—')}</span>`}
+        ${happened ? attBtns(b) : ''}
       </div>`;
     }).join('') || '<div style="color:#666;font-size:0.76rem;padding:6px 0;">אין מתאמנים משובצים</div>';
     document.getElementById('studio-modal-body').innerHTML = `
@@ -1482,6 +1491,22 @@
     const s = studioSlots.find(x => (x._bookings || []).some(b => b.id === bookingId));
     const b = s && s._bookings.find(x => x.id === bookingId); if (b) b.workout = val;
     toast('סוג האימון נשמר ✓', 'ok');
+  }
+  /* 🚫 mark attendance / no-show for a booked trainee (toggle off if same value clicked) */
+  async function markAttendance(bookingId, attended) {
+    if (!requireEdit()) return;
+    const s = studioSlots.find(x => (x._bookings || []).some(b => b.id === bookingId));
+    const b = s && s._bookings.find(x => x.id === bookingId); if (!b) return;
+    const next = (b.attended === attended) ? null : attended;   // click same → clear
+    const { error } = await sb.from('studio_bookings').update({ attended: next }).eq('id', bookingId).eq('owner_email', coachEmail);
+    if (error) { toast('שגיאה: ' + error.message, 'err'); return; }
+    b.attended = next;
+    if (next === false) {   // gentle no-show nudge to the client
+      await sb.from('messages').insert({ coach_email: coachEmail, client_email: b.client_email, sender_email: coachEmail,
+        content: '📩 רשמנו שלא הגעת לאימון שנקבע. הכל בסדר? אם צריך לתאם מחדש — אני כאן. נשמור על הרצף 🙏' });
+    }
+    openSlotEditor(s.id);
+    toast(next === true ? 'סומן: הגיע ✅' : next === false ? 'סומן: לא הגיע 🚫' : 'הנוכחות אופסה', 'ok');
   }
 
   /* ── COACHES tab (owner creates coaches with name + password, capped by package) ── */
@@ -3630,6 +3655,7 @@ ${exLines || 'אין'}
           </button>
           <span id="health-decl-chip" style="font-size:0.78rem;color:#777;">📝 הצהרת בריאות: בודק...</span>
           <span id="report-cadence-chip" style="font-size:0.76rem;"></span>
+          ${(client.no_show_count||0) >= 3 ? `<span title="היעדרויות מצטברות — שווה שיחה" style="font-size:0.72rem;font-weight:900;color:#f87171;background:rgba(248,113,113,0.1);border:1px solid rgba(248,113,113,0.35);border-radius:8px;padding:2px 8px;">🚫 ${client.no_show_count} היעדרויות</span>` : ''}
           ${isStudioOwner ? `<button class="btn-sm btn-outline" onclick="openAssignPackage('${esc(client.email)}')" style="font-size:0.72rem;border-color:rgba(255,215,0,0.4);color:#FFD700;">🎟️ חבילה / חידוש</button>` : ''}
         </div>
         <div id="injuries-block" style="margin-bottom:14px;padding:10px 14px;border-radius:12px;background:${(client.injuries&&client.injuries.length)?'rgba(248,113,113,0.08)':'rgba(255,255,255,0.03)'};border:1px solid ${(client.injuries&&client.injuries.length)?'rgba(248,113,113,0.35)':'rgba(255,255,255,0.08)'};">
