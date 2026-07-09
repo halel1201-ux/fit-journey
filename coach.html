@@ -1341,9 +1341,26 @@
   async function loadStudioCoachNames() {
     if (!studioCoaches.length) return;
     const emails = studioCoaches.map(c => c.coach_email);
-    const { data } = await sb.from('coaches').select('email,name').in('email', emails);
-    const nm = {}; (data || []).forEach(c => nm[c.email] = c.name);
-    studioCoaches.forEach(c => c._name = nm[c.coach_email] || c.coach_email.split('@')[0]);
+    // this month's window (local)
+    const now = new Date();
+    const mStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+    const mEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1).toISOString();
+    const [{ data: names }, { data: slots }] = await Promise.all([
+      sb.from('coaches').select('email,name').in('email', emails),
+      sb.from('studio_slots').select('coach_email,slot_start,slot_end').eq('owner_email', coachEmail).gte('slot_start', mStart).lt('slot_start', mEnd).neq('status', 'cancelled'),
+    ]);
+    const nm = {}; (names || []).forEach(c => nm[c.email] = c.name);
+    // sum scheduled hours per coach this month
+    const hrs = {};
+    (slots || []).forEach(s => {
+      if (!s.coach_email) return;
+      const dur = s.slot_end ? (new Date(s.slot_end) - new Date(s.slot_start)) / 3600000 : 1;
+      hrs[s.coach_email] = (hrs[s.coach_email] || 0) + dur;
+    });
+    studioCoaches.forEach(c => {
+      c._name = nm[c.coach_email] || c.coach_email.split('@')[0];
+      c._hours = Math.round((hrs[c.coach_email] || 0) * 10) / 10;
+    });
   }
   async function renderStudioCoachesTab() {
     const body = document.getElementById('studio-tab-body');
@@ -1354,7 +1371,8 @@
     const rows = studioCoaches.length ? studioCoaches.map(sc => `
       <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid rgba(255,255,255,0.05);">
         <div style="min-width:0;"><div style="font-weight:700;color:#fff;">${esc(sc._name || sc.coach_email)}</div>
-          <div style="font-size:0.72rem;color:#888;direction:ltr;text-align:right;">${esc(sc.coach_email)}</div></div>
+          <div style="font-size:0.72rem;color:#888;direction:ltr;text-align:right;">${esc(sc.coach_email)}</div>
+          <div style="font-size:0.7rem;color:#FFD700;margin-top:2px;">🕐 ${sc._hours || 0} שעות שובצו החודש</div></div>
         <div style="display:flex;gap:5px;flex-shrink:0;">
           <button class="btn-sm btn-outline" onclick="setStudioCoachPassword('${esc(sc.coach_email)}')" style="font-size:0.7rem;border-color:rgba(255,215,0,0.35);color:#FFD700;">🔑 סיסמה</button>
           <button class="btn-sm btn-outline" onclick="removeStudioCoach('${esc(sc.coach_email)}')" style="border-color:rgba(248,113,113,0.4);color:#f87171;font-size:0.7rem;">הסר</button>
