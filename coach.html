@@ -476,10 +476,11 @@
       </div>
       <!-- מצב כספי כללי -->
       <div style="font-size:0.78rem;font-weight:900;color:var(--muted);margin-bottom:10px;letter-spacing:0.5px;">💰 מצב כספי כללי</div>
-      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:20px;">
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:14px;">
         <div class="kpi-card" style="--kc:#f87171;"><div class="kpi-val" id="kpi-debt-open">—</div><div class="kpi-label">חוב פתוח כולל</div></div>
         <div class="kpi-card" style="--kc:#fb923c;"><div class="kpi-val" id="kpi-debt-clients">—</div><div class="kpi-label">מתאמנים עם חוב</div></div>
       </div>
+      <button onclick="openLtvReport()" style="width:100%;margin-bottom:20px;padding:10px;background:linear-gradient(135deg,rgba(167,139,250,0.15),rgba(255,107,0,0.1));border:1px solid rgba(167,139,250,0.4);border-radius:12px;color:#c4b5fd;font-family:'Heebo',sans-serif;font-size:0.85rem;font-weight:800;cursor:pointer;transition:all 0.15s;" onmouseover="this.style.borderColor='rgba(167,139,250,0.7)'" onmouseout="this.style.borderColor='rgba(167,139,250,0.4)'">📊 דוח LTV + שימור לקוחות (קוהורט)</button>
       <!-- מתאמנים שדורשים תשומת לב -->
       <div id="lobby-alerts"></div>
       <div style="text-align:center;color:#333;font-size:0.85rem;margin-top:24px;">← בחר מתאמן מהרשימה לעריכה</div>
@@ -488,6 +489,17 @@
 </div>
 
 <div class="toast" id="toast"></div>
+
+<!-- LTV + COHORT REPORT -->
+<div id="ltv-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:1000;overflow-y:auto;padding:16px;">
+  <div style="max-width:760px;margin:0 auto;background:linear-gradient(160deg,#17181c,#0d0e11);border:1px solid rgba(167,139,250,0.3);border-radius:16px;padding:18px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+      <div style="font-weight:900;font-size:1.15rem;color:#fff;">📊 דוח LTV + שימור לקוחות</div>
+      <button onclick="document.getElementById('ltv-overlay').style.display='none'" style="background:none;border:none;color:#888;font-size:1.4rem;cursor:pointer;">✕</button>
+    </div>
+    <div id="ltv-body"><div style="color:#888;text-align:center;padding:30px;">טוען...</div></div>
+  </div>
+</div>
 
 <!-- PLANS OVERLAY -->
 <div class="plans-overlay" id="plans-overlay">
@@ -2851,6 +2863,101 @@
             <div class="lobby-alert-sub">${a.sub}</div>
           </div>
         </div>`).join('')}`;
+  }
+
+  /* ═══ 📊 LTV + COHORT RETENTION REPORT ═══
+     Lifetime value per client (coach_sales + applied studio package orders) and
+     retention by signup-month cohort. Read-only aggregation over existing data. */
+  async function openLtvReport() {
+    const overlay = document.getElementById('ltv-overlay');
+    overlay.style.display = 'block';
+    document.getElementById('ltv-body').innerHTML = '<div style="color:#888;text-align:center;padding:30px;">מחשב...</div>';
+    const today = todayStr();
+    const emails = clients.map(c => c.email);
+    // revenue sources
+    const [{ data: sales }, { data: orders }] = await Promise.all([
+      sb.from('coach_sales').select('client_email,plan_price,created_at').eq('coach_email', coachEmail).in('status', ['paid', 'manual']),
+      sb.from('studio_package_orders').select('client_email,price,approved_at,applied').eq('owner_email', coachEmail).eq('applied', true),
+    ]);
+    // lifetime revenue per client
+    const rev = {};
+    (sales || []).forEach(s => { rev[s.client_email] = (rev[s.client_email] || 0) + (+s.plan_price || 0); });
+    (orders || []).forEach(o => { rev[o.client_email] = (rev[o.client_email] || 0) + (+o.price || 0); });
+
+    const isActive = c => (c.coaching_end && c.coaching_end >= today) || (c.sessions_remaining || 0) > 0;
+    const monthsBetween = (a, b) => Math.max(0, (b.getFullYear() - a.getFullYear()) * 12 + (b.getMonth() - a.getMonth()) + (b.getDate() >= a.getDate() ? 0 : -1)) + 1;
+
+    let totalRev = 0, totalMonths = 0, activeNow = 0;
+    const perClient = clients.map(c => {
+      const r = rev[c.email] || 0; totalRev += r;
+      const startD = new Date((c.coaching_start || c.created_at || today) + (String(c.coaching_start || '').length === 10 ? 'T12:00:00' : ''));
+      const endRef = (c.coaching_end && c.coaching_end < today) ? new Date(c.coaching_end + 'T12:00:00') : new Date();
+      const months = monthsBetween(startD, endRef); totalMonths += months;
+      const act = isActive(c); if (act) activeNow++;
+      return { email: c.email, name: c.name || c.email.split('@')[0], rev: r, months, active: act, cohort: (c.coaching_start || c.created_at || '').slice(0, 7) };
+    });
+    const n = clients.length || 1;
+    const avgLtv = totalRev / n;
+    const arpuMonth = totalMonths ? totalRev / totalMonths : 0;
+    const avgMonths = totalMonths / n;
+    const retentionNow = clients.length ? (activeNow / clients.length * 100) : 0;
+
+    // cohorts by signup month
+    const cohorts = {};
+    perClient.forEach(p => {
+      const k = p.cohort || '—';
+      (cohorts[k] = cohorts[k] || { size: 0, active: 0, rev: 0 });
+      cohorts[k].size++; if (p.active) cohorts[k].active++; cohorts[k].rev += p.rev;
+    });
+    const cohortRows = Object.keys(cohorts).filter(k => k !== '—').sort().reverse().map(k => {
+      const c = cohorts[k];
+      const ret = c.size ? Math.round(c.active / c.size * 100) : 0;
+      const retColor = ret >= 70 ? '#4ade80' : ret >= 40 ? '#FFD700' : '#f87171';
+      const [y, m] = k.split('-');
+      const label = new Date(+y, +m - 1, 1).toLocaleDateString('he-IL', { month: 'short', year: '2-digit' });
+      return `<tr style="border-top:1px solid rgba(255,255,255,0.06);">
+        <td style="padding:7px 6px;color:#ddd;font-weight:700;">${label}</td>
+        <td style="padding:7px 6px;text-align:center;color:#bbb;">${c.size}</td>
+        <td style="padding:7px 6px;text-align:center;color:#bbb;">${c.active}</td>
+        <td style="padding:7px 6px;text-align:center;"><span style="font-weight:900;color:${retColor};">${ret}%</span></td>
+        <td style="padding:7px 6px;text-align:left;color:#c4b5fd;font-weight:700;">₪${Math.round(c.rev).toLocaleString()}</td>
+        <td style="padding:7px 6px;text-align:left;color:#888;">₪${Math.round(c.rev / (c.size || 1)).toLocaleString()}</td>
+      </tr>`;
+    }).join('') || '<tr><td colspan="6" style="padding:14px;text-align:center;color:#666;">אין נתוני קוהורט</td></tr>';
+
+    const topClients = [...perClient].sort((a, b) => b.rev - a.rev).slice(0, 5)
+      .map((p, i) => `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-top:${i ? '1px solid rgba(255,255,255,0.05)' : 'none'};font-size:0.82rem;">
+        <span style="color:#ddd;">${i + 1}. ${esc(p.name)} ${p.active ? '<span style="color:#4ade80;font-size:0.7rem;">● פעיל</span>' : '<span style="color:#666;font-size:0.7rem;">○ לא פעיל</span>'}</span>
+        <span style="color:#c4b5fd;font-weight:800;">₪${Math.round(p.rev).toLocaleString()}</span>
+      </div>`).join('') || '<div style="color:#666;padding:8px;">—</div>';
+
+    const kpi = (val, label, color) => `<div style="flex:1;min-width:120px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:12px;text-align:center;">
+      <div style="font-size:1.35rem;font-weight:900;color:${color};">${val}</div><div style="font-size:0.7rem;color:#999;margin-top:2px;">${label}</div></div>`;
+
+    document.getElementById('ltv-body').innerHTML = `
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;">
+        ${kpi('₪' + Math.round(avgLtv).toLocaleString(), 'LTV ממוצע ללקוח', '#c4b5fd')}
+        ${kpi('₪' + Math.round(arpuMonth).toLocaleString(), 'הכנסה ממוצעת / חודש-לקוח', '#FF8C00')}
+        ${kpi(avgMonths.toFixed(1), 'משך ליווי ממוצע (חודשים)', '#FFD700')}
+        ${kpi(Math.round(retentionNow) + '%', 'שימור נוכחי (פעילים)', retentionNow >= 60 ? '#4ade80' : '#f87171')}
+      </div>
+      <div style="font-size:0.62rem;color:#666;margin-bottom:14px;">מבוסס על ${clients.length} לקוחות · הכנסה כוללת ₪${Math.round(totalRev).toLocaleString()} (מכירות ליווי + חבילות סטודיו שהופעלו)</div>
+
+      <div style="font-weight:800;font-size:0.9rem;color:#fff;margin-bottom:6px;">📅 שימור לפי קוהורט (חודש הצטרפות)</div>
+      <div style="overflow-x:auto;margin-bottom:18px;">
+        <table style="width:100%;border-collapse:collapse;font-size:0.78rem;min-width:440px;">
+          <thead><tr style="color:#888;font-size:0.7rem;">
+            <th style="padding:5px 6px;text-align:right;">קוהורט</th>
+            <th style="padding:5px 6px;">גודל</th><th style="padding:5px 6px;">פעילים</th>
+            <th style="padding:5px 6px;">שימור</th>
+            <th style="padding:5px 6px;text-align:left;">הכנסה</th><th style="padding:5px 6px;text-align:left;">LTV ממוצע</th>
+          </tr></thead>
+          <tbody>${cohortRows}</tbody>
+        </table>
+      </div>
+
+      <div style="font-weight:800;font-size:0.9rem;color:#fff;margin-bottom:6px;">🏆 5 הלקוחות המובילים ב-LTV</div>
+      <div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:10px 14px;">${topClients}</div>`;
   }
 
   function openAddModal() {
