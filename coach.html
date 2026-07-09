@@ -966,14 +966,16 @@
     el.innerHTML = slots.map(s => {
       const b = mineBy[s.id];
       const state = b ? (b.status === 'approved' ? '<span style="color:#4ade80;font-weight:700;">✓ אושרת</span>' : b.status === 'rejected' ? '<span style="color:#f87171;">✕ נדחה</span>' : '<span style="color:#fbbf24;">⏳ ממתין לאישור</span>') : '';
+      const started = new Date(s.slot_start).getTime() <= Date.now();
       const btn = b
         ? `<button class="btn-sm btn-outline" onclick="coachUnbookSlot(${b.id})" style="font-size:0.7rem;border-color:rgba(248,113,113,0.35);color:#f87171;">בטל שיבוץ</button>`
-        : `<button class="btn-sm btn-orange" onclick="coachBookSlot(${s.id})" style="font-size:0.7rem;">שבץ אותי</button>`;
-      return `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid rgba(255,255,255,0.05);">
+        : (started ? `<span style="font-size:0.7rem;color:#888;">התחיל/הסתיים</span>` : `<button class="btn-sm btn-orange" onclick="coachBookSlot(${s.id},'${s.slot_start}')" style="font-size:0.7rem;">שבץ אותי</button>`);
+      return `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid rgba(255,255,255,0.05);${started&&!b?'opacity:0.5;':''}">
         <div style="font-weight:700;color:#fff;">${fmtSlotTime(s.slot_start)} ${state}</div>${btn}</div>`;
     }).join('');
   }
-  async function coachBookSlot(slotId) {
+  async function coachBookSlot(slotId, slotStart) {
+    if (slotStart && new Date(slotStart).getTime() <= Date.now()) { toast('לא ניתן להשתבץ — השיעור כבר התחיל', 'err'); openCoachStudioSchedule(); return; }
     const { error } = await sb.from('studio_coach_bookings').insert({ slot_id: slotId, owner_email: myStudioOwner, coach_email: coachEmail, status: 'pending' });
     if (error) { toast(error.message.includes('duplicate') ? 'כבר שובצת לשעה' : 'שגיאה: ' + error.message, 'err'); return; }
     openCoachStudioSchedule(); toast('נשלח לאישור בעל הסטודיו ⏳', 'ok');

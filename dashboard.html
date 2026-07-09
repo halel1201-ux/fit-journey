@@ -2365,9 +2365,12 @@
             <button onclick="studioCancel(${mine.id},'${s.slot_start}')" style="padding:6px 12px;background:rgba(248,113,113,0.1);border:1px solid rgba(248,113,113,0.35);color:#f87171;border-radius:8px;font-family:'Heebo';font-size:0.74rem;font-weight:700;cursor:pointer;">ביטול${refundable ? '' : ' (ללא זיכוי)'}</button>
           </div></div>`;
       }
-      return `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 12px;border-right:3px solid ${color};background:${color}14;border-radius:8px;margin-bottom:5px;">
+      const started = new Date(s.slot_start).getTime() <= Date.now();
+      return `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 12px;border-right:3px solid ${color};background:${color}14;border-radius:8px;margin-bottom:5px;${started ? 'opacity:0.5;' : ''}">
         <div><div style="font-weight:700;color:#fff;">${esc(clsName)} · ${when}</div><div style="font-size:0.74rem;color:#aaa;">${coachTxt} · עד ${s.max_trainees} מתאמנים</div></div>
-        <button onclick="studioBook(${s.id},'${s.slot_start}','${coach ? esc(coach) : ''}')" ${remaining <= 0 ? 'disabled style="opacity:0.4;"' : ''} style="padding:6px 14px;background:linear-gradient(135deg,#FF6B00,#FF8C00);color:#fff;border:none;border-radius:8px;font-family:'Heebo';font-size:0.74rem;font-weight:700;cursor:pointer;">שבץ אותי</button>
+        ${started
+          ? `<span style="font-size:0.72rem;color:#888;white-space:nowrap;">התחיל/הסתיים</span>`
+          : `<button onclick="studioBook(${s.id},'${s.slot_start}','${coach ? esc(coach) : ''}')" ${remaining <= 0 ? 'disabled style="opacity:0.4;"' : ''} style="padding:6px 14px;background:linear-gradient(135deg,#FF6B00,#FF8C00);color:#fff;border:none;border-radius:8px;font-family:'Heebo';font-size:0.74rem;font-weight:700;cursor:pointer;">שבץ אותי</button>`}
       </div>`;
     }).join('') || '<div style="color:#666;padding:14px;text-align:center;">אין שעות פתוחות כרגע.</div>';
 
@@ -2391,6 +2394,7 @@
   }
 
   async function studioBook(slotId, slotStart, coachEmail) {
+    if (new Date(slotStart).getTime() <= Date.now()) { showDashToast('לא ניתן להשתבץ — השיעור כבר התחיל'); renderStudioClient(); return; }
     // exact-24h model: booking does NOT deduct now — a cron punches 24h before the slot.
     // overbooking guard: active (booked) reservations must not exceed the remaining balance.
     const activeCount = _studioBookings.length; // booked, non-cancelled, loaded in renderStudioClient
