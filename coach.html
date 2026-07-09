@@ -1024,80 +1024,300 @@
   }
   function fmtSlotTime(iso) { return new Date(iso).toLocaleString('he-IL', { weekday: 'short', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }); }
 
-  async function renderStudioCalendarTab() {
-    const body = document.getElementById('studio-tab-body');
-    body.innerHTML = `<div class="sec-card" style="margin-bottom:14px;">
-        <div class="sec-card-title">➕ הוסף שעת פעילות</div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:end;">
-          <div><div style="font-size:0.7rem;color:#888;margin-bottom:3px;">תאריך ושעה</div>
-            <input id="slot-dt" type="datetime-local" style="padding:9px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:#fff;font-family:'Heebo';"/></div>
-          <div><div style="font-size:0.7rem;color:#888;margin-bottom:3px;">משך (דק׳)</div>
-            <input id="slot-dur" type="number" value="60" min="15" step="15" style="width:80px;padding:9px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:#fff;font-family:'Heebo';"/></div>
-          <div><div style="font-size:0.7rem;color:#888;margin-bottom:3px;">מקס׳ מתאמנים</div>
-            <input id="slot-max" type="number" value="6" min="1" style="width:80px;padding:9px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:#fff;font-family:'Heebo';"/></div>
-          <button class="btn-sm btn-orange" onclick="addStudioSlot()">הוסף</button>
-        </div>
-      </div>
-      <div class="sec-card"><div class="sec-card-title">📅 שעות קרובות (7 ימים)</div><div id="studio-slots-list"><div style="color:#666;padding:14px;">טוען...</div></div></div>`;
-    const from = new Date(); from.setHours(0, 0, 0, 0);
-    const to = new Date(from.getTime() + 7 * 864e5);
-    await loadStudioSlots(from.toISOString(), to.toISOString());
-    renderStudioSlotsList();
+  /* ═══ BOOST-STYLE WEEKLY CALENDAR ═══ */
+  let studioClassTypes = [], studioRecurring = [], _weekStart = null;
+  const HE_DAYS = ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
+  const CLASS_COLORS = ['#6d8cff','#8b5cf6','#10b981','#f59e0b','#ef4444','#ec4899','#06b6d4','#84cc16','#a3559f'];
+
+  function weekStartOf(d) { const x = new Date(d); x.setHours(0,0,0,0); x.setDate(x.getDate() - x.getDay()); return x; } // Sunday
+  function dLocal(d) { return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+
+  async function loadClassTypes() {
+    const { data } = await sb.from('studio_class_types').select('*').eq('owner_email', coachEmail).order('id');
+    studioClassTypes = data || [];
+  }
+  async function loadRecurring() {
+    const { data } = await sb.from('studio_recurring_classes').select('*').eq('owner_email', coachEmail).eq('active', true).order('start_time');
+    studioRecurring = data || [];
   }
 
-  function renderStudioSlotsList() {
-    const el = document.getElementById('studio-slots-list'); if (!el) return;
-    if (!studioSlots.length) { el.innerHTML = '<div style="color:#666;padding:14px;text-align:center;">אין שעות פעילות. הוסף למעלה.</div>'; return; }
-    el.innerHTML = studioSlots.map(s => {
-      const bookedCount = (s._bookings || []).length;
-      const approvedCoach = (s._coaches || []).find(c => c.status === 'approved');
-      const pendingCoaches = (s._coaches || []).filter(c => c.status === 'pending');
-      const coachLine = approvedCoach
-        ? `<span style="color:#4ade80;">👤 ${esc(approvedCoach.coach_email.split('@')[0])}</span>`
-        : (pendingCoaches.length ? `<span style="color:#fbbf24;">⏳ ${pendingCoaches.length} ממתינים לאישור</span>` : `<span style="color:#666;">אין מאמן</span>`);
-      const pendBtns = pendingCoaches.map(c => `<button class="btn-sm btn-outline" onclick="approveSlotCoach(${c.id},'${esc(c.coach_email)}')" style="font-size:0.66rem;border-color:rgba(74,222,128,0.4);color:#4ade80;">✓ ${esc(c.coach_email.split('@')[0])}</button>`).join(' ');
-      const editable = (new Date(s.slot_start).getTime() - Date.now()) > 15 * 3600 * 1000; // owner may set workout until 15h before
-      const bookedRows = (s._bookings || []).map(b => {
-        const nm = esc((b.client_email || '').split('@')[0]);
-        return `<div style="display:flex;align-items:center;gap:6px;padding:4px 0;font-size:0.74rem;">
-          <span style="color:#bbb;min-width:70px;">${nm}</span>
-          ${editable
-            ? `<input id="bwk-${b.id}" value="${esc(b.workout || '')}" placeholder="אימון..." style="flex:1;min-width:0;padding:3px 8px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:6px;color:#fff;font-family:'Heebo';font-size:0.72rem;"/>
-               <button class="btn-sm btn-orange" style="font-size:0.62rem;padding:3px 8px;" onclick="setBookingWorkout(${b.id})">שמור</button>`
-            : `<span style="color:#888;">🏋️ ${esc(b.workout || 'לא הוגדר')} <span style="color:#666;">(נעול)</span></span>`}
-        </div>`;
-      }).join('');
-      return `<div style="padding:11px 13px;border-bottom:1px solid rgba(255,255,255,0.05);">
-        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
-          <div style="font-weight:800;color:#fff;">${fmtSlotTime(s.slot_start)}</div>
-          <div style="font-size:0.78rem;color:${bookedCount>=s.max_trainees?'#f87171':'#aaa'};">👥 ${bookedCount}/${s.max_trainees} · ${coachLine}</div>
-          <button class="btn-sm btn-outline" onclick="deleteStudioSlot(${s.id})" style="font-size:0.66rem;border-color:rgba(248,113,113,0.35);color:#f87171;">מחק</button>
+  // create concrete studio_slots for a week from the recurring template (idempotent)
+  async function materializeWeek(weekStart) {
+    const from = new Date(weekStart), to = new Date(weekStart.getTime() + 7*864e5);
+    const { data: existing } = await sb.from('studio_slots').select('id,recurring_id,slot_start').eq('owner_email', coachEmail).gte('slot_start', from.toISOString()).lt('slot_start', to.toISOString());
+    const have = new Set((existing||[]).filter(s=>s.recurring_id).map(s => s.recurring_id + '|' + dLocal(new Date(s.slot_start))));
+    const toInsert = [];
+    for (const rc of studioRecurring) {
+      const day = new Date(weekStart); day.setDate(day.getDate() + rc.weekday);
+      const [hh,mm] = (rc.start_time||'08:00').split(':').map(Number);
+      const start = new Date(day.getFullYear(), day.getMonth(), day.getDate(), hh, mm||0);
+      const key = rc.id + '|' + dLocal(start);
+      if (have.has(key)) continue;
+      const ct = studioClassTypes.find(t => t.id === rc.class_type_id);
+      toInsert.push({ owner_email: coachEmail, recurring_id: rc.id, class_type_id: rc.class_type_id,
+        coach_email: rc.coach_email || ct?.default_coach_email || null, max_trainees: rc.max_trainees,
+        slot_start: start.toISOString(), slot_end: new Date(start.getTime() + (rc.duration_min||60)*60000).toISOString(),
+        title: ct?.name || null, status: 'scheduled', visible: true });
+    }
+    if (toInsert.length) { try { await sb.from('studio_slots').insert(toInsert); } catch(e) {} }
+  }
+
+  async function renderStudioCalendarTab() {
+    if (!_weekStart) _weekStart = weekStartOf(new Date());
+    const body = document.getElementById('studio-tab-body');
+    body.innerHTML = `<div id="cal-wrap"><div style="color:#666;padding:20px;">טוען יומן...</div></div>`;
+    await Promise.all([loadClassTypes(), loadRecurring()]);
+    await materializeWeek(_weekStart);
+    const from = new Date(_weekStart), to = new Date(_weekStart.getTime()+7*864e5);
+    await loadStudioSlots(from.toISOString(), to.toISOString());
+    renderWeekGrid();
+  }
+
+  function shiftWeek(n) { _weekStart = new Date(_weekStart.getTime() + n*7*864e5); renderStudioCalendarTab(); }
+  function thisWeek() { _weekStart = weekStartOf(new Date()); renderStudioCalendarTab(); }
+
+  function renderWeekGrid() {
+    const wrap = document.getElementById('cal-wrap'); if (!wrap) return;
+    const wkEnd = new Date(_weekStart.getTime() + 6*864e5);
+    const rangeTxt = `${_weekStart.getDate()}/${_weekStart.getMonth()+1} – ${wkEnd.getDate()}/${wkEnd.getMonth()+1}`;
+    // group slots by weekday
+    const byDay = [[],[],[],[],[],[],[]];
+    (studioSlots||[]).forEach(s => { const d = new Date(s.slot_start); byDay[d.getDay()].push(s); });
+    byDay.forEach(arr => arr.sort((a,b)=> new Date(a.slot_start)-new Date(b.slot_start)));
+    const todayStrL = dLocal(new Date());
+
+    const cols = HE_DAYS.map((dn, wd) => {
+      const day = new Date(_weekStart); day.setDate(day.getDate()+wd);
+      const isToday = dLocal(day) === todayStrL;
+      const cards = byDay[wd].map(s => studioSlotCard(s)).join('') || `<div style="color:#555;font-size:0.7rem;text-align:center;padding:10px 0;">—</div>`;
+      return `<div style="flex:1;min-width:130px;">
+        <div style="text-align:center;padding:6px 0;border-bottom:2px solid ${isToday?'var(--orange)':'rgba(255,255,255,0.08)'};margin-bottom:6px;">
+          <div style="font-size:0.72rem;color:${isToday?'var(--orange)':'#999'};font-weight:800;">${dn}</div>
+          <div style="font-size:0.8rem;color:${isToday?'#fff':'#777'};font-weight:900;">${day.getDate()}/${day.getMonth()+1}</div>
         </div>
-        ${pendBtns ? `<div style="margin-top:6px;display:flex;gap:5px;flex-wrap:wrap;align-items:center;"><span style="font-size:0.7rem;color:#888;">אשר מאמן:</span> ${pendBtns}</div>` : ''}
-        ${bookedRows ? `<div style="margin-top:6px;padding-top:5px;border-top:1px solid rgba(255,255,255,0.04);"><div style="font-size:0.66rem;color:#777;margin-bottom:2px;">מתאמנים ואימון:</div>${bookedRows}</div>` : ''}
+        <div style="display:flex;flex-direction:column;gap:5px;">${cards}
+          <button onclick="openAddClassModal(${wd})" style="border:1px dashed rgba(255,255,255,0.15);background:none;color:#666;border-radius:8px;padding:5px;font-size:0.7rem;cursor:pointer;font-family:'Heebo';">＋</button>
+        </div>
       </div>`;
     }).join('');
+
+    wrap.innerHTML = `
+      <div class="sec-card" style="margin-bottom:12px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+          <div style="display:flex;gap:6px;align-items:center;">
+            <button class="btn-sm btn-outline" onclick="shiftWeek(-1)" style="padding:5px 10px;">‹</button>
+            <button class="btn-sm btn-outline" onclick="thisWeek()" style="padding:5px 12px;">היום</button>
+            <button class="btn-sm btn-outline" onclick="shiftWeek(1)" style="padding:5px 10px;">›</button>
+            <span style="font-weight:800;color:#fff;margin-right:6px;">${rangeTxt}</span>
+          </div>
+          <div style="display:flex;gap:6px;">
+            <button class="btn-sm btn-outline" onclick="openClassTypesManager()" style="font-size:0.72rem;">🎨 סוגי שיעורים</button>
+            <button class="btn-sm btn-orange" onclick="openRecurringManager()" style="font-size:0.72rem;">🔁 תבנית שבועית</button>
+          </div>
+        </div>
+      </div>
+      <div class="sec-card" style="overflow-x:auto;"><div style="display:flex;gap:6px;min-width:920px;">${cols}</div></div>`;
   }
 
-  async function addStudioSlot() {
-    if (!requireEdit()) return;
-    const dt = document.getElementById('slot-dt').value;
-    if (!dt) { toast('בחר תאריך ושעה', 'err'); return; }
-    const dur = parseInt(document.getElementById('slot-dur').value) || 60;
-    const max = parseInt(document.getElementById('slot-max').value) || 1;
-    const start = new Date(dt);
-    const end = new Date(start.getTime() + dur * 60000);
-    const { error } = await sb.from('studio_slots').insert({ owner_email: coachEmail, slot_start: start.toISOString(), slot_end: end.toISOString(), max_trainees: max });
-    if (error) { toast('שגיאה: ' + error.message, 'err'); return; }
-    renderStudioCalendarTab();
-    toast('שעת פעילות נוספה ✓', 'ok');
+  function studioSlotCard(s) {
+    const ct = studioClassTypes.find(t => t.id === s.class_type_id);
+    const color = ct?.color || '#6d8cff';
+    const t1 = new Date(s.slot_start).toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'});
+    const booked = (s._bookings||[]).length;
+    const full = booked >= s.max_trainees;
+    const done = s.status === 'done';
+    const coach = s.coach_email ? esc(s.coach_email.split('@')[0]) : '—';
+    return `<div onclick="openSlotEditor(${s.id})" style="cursor:pointer;background:${done?'rgba(255,255,255,0.04)':color+'22'};border:1px solid ${done?'rgba(255,255,255,0.1)':color+'88'};border-right:3px solid ${color};border-radius:8px;padding:7px 8px;${s.visible?'':'opacity:0.55;'}">
+      <div style="font-size:0.74rem;font-weight:800;color:#fff;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(ct?.name || s.title || 'שיעור')}</div>
+      <div style="font-size:0.66rem;color:#bbb;">${t1}</div>
+      <div style="font-size:0.64rem;color:#999;">👤 ${coach}</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:2px;">
+        <span style="font-size:0.64rem;font-weight:800;color:${full?'#f87171':'#4ade80'};">${booked}/${s.max_trainees}</span>
+        ${done?'<span style="font-size:0.58rem;color:#4ade80;">✓ הושלם</span>':''}${s.visible?'':'<span style="font-size:0.58rem;">🙈</span>'}
+      </div>
+    </div>`;
   }
-  async function deleteStudioSlot(id) {
+
+  /* ── class types manager ── */
+  function openClassTypesManager() { renderClassTypesModal(); document.getElementById('studio-modal').style.display='flex'; }
+  function renderClassTypesModal() {
+    const rows = studioClassTypes.map(t => `
+      <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.05);">
+        <span style="width:16px;height:16px;border-radius:4px;background:${t.color};flex-shrink:0;"></span>
+        <div style="flex:1;"><div style="font-weight:700;color:#fff;font-size:0.85rem;">${esc(t.name)}</div>
+          <div style="font-size:0.68rem;color:#888;">👤 ${t.default_coach_email?esc(t.default_coach_email.split('@')[0]):'—'} · תפוסה ${t.default_capacity} · ${t.duration_min}דק׳</div></div>
+        <button onclick="deleteClassType(${t.id})" style="background:none;border:none;color:#f87171;cursor:pointer;">✕</button>
+      </div>`).join('') || '<div style="color:#666;padding:10px;">אין סוגי שיעורים עדיין</div>';
+    const coachOpts = ['<option value="">— מאמן ברירת מחדל —</option>', `<option value="${esc(coachEmail)}">${esc((coachName||coachEmail))} (אני)</option>`, ...studioCoaches.map(c=>`<option value="${esc(c.coach_email)}">${esc(c.coach_email.split('@')[0])}</option>`)].join('');
+    document.getElementById('studio-modal-body').innerHTML = `
+      <div style="font-weight:900;font-size:1.05rem;color:#fff;margin-bottom:12px;">🎨 סוגי שיעורים</div>
+      ${rows}
+      <div style="margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.08);">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          <input id="ct-name" placeholder="שם השיעור" style="grid-column:1/-1;padding:8px 10px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:#fff;font-family:'Heebo';"/>
+          <select id="ct-coach" style="padding:8px;background:#1c1e24;border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:#fff;font-family:'Heebo';">${coachOpts}</select>
+          <input id="ct-cap" type="number" value="8" min="1" placeholder="תפוסה" style="padding:8px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:#fff;font-family:'Heebo';"/>
+          <input id="ct-dur" type="number" value="60" min="15" step="15" placeholder="משך" style="padding:8px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:#fff;font-family:'Heebo';"/>
+          <div id="ct-colors" style="display:flex;gap:5px;align-items:center;">${CLASS_COLORS.map((c,i)=>`<span onclick="_ctColor='${c}';document.querySelectorAll('#ct-colors span').forEach(s=>s.style.outline='');this.style.outline='2px solid #fff';" style="width:22px;height:22px;border-radius:5px;background:${c};cursor:pointer;${i===0?'outline:2px solid #fff;':''}"></span>`).join('')}</div>
+        </div>
+        <button class="btn-sm btn-orange" style="width:100%;margin-top:10px;" onclick="addClassType()">+ הוסף סוג שיעור</button>
+      </div>`;
+  }
+  let _ctColor = CLASS_COLORS[0];
+  async function addClassType() {
+    const name = (document.getElementById('ct-name').value||'').trim();
+    if (!name) { toast('הזן שם שיעור','err'); return; }
+    const { error } = await sb.from('studio_class_types').insert({ owner_email: coachEmail, name, color: _ctColor,
+      default_coach_email: document.getElementById('ct-coach').value||null,
+      default_capacity: parseInt(document.getElementById('ct-cap').value)||8,
+      duration_min: parseInt(document.getElementById('ct-dur').value)||60 });
+    if (error) { toast('שגיאה: '+error.message,'err'); return; }
+    await loadClassTypes(); renderClassTypesModal(); toast('סוג שיעור נוסף ✓','ok');
+  }
+  async function deleteClassType(id) {
+    if (!confirm('למחוק סוג שיעור? (תבניות שמשתמשות בו יימחקו)')) return;
+    await sb.from('studio_class_types').delete().eq('id', id).eq('owner_email', coachEmail);
+    await Promise.all([loadClassTypes(), loadRecurring()]); renderClassTypesModal(); toast('נמחק','ok');
+  }
+
+  /* ── recurring weekly template manager ── */
+  function openRecurringManager() {
+    if (!studioClassTypes.length) { toast('קודם הגדר סוגי שיעורים 🎨','err'); openClassTypesManager(); return; }
+    renderRecurringModal(); document.getElementById('studio-modal').style.display='flex';
+  }
+  function renderRecurringModal() {
+    const rows = studioRecurring.map(rc => {
+      const ct = studioClassTypes.find(t=>t.id===rc.class_type_id);
+      return `<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.05);font-size:0.82rem;">
+        <span style="width:12px;height:12px;border-radius:3px;background:${ct?.color||'#888'};flex-shrink:0;"></span>
+        <div style="flex:1;"><b style="color:#fff;">${esc(ct?.name||'שיעור')}</b> · יום ${HE_DAYS[rc.weekday]} ${rc.start_time} · 👤 ${rc.coach_email?esc(rc.coach_email.split('@')[0]):'ברירת מחדל'} · ${rc.max_trainees} מקומות</div>
+        <button onclick="deleteRecurring(${rc.id})" style="background:none;border:none;color:#f87171;cursor:pointer;">✕</button>
+      </div>`;
+    }).join('') || '<div style="color:#666;padding:10px;">אין תבנית עדיין — הוסף שיעורים קבועים</div>';
+    const typeOpts = studioClassTypes.map(t=>`<option value="${t.id}">${esc(t.name)}</option>`).join('');
+    const dayOpts = HE_DAYS.map((d,i)=>`<option value="${i}">${d}</option>`).join('');
+    const coachOpts = ['<option value="">מאמן לפי סוג השיעור</option>', `<option value="${esc(coachEmail)}">${esc(coachName||coachEmail)} (אני)</option>`, ...studioCoaches.map(c=>`<option value="${esc(c.coach_email)}">${esc(c.coach_email.split('@')[0])}</option>`)].join('');
+    document.getElementById('studio-modal-body').innerHTML = `
+      <div style="font-weight:900;font-size:1.05rem;color:#fff;margin-bottom:4px;">🔁 תבנית שבועית קבועה</div>
+      <div style="font-size:0.72rem;color:#888;margin-bottom:12px;">כל שיעור כאן חוזר אוטומטית בכל שבוע. אפשר לערוך/לבטל שיעור בשבוע ספציפי ישירות ביומן.</div>
+      ${rows}
+      <div style="margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.08);display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <select id="rc-type" style="grid-column:1/-1;padding:8px;background:#1c1e24;border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:#fff;font-family:'Heebo';">${typeOpts}</select>
+        <select id="rc-day" style="padding:8px;background:#1c1e24;border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:#fff;font-family:'Heebo';">${dayOpts}</select>
+        <input id="rc-time" type="time" value="08:00" style="padding:8px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:#fff;font-family:'Heebo';"/>
+        <select id="rc-coach" style="padding:8px;background:#1c1e24;border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:#fff;font-family:'Heebo';">${coachOpts}</select>
+        <input id="rc-cap" type="number" placeholder="תפוסה (אופ׳)" min="1" style="padding:8px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:#fff;font-family:'Heebo';"/>
+      </div>
+      <button class="btn-sm btn-orange" style="width:100%;margin-top:10px;" onclick="addRecurring()">+ הוסף לתבנית</button>`;
+  }
+  async function addRecurring() {
+    const ctId = parseInt(document.getElementById('rc-type').value);
+    const ct = studioClassTypes.find(t=>t.id===ctId);
+    const { error } = await sb.from('studio_recurring_classes').insert({ owner_email: coachEmail, class_type_id: ctId,
+      weekday: parseInt(document.getElementById('rc-day').value), start_time: document.getElementById('rc-time').value,
+      duration_min: ct?.duration_min||60, coach_email: document.getElementById('rc-coach').value||null,
+      max_trainees: parseInt(document.getElementById('rc-cap').value)||ct?.default_capacity||8 });
+    if (error) { toast('שגיאה: '+error.message,'err'); return; }
+    await loadRecurring(); renderRecurringModal(); toast('נוסף לתבנית ✓','ok');
+  }
+  async function deleteRecurring(id) {
+    if (!confirm('להסיר מהתבנית? (שיעורים עתידיים שטרם נוצרו לא ייווצרו)')) return;
+    await sb.from('studio_recurring_classes').update({ active: false }).eq('id', id).eq('owner_email', coachEmail);
+    await loadRecurring(); renderRecurringModal(); toast('הוסר','ok');
+  }
+  function closeStudioModal() { document.getElementById('studio-modal').style.display='none'; if (document.getElementById('studio-tab-body')) renderStudioCalendarTab(); }
+
+  /* ── single-slot editor (coach, capacity, status, bookings, per-trainee workout) ── */
+  async function openAddClassModal(weekday) {
     if (!requireEdit()) return;
-    if (!confirm('למחוק את השעה? כל השיבוצים בה יבוטלו.')) return;
+    if (!studioClassTypes.length) { toast('קודם הגדר סוג שיעור 🎨','err'); openClassTypesManager(); return; }
+    // guard: next-week edits open only from Thursday
+    if (!canEditWeekday(weekday)) { toast('עריכת השבוע הבא נפתחת ביום חמישי','err'); return; }
+    const day = new Date(_weekStart); day.setDate(day.getDate()+weekday);
+    const typeOpts = studioClassTypes.map(t=>`<option value="${t.id}">${esc(t.name)}</option>`).join('');
+    const coachOpts = [`<option value="${esc(coachEmail)}">${esc(coachName||coachEmail)} (אני)</option>`, ...studioCoaches.map(c=>`<option value="${esc(c.coach_email)}">${esc(c.coach_email.split('@')[0])}</option>`)].join('');
+    document.getElementById('studio-modal-body').innerHTML = `
+      <div style="font-weight:900;font-size:1.05rem;color:#fff;margin-bottom:12px;">➕ שיעור חד-פעמי · ${HE_DAYS[weekday]} ${day.getDate()}/${day.getMonth()+1}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <select id="oc-type" style="grid-column:1/-1;padding:8px;background:#1c1e24;border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:#fff;font-family:'Heebo';">${typeOpts}</select>
+        <input id="oc-time" type="time" value="08:00" style="padding:8px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:#fff;font-family:'Heebo';"/>
+        <select id="oc-coach" style="padding:8px;background:#1c1e24;border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:#fff;font-family:'Heebo';">${coachOpts}</select>
+        <input id="oc-cap" type="number" value="8" min="1" placeholder="תפוסה" style="padding:8px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:#fff;font-family:'Heebo';"/>
+      </div>
+      <button class="btn-sm btn-orange" style="width:100%;margin-top:10px;" onclick="addOneClass(${weekday})">הוסף שיעור</button>`;
+    document.getElementById('studio-modal').style.display='flex';
+  }
+  async function addOneClass(weekday) {
+    const ctId = parseInt(document.getElementById('oc-type').value);
+    const ct = studioClassTypes.find(t=>t.id===ctId);
+    const day = new Date(_weekStart); day.setDate(day.getDate()+weekday);
+    const [hh,mm] = document.getElementById('oc-time').value.split(':').map(Number);
+    const start = new Date(day.getFullYear(), day.getMonth(), day.getDate(), hh, mm||0);
+    const { error } = await sb.from('studio_slots').insert({ owner_email: coachEmail, class_type_id: ctId,
+      coach_email: document.getElementById('oc-coach').value||null, max_trainees: parseInt(document.getElementById('oc-cap').value)||8,
+      slot_start: start.toISOString(), slot_end: new Date(start.getTime()+(ct?.duration_min||60)*60000).toISOString(), title: ct?.name||null });
+    if (error) { toast('שגיאה: '+error.message,'err'); return; }
+    document.getElementById('studio-modal').style.display='none';
+    renderStudioCalendarTab(); toast('שיעור נוסף ✓','ok');
+  }
+
+  // next-week editing allowed only from Thursday of the current week
+  function canEditWeekday(weekday) {
+    const day = new Date(_weekStart); day.setDate(day.getDate()+weekday); day.setHours(23,59,59,999);
+    if (day < new Date()) return false; // past
+    const curWeek = weekStartOf(new Date());
+    const isNextWeek = _weekStart > curWeek;
+    if (isNextWeek && new Date().getDay() < 4) return false; // before Thursday (0=Sun..4=Thu)
+    return true;
+  }
+
+  async function openSlotEditor(slotId) {
+    if (!requireEdit()) return;
+    const s = studioSlots.find(x=>x.id===slotId); if (!s) return;
+    const ct = studioClassTypes.find(t=>t.id===s.class_type_id);
+    const coachOpts = [`<option value="">— ללא —</option>`, `<option value="${esc(coachEmail)}" ${s.coach_email===coachEmail?'selected':''}>${esc(coachName||coachEmail)} (אני)</option>`, ...studioCoaches.map(c=>`<option value="${esc(c.coach_email)}" ${s.coach_email===c.coach_email?'selected':''}>${esc(c.coach_email.split('@')[0])}</option>`)].join('');
+    const editable = (new Date(s.slot_start).getTime() - Date.now()) > 15*3600*1000;
+    const bookedRows = (s._bookings||[]).map(b => {
+      const nm = esc((b.client_email||'').split('@')[0]);
+      return `<div style="display:flex;align-items:center;gap:6px;padding:5px 0;font-size:0.76rem;border-bottom:1px solid rgba(255,255,255,0.04);">
+        <span style="color:#ddd;min-width:70px;">${nm}</span>
+        ${editable ? `<input id="bwk-${b.id}" value="${esc(b.workout||'')}" placeholder="סוג אימון..." style="flex:1;min-width:0;padding:3px 8px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:6px;color:#fff;font-family:'Heebo';font-size:0.72rem;"/>
+          <button class="btn-sm btn-orange" style="font-size:0.62rem;padding:3px 8px;" onclick="setBookingWorkout(${b.id})">✓</button>`
+          : `<span style="color:#888;">🏋️ ${esc(b.workout||'—')}</span>`}
+      </div>`;
+    }).join('') || '<div style="color:#666;font-size:0.76rem;padding:6px 0;">אין מתאמנים משובצים</div>';
+    document.getElementById('studio-modal-body').innerHTML = `
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+        <span style="width:14px;height:14px;border-radius:4px;background:${ct?.color||'#6d8cff'};"></span>
+        <div style="font-weight:900;font-size:1.05rem;color:#fff;">${esc(ct?.name||s.title||'שיעור')}</div>
+      </div>
+      <div style="font-size:0.8rem;color:#aaa;margin-bottom:12px;">${new Date(s.slot_start).toLocaleString('he-IL',{weekday:'long',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
+        <div><div style="font-size:0.68rem;color:#888;margin-bottom:3px;">מאמן</div><select id="se-coach" style="width:100%;padding:7px;background:#1c1e24;border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:#fff;font-family:'Heebo';">${coachOpts}</select></div>
+        <div><div style="font-size:0.68rem;color:#888;margin-bottom:3px;">תפוסה</div><input id="se-cap" type="number" value="${s.max_trainees}" min="1" style="width:100%;padding:7px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:#fff;font-family:'Heebo';"/></div>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;">
+        <button class="btn-sm btn-orange" style="font-size:0.72rem;" onclick="saveSlotEdit(${s.id})">💾 שמור</button>
+        <button class="btn-sm btn-outline" style="font-size:0.72rem;" onclick="toggleSlotDone(${s.id},${s.status==='done'})">${s.status==='done'?'↩ בטל הושלם':'✓ סמן הושלם'}</button>
+        <button class="btn-sm btn-outline" style="font-size:0.72rem;" onclick="toggleSlotVisible(${s.id},${s.visible})">${s.visible?'🙈 הסתר מלקוחות':'👁 הצג ללקוחות'}</button>
+        <button class="btn-sm btn-outline" style="font-size:0.72rem;border-color:rgba(248,113,113,0.35);color:#f87171;" onclick="deleteStudioSlot(${s.id})">🗑 מחק שיעור</button>
+      </div>
+      <div style="font-size:0.74rem;font-weight:800;color:#aaa;margin-bottom:4px;">מתאמנים (${(s._bookings||[]).length}/${s.max_trainees}) + סוג אימון</div>
+      ${bookedRows}`;
+    document.getElementById('studio-modal').style.display='flex';
+  }
+  async function saveSlotEdit(id) {
+    const coach = document.getElementById('se-coach').value||null;
+    const cap = parseInt(document.getElementById('se-cap').value)||1;
+    await sb.from('studio_slots').update({ coach_email: coach, max_trainees: cap }).eq('id', id).eq('owner_email', coachEmail);
+    document.getElementById('studio-modal').style.display='none'; renderStudioCalendarTab(); toast('נשמר ✓','ok');
+  }
+  async function toggleSlotDone(id, isDone) { await sb.from('studio_slots').update({ status: isDone?'scheduled':'done' }).eq('id',id).eq('owner_email',coachEmail); openSlotEditor(id); renderStudioCalendarTab(); }
+  async function toggleSlotVisible(id, vis) { await sb.from('studio_slots').update({ visible: !vis }).eq('id',id).eq('owner_email',coachEmail); const s=studioSlots.find(x=>x.id===id); if(s)s.visible=!vis; openSlotEditor(id); renderWeekGrid(); }
+  async function deleteStudioSlot(id) {
+    if (!confirm('למחוק את השיעור לשבוע הזה? השיבוצים יבוטלו. (התבנית השבועית נשארת)')) return;
     await sb.from('studio_slots').delete().eq('id', id).eq('owner_email', coachEmail);
-    renderStudioCalendarTab();
-    toast('נמחק', 'ok');
+    document.getElementById('studio-modal').style.display='none'; renderStudioCalendarTab(); toast('נמחק','ok');
   }
   async function setBookingWorkout(bookingId) {
     if (!requireEdit()) return;
@@ -1106,16 +1326,7 @@
     if (error) { toast('שגיאה: ' + error.message, 'err'); return; }
     const s = studioSlots.find(x => (x._bookings || []).some(b => b.id === bookingId));
     const b = s && s._bookings.find(x => x.id === bookingId); if (b) b.workout = val;
-    toast('האימון נשמר ✓', 'ok');
-  }
-  async function approveSlotCoach(bookingId, coachEmail_) {
-    if (!requireEdit()) return;
-    const slot = studioSlots.find(s => (s._coaches || []).some(c => c.id === bookingId));
-    // approve this coach, reject the other pending for the same slot
-    await sb.from('studio_coach_bookings').update({ status: 'approved' }).eq('id', bookingId);
-    if (slot) await sb.from('studio_coach_bookings').update({ status: 'rejected' }).eq('slot_id', slot.id).neq('id', bookingId).eq('status', 'pending');
-    renderStudioCalendarTab();
-    toast(`${coachEmail_.split('@')[0]} אושר לשעה ✓`, 'ok');
+    toast('סוג האימון נשמר ✓', 'ok');
   }
 
   /* ── COACHES tab ── */
@@ -8117,6 +8328,14 @@ ${hasFile ? '' : '4. הכמויות והערכים המדויקים בהתאם �
     <button onclick="closeSignedDoc()" style="position:absolute;top:12px;left:14px;background:none;border:none;color:#666;font-size:1.3rem;cursor:pointer;z-index:1;">✕</button>
     <div style="text-align:center;padding:20px 20px 10px;font-weight:900;font-size:1.1rem;color:#fff;">📝 הצהרת בריאות חתומה</div>
     <div id="signed-doc-body" style="overflow-y:auto;padding:6px 20px 20px;flex:1;"></div>
+  </div>
+</div>
+
+<!-- ═══ STUDIO MODAL (class types / recurring / slot editor) ═══ -->
+<div id="studio-modal" style="display:none;position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,0.9);align-items:center;justify-content:center;padding:16px;" onclick="if(event.target===this)closeStudioModal()">
+  <div style="background:linear-gradient(160deg,#17181c,#0d0e11);border:1px solid rgba(255,215,0,0.35);border-radius:20px;max-width:460px;width:100%;max-height:88vh;overflow-y:auto;padding:22px 20px;position:relative;">
+    <button onclick="closeStudioModal()" style="position:absolute;top:12px;left:14px;background:none;border:none;color:#666;font-size:1.3rem;cursor:pointer;z-index:1;">✕</button>
+    <div id="studio-modal-body"></div>
   </div>
 </div>
 
