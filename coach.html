@@ -3343,7 +3343,20 @@
     loadClientReceipts(email);
     loadHealthDeclStatus(email);
     loadLastReport(email);
+    loadHabitAdherence(email);
     if (client.goal === 'peak_week') loadPeakWeekPlan();
+  }
+
+  /* 💪 weekly habit adherence chip in the client card (read-only over daily_habits) */
+  async function loadHabitAdherence(email) {
+    const chip = document.getElementById('habit-adherence-chip'); if (!chip) return;
+    const from = new Date(); from.setDate(from.getDate() - 6);
+    const { data } = await sb.from('daily_habits').select('*').eq('client_email', email).gte('date', from.toISOString().slice(0, 10));
+    const week = data || [];
+    if (!week.length) { chip.innerHTML = '<span style="color:#666;">💪 הרגלים: אין דיווח השבוע</span>'; return; }
+    const adher = Math.round(week.reduce((s, r) => s + (['water', 'nutrition', 'sleep', 'activity'].filter(k => r[k]).length / 4), 0) / week.length * 100);
+    const color = adher >= 70 ? '#4ade80' : adher >= 40 ? '#fbbf24' : '#f87171';
+    chip.innerHTML = `<span title="היצמדות להרגלים ב-7 ימים אחרונים (${week.length} דיווחים)" style="font-weight:900;color:${color};background:${color}1a;border:1px solid ${color}44;border-radius:8px;padding:2px 8px;">💪 הרגלים ${adher}%</span>`;
   }
 
   /* ── QUICK GENERATOR (המחולל המיידי — פרימיום, כרגע אדמין בלבד) ── */
@@ -3689,6 +3702,7 @@ ${exLines || 'אין'}
           </button>
           <span id="health-decl-chip" style="font-size:0.78rem;color:#777;">📝 הצהרת בריאות: בודק...</span>
           <span id="report-cadence-chip" style="font-size:0.76rem;"></span>
+          <span id="habit-adherence-chip" style="font-size:0.72rem;"></span>
           ${(client.no_show_count||0) >= 3 ? `<span title="היעדרויות מצטברות — שווה שיחה" style="font-size:0.72rem;font-weight:900;color:#f87171;background:rgba(248,113,113,0.1);border:1px solid rgba(248,113,113,0.35);border-radius:8px;padding:2px 8px;">🚫 ${client.no_show_count} היעדרויות</span>` : ''}
           ${isStudioOwner ? `<button class="btn-sm btn-outline" onclick="openAssignPackage('${esc(client.email)}')" style="font-size:0.72rem;border-color:rgba(255,215,0,0.4);color:#FFD700;">🎟️ חבילה / חידוש</button>` : ''}
         </div>

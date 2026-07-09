@@ -927,6 +927,9 @@
     <!-- STUDIO SECTION (studio clients: punch card + booking) -->
     <div id="studio-section" style="display:none;margin-bottom:20px;"></div>
 
+    <!-- DAILY HABITS -->
+    <div id="habits-card" style="display:none;margin-bottom:20px;"></div>
+
     <!-- REFERRAL CARD (invite a friend) -->
     <div id="referral-card" style="display:none;margin-bottom:20px;"></div>
 
@@ -1633,6 +1636,7 @@
     if (clientData?.studio_owner_email && (clientData.client_type === 'studio' || clientData.client_type === 'both')) renderStudioClient();
     renderWeightRow();
     renderReferralCard();
+    renderHabitsCard();
     await loadWaterData();
     await Promise.all([loadCycle(), loadProgressEntries(), loadCoachBranding(client.coach_email), loadMessages(), loadCheckin()]);
     initPeriodCard(); // כרטיס מחזור לנשים
@@ -2335,6 +2339,49 @@
     showDashToast('הפציעה דווחה למאמן ✓');
   }
   let _studioBookings = [], _studioSlots = [];
+  /* 💧 DAILY HABITS — 4 quick toggles + mood + sleep, with weekly adherence */
+  const HABIT_DEFS = [['water', '💧', 'מים'], ['nutrition', '🥗', 'תזונה'], ['sleep', '😴', 'שינה'], ['activity', '🚶', 'תנועה']];
+  let _habitToday = null;
+  async function renderHabitsCard() {
+    const card = document.getElementById('habits-card'); if (!card || !clientData) return;
+    const from = new Date(); from.setDate(from.getDate() - 6);
+    const { data: rows } = await sb.from('daily_habits').select('*').eq('client_email', currentEmail).gte('date', from.toISOString().slice(0, 10)).order('date');
+    const week = rows || [];
+    _habitToday = week.find(r => r.date === todayStr()) || { water: false, nutrition: false, sleep: false, activity: false, mood: null };
+    // weekly adherence = mean over days-with-a-row of (checked habits / 4)
+    const adher = week.length ? Math.round(week.reduce((s, r) => s + (['water', 'nutrition', 'sleep', 'activity'].filter(k => r[k]).length / 4), 0) / week.length * 100) : 0;
+    const adColor = adher >= 70 ? '#4ade80' : adher >= 40 ? '#fbbf24' : '#f87171';
+    const toggles = HABIT_DEFS.map(([k, ic, lbl]) => {
+      const on = !!_habitToday[k];
+      return `<button onclick="toggleHabit('${k}')" style="flex:1;min-width:64px;padding:10px 6px;border-radius:12px;cursor:pointer;border:1px solid ${on ? 'rgba(74,222,128,0.55)' : 'rgba(255,255,255,0.12)'};background:${on ? 'rgba(74,222,128,0.14)' : 'rgba(255,255,255,0.04)'};font-family:'Heebo';transition:all 0.15s;">
+        <div style="font-size:1.3rem;filter:${on ? 'none' : 'grayscale(0.7) opacity(0.6)'};">${ic}</div>
+        <div style="font-size:0.68rem;font-weight:800;color:${on ? '#4ade80' : '#888'};margin-top:2px;">${lbl}</div>
+      </button>`;
+    }).join('');
+    const moods = [['😔', 1], ['😐', 2], ['🙂', 3], ['😃', 4], ['🤩', 5]];
+    const moodRow = moods.map(([e, v]) => `<button onclick="setHabitMood(${v})" style="font-size:1.25rem;padding:3px 6px;border-radius:8px;cursor:pointer;border:1px solid ${_habitToday.mood === v ? 'rgba(255,215,0,0.6)' : 'transparent'};background:${_habitToday.mood === v ? 'rgba(255,215,0,0.12)' : 'transparent'};filter:${_habitToday.mood === v ? 'none' : 'grayscale(0.4)'};">${e}</button>`).join('');
+    card.style.display = 'block';
+    card.innerHTML = `
+      <div style="background:radial-gradient(120% 80% at 50% 0%,rgba(74,222,128,0.08),transparent 60%),linear-gradient(160deg,#17181c,#0d0e11);border:1px solid rgba(74,222,128,0.25);border-radius:16px;padding:16px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+          <div style="font-weight:900;font-size:1.02rem;color:#fff;">💪 הרגלים היום</div>
+          <div style="text-align:left;"><div style="font-size:0.62rem;color:#888;">היצמדות שבועית</div><div style="font-weight:900;font-size:1.15rem;color:${adColor};">${adher}%</div></div>
+        </div>
+        <div style="display:flex;gap:6px;margin-bottom:12px;">${toggles}</div>
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+          <div style="display:flex;align-items:center;gap:4px;"><span style="font-size:0.72rem;color:#aaa;">מצב רוח:</span>${moodRow}</div>
+        </div>
+      </div>`;
+  }
+  async function saveHabitToday() {
+    const payload = { client_email: currentEmail, date: todayStr(),
+      water: !!_habitToday.water, nutrition: !!_habitToday.nutrition, sleep: !!_habitToday.sleep, activity: !!_habitToday.activity,
+      mood: _habitToday.mood || null, updated_at: new Date().toISOString() };
+    await sb.from('daily_habits').upsert(payload, { onConflict: 'client_email,date' });
+  }
+  async function toggleHabit(k) { _habitToday[k] = !_habitToday[k]; await saveHabitToday(); renderHabitsCard(); }
+  async function setHabitMood(v) { _habitToday.mood = (_habitToday.mood === v ? null : v); await saveHabitToday(); renderHabitsCard(); }
+
   /* 🎁 REFERRAL — the client's personal code + one-tap WhatsApp share */
   async function renderReferralCard() {
     const card = document.getElementById('referral-card'); if (!card || !clientData) return;
