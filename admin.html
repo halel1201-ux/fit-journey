@@ -1608,6 +1608,7 @@
       Object.assign(c, payload);
       toast('הפך לבעל סטודיו · סטודיו + רישיון + 2,500 טוקנים הופעלו ✓', 'ok');
     } else { if (c) c.role = role; toast('דרגה עודכנה ✓', 'ok'); }
+    if (role !== 'pending') await rewardCoachReferral(c);  // 🤝 activation = referrer earns tokens
     renderCoachesTable();
   }
 
@@ -1624,6 +1625,7 @@
     if (c) { c.role = 'senior'; c.license_start = today; c.license_end = licEnd; }
     // הענקת טוקנים חודשיים אוטומטית
     await grantCoachTokens(c.email, months * 1000);
+    await rewardCoachReferral(c);  // 🤝 activation = referrer earns tokens
     renderCoachesTable();
     toast(`✓ אושר! גישה עד ${licEnd} · נוספו ${months*1000} טוקנים`, 'ok');
   }
@@ -1720,6 +1722,24 @@
     }).join('');
   }
   function closeCoachTokenHistory() { document.getElementById('coach-token-history-modal').classList.remove('open'); }
+
+  /* 🤝 reward a coach who referred this now-activated coach (once). Reads the real
+     balance from DB first so we never clobber the referrer's existing tokens. */
+  const COACH_REFERRAL_REWARD = 500;
+  async function rewardCoachReferral(referred) {
+    if (!referred || !referred.referred_by_code || referred.referral_rewarded) return;
+    const { data: referrer } = await sb.from('coaches').select('email,name').eq('referral_code', referred.referred_by_code).maybeSingle();
+    if (!referrer || referrer.email === referred.email) return;
+    const { data: tok } = await sb.from('coach_tokens').select('balance').eq('coach_email', referrer.email).maybeSingle();
+    const newBal = (tok?.balance || 0) + COACH_REFERRAL_REWARD;
+    const { error } = await sb.from('coach_tokens').upsert({ coach_email: referrer.email, balance: newBal, updated_at: new Date().toISOString() }, { onConflict: 'coach_email' });
+    if (error) { console.error('referral reward:', error); return; }
+    await sb.from('token_usage').insert({ coach_email: referrer.email, amount: -COACH_REFERRAL_REWARD, kind: 'referral', label: `הפניית מאמן — ${referred.name || referred.email}`, balance_after: newBal });
+    if (typeof coachTokensCache !== 'undefined') coachTokensCache[referrer.email] = newBal;
+    await sb.from('coaches').update({ referral_rewarded: true }).eq('email', referred.email);
+    referred.referral_rewarded = true;
+    toast(`🤝 ${referrer.name || referrer.email.split('@')[0]} קיבל ${COACH_REFERRAL_REWARD} טוקנים על ההפניה`, 'ok');
+  }
 
   async function grantCoachTokens(email, amount, kind = 'purchase', label = 'רכישת טוקנים') {
     const cur = coachTokensCache[email] ?? 0;

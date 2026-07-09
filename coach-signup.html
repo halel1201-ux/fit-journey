@@ -244,6 +244,10 @@
         <label>אימות סיסמה</label>
         <input id="inp-pass2" type="password" placeholder="הכנס שוב" autocomplete="new-password"/>
       </div>
+      <div class="field">
+        <label>🤝 קוד הפניה ממאמן (אופציונלי)</label>
+        <input id="inp-refcode" type="text" placeholder="קוד ממאמן שהזמין אותך" autocomplete="off" style="text-transform:uppercase;"/>
+      </div>
 
       <div style="margin-bottom:8px;margin-top:4px;font-size:0.76rem;font-weight:700;color:var(--muted);">בחר מסלול</div>
       <div class="plans">
@@ -526,6 +530,7 @@
     const saved  = Math.round(plan.price * discountPercent / 100);
     const final  = plan.price - saved;
     const paidStr = final === 0 ? 'ללא תשלום' : final + ' ₪';
+    const refCode = (document.getElementById('inp-refcode')?.value || '').trim().toUpperCase();
 
     // 1. שליחת מייל — ראשון מכל, לפני כל קריאה ל-Supabase
     sendNotifEmail(
@@ -537,6 +542,7 @@
         `מסלול:    ${plan.label}`,
         `מחיר:     ${paidStr}`,
         `קוד הנחה: ${discountPercent > 0 ? discountPercent + '%' : 'ללא'}`,
+        `קוד הפניה: ${refCode || 'ללא'}`,
         `סטטוס:    ממתין לאישור`,
         ``,
         `לאישור: https://fit-journey1.vercel.app/admin.html`
@@ -549,7 +555,7 @@
     // 3. שמירה ב-DB — מתעלמים מכל שגיאה
     btn.disabled = false;
     btn.textContent = isFree ? '✓ השלם ללא תשלום ←' : '✓ שלמתי — שמור את המקום שלי';
-    try { await sb.from('coaches').upsert({ name, email, phone, role: 'pending' }, { onConflict: 'email' }); } catch(e) { console.log('db skip:', e?.message); }
+    try { await sb.from('coaches').upsert({ name, email, phone, role: 'pending', referred_by_code: refCode || null }, { onConflict: 'email' }); } catch(e) { console.log('db skip:', e?.message); }
 
     // WA message
     const waMsg = encodeURIComponent(

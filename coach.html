@@ -480,7 +480,9 @@
         <div class="kpi-card" style="--kc:#f87171;"><div class="kpi-val" id="kpi-debt-open">—</div><div class="kpi-label">חוב פתוח כולל</div></div>
         <div class="kpi-card" style="--kc:#fb923c;"><div class="kpi-val" id="kpi-debt-clients">—</div><div class="kpi-label">מתאמנים עם חוב</div></div>
       </div>
-      <button onclick="openLtvReport()" style="width:100%;margin-bottom:20px;padding:10px;background:linear-gradient(135deg,rgba(167,139,250,0.15),rgba(255,107,0,0.1));border:1px solid rgba(167,139,250,0.4);border-radius:12px;color:#c4b5fd;font-family:'Heebo',sans-serif;font-size:0.85rem;font-weight:800;cursor:pointer;transition:all 0.15s;" onmouseover="this.style.borderColor='rgba(167,139,250,0.7)'" onmouseout="this.style.borderColor='rgba(167,139,250,0.4)'">📊 דוח LTV + שימור לקוחות (קוהורט)</button>
+      <button onclick="openLtvReport()" style="width:100%;margin-bottom:14px;padding:10px;background:linear-gradient(135deg,rgba(167,139,250,0.15),rgba(255,107,0,0.1));border:1px solid rgba(167,139,250,0.4);border-radius:12px;color:#c4b5fd;font-family:'Heebo',sans-serif;font-size:0.85rem;font-weight:800;cursor:pointer;transition:all 0.15s;" onmouseover="this.style.borderColor='rgba(167,139,250,0.7)'" onmouseout="this.style.borderColor='rgba(167,139,250,0.4)'">📊 דוח LTV + שימור לקוחות (קוהורט)</button>
+      <!-- Coach-brings-coach referral -->
+      <div id="coach-referral-card" style="margin-bottom:20px;"></div>
       <!-- הפניות ממתינות (חבר מביא חבר) -->
       <div id="lobby-referrals"></div>
       <!-- Win-Back — לקוחות שנטשו וכדאי להחזיר -->
@@ -2881,6 +2883,7 @@
 
     renderReferrals();
     renderWinBack();
+    renderCoachReferral();
 
     const alertsEl = document.getElementById('lobby-alerts');
     if (!alertsEl) return;
@@ -2991,6 +2994,46 @@
 
       <div style="font-weight:800;font-size:0.9rem;color:#fff;margin-bottom:6px;">🏆 5 הלקוחות המובילים ב-LTV</div>
       <div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:10px 14px;">${topClients}</div>`;
+  }
+
+  /* 🤝 COACH-BRINGS-COACH — the coach's own referral code + tokens reward status.
+     Reward (bonus tokens) is granted by admin when the referred coach is activated. */
+  const COACH_REFERRAL_REWARD = 500; // bonus AI tokens to the referrer
+  async function renderCoachReferral() {
+    const box = document.getElementById('coach-referral-card'); if (!box) return;
+    // load my code (generate lazily) + coaches I referred
+    let { data: me } = await sb.from('coaches').select('referral_code').eq('email', coachEmail).maybeSingle();
+    let code = me?.referral_code;
+    if (!code) {
+      for (let a = 0; a < 5 && !code; a++) {
+        const cand = 'CO' + Math.random().toString(36).slice(2, 7).toUpperCase();
+        const { error } = await sb.from('coaches').update({ referral_code: cand }).eq('email', coachEmail).is('referral_code', null);
+        if (!error) { const { data: r } = await sb.from('coaches').select('referral_code').eq('email', coachEmail).maybeSingle(); code = r?.referral_code; }
+      }
+    }
+    if (!code) { box.innerHTML = ''; return; }
+    const { data: brought } = await sb.from('coaches').select('name,email,role,referral_rewarded').eq('referred_by_code', code);
+    const list = brought || [];
+    const active = list.filter(c => c.role && c.role !== 'pending');
+    const shareMsg = encodeURIComponent(`מנהל.ת סטודיו או מאמן.ת אישי? 💪 אני עובד.ת עם Fit Journey — פאנל ניהול מלא למאמנים. הירשמו עם קוד ההפניה שלי ${code} ושנינו מרוויחים 🎁`);
+    box.innerHTML = `
+      <div style="background:radial-gradient(120% 80% at 50% 0%,rgba(255,140,0,0.1),transparent 60%),linear-gradient(160deg,#17181c,#0d0e11);border:1px solid rgba(255,140,0,0.3);border-radius:14px;padding:16px;">
+        <div style="font-weight:900;font-size:1rem;color:#fff;margin-bottom:4px;">🤝 הבא מאמן — קבל ${COACH_REFERRAL_REWARD} טוקנים</div>
+        <div style="font-size:0.76rem;color:#aaa;margin-bottom:12px;">מאמן/בעל סטודיו שנרשם עם הקוד שלך וסוגר מנוי — ותקבל ${COACH_REFERRAL_REWARD} טוקני AI במתנה.</div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:${list.length ? '12px' : '0'};">
+          <div onclick="navigator.clipboard&&navigator.clipboard.writeText('${code}').then(()=>toast('הקוד הועתק ✓','ok'))" style="flex:1;min-width:110px;text-align:center;background:rgba(255,140,0,0.08);border:1px dashed rgba(255,140,0,0.5);border-radius:10px;padding:9px;cursor:pointer;">
+            <div style="font-size:0.6rem;color:#888;">הקוד שלי (העתק)</div><div style="font-weight:900;font-size:1.2rem;color:#FF8C00;letter-spacing:2px;">${code}</div>
+          </div>
+          <button onclick="window.open('https://wa.me/?text=${shareMsg}','_blank')" style="padding:11px 15px;background:linear-gradient(135deg,#25D366,#128C7E);color:#fff;border:none;border-radius:10px;font-family:'Heebo';font-size:0.82rem;font-weight:800;cursor:pointer;white-space:nowrap;">📲 שתף</button>
+        </div>
+        ${list.length ? `<div style="border-top:1px solid rgba(255,255,255,0.07);padding-top:10px;">
+          <div style="font-size:0.72rem;color:#888;margin-bottom:6px;">מאמנים שהבאת (${active.length} פעילים):</div>
+          ${list.map(c => `<div style="display:flex;justify-content:space-between;font-size:0.78rem;color:#ddd;padding:3px 0;">
+            <span>${esc(c.name || c.email.split('@')[0])}</span>
+            <span style="font-size:0.7rem;color:${c.referral_rewarded ? '#4ade80' : c.role && c.role !== 'pending' ? '#FFD700' : '#888'};">${c.referral_rewarded ? '✓ תוגמל' : c.role && c.role !== 'pending' ? 'פעיל · ממתין לתגמול' : 'ממתין לאישור'}</span>
+          </div>`).join('')}
+        </div>` : ''}
+      </div>`;
   }
 
   /* 🔄 WIN-BACK — churned clients worth re-engaging (computed from loaded clients).
