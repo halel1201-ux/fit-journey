@@ -1070,6 +1070,10 @@
   <!-- TAB: היסטוריה -->
   <div class="tab-page" id="tab-history">
     <div class="section">
+      <div class="sec-title"><span class="icon">💪</span> כוח לאורך זמן (1RM משוער)</div>
+      <div id="strength-chart-wrap"></div>
+    </div>
+    <div class="section">
       <div class="sec-title"><span class="icon">📊</span> יומן אימונים</div>
       <div id="history-wrap"></div>
     </div>
@@ -3184,7 +3188,70 @@
   }
 
   /* ── HISTORY ── */
+  /* 💪 STRENGTH CHART — estimated 1RM per exercise over time (dependency-free SVG) */
+  let _strengthLogs = [], _strengthEx = null;
+  function renderStrengthChart(logs) {
+    const wrap = document.getElementById('strength-chart-wrap'); if (!wrap) return;
+    _strengthLogs = (logs || []).slice().sort((a, b) => a.log_date.localeCompare(b.log_date)); // oldest→newest
+    // best 1RM per exercise per session
+    const byEx = {};
+    _strengthLogs.forEach(log => {
+      (log.exercises || []).forEach(ex => {
+        const best = Math.max(0, ...(ex.sets || []).map(s => calc1RM(s.weight, s.reps)));
+        if (best <= 0) return;
+        (byEx[ex.name] = byEx[ex.name] || []).push({ date: log.log_date, orm: Math.round(best) });
+      });
+    });
+    const exNames = Object.keys(byEx).filter(n => byEx[n].length >= 2).sort((a, b) => byEx[b].length - byEx[a].length);
+    if (!exNames.length) { wrap.innerHTML = '<div class="empty">תעד לפחות 2 אימונים לאותו תרגיל כדי לראות גרף כוח 📈</div>'; return; }
+    if (!_strengthEx || !byEx[_strengthEx]) _strengthEx = exNames[0];
+    wrap._byEx = byEx; wrap._exNames = exNames;
+    const opts = exNames.map(n => `<option value="${esc(n)}" ${n === _strengthEx ? 'selected' : ''}>${esc(n)} (${byEx[n].length})</option>`).join('');
+    wrap.innerHTML = `
+      <select id="strength-ex-sel" onchange="_strengthEx=this.value;drawStrengthSvg()" style="width:100%;margin-bottom:12px;padding:9px;background:#1c1e24;border:1px solid rgba(255,255,255,0.14);border-radius:10px;color:#fff;font-family:'Heebo';font-size:0.88rem;">${opts}</select>
+      <div id="strength-svg-holder"></div>`;
+    drawStrengthSvg();
+  }
+  function drawStrengthSvg() {
+    const wrap = document.getElementById('strength-chart-wrap'); const holder = document.getElementById('strength-svg-holder');
+    if (!wrap || !holder || !wrap._byEx) return;
+    const series = wrap._byEx[_strengthEx] || [];
+    if (series.length < 2) { holder.innerHTML = ''; return; }
+    const W = 320, H = 180, pad = 34;
+    const vals = series.map(p => p.orm);
+    const min = Math.min(...vals), max = Math.max(...vals);
+    const range = max - min || 1;
+    const x = i => pad + (i / (series.length - 1)) * (W - pad - 10);
+    const y = v => H - pad - ((v - min) / range) * (H - pad - 14);
+    const pts = series.map((p, i) => [x(i), y(p.orm)]);
+    const path = pts.map((p, i) => `${i ? 'L' : 'M'}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' ');
+    const area = `${path} L${pts[pts.length - 1][0].toFixed(1)},${H - pad} L${pts[0][0].toFixed(1)},${H - pad} Z`;
+    const first = series[0].orm, last = series[series.length - 1].orm;
+    const delta = last - first, pct = first ? Math.round(delta / first * 100) : 0;
+    const dColor = delta >= 0 ? '#4ade80' : '#f87171';
+    const dots = pts.map((p, i) => `<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="3" fill="${i === pts.length - 1 ? '#FFD700' : '#FF8C00'}"/>`).join('');
+    // sparse date labels (first, middle, last)
+    const lblIdx = [0, Math.floor((series.length - 1) / 2), series.length - 1];
+    const labels = lblIdx.map(i => { const d = new Date(series[i].date + 'T12:00:00'); return `<text x="${x(i).toFixed(1)}" y="${H - 10}" fill="#777" font-size="9" text-anchor="middle" font-family="Heebo">${d.getDate()}/${d.getMonth() + 1}</text>`; }).join('');
+    holder.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;">
+        <div style="font-weight:900;font-size:1.3rem;color:#FFD700;">${last} <span style="font-size:0.7rem;color:#888;font-weight:400;">ק״ג 1RM</span></div>
+        <div style="font-weight:800;font-size:0.85rem;color:${dColor};">${delta >= 0 ? '▲' : '▼'} ${Math.abs(delta)} ק״ג (${pct >= 0 ? '+' : ''}${pct}%)</div>
+      </div>
+      <svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block;">
+        <defs><linearGradient id="strGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FF8C00" stop-opacity="0.35"/><stop offset="1" stop-color="#FF8C00" stop-opacity="0"/></linearGradient></defs>
+        <line x1="${pad}" y1="${H - pad}" x2="${W - 10}" y2="${H - pad}" stroke="rgba(255,255,255,0.12)"/>
+        <text x="${pad - 6}" y="${y(max).toFixed(1)}" fill="#777" font-size="9" text-anchor="end" font-family="Heebo">${max}</text>
+        <text x="${pad - 6}" y="${y(min).toFixed(1)}" fill="#777" font-size="9" text-anchor="end" font-family="Heebo">${min}</text>
+        <path d="${area}" fill="url(#strGrad)"/>
+        <path d="${path}" fill="none" stroke="#FF8C00" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+        ${dots}${labels}
+      </svg>
+      <div style="font-size:0.66rem;color:#666;text-align:center;margin-top:2px;">1RM משוער (נוסחת אפלי) · ${series.length} אימונים</div>`;
+  }
+
   function renderHistory(logs) {
+    renderStrengthChart(logs);
     const wrap = document.getElementById('history-wrap');
     if (!logs.length) {
       wrap.innerHTML = '<div class="empty">עדיין לא תועד אימון — לחץ "✏️ תעד" על כל יום אימון</div>';
