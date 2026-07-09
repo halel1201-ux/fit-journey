@@ -2167,26 +2167,24 @@
      fix form; within → same weight, chase an extra rep. */
   function computeOverloadTip(setsArr, prevReps, prevWeights) {
     if (!prevReps || !prevReps.length || !prevWeights || !prevWeights.some(w => w > 0)) return null;
-    let hit = 0, below = 0, tot = 0;
-    setsArr.forEach((s, si) => {
-      const target = s.reps_max || s.reps_min || 0;
-      const r = prevReps[si] || 0;
-      if (!target || !r) return;
-      tot++;
-      if (r >= target) hit++;
-      else if (r < (s.reps_min || target)) below++;
-    });
-    if (!tot) return null;
-    const topW = Math.max(...prevWeights.filter(w => w > 0));
-    if (hit >= Math.ceil(tot * 0.6)) {
+    // the TOP SET = the heaviest set logged last session; base the recommendation on it
+    let topIdx = -1, topW = 0;
+    prevWeights.forEach((w, i) => { if ((w || 0) > topW) { topW = w; topIdx = i; } });
+    if (topIdx < 0 || topW <= 0) return null;
+    const s = setsArr[topIdx] || setsArr[setsArr.length - 1] || {};
+    const target = s.reps_max || s.reps_min || 0;
+    const minReps = s.reps_min || target;
+    const topReps = prevReps[topIdx] || prevReps[prevReps.length - 1] || 0;
+    if (!target || !topReps) return null;
+    if (topReps >= target) {
       const inc = topW < 20 ? 1 : topW < 40 ? 2.5 : Math.round(topW * 0.025 * 2) / 2;
       const newW = Math.round((topW + inc) * 2) / 2;
-      return { icon: '📈', color: '#4ade80', text: `הגעת ליעד החזרות בפעם הקודמת — נסה להעלות ל-${newW} ק״ג` };
+      return { icon: '📈', color: '#4ade80', text: `הגעת ליעד בטופ סט (${topW} ק״ג × ${topReps}) — נסה להגיע ל-${newW} ק״ג` };
     }
-    if (below >= Math.ceil(tot * 0.6)) {
-      return { icon: '🔧', color: '#fbbf24', text: `שמור על ${topW} ק״ג והתמקד בטכניקה עד שתגיע לטווח החזרות` };
+    if (topReps < minReps) {
+      return { icon: '🔧', color: '#fbbf24', text: `בטופ סט (${topW} ק״ג) עוד לא בטווח — שמור משקל והתמקד בטכניקה עד ${minReps} חזרות` };
     }
-    return { icon: '💪', color: '#7dd3fc', text: `אותו משקל (${topW} ק״ג) — שאף לעוד חזרה בכל סט` };
+    return { icon: '💪', color: '#7dd3fc', text: `אותו משקל בטופ סט (${topW} ק״ג) — שאף להגיע ל-${target} חזרות` };
   }
 
   // per-set reps from the MOST RECENT logged session of this day (autofill "previous")
