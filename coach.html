@@ -1329,44 +1329,75 @@
     toast('סוג האימון נשמר ✓', 'ok');
   }
 
-  /* ── COACHES tab ── */
-  function renderStudioCoachesTab() {
+  /* ── COACHES tab (owner creates coaches with name + password, capped by package) ── */
+  async function studioCoachCall(payload) {
+    const { data: { session } } = await sb.auth.getSession();
+    const res = await fetch(`${URL_}/functions/v1/studio-coach`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json', 'apikey': KEY, 'Authorization': `Bearer ${session?.access_token || ''}` },
+      body: JSON.stringify(payload),
+    });
+    try { return await res.json(); } catch { return { error: 'network' }; }
+  }
+  async function loadStudioCoachNames() {
+    if (!studioCoaches.length) return;
+    const emails = studioCoaches.map(c => c.coach_email);
+    const { data } = await sb.from('coaches').select('email,name').in('email', emails);
+    const nm = {}; (data || []).forEach(c => nm[c.email] = c.name);
+    studioCoaches.forEach(c => c._name = nm[c.coach_email] || c.coach_email.split('@')[0]);
+  }
+  async function renderStudioCoachesTab() {
     const body = document.getElementById('studio-tab-body');
+    body.innerHTML = '<div class="sec-card"><div style="color:#666;padding:14px;">טוען...</div></div>';
+    await loadStudioCoachNames();
     const cap = studioData?.coach_capacity || 1;
     const full = studioCoaches.length >= cap;
     const rows = studioCoaches.length ? studioCoaches.map(sc => `
       <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid rgba(255,255,255,0.05);">
-        <div><div style="font-weight:700;color:#fff;">${esc(sc.coach_email)}</div>
-          <div style="font-size:0.72rem;color:${sc.status==='active'?'#4ade80':'#888'};">${sc.status==='active'?'פעיל':esc(sc.status)}</div></div>
-        <button class="btn-sm btn-outline" onclick="removeStudioCoach('${esc(sc.coach_email)}')" style="border-color:rgba(248,113,113,0.4);color:#f87171;font-size:0.72rem;">הסר</button>
+        <div style="min-width:0;"><div style="font-weight:700;color:#fff;">${esc(sc._name || sc.coach_email)}</div>
+          <div style="font-size:0.72rem;color:#888;direction:ltr;text-align:right;">${esc(sc.coach_email)}</div></div>
+        <div style="display:flex;gap:5px;flex-shrink:0;">
+          <button class="btn-sm btn-outline" onclick="setStudioCoachPassword('${esc(sc.coach_email)}')" style="font-size:0.7rem;border-color:rgba(255,215,0,0.35);color:#FFD700;">🔑 סיסמה</button>
+          <button class="btn-sm btn-outline" onclick="removeStudioCoach('${esc(sc.coach_email)}')" style="border-color:rgba(248,113,113,0.4);color:#f87171;font-size:0.7rem;">הסר</button>
+        </div>
       </div>`).join('') : '<div style="color:#666;padding:14px;text-align:center;">אין מאמנים בסטודיו עדיין</div>';
     body.innerHTML = `<div class="sec-card">
-      <div class="sec-card-title">👥 מאמנים בסטודיו <span style="font-size:0.8rem;color:${full?'#f87171':'#888'};">${studioCoaches.length} / ${cap}</span></div>
-      <div style="font-size:0.76rem;color:#888;margin-bottom:12px;">מאמנים שתוסיף יקבלו גישת מאמן ויוכלו לשבץ עצמם ליומן (בכפוף לאישורך). ${full?'<b style="color:#f87171;">הגעת לתקרה — הוסף חבילת מאמן.</b>':''}</div>
-      <div style="display:flex;gap:8px;margin-bottom:14px;">
-        <input id="studio-coach-email" type="email" placeholder="מייל מאמן קיים במערכת" ${full?'disabled':''} style="flex:1;padding:9px 12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:#fff;font-family:'Heebo';direction:ltr;text-align:right;"/>
-        <button class="btn-sm btn-orange" onclick="addStudioCoach()" ${full?'disabled style="opacity:0.4;"':''}>+ הוסף מאמן</button>
+      <div class="sec-card-title">👥 המאמנים שלי <span style="font-size:0.8rem;color:${full?'#f87171':'#888'};">${studioCoaches.length} / ${cap}</span></div>
+      <div style="font-size:0.76rem;color:#888;margin-bottom:12px;">אתה יוצר לכל מאמן שם משתמש וסיסמה — הוא נכנס עם הפרטים האלה ומשבץ ליומן. ${full?'<b style="color:#f87171;">הגעת לתקרת החבילה — הוסף חבילת מאמן בלשונית חבילות.</b>':''}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;${full?'opacity:0.4;pointer-events:none;':''}">
+        <input id="nc-name" placeholder="שם המאמן" style="padding:9px 12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:#fff;font-family:'Heebo';"/>
+        <input id="nc-email" type="email" placeholder="מייל (שם משתמש)" style="padding:9px 12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:#fff;font-family:'Heebo';direction:ltr;text-align:right;"/>
+        <input id="nc-pass" placeholder="סיסמה (6+ תווים)" style="grid-column:1/-1;padding:9px 12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:#fff;font-family:'Heebo';direction:ltr;text-align:right;"/>
       </div>
+      <button class="btn-sm btn-orange" style="width:100%;margin-bottom:14px;${full?'opacity:0.4;pointer-events:none;':''}" onclick="createStudioCoach()">+ צור מאמן</button>
       ${rows}</div>`;
   }
-  async function addStudioCoach() {
+  async function createStudioCoach() {
     if (!requireEdit()) return;
-    const email = (document.getElementById('studio-coach-email').value || '').trim().toLowerCase();
-    if (!email) { toast('הזן מייל מאמן', 'err'); return; }
-    if (studioCoaches.length >= (studioData?.coach_capacity || 1)) { toast('הגעת לתקרת המאמנים — הוסף חבילת מאמן', 'err'); return; }
-    // must be an existing coach in the system
-    const { data: c } = await sb.from('coaches').select('email').eq('email', email).maybeSingle();
-    if (!c) { toast('לא נמצא מאמן עם המייל הזה במערכת', 'err'); return; }
-    if (email === coachEmail) { toast('אתה כבר בעל הסטודיו', 'err'); return; }
-    const { error } = await sb.from('studio_coaches').insert({ studio_owner_email: coachEmail, coach_email: email, status: 'active' });
-    if (error) { toast(error.message.includes('duplicate') ? 'המאמן כבר בסטודיו' : 'שגיאה: ' + error.message, 'err'); return; }
+    const name = (document.getElementById('nc-name').value || '').trim();
+    const email = (document.getElementById('nc-email').value || '').trim().toLowerCase();
+    const password = document.getElementById('nc-pass').value || '';
+    if (!name) { toast('הזן שם מאמן', 'err'); return; }
+    if (!email || !email.includes('@')) { toast('מייל לא תקין', 'err'); return; }
+    if (password.length < 6) { toast('סיסמה חייבת 6 תווים לפחות', 'err'); return; }
+    const r = await studioCoachCall({ action: 'create', name, email, password });
+    if (r?.error) { toast(r.error, 'err'); return; }
     await loadStudioCoaches(); renderStudioCoachesTab(); renderStudioCapacity();
-    toast('המאמן נוסף לסטודיו ✓', 'ok');
+    toast('המאמן נוצר ✓ — מסור לו את המייל והסיסמה', 'ok');
+  }
+  async function setStudioCoachPassword(email) {
+    if (!requireEdit()) return;
+    const password = prompt(`סיסמה חדשה ל-${email} (6+ תווים):`);
+    if (!password) return;
+    if (password.length < 6) { toast('סיסמה חייבת 6 תווים לפחות', 'err'); return; }
+    const r = await studioCoachCall({ action: 'set_password', email, password });
+    if (r?.error) { toast(r.error, 'err'); return; }
+    toast('הסיסמה עודכנה ✓', 'ok');
   }
   async function removeStudioCoach(email) {
     if (!requireEdit()) return;
     if (!confirm(`להסיר את ${email} מהסטודיו?`)) return;
-    await sb.from('studio_coaches').delete().eq('studio_owner_email', coachEmail).eq('coach_email', email);
+    const r = await studioCoachCall({ action: 'remove', email });
+    if (r?.error) { toast(r.error, 'err'); return; }
     await loadStudioCoaches(); renderStudioCoachesTab(); renderStudioCapacity();
     toast('המאמן הוסר', 'ok');
   }
