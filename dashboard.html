@@ -2336,13 +2336,15 @@
     const owner = clientData.studio_owner_email;
     const from = new Date(); from.setHours(0, 0, 0, 0);
     const to = new Date(from.getTime() + 14 * 864e5);
-    const [{ data: slots }, { data: myBk }, { data: coachBk }, { data: types }] = await Promise.all([
+    const [{ data: slots }, { data: myBk }, { data: coachBk }, { data: types }, { data: myWl }] = await Promise.all([
       sb.from('studio_slots').select('*').eq('owner_email', owner).eq('visible', true).neq('status', 'cancelled').gte('slot_start', from.toISOString()).lte('slot_start', to.toISOString()).order('slot_start'),
       sb.from('studio_bookings').select('*').eq('owner_email', owner).eq('client_email', currentEmail).neq('status', 'cancelled'),
       sb.from('studio_coach_bookings').select('slot_id,coach_email,status').eq('owner_email', owner).eq('status', 'approved'),
       sb.from('studio_class_types').select('id,name,color').eq('owner_email', owner),
+      sb.from('studio_waitlist').select('slot_id').eq('owner_email', owner).eq('client_email', currentEmail),
     ]);
     _studioSlots = slots || []; _studioBookings = myBk || [];
+    const onWaitlist = {}; (myWl || []).forEach(w => onWaitlist[w.slot_id] = true);
     const coachOf = {}; (coachBk || []).forEach(c => coachOf[c.slot_id] = c.coach_email);
     const typeOf = {}; (types || []).forEach(t => typeOf[t.id] = t);
     const remaining = clientData.sessions_remaining || 0;
@@ -2375,7 +2377,9 @@
         ${started
           ? `<span style="font-size:0.72rem;color:#888;white-space:nowrap;">התחיל/הסתיים</span>`
           : (full
-            ? `<span style="font-size:0.72rem;color:#f87171;font-weight:700;white-space:nowrap;">מלא</span>`
+            ? (onWaitlist[s.id]
+              ? `<button onclick="studioLeaveWaitlist(${s.id})" style="padding:6px 12px;background:rgba(168,85,247,0.12);border:1px solid rgba(168,85,247,0.45);color:#c4a5ff;border-radius:8px;font-family:'Heebo';font-size:0.72rem;font-weight:700;cursor:pointer;white-space:nowrap;">📋 בהמתנה · בטל</button>`
+              : `<button onclick="studioJoinWaitlist(${s.id})" ${frozen ? 'disabled style="opacity:0.4;cursor:not-allowed;"' : ''} style="padding:6px 12px;background:rgba(168,85,247,0.1);border:1px solid rgba(168,85,247,0.4);color:#c4a5ff;border-radius:8px;font-family:'Heebo';font-size:0.72rem;font-weight:700;cursor:pointer;white-space:nowrap;">📋 המתנה</button>`)
             : `<button onclick="studioBook(${s.id},'${s.slot_start}','${coach ? esc(coach) : ''}')" ${(remaining <= 0 || frozen) ? 'disabled style="opacity:0.4;cursor:not-allowed;"' : ''} style="padding:6px 14px;background:linear-gradient(135deg,#FF6B00,#FF8C00);color:#fff;border:none;border-radius:8px;font-family:'Heebo';font-size:0.74rem;font-weight:700;cursor:pointer;">שבץ אותי</button>`)}
       </div>`;
     }).join('') || '<div style="color:#666;padding:14px;text-align:center;">אין שעות פתוחות כרגע.</div>';
@@ -2414,6 +2418,19 @@
     if (error) { showDashToast(error.message.includes('duplicate') ? 'כבר שובצת לשעה' : 'שגיאה בשיבוץ'); return; }
     renderStudioClient(); renderTodayCard();
     showDashToast('שובצת ✓ · האימון יינוקב 24 שעות לפני');
+  }
+
+  async function studioJoinWaitlist(slotId) {
+    if (clientData.frozen_until && clientData.frozen_until >= todayStr()) { showDashToast('המנוי מוקפא ❄️'); return; }
+    const { error } = await sb.from('studio_waitlist').insert({ slot_id: slotId, owner_email: clientData.studio_owner_email, client_email: currentEmail });
+    if (error) { showDashToast(error.message.includes('duplicate') ? 'כבר ברשימת המתנה' : 'שגיאה'); return; }
+    showDashToast('נרשמת לרשימת המתנה 📋 · נשבץ אותך אוטומטית אם יתפנה מקום');
+    renderStudioClient();
+  }
+  async function studioLeaveWaitlist(slotId) {
+    await sb.from('studio_waitlist').delete().eq('slot_id', slotId).eq('client_email', currentEmail);
+    showDashToast('הוסרת מרשימת ההמתנה');
+    renderStudioClient();
   }
 
   async function studioCancel(bookingId, slotStart) {

@@ -1145,15 +1145,17 @@
   /* ── CALENDAR tab (owner view: define slots, approve coaches, see bookings) ── */
   let _studioCalFrom = null;
   async function loadStudioSlots(fromDate, toDate) {
-    const [{ data: slots }, { data: cbk }, { data: bk }] = await Promise.all([
+    const [{ data: slots }, { data: cbk }, { data: bk }, { data: wl }] = await Promise.all([
       sb.from('studio_slots').select('*').eq('owner_email', coachEmail).gte('slot_start', fromDate).lte('slot_start', toDate).order('slot_start'),
       sb.from('studio_coach_bookings').select('*').eq('owner_email', coachEmail),
       sb.from('studio_bookings').select('*').eq('owner_email', coachEmail).neq('status', 'cancelled'),
+      sb.from('studio_waitlist').select('slot_id,client_email').eq('owner_email', coachEmail),
     ]);
     studioSlots = slots || [];
     studioSlots.forEach(s => {
       s._coaches = (cbk || []).filter(c => c.slot_id === s.id);
       s._bookings = (bk || []).filter(b => b.slot_id === s.id);
+      s._waitlist = (wl || []).filter(w => w.slot_id === s.id);
     });
   }
   function fmtSlotTime(iso) { return new Date(iso).toLocaleString('he-IL', { weekday: 'short', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }); }
@@ -1267,7 +1269,7 @@
       <div style="font-size:0.64rem;color:#999;">👤 ${coach}</div>
       <div style="display:flex;justify-content:space-between;align-items:center;margin-top:2px;">
         <span style="font-size:0.64rem;font-weight:800;color:${full?'#f87171':'#4ade80'};">${booked}/${s.max_trainees}</span>
-        ${done?'<span style="font-size:0.58rem;color:#4ade80;">✓ הושלם</span>':''}${s.visible?'':'<span style="font-size:0.58rem;">🙈</span>'}
+        ${(s._waitlist||[]).length?`<span style="font-size:0.58rem;color:#c4a5ff;font-weight:800;">📋 ${(s._waitlist||[]).length}</span>`:''}${done?'<span style="font-size:0.58rem;color:#4ade80;">✓ הושלם</span>':''}${s.visible?'':'<span style="font-size:0.58rem;">🙈</span>'}
       </div>
     </div>`;
   }
@@ -1437,7 +1439,11 @@
         <button class="btn-sm btn-outline" style="font-size:0.72rem;border-color:rgba(248,113,113,0.35);color:#f87171;" onclick="deleteStudioSlot(${s.id})">🗑 מחק שיעור</button>
       </div>
       <div style="font-size:0.74rem;font-weight:800;color:#aaa;margin-bottom:4px;">מתאמנים (${(s._bookings||[]).length}/${s.max_trainees}) + סוג אימון</div>
-      ${bookedRows}`;
+      ${bookedRows}
+      ${(s._waitlist||[]).length ? `<div style="margin-top:12px;padding-top:10px;border-top:1px solid rgba(168,85,247,0.2);">
+        <div style="font-size:0.74rem;font-weight:800;color:#c4a5ff;margin-bottom:4px;">📋 רשימת המתנה (${s._waitlist.length}) — קידום אוטומטי בפינוי מקום</div>
+        ${s._waitlist.map((w,i)=>`<div style="font-size:0.74rem;color:#ccc;padding:3px 0;">${i+1}. ${esc((w.client_email||'').split('@')[0])}</div>`).join('')}
+      </div>` : ''}`;
     document.getElementById('studio-modal').style.display='flex';
   }
   async function saveSlotEdit(id) {
