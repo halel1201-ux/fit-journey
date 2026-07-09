@@ -3434,7 +3434,52 @@
     loadHealthDeclStatus(email);
     loadLastReport(email);
     loadHabitAdherence(email);
+    loadClientNotes(email);
     if (client.goal === 'peak_week') loadPeakWeekPlan();
+  }
+
+  /* 📝 PRIVATE CLIENT NOTES — coach-only CRM timeline (never shown to the client) */
+  const NOTE_KINDS = { note: ['📝', 'הערה'], call: ['📞', 'שיחה'], meeting: ['🤝', 'פגישה'], decision: ['✅', 'החלטה'] };
+  async function loadClientNotes(email) {
+    const box = document.getElementById('client-notes-block'); if (!box) return;
+    const { data } = await sb.from('client_notes').select('*').eq('coach_email', coachEmail).eq('client_email', email).order('created_at', { ascending: false }).limit(50);
+    const notes = data || [];
+    box.innerHTML = `
+      <div style="padding:10px 14px;border-radius:12px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;">
+          <div style="font-weight:800;font-size:0.86rem;color:#aaa;">📝 יומן הערות פרטי ${notes.length ? `(${notes.length})` : ''} <span style="font-size:0.66rem;color:#666;font-weight:400;">— רק אתה רואה</span></div>
+        </div>
+        <div style="display:flex;gap:6px;margin-bottom:8px;">
+          <select id="note-kind" style="background:#1c1e24;border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:#fff;font-family:'Heebo';font-size:0.76rem;padding:6px;">
+            ${Object.entries(NOTE_KINDS).map(([k, [ic, lbl]]) => `<option value="${k}">${ic} ${lbl}</option>`).join('')}
+          </select>
+          <input id="note-input" placeholder="הוסף הערה, שיחה, החלטה..." style="flex:1;min-width:0;padding:6px 10px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:#fff;font-family:'Heebo';font-size:0.78rem;" onkeydown="if(event.key==='Enter')addClientNote()"/>
+          <button class="btn-sm btn-orange" style="font-size:0.72rem;" onclick="addClientNote()">+ הוסף</button>
+        </div>
+        ${notes.length ? notes.map(n => {
+          const [ic, lbl] = NOTE_KINDS[n.kind] || NOTE_KINDS.note;
+          return `<div style="display:flex;justify-content:space-between;gap:8px;padding:6px 0;border-top:1px solid rgba(255,255,255,0.05);font-size:0.78rem;">
+            <div style="color:#ddd;"><span style="color:#888;">${ic}</span> ${esc(n.body)}
+              <span style="color:#666;font-size:0.66rem;display:block;margin-top:1px;">${lbl} · ${new Date(n.created_at).toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit', year: '2-digit' })} ${new Date(n.created_at).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })}</span>
+            </div>
+            <button onclick="deleteClientNote(${n.id})" style="background:none;border:none;color:#f87171;cursor:pointer;font-size:0.9rem;flex-shrink:0;">✕</button>
+          </div>`;
+        }).join('') : '<div style="color:#666;font-size:0.74rem;padding:4px 0;">אין הערות עדיין</div>'}
+      </div>`;
+  }
+  async function addClientNote() {
+    if (!requireEdit()) return;
+    const inp = document.getElementById('note-input'); const body = (inp?.value || '').trim();
+    if (!body) return;
+    const kind = document.getElementById('note-kind')?.value || 'note';
+    const { error } = await sb.from('client_notes').insert({ coach_email: coachEmail, client_email: activeEmail, body, kind });
+    if (error) { toast('שגיאה: ' + error.message, 'err'); return; }
+    loadClientNotes(activeEmail);
+    toast('נשמר ביומן ✓', 'ok');
+  }
+  async function deleteClientNote(id) {
+    await sb.from('client_notes').delete().eq('id', id).eq('coach_email', coachEmail);
+    loadClientNotes(activeEmail);
   }
 
   /* 💪 weekly habit adherence chip in the client card (read-only over daily_habits) */
@@ -3830,6 +3875,7 @@ ${exLines || 'אין'}
               : `<button class="btn-sm btn-outline" onclick="freezeClient()" style="font-size:0.72rem;border-color:rgba(56,189,248,0.4);color:#7dd3fc;">❄️ הקפא לתקופה</button>`}
           </div>`;
         })()}
+        <div id="client-notes-block" style="margin-bottom:14px;"></div>
         <div class="form-grid" style="margin-bottom:14px;">
           <div class="f-group"><label>שם</label><input id="e-name" value="${esc(client.name)}"/></div>
           <div class="f-group"><label>טלפון</label><input id="e-phone" value="${esc(phone)}" placeholder="050-0000000" type="tel" style="direction:ltr;text-align:right;"/></div>
