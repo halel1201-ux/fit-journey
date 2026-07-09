@@ -2366,11 +2366,15 @@
           </div></div>`;
       }
       const started = new Date(s.slot_start).getTime() <= Date.now();
+      const booked = s.booked_count || 0;
+      const full = booked >= s.max_trainees;
       return `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 12px;border-right:3px solid ${color};background:${color}14;border-radius:8px;margin-bottom:5px;${started ? 'opacity:0.5;' : ''}">
-        <div><div style="font-weight:700;color:#fff;">${esc(clsName)} · ${when}</div><div style="font-size:0.74rem;color:#aaa;">${coachTxt} · עד ${s.max_trainees} מתאמנים</div></div>
+        <div><div style="font-weight:700;color:#fff;">${esc(clsName)} · ${when}</div><div style="font-size:0.74rem;color:#aaa;">${coachTxt} · <span style="font-weight:700;color:${full ? '#f87171' : '#4ade80'};">👥 ${booked}/${s.max_trainees}</span></div></div>
         ${started
           ? `<span style="font-size:0.72rem;color:#888;white-space:nowrap;">התחיל/הסתיים</span>`
-          : `<button onclick="studioBook(${s.id},'${s.slot_start}','${coach ? esc(coach) : ''}')" ${remaining <= 0 ? 'disabled style="opacity:0.4;"' : ''} style="padding:6px 14px;background:linear-gradient(135deg,#FF6B00,#FF8C00);color:#fff;border:none;border-radius:8px;font-family:'Heebo';font-size:0.74rem;font-weight:700;cursor:pointer;">שבץ אותי</button>`}
+          : (full
+            ? `<span style="font-size:0.72rem;color:#f87171;font-weight:700;white-space:nowrap;">מלא</span>`
+            : `<button onclick="studioBook(${s.id},'${s.slot_start}','${coach ? esc(coach) : ''}')" ${remaining <= 0 ? 'disabled style="opacity:0.4;"' : ''} style="padding:6px 14px;background:linear-gradient(135deg,#FF6B00,#FF8C00);color:#fff;border:none;border-radius:8px;font-family:'Heebo';font-size:0.74rem;font-weight:700;cursor:pointer;">שבץ אותי</button>`)}
       </div>`;
     }).join('') || '<div style="color:#666;padding:14px;text-align:center;">אין שעות פתוחות כרגע.</div>';
 
@@ -2399,9 +2403,9 @@
     // overbooking guard: active (booked) reservations must not exceed the remaining balance.
     const activeCount = _studioBookings.length; // booked, non-cancelled, loaded in renderStudioClient
     if (activeCount >= (clientData.sessions_remaining || 0)) { showDashToast('כל האימונים בכרטיסייה כבר משובצים — בטל שיבוץ או פנה לבעל הסטודיו'); return; }
-    const { count } = await sb.from('studio_bookings').select('id', { count: 'exact', head: true }).eq('slot_id', slotId).neq('status', 'cancelled');
+    // capacity via the trigger-maintained booked_count (clients can't read others' bookings)
     const slot = _studioSlots.find(s => s.id === slotId);
-    if (slot && count != null && count >= slot.max_trainees) { showDashToast('השעה מלאה 😕'); renderStudioClient(); return; }
+    if (slot && (slot.booked_count || 0) >= slot.max_trainees) { showDashToast('השעה מלאה 😕'); renderStudioClient(); return; }
     const { error } = await sb.from('studio_bookings').insert({ slot_id: slotId, owner_email: clientData.studio_owner_email, client_email: currentEmail, coach_email: coachEmail || null, status: 'booked', punched: false });
     if (error) { showDashToast(error.message.includes('duplicate') ? 'כבר שובצת לשעה' : 'שגיאה בשיבוץ'); return; }
     renderStudioClient(); renderTodayCard();
