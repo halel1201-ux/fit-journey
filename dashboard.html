@@ -2346,6 +2346,8 @@
     const coachOf = {}; (coachBk || []).forEach(c => coachOf[c.slot_id] = c.coach_email);
     const typeOf = {}; (types || []).forEach(t => typeOf[t.id] = t);
     const remaining = clientData.sessions_remaining || 0;
+    const frozen = clientData.frozen_until && clientData.frozen_until >= todayStr();
+    const frozenUntilTxt = frozen ? new Date(clientData.frozen_until + 'T12:00:00').toLocaleDateString('he-IL') : '';
     const myBySlot = {}; _studioBookings.forEach(b => myBySlot[b.slot_id] = b);
 
     const slotRows = _studioSlots.map(s => {
@@ -2374,7 +2376,7 @@
           ? `<span style="font-size:0.72rem;color:#888;white-space:nowrap;">התחיל/הסתיים</span>`
           : (full
             ? `<span style="font-size:0.72rem;color:#f87171;font-weight:700;white-space:nowrap;">מלא</span>`
-            : `<button onclick="studioBook(${s.id},'${s.slot_start}','${coach ? esc(coach) : ''}')" ${remaining <= 0 ? 'disabled style="opacity:0.4;"' : ''} style="padding:6px 14px;background:linear-gradient(135deg,#FF6B00,#FF8C00);color:#fff;border:none;border-radius:8px;font-family:'Heebo';font-size:0.74rem;font-weight:700;cursor:pointer;">שבץ אותי</button>`)}
+            : `<button onclick="studioBook(${s.id},'${s.slot_start}','${coach ? esc(coach) : ''}')" ${(remaining <= 0 || frozen) ? 'disabled style="opacity:0.4;cursor:not-allowed;"' : ''} style="padding:6px 14px;background:linear-gradient(135deg,#FF6B00,#FF8C00);color:#fff;border:none;border-radius:8px;font-family:'Heebo';font-size:0.74rem;font-weight:700;cursor:pointer;">שבץ אותי</button>`)}
       </div>`;
     }).join('') || '<div style="color:#666;padding:14px;text-align:center;">אין שעות פתוחות כרגע.</div>';
 
@@ -2392,12 +2394,14 @@
             <button onclick="reportInjury()" style="padding:5px 12px;background:rgba(248,113,113,0.1);border:1px solid rgba(248,113,113,0.35);color:#f87171;border-radius:8px;font-family:'Heebo';font-size:0.72rem;font-weight:700;cursor:pointer;">🩹 דווח פציעה</button>
           </div>
         </div>
+        ${frozen ? `<div style="margin-bottom:12px;padding:10px 12px;border-radius:10px;background:rgba(56,189,248,0.1);border:1px solid rgba(56,189,248,0.4);color:#7dd3fc;font-size:0.82rem;font-weight:700;text-align:center;">❄️ המנוי שלך מוקפא עד ${frozenUntilTxt} — לא ניתן לשבץ שיעורים עד שיופשר</div>` : ''}
         <div style="font-size:0.78rem;font-weight:800;color:#aaa;margin-bottom:6px;">📅 שעות פעילות (שבועיים קרובים)</div>
         ${slotRows}
       </div>`;
   }
 
   async function studioBook(slotId, slotStart, coachEmail) {
+    if (clientData.frozen_until && clientData.frozen_until >= todayStr()) { showDashToast('המנוי מוקפא ❄️ — פנה לבעל הסטודיו להפשרה'); renderStudioClient(); return; }
     if (new Date(slotStart).getTime() <= Date.now()) { showDashToast('לא ניתן להשתבץ — השיעור כבר התחיל'); renderStudioClient(); return; }
     // exact-24h model: booking does NOT deduct now — a cron punches 24h before the slot.
     // overbooking guard: active (booked) reservations must not exceed the remaining balance.

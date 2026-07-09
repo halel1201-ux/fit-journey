@@ -30,14 +30,19 @@ Deno.serve(async (req) => {
       .select('id, owner_email, client_email').in('slot_id', slotIds).eq('status', 'booked').eq('punched', false)
     if (!bookings?.length) return new Response('ok — nothing to punch', { status: 200 })
 
-    let punched = 0
+    // today's date in Israel (freeze compares on calendar date)
+    const todayIL = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jerusalem' }) // YYYY-MM-DD
+
+    let punched = 0, skippedFrozen = 0
     for (const b of bookings) {
+      // ❄️ skip frozen clients — do NOT punch and leave punched=false so it re-evaluates after thaw
+      const { data: cl } = await sb.from('clients').select('sessions_remaining, frozen_until').eq('email', b.client_email).maybeSingle()
+      if (cl?.frozen_until && cl.frozen_until >= todayIL) { skippedFrozen++; continue }
       // mark punched first (idempotency guard against double-run)
       const { data: upd } = await sb.from('studio_bookings')
         .update({ punched: true }).eq('id', b.id).eq('punched', false).select('id').maybeSingle()
       if (!upd) continue // someone/another run already punched it
       // decrement the client's balance (floor at 0) + ledger
-      const { data: cl } = await sb.from('clients').select('sessions_remaining').eq('email', b.client_email).maybeSingle()
       const newRem = Math.max(0, (cl?.sessions_remaining || 0) - 1)
       await sb.from('clients').update({ sessions_remaining: newRem }).eq('email', b.client_email)
       await sb.from('studio_punch_log').insert({
@@ -46,7 +51,7 @@ Deno.serve(async (req) => {
       })
       punched++
     }
-    return new Response(`ok — punched ${punched}`, { status: 200 })
+    return new Response(`ok — punched ${punched}, skipped ${skippedFrozen} frozen`, { status: 200 })
   } catch (e) {
     return new Response('error: ' + (e as Error).message, { status: 500 })
   }

@@ -3392,6 +3392,51 @@ ${exLines || 'אין'}
   }
   function closeSignedDoc() { document.getElementById('signed-doc-modal').style.display = 'none'; }
 
+  /* ❄️ הקפאת מנוי — עוצר את השעון של תקופת הליווי ומאריך את תאריך הסיום באותה כמות ימים.
+     בזמן ההקפאה הלקוח לא יכול לשבץ שיעורי סטודיו והקרון לא מנקב כרטיסייה. */
+  async function freezeClient() {
+    if (!requireEdit()) return;
+    const daysStr = prompt('הקפאת מנוי — לכמה ימים להקפיא?\nתאריך סיום הליווי יידחה אוטומטית באותה כמות ימים.', '14');
+    if (daysStr === null) return;
+    const days = parseInt(daysStr, 10);
+    if (!Number.isFinite(days) || days < 1 || days > 365) { toast('הזן מספר ימים בין 1 ל-365', 'err'); return; }
+    const { data: cl } = await sb.from('clients').select('coaching_end,frozen_until').eq('email', activeEmail).maybeSingle();
+    // frozen_until = today + days ; push coaching_end forward by the same amount (period preserved)
+    const until = new Date(); until.setDate(until.getDate() + days);
+    const untilStr = until.toISOString().slice(0, 10);
+    const patch = { frozen_until: untilStr };
+    if (cl?.coaching_end) {
+      const base = new Date(cl.coaching_end + 'T12:00:00'); base.setDate(base.getDate() + days);
+      patch.coaching_end = base.toISOString().slice(0, 10);
+    }
+    const { error } = await sb.from('clients').update(patch).eq('email', activeEmail);
+    if (error) { toast('שגיאה: ' + error.message, 'err'); return; }
+    await sb.from('messages').insert({ coach_email: coachEmail, client_email: activeEmail, sender_email: coachEmail,
+      content: `❄️ המנוי שלך הוקפא ל-${days} ימים (עד ${until.toLocaleDateString('he-IL')}). תקופת הליווי הוארכה בהתאם — נתראה בחזרה! 💪` });
+    await loadClients();
+    toast(`המנוי הוקפא ל-${days} ימים ❄️`, 'ok');
+  }
+  async function unfreezeClient() {
+    if (!requireEdit()) return;
+    const { data: cl } = await sb.from('clients').select('coaching_end,frozen_until').eq('email', activeEmail).maybeSingle();
+    if (!cl?.frozen_until || cl.frozen_until < todayStr()) { // already thawed
+      await sb.from('clients').update({ frozen_until: null }).eq('email', activeEmail); await loadClients(); return;
+    }
+    // returning early — reclaim the not-yet-used frozen days from coaching_end
+    const remaining = Math.max(0, Math.round((new Date(cl.frozen_until + 'T12:00:00') - new Date(todayStr() + 'T12:00:00')) / 86400000));
+    const patch = { frozen_until: null };
+    if (cl.coaching_end && remaining > 0) {
+      const base = new Date(cl.coaching_end + 'T12:00:00'); base.setDate(base.getDate() - remaining);
+      patch.coaching_end = base.toISOString().slice(0, 10);
+    }
+    const { error } = await sb.from('clients').update(patch).eq('email', activeEmail);
+    if (error) { toast('שגיאה: ' + error.message, 'err'); return; }
+    await sb.from('messages').insert({ coach_email: coachEmail, client_email: activeEmail, sender_email: coachEmail,
+      content: '☀️ המנוי הופשר — חזרנו לפעילות מלאה! מוכנים להמשיך 💪' });
+    await loadClients();
+    toast('המנוי הופשר ☀️', 'ok');
+  }
+
   async function sendDeclReminder(email) {
     if (!requireEdit()) return;
     const { error } = await sb.from('messages').insert({
@@ -3440,6 +3485,16 @@ ${exLines || 'אין'}
             <span>• ${esc(inj.note||'')} <span style="color:#777;font-size:0.68rem;">(${inj.by==='client'?'דיווח הלקוח':'מאמן'})</span></span>
             <button onclick="removeInjury(${i})" style="background:none;border:none;color:#f87171;cursor:pointer;font-size:0.9rem;">✕</button></div>`).join('')}
         </div>
+        ${(() => {
+          const frozen = client.frozen_until && client.frozen_until >= todayStr();
+          const fUntil = client.frozen_until ? new Date(client.frozen_until + 'T12:00:00').toLocaleDateString('he-IL') : '';
+          return `<div style="margin-bottom:14px;padding:10px 14px;border-radius:12px;background:${frozen?'rgba(56,189,248,0.09)':'rgba(255,255,255,0.03)'};border:1px solid ${frozen?'rgba(56,189,248,0.4)':'rgba(255,255,255,0.08)'};display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+            <div style="font-weight:800;font-size:0.86rem;color:${frozen?'#38bdf8':'#aaa'};">${frozen?`❄️ המנוי מוקפא עד ${fUntil}`:'❄️ הקפאת מנוי'}</div>
+            ${frozen
+              ? `<button class="btn-sm btn-outline" onclick="unfreezeClient()" style="font-size:0.72rem;border-color:rgba(56,189,248,0.5);color:#38bdf8;">בטל הקפאה — הפשר עכשיו</button>`
+              : `<button class="btn-sm btn-outline" onclick="freezeClient()" style="font-size:0.72rem;border-color:rgba(56,189,248,0.4);color:#7dd3fc;">❄️ הקפא לתקופה</button>`}
+          </div>`;
+        })()}
         <div class="form-grid" style="margin-bottom:14px;">
           <div class="f-group"><label>שם</label><input id="e-name" value="${esc(client.name)}"/></div>
           <div class="f-group"><label>טלפון</label><input id="e-phone" value="${esc(phone)}" placeholder="050-0000000" type="tel" style="direction:ltr;text-align:right;"/></div>
