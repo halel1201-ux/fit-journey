@@ -2304,33 +2304,37 @@
     const owner = clientData.studio_owner_email;
     const from = new Date(); from.setHours(0, 0, 0, 0);
     const to = new Date(from.getTime() + 14 * 864e5);
-    const [{ data: slots }, { data: myBk }, { data: coachBk }] = await Promise.all([
-      sb.from('studio_slots').select('*').eq('owner_email', owner).gte('slot_start', from.toISOString()).lte('slot_start', to.toISOString()).order('slot_start'),
+    const [{ data: slots }, { data: myBk }, { data: coachBk }, { data: types }] = await Promise.all([
+      sb.from('studio_slots').select('*').eq('owner_email', owner).eq('visible', true).neq('status', 'cancelled').gte('slot_start', from.toISOString()).lte('slot_start', to.toISOString()).order('slot_start'),
       sb.from('studio_bookings').select('*').eq('owner_email', owner).eq('client_email', currentEmail).neq('status', 'cancelled'),
       sb.from('studio_coach_bookings').select('slot_id,coach_email,status').eq('owner_email', owner).eq('status', 'approved'),
+      sb.from('studio_class_types').select('id,name,color').eq('owner_email', owner),
     ]);
     _studioSlots = slots || []; _studioBookings = myBk || [];
     const coachOf = {}; (coachBk || []).forEach(c => coachOf[c.slot_id] = c.coach_email);
-    // count bookings per slot (for capacity) — needs a count; RLS lets client read only own+studio-visible, so use a head count
+    const typeOf = {}; (types || []).forEach(t => typeOf[t.id] = t);
     const remaining = clientData.sessions_remaining || 0;
     const myBySlot = {}; _studioBookings.forEach(b => myBySlot[b.slot_id] = b);
 
     const slotRows = _studioSlots.map(s => {
       const mine = myBySlot[s.id];
-      const coach = coachOf[s.id];
+      const coach = s.coach_email || coachOf[s.id];
+      const ct = typeOf[s.class_type_id];
+      const color = ct?.color || '#6d8cff';
+      const clsName = ct?.name || s.title || 'שיעור';
       const when = new Date(s.slot_start).toLocaleString('he-IL', { weekday: 'short', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
       const coachTxt = coach ? `👤 ${esc(coach.split('@')[0])}` : '<span style="color:#888;">מאמן טרם נקבע</span>';
       if (mine) {
         const dl = freeCancelDeadline(s.slot_start);
         const refundable = new Date() < dl;
-        return `<div style="padding:10px 12px;border-bottom:1px solid rgba(255,255,255,0.05);background:rgba(74,222,128,0.06);border-radius:8px;margin-bottom:5px;">
+        return `<div style="padding:10px 12px;border-right:3px solid ${color};background:rgba(74,222,128,0.06);border-radius:8px;margin-bottom:5px;">
           <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
-            <div><div style="font-weight:800;color:#4ade80;">✓ ${when}</div><div style="font-size:0.74rem;color:#aaa;">${coachTxt}${mine.workout ? ` · 🏋️ ${esc(mine.workout)}` : ''}</div></div>
+            <div><div style="font-weight:800;color:#4ade80;">✓ ${esc(clsName)} · ${when}</div><div style="font-size:0.74rem;color:#aaa;">${coachTxt}${mine.workout ? ` · 🏋️ ${esc(mine.workout)}` : ''}</div></div>
             <button onclick="studioCancel(${mine.id},'${s.slot_start}')" style="padding:6px 12px;background:rgba(248,113,113,0.1);border:1px solid rgba(248,113,113,0.35);color:#f87171;border-radius:8px;font-family:'Heebo';font-size:0.74rem;font-weight:700;cursor:pointer;">ביטול${refundable ? '' : ' (ללא זיכוי)'}</button>
           </div></div>`;
       }
-      return `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid rgba(255,255,255,0.05);">
-        <div><div style="font-weight:700;color:#fff;">${when}</div><div style="font-size:0.74rem;color:#aaa;">${coachTxt} · עד ${s.max_trainees} מתאמנים</div></div>
+      return `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 12px;border-right:3px solid ${color};background:${color}14;border-radius:8px;margin-bottom:5px;">
+        <div><div style="font-weight:700;color:#fff;">${esc(clsName)} · ${when}</div><div style="font-size:0.74rem;color:#aaa;">${coachTxt} · עד ${s.max_trainees} מתאמנים</div></div>
         <button onclick="studioBook(${s.id},'${s.slot_start}','${coach ? esc(coach) : ''}')" ${remaining <= 0 ? 'disabled style="opacity:0.4;"' : ''} style="padding:6px 14px;background:linear-gradient(135deg,#FF6B00,#FF8C00);color:#fff;border:none;border-radius:8px;font-family:'Heebo';font-size:0.74rem;font-weight:700;cursor:pointer;">שבץ אותי</button>
       </div>`;
     }).join('') || '<div style="color:#666;padding:14px;text-align:center;">אין שעות פתוחות כרגע.</div>';
