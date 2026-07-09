@@ -891,6 +891,9 @@
   <!-- TAB: אימונים -->
   <div class="tab-page active" id="tab-workouts">
 
+    <!-- 🔋 באנר דילоуד — מופיע כשמזוהה ירידה בביצועים -->
+    <div id="deload-banner" style="display:none;margin-bottom:18px;"></div>
+
     <!-- כרטיס "היום שלי" — מרכז אימון/תזונה/צעדים/רצף -->
     <div id="today-card" style="display:none;margin-bottom:18px;background:radial-gradient(130% 90% at 50% 0%,rgba(255,107,0,0.13) 0%,rgba(255,107,0,0) 55%),linear-gradient(160deg,#17181c 0%,#0d0e11 100%);border:1px solid rgba(255,107,0,0.32);border-radius:18px;padding:18px 18px 16px;box-shadow:0 8px 30px rgba(0,0,0,0.35);">
       <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px;">
@@ -1633,6 +1636,7 @@
     renderTraining(trainingPlanLocal);
     renderResumeBanner(); // אם יש אימון פעיל שנשמר — הצג באנר המשך
     workoutLogs = logs || [];
+    renderDeloadBanner();
     renderHistory(logs || []);
     renderTodayCard(); // כרטיס "היום שלי" (משתמש ב-workoutLogs + trainingPlanLocal + steps + יעד תזונה)
     loadProgressPhotos();
@@ -3188,6 +3192,40 @@
   }
 
   /* ── HISTORY ── */
+  /* 🔋 DELOAD DETECTION — flags accumulated fatigue when per-day training volume
+     declines across the last 3 sessions of the same workout day. Client-side. */
+  function detectDeload() {
+    const byDay = {};
+    (workoutLogs || []).forEach(l => { (byDay[l.day_name] = byDay[l.day_name] || []).push(l); }); // newest-first (workoutLogs order)
+    let worst = null;
+    Object.entries(byDay).forEach(([day, ls]) => {
+      if (ls.length < 3) return;
+      const v = ls.slice(0, 3).map(l => (l.total_volume > 0 ? l.total_volume : calcVolume(l.exercises)) || 0); // [newest, mid, oldest]
+      if (v.some(x => x <= 0)) return;
+      // two consecutive declines (newest < mid < oldest) and a meaningful drop from the recent peak
+      const declining = v[0] < v[1] && v[1] < v[2];
+      const dropPct = Math.round((v[2] - v[0]) / v[2] * 100);
+      if (declining && dropPct >= 8 && (!worst || dropPct > worst.dropPct)) worst = { day, dropPct };
+    });
+    return worst;
+  }
+  function renderDeloadBanner() {
+    const box = document.getElementById('deload-banner'); if (!box) return;
+    const d = detectDeload();
+    if (!d) { box.style.display = 'none'; box.innerHTML = ''; return; }
+    box.style.display = 'block';
+    box.innerHTML = `
+      <div style="background:radial-gradient(120% 80% at 50% 0%,rgba(251,191,36,0.12),transparent 60%),linear-gradient(160deg,#1c1a14,#0d0e11);border:1px solid rgba(251,191,36,0.4);border-radius:16px;padding:15px 16px;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div style="font-size:1.8rem;">🔋</div>
+          <div style="flex:1;">
+            <div style="font-weight:900;font-size:0.98rem;color:#fbbf24;">אולי הגיע הזמן לשבוע הקלה (Deload)</div>
+            <div style="font-size:0.78rem;color:#cbb;line-height:1.5;margin-top:2px;">הנפח ב"${esc(d.day)}" ירד ${d.dropPct}% ב-3 האימונים האחרונים — סימן אפשרי לעייפות מצטברת. שקול/י שבוע קליל יותר (משקלים 40–60%, פחות סטים) כדי להתאושש ולחזור חזק יותר. כדאי להתייעץ עם המאמן.</div>
+          </div>
+        </div>
+      </div>`;
+  }
+
   /* 💪 STRENGTH CHART — estimated 1RM per exercise over time (dependency-free SVG) */
   let _strengthLogs = [], _strengthEx = null;
   function renderStrengthChart(logs) {
