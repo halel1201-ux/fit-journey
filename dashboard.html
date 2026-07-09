@@ -3091,7 +3091,7 @@
     showVolumeModal(totalVolume, prevVol || 0, totalSets, exercises.length, Math.floor(elapsed / 60), workoutSession.dayName);
 
     if (prs.length) {
-      setTimeout(() => showDashToast('🏆 שיא אישי! ' + prs.map(p => p.exercise).join(' · ')), 4500);
+      setTimeout(() => celebratePR(prs), 600);   // 💥 full celebration (confetti + share)
       // בדוק אם שיא הנבחרת נשבר ושלח הודעת מערכת לקבוצה
       checkAndPostTeamRecords(prs, exercises, histLogs);
     }
@@ -3104,6 +3104,49 @@
       .order('created_at', { ascending: false })
       .limit(30);
     renderHistory(logs || []);
+  }
+
+  /* 💥 PR CELEBRATION — full-screen confetti + share card for a new personal record */
+  function celebratePR(prs) {
+    const top = prs.slice().sort((a, b) => b.orm - a.orm);
+    const shareText = `💥 שיא אישי חדש! ${top.map(p => `${p.exercise} — ${Math.round(p.orm)} ק״ג (1RM משוער)`).join(' · ')} 💪 #FitJourney`;
+    const colors = ['#FF6B00', '#FFD700', '#4ade80', '#38bdf8', '#f472b6', '#c4b5fd'];
+    let ov = document.getElementById('pr-celebrate'); if (ov) ov.remove();
+    ov = document.createElement('div');
+    ov.id = 'pr-celebrate';
+    ov.style.cssText = 'position:fixed;inset:0;z-index:100000;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.82);overflow:hidden;';
+    const confetti = Array.from({ length: 70 }, () => {
+      const c = colors[Math.floor(Math.random() * colors.length)];
+      const left = Math.random() * 100, delay = Math.random() * 0.6, dur = 1.8 + Math.random() * 1.6, size = 6 + Math.random() * 8;
+      const rot = Math.random() * 360;
+      return `<span style="position:absolute;top:-20px;left:${left}%;width:${size}px;height:${size * 0.5}px;background:${c};transform:rotate(${rot}deg);border-radius:2px;animation:prFall ${dur}s ${delay}s linear forwards;"></span>`;
+    }).join('');
+    ov.innerHTML = `
+      <style>@keyframes prFall{to{transform:translateY(105vh) rotate(720deg);opacity:0.9;}}
+        @keyframes prPop{0%{transform:scale(0.6);opacity:0;}60%{transform:scale(1.08);}100%{transform:scale(1);opacity:1;}}</style>
+      ${confetti}
+      <div style="position:relative;text-align:center;background:radial-gradient(120% 90% at 50% 0%,rgba(255,215,0,0.15),transparent 60%),linear-gradient(160deg,#1b1c20,#0d0e11);border:1px solid rgba(255,215,0,0.45);border-radius:22px;padding:30px 26px;max-width:340px;margin:16px;box-shadow:0 20px 60px rgba(0,0,0,0.6);animation:prPop 0.5s ease-out;">
+        <div style="font-size:3.6rem;line-height:1;">🏆</div>
+        <div style="font-weight:900;font-size:1.5rem;color:#FFD700;margin-top:8px;">שיא אישי חדש!</div>
+        <div style="margin-top:14px;display:flex;flex-direction:column;gap:8px;">
+          ${top.map(p => `<div style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,215,0,0.25);border-radius:12px;padding:9px 12px;">
+            <div style="font-weight:800;color:#fff;font-size:0.98rem;">${esc(p.exercise)}</div>
+            <div style="font-size:0.78rem;color:#FFD700;">${Math.round(p.orm)} ק״ג · 1RM משוער</div></div>`).join('')}
+        </div>
+        <div style="display:flex;gap:8px;margin-top:18px;">
+          <button onclick="sharePR('${encodeURIComponent(shareText)}')" style="flex:1;padding:12px;background:linear-gradient(135deg,#25D366,#128C7E);color:#fff;border:none;border-radius:12px;font-family:'Heebo';font-weight:800;font-size:0.9rem;cursor:pointer;">📲 שתף את השיא</button>
+          <button onclick="document.getElementById('pr-celebrate').remove()" style="flex:0 0 auto;padding:12px 16px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);color:#fff;border-radius:12px;font-family:'Heebo';font-weight:700;cursor:pointer;">סגור</button>
+        </div>
+      </div>`;
+    ov.addEventListener('click', e => { if (e.target === ov) ov.remove(); });
+    document.body.appendChild(ov);
+    if (navigator.vibrate) navigator.vibrate([40, 60, 120]);
+    setTimeout(() => { const o = document.getElementById('pr-celebrate'); if (o) o.querySelectorAll('span').forEach(s => s.remove()); }, 4000);
+  }
+  function sharePR(encText) {
+    const text = decodeURIComponent(encText);
+    if (navigator.share) navigator.share({ text }).catch(() => {});
+    else window.open('https://wa.me/?text=' + encText, '_blank');
   }
 
   function showDashToast(msg) {
