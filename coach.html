@@ -3233,6 +3233,35 @@
     return bal > 500 ? '#f87171' : '#fb923c';
   }
 
+  /* 🎯 UNIFIED CLIENT HEALTH SCORE (0–100) — folds churn, attendance, chat,
+     debt, package validity and recency into one number. Pure client-side over
+     already-loaded data; frozen clients are shown as paused, not at-risk. */
+  function computeHealth(c) {
+    if (c.frozen_until && c.frozen_until >= todayStr()) return { score: null, color: '#38bdf8', label: 'מוקפא', reasons: ['❄️ המנוי מוקפא — לא נספר כסיכון'] };
+    let score = 100; const reasons = [];
+    const risk = churnAlerts[c.email]?.risk_score || 0;
+    if (risk) { const p = Math.round(risk * 0.4); score -= p; reasons.push(`🚨 סיכון נטישה ${risk}% (−${p})`); }
+    const ns = c.no_show_count || 0;
+    if (ns) { const p = Math.min(24, ns * 8); score -= p; reasons.push(`🚫 ${ns} היעדרויות (−${p})`); }
+    const debt = clientDebtMap[c.email] || 0;
+    if (debt > 500) { score -= 15; reasons.push(`💸 חוב ₪${debt.toLocaleString()} (−15)`); }
+    else if (debt > 0) { score -= 5; reasons.push(`💸 חוב פתוח ₪${debt.toLocaleString()} (−5)`); }
+    const st = clientPackageMap[c.email]?.status;
+    if (st === 'expired') { score -= 20; reasons.push('🔴 חבילה פגת תוקף (−20)'); }
+    else if (st === 'pending') { score -= 10; reasons.push('⏳ ממתין לתשלום (−10)'); }
+    else if (st === 'expiring') { score -= 8; reasons.push('🟡 חבילה מסתיימת בקרוב (−8)'); }
+    if (c.last_seen) {
+      const days = Math.floor((Date.now() - new Date(c.last_seen).getTime()) / 86400000);
+      if (days > 14) { score -= 20; reasons.push(`👻 לא נכנס ${days} ימים (−20)`); }
+      else if (days > 7) { score -= 10; reasons.push(`💤 לא נכנס ${days} ימים (−10)`); }
+      else if (days > 3) { score -= 5; reasons.push(`🕒 לא נכנס ${days} ימים (−5)`); }
+    }
+    score = Math.max(0, Math.min(100, score));
+    const color = score >= 70 ? '#4ade80' : score >= 40 ? '#fbbf24' : '#f87171';
+    if (!reasons.length) reasons.push('✅ הכל נראה מצוין');
+    return { score, color, label: score >= 70 ? 'תקין' : score >= 40 ? 'דורש תשומת לב' : 'בסיכון', reasons };
+  }
+
   function renderSidebar() {
     const el = document.getElementById('client-list');
     if (!clients.length) { el.innerHTML = '<div style="padding:16px;color:#444;font-size:0.82rem;text-align:center;">אין מתאמנים עדיין</div>'; return; }
@@ -3257,6 +3286,10 @@
       const churnBadge = churn
         ? `<span title="סיכון נטישה — לחץ לפרטים" onclick="event.stopPropagation();openChurnModal('${c.email}')" style="font-size:0.66rem;font-weight:900;color:#fff;background:linear-gradient(135deg,#dc2626,#991b1b);border-radius:8px;padding:1px 6px;flex-shrink:0;cursor:pointer;box-shadow:0 0 8px rgba(220,38,38,0.55);">🚨 ${churn.risk_score}%</span>`
         : '';
+      const h = computeHealth(c);
+      const healthBadge = h.score === null
+        ? `<span title="מוקפא" style="font-size:0.62rem;flex-shrink:0;">❄️</span>`
+        : `<span title="ציון בריאות: ${h.label}" style="font-size:0.62rem;font-weight:900;color:${h.color};background:${h.color}1a;border:1px solid ${h.color}55;border-radius:8px;padding:1px 5px;flex-shrink:0;">${h.score}</span>`;
       return `
       <div class="client-item ${c.email === activeEmail ? 'active' : ''}" onclick="selectClient('${c.email}')">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;">
@@ -3265,6 +3298,7 @@
             <div class="client-item-name" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(c.name)}</div>
           </div>
           <div style="display:flex;align-items:center;gap:5px;flex-shrink:0;">
+            ${healthBadge}
             ${churnBadge}
             ${unreadBadge}
             ${debtBadge}
@@ -3658,6 +3692,21 @@ ${exLines || 'אין'}
           ${(client.no_show_count||0) >= 3 ? `<span title="היעדרויות מצטברות — שווה שיחה" style="font-size:0.72rem;font-weight:900;color:#f87171;background:rgba(248,113,113,0.1);border:1px solid rgba(248,113,113,0.35);border-radius:8px;padding:2px 8px;">🚫 ${client.no_show_count} היעדרויות</span>` : ''}
           ${isStudioOwner ? `<button class="btn-sm btn-outline" onclick="openAssignPackage('${esc(client.email)}')" style="font-size:0.72rem;border-color:rgba(255,215,0,0.4);color:#FFD700;">🎟️ חבילה / חידוש</button>` : ''}
         </div>
+        ${(() => {
+          const h = computeHealth(client);
+          const pct = h.score === null ? 100 : h.score;
+          return `<div style="margin-bottom:14px;padding:12px 14px;border-radius:12px;background:${h.color}0f;border:1px solid ${h.color}44;">
+            <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+              <div style="width:52px;height:52px;flex-shrink:0;border-radius:50%;background:conic-gradient(${h.color} ${pct}%,rgba(255,255,255,0.08) 0);display:flex;align-items:center;justify-content:center;">
+                <div style="width:40px;height:40px;border-radius:50%;background:#111;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:0.95rem;color:${h.color};">${h.score === null ? '❄️' : h.score}</div>
+              </div>
+              <div style="flex:1;min-width:0;">
+                <div style="font-weight:900;font-size:0.92rem;color:${h.color};">🎯 ציון בריאות: ${h.label}</div>
+                <div style="font-size:0.72rem;color:#aaa;margin-top:3px;line-height:1.5;">${h.reasons.map(esc).join(' · ')}</div>
+              </div>
+            </div>
+          </div>`;
+        })()}
         <div id="injuries-block" style="margin-bottom:14px;padding:10px 14px;border-radius:12px;background:${(client.injuries&&client.injuries.length)?'rgba(248,113,113,0.08)':'rgba(255,255,255,0.03)'};border:1px solid ${(client.injuries&&client.injuries.length)?'rgba(248,113,113,0.35)':'rgba(255,255,255,0.08)'};">
           <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
             <div style="font-weight:800;font-size:0.86rem;color:${(client.injuries&&client.injuries.length)?'#f87171':'#aaa'};">🩹 פציעות ${(client.injuries&&client.injuries.length)?`(${client.injuries.length})`:'— אין'}</div>
