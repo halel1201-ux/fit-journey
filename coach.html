@@ -316,6 +316,10 @@
     /* ── TOKEN BADGE ── */
     #token-badge-wrap { display:none; align-items:center; gap:6px; padding:4px 12px; border-radius:8px; background:rgba(255,107,0,0.08); border:1px solid rgba(255,107,0,0.25); }
     #token-balance { font-size:0.82rem; font-weight:900; color:#fff; transition:color 0.3s; }
+    .asst-chip { padding:5px 11px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.12); border-radius:16px; color:#aaa; font-family:'Heebo',sans-serif; font-size:0.72rem; cursor:pointer; white-space:nowrap; transition:all 0.15s; }
+    .asst-chip:hover { border-color:rgba(96,165,250,0.5); color:#7fb0ff; }
+    .asst-box { background:rgba(255,255,255,0.04); border:1px solid rgba(96,165,250,0.3); border-radius:10px; padding:11px 14px; font-size:0.84rem; line-height:1.65; color:#ddd; }
+    .asst-box b { color:#fff; }
     .btn-token-buy { padding:2px 8px; font-size:0.65rem; font-weight:700; border:1px solid rgba(255,107,0,0.5); border-radius:5px; background:rgba(255,107,0,0.2); color:var(--orange); cursor:pointer; transition:background 0.2s; }
     .btn-token-buy:hover { background:rgba(255,107,0,0.35); }
 
@@ -467,6 +471,27 @@
   </div>
   <div class="main" id="main-area">
     <div id="lobby-view">
+      <!-- 🤖 עוזר הפאנל -->
+      <div style="margin-bottom:18px;background:radial-gradient(120% 80% at 50% 0%,rgba(96,165,250,0.12),transparent 60%),linear-gradient(160deg,#17181c,#0d0e11);border:1px solid rgba(96,165,250,0.32);border-radius:16px;padding:15px 16px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+          <div style="font-weight:900;font-size:1rem;color:#fff;">🤖 עוזר הפאנל <span style="font-size:0.66rem;color:#7fb0ff;font-weight:600;">שאל אותי כל דבר</span></div>
+          <button onclick="toggleAsstLog()" style="background:none;border:none;color:#777;font-size:0.72rem;cursor:pointer;">🕘 היסטוריה</button>
+        </div>
+        <div style="display:flex;gap:7px;">
+          <input id="asst-input" placeholder="נסה: כמה לקוחות פעילים · מי חייב כסף · פרטי לקוח [שם]" style="flex:1;min-width:0;padding:10px 12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.14);border-radius:10px;color:#fff;font-family:'Heebo';font-size:0.86rem;" onkeydown="if(event.key==='Enter')runAssistant()"/>
+          <button onclick="runAssistant()" style="padding:10px 16px;background:linear-gradient(135deg,#3b82f6,#60a5fa);color:#fff;border:none;border-radius:10px;font-family:'Heebo';font-weight:800;font-size:0.84rem;cursor:pointer;">שאל</button>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:9px;">
+          <button onclick="runAssistant('סיכום היום')" class="asst-chip">סיכום היום</button>
+          <button onclick="runAssistant('כמה לקוחות פעילים')" class="asst-chip">כמה לקוחות פעילים</button>
+          <button onclick="runAssistant('מי בסיכון')" class="asst-chip">מי בסיכון</button>
+          <button onclick="runAssistant('מי חייב כסף')" class="asst-chip">מי חייב כסף</button>
+          <button onclick="runAssistant('הכנסה החודש')" class="asst-chip">הכנסה החודש</button>
+          <button onclick="runAssistant('מי לא נכנס שבוע')" class="asst-chip">מי לא נכנס שבוע</button>
+        </div>
+        <div id="asst-result" style="margin-top:12px;"></div>
+        <div id="asst-log" style="display:none;margin-top:12px;"></div>
+      </div>
       <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:20px;" id="kpi-grid">
         <div class="kpi-card" style="--kc:#4ade80;"><div class="kpi-val" id="kpi-active">—</div><div class="kpi-label">פעילים</div></div>
         <div class="kpi-card" style="--kc:#FFD700;"><div class="kpi-val" id="kpi-expiring">—</div><div class="kpi-label">מסיימים בקרוב</div></div>
@@ -3321,6 +3346,147 @@
   function debtStatusColor(bal) {
     if (!bal || bal <= 0) return '#4ade80';
     return bal > 500 ? '#f87171' : '#fb923c';
+  }
+
+  /* 🤖 PANEL ASSISTANT — channel-agnostic query + action engine (panel now,
+     WhatsApp later). Answers from already-loaded data + a light revenue query. */
+  function toggleAsstLog() {
+    const el = document.getElementById('asst-log'); if (!el) return;
+    if (el.style.display === 'none') { renderAsstLog(); el.style.display = 'block'; } else el.style.display = 'none';
+  }
+  async function renderAsstLog() {
+    const el = document.getElementById('asst-log'); if (!el) return;
+    const { data } = await sb.from('assistant_log').select('query,created_at,channel').eq('coach_email', coachEmail).order('created_at', { ascending: false }).limit(15);
+    el.innerHTML = `<div style="border-top:1px solid rgba(255,255,255,0.08);padding-top:8px;font-size:0.72rem;color:#888;">
+      <div style="font-weight:800;margin-bottom:5px;">🕘 שאילתות אחרונות</div>
+      ${(data||[]).length ? data.map(r=>`<div style="padding:3px 0;color:#bbb;">• ${esc(r.query)} <span style="color:#555;">· ${new Date(r.created_at).toLocaleString('he-IL',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}${r.channel!=='panel'?' · '+esc(r.channel):''}</span></div>`).join('') : '<div style="color:#666;">אין עדיין</div>'}
+    </div>`;
+  }
+  const _asstFmtCurrency = n => '₪' + Math.round(n).toLocaleString();
+  function _asstFindClients(frag) {
+    frag = (frag || '').trim().toLowerCase();
+    if (!frag) return [];
+    return clients.filter(c => (c.name || '').toLowerCase().includes(frag) || (c.email || '').toLowerCase().includes(frag));
+  }
+  // returns {html, answer, action} — the shared brain (also reusable by a bot)
+  async function assistantAnswer(qRaw) {
+    const q = (qRaw || '').trim();
+    const today = todayStr();
+    const active = clients.filter(c => (c.coaching_end && c.coaching_end >= today) || (c.sessions_remaining || 0) > 0);
+    const frozen = clients.filter(c => c.frozen_until && c.frozen_until >= today);
+    const nameOf = c => esc(c.name || c.email.split('@')[0]);
+
+    // ── ACTIONS ──
+    let m;
+    if ((m = q.match(/^\s*(?:שלח\s+)?תזכורת\s+(?:ל)?(.+)$/))) {
+      const cs = _asstFindClients(m[1]);
+      if (!cs.length) return { html: warn(`לא נמצא לקוח בשם "${esc(m[1])}"`), answer: 'לא נמצא', action: 'reminder' };
+      if (cs.length > 1) return { html: warn('כמה התאמות: ' + cs.map(nameOf).join(', ') + ' — פרט יותר'), answer: 'רב-משמעי', action: 'reminder' };
+      const c = cs[0];
+      await sb.from('messages').insert({ coach_email: coachEmail, client_email: c.email, sender_email: coachEmail, content: '👋 היי! רק בודק מה שלומך ואיך האימונים. כאן בשבילך לכל שאלה 💪' });
+      return { html: ok(`נשלחה תזכורת ל<b>${nameOf(c)}</b> בצ׳אט ✓`), answer: `תזכורת → ${c.name}`, action: 'reminder' };
+    }
+    if ((m = q.match(/^\s*הקפא\s+(?:את\s+)?(.+?)(?:\s+(\d+))?\s*$/))) {
+      const cs = _asstFindClients(m[1].replace(/\s+\d+$/, ''));
+      if (!cs.length) return { html: warn(`לא נמצא לקוח בשם "${esc(m[1])}"`), answer: 'לא נמצא', action: 'freeze' };
+      if (cs.length > 1) return { html: warn('כמה התאמות: ' + cs.map(nameOf).join(', ') + ' — פרט יותר'), answer: 'רב-משמעי', action: 'freeze' };
+      const c = cs[0], days = parseInt(m[2] || '14', 10);
+      const until = new Date(); until.setDate(until.getDate() + days);
+      const patch = { frozen_until: until.toISOString().slice(0, 10) };
+      if (c.coaching_end) { const b = new Date(c.coaching_end + 'T12:00:00'); b.setDate(b.getDate() + days); patch.coaching_end = b.toISOString().slice(0, 10); }
+      await sb.from('clients').update(patch).eq('email', c.email); Object.assign(c, patch);
+      return { html: ok(`<b>${nameOf(c)}</b> הוקפא ל-${days} ימים ❄️`), answer: `הקפאה → ${c.name} (${days}י)`, action: 'freeze' };
+    }
+    if ((m = q.match(/^\s*הפשר\s+(?:את\s+)?(.+)$/))) {
+      const cs = _asstFindClients(m[1]);
+      if (!cs.length) return { html: warn(`לא נמצא לקוח בשם "${esc(m[1])}"`), answer: 'לא נמצא', action: 'unfreeze' };
+      const c = cs[0];
+      await sb.from('clients').update({ frozen_until: null }).eq('email', c.email); c.frozen_until = null;
+      return { html: ok(`<b>${nameOf(c)}</b> הופשר ☀️`), answer: `הפשרה → ${c.name}`, action: 'unfreeze' };
+    }
+
+    // ── QUERIES ──
+    if (/עזרה|פקודות|מה אתה יודע/.test(q)) {
+      return { html: `<div class="asst-box">אני יכול לענות על: <b>כמה לקוחות פעילים</b> · <b>מי בסיכון</b> · <b>מי חייב כסף</b> · <b>הכנסה החודש</b> · <b>מי מסיים בקרוב</b> · <b>מי לא נכנס שבוע</b> · <b>מי לא הגיע (היעדרויות)</b> · <b>סיכום היום</b> · <b>פרטי לקוח [שם]</b>.<br>פעולות: <b>תזכורת [שם]</b> · <b>הקפא [שם] [ימים]</b> · <b>הפשר [שם]</b>.</div>`, answer: 'עזרה' };
+    }
+    if (/הכנסה|כמה נכנס|מכירות|כסף שנכנס/.test(q)) {
+      const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
+      const { data: sales } = await sb.from('coach_sales').select('plan_price').eq('coach_email', coachEmail).in('status', ['paid', 'manual']).gte('created_at', monthStart);
+      const rev = (sales || []).reduce((s, r) => s + (r.plan_price || 0), 0);
+      return { html: `<div class="asst-box">💰 הכנסה החודש: <b style="color:#4ade80;">${_asstFmtCurrency(rev)}</b> <span style="color:#888;">(${(sales||[]).length} מכירות)</span></div>`, answer: `הכנסה: ${_asstFmtCurrency(rev)}` };
+    }
+    if (/חוב|חייב/.test(q)) {
+      const debtors = clients.filter(c => (clientDebtMap[c.email] || 0) > 0).sort((a, b) => (clientDebtMap[b.email] || 0) - (clientDebtMap[a.email] || 0));
+      const total = debtors.reduce((s, c) => s + (clientDebtMap[c.email] || 0), 0);
+      if (!debtors.length) return { html: ok('אין חובות פתוחים 🎉'), answer: 'אין חובות' };
+      return { html: `<div class="asst-box"><b>${debtors.length} לקוחות</b> חייבים סה״כ <b style="color:#f87171;">${_asstFmtCurrency(total)}</b>:<br>${debtors.slice(0,10).map(c=>`• ${nameOf(c)} — <b>${_asstFmtCurrency(clientDebtMap[c.email])}</b>`).join('<br>')}</div>`, answer: `חוב: ${_asstFmtCurrency(total)} · ${debtors.length}` };
+    }
+    if (/בסיכון|נטיש|סיכון/.test(q)) {
+      const risky = clients.map(c => ({ c, h: computeHealth(c) })).filter(x => x.h.score !== null && x.h.score < 45).sort((a, b) => a.h.score - b.h.score);
+      if (!risky.length) return { html: ok('אין לקוחות בסיכון גבוה כרגע 💪'), answer: 'אין בסיכון' };
+      return { html: `<div class="asst-box"><b>${risky.length} לקוחות בסיכון:</b><br>${risky.slice(0,10).map(x=>`• ${nameOf(x.c)} — <b style="color:${x.h.color};">${x.h.score}</b> (${x.h.reasons[0]||''})`).join('<br>')}</div>`, answer: `בסיכון: ${risky.length}` };
+    }
+    if (/מסיים|פג תוקף|תוקף|מסתיים/.test(q)) {
+      const list = clients.filter(c => c.coaching_end).map(c => ({ c, d: Math.round((new Date(c.coaching_end + 'T12:00:00') - new Date(today + 'T12:00:00')) / 86400000) })).filter(x => x.d >= -7 && x.d <= 14 && !(x.c.frozen_until && x.c.frozen_until >= today)).sort((a, b) => a.d - b.d);
+      if (!list.length) return { html: ok('אף אחד לא מסיים בשבועיים הקרובים'), answer: 'אין מסיימים' };
+      return { html: `<div class="asst-box"><b>${list.length} מסיימים בקרוב:</b><br>${list.map(x=>`• ${nameOf(x.c)} — ${x.d<0?`<span style="color:#f87171;">פג לפני ${-x.d} ימים</span>`:x.d===0?'<span style="color:#fbbf24;">היום</span>':`בעוד ${x.d} ימים`}`).join('<br>')}</div>`, answer: `מסיימים: ${list.length}` };
+    }
+    if (/לא נכנס|לא פעיל|לא נכנסו|לא מחובר/.test(q)) {
+      const list = clients.filter(c => c.last_seen).map(c => ({ c, d: Math.floor((Date.now() - new Date(c.last_seen).getTime()) / 86400000) })).filter(x => x.d >= 7).sort((a, b) => b.d - a.d);
+      if (!list.length) return { html: ok('כולם נכנסו בשבוע האחרון 👏'), answer: 'כולם פעילים' };
+      return { html: `<div class="asst-box"><b>${list.length} לא נכנסו שבוע+:</b><br>${list.slice(0,12).map(x=>`• ${nameOf(x.c)} — <span style="color:#fbbf24;">${x.d} ימים</span>`).join('<br>')}</div>`, answer: `לא נכנסו: ${list.length}` };
+    }
+    if (/היעדרויות|לא הגיע|נו.?שואו|noshow/i.test(q)) {
+      const list = clients.filter(c => (c.no_show_count || 0) >= 1).sort((a, b) => (b.no_show_count || 0) - (a.no_show_count || 0));
+      if (!list.length) return { html: ok('אין היעדרויות רשומות ✓'), answer: 'אין היעדרויות' };
+      return { html: `<div class="asst-box"><b>${list.length} עם היעדרויות:</b><br>${list.slice(0,12).map(c=>`• ${nameOf(c)} — <b style="color:#f87171;">${c.no_show_count}</b>`).join('<br>')}</div>`, answer: `היעדרויות: ${list.length}` };
+    }
+    if (/כמה לקוחות|לקוחות פעילים|מספר לקוחות|כמה מתאמנים/.test(q)) {
+      return { html: `<div class="asst-box">👥 <b>${clients.length}</b> לקוחות בסך הכל · <b style="color:#4ade80;">${active.length} פעילים</b>${frozen.length?` · <span style="color:#38bdf8;">${frozen.length} מוקפאים ❄️</span>`:''}</div>`, answer: `לקוחות: ${active.length}/${clients.length}` };
+    }
+    if (/סיכום|היום|מצב כללי|דוח/.test(q)) {
+      const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
+      const { data: sales } = await sb.from('coach_sales').select('plan_price').eq('coach_email', coachEmail).in('status', ['paid', 'manual']).gte('created_at', monthStart);
+      const rev = (sales || []).reduce((s, r) => s + (r.plan_price || 0), 0);
+      const risky = clients.filter(c => { const h = computeHealth(c); return h.score !== null && h.score < 45; }).length;
+      const debtTotal = clients.reduce((s, c) => s + Math.max(0, clientDebtMap[c.email] || 0), 0);
+      const expiring = clients.filter(c => c.coaching_end).filter(c => { const d = Math.round((new Date(c.coaching_end + 'T12:00:00') - new Date(today + 'T12:00:00')) / 86400000); return d >= 0 && d <= 7; }).length;
+      return { html: `<div class="asst-box"><b>📋 סיכום להיום:</b><br>👥 ${active.length} פעילים מתוך ${clients.length}<br>🚨 ${risky} בסיכון<br>⏳ ${expiring} מסיימים השבוע<br>💰 הכנסה החודש: <b style="color:#4ade80;">${_asstFmtCurrency(rev)}</b><br>💸 חוב פתוח: <b style="color:#f87171;">${_asstFmtCurrency(debtTotal)}</b></div>`, answer: `סיכום: ${active.length} פע׳ · ${risky} סיכון · ${_asstFmtCurrency(rev)}` };
+    }
+
+    // ── CLIENT DETAILS (name / "פרטי לקוח X") ──
+    const nameFrag = (q.match(/(?:פרטי|מידע|כרטיס|לקוח)\s+(?:על\s+)?(?:הלקוח\s+)?(.+)/) || [])[1] || q;
+    const cs = _asstFindClients(nameFrag);
+    if (cs.length === 1) {
+      const c = cs[0], h = computeHealth(c);
+      const debt = clientDebtMap[c.email] || 0;
+      const pkg = clientPackageMap[c.email];
+      const lastSeen = c.last_seen ? Math.floor((Date.now() - new Date(c.last_seen).getTime()) / 86400000) : null;
+      return { html: `<div class="asst-box"><b style="font-size:0.95rem;">${nameOf(c)}</b> ${h.score!==null?`<span style="color:${h.color};font-weight:800;">· בריאות ${h.score}</span>`:'<span style="color:#38bdf8;">· מוקפא ❄️</span>'}<br>
+        📞 ${esc(c.phone||'—')} · 🎯 ${esc(c.goal||'—')}<br>
+        📅 ליווי עד: ${c.coaching_end?new Date(c.coaching_end+'T12:00:00').toLocaleDateString('he-IL'):'—'}${(c.sessions_remaining||0)>0?` · 🎫 ${c.sessions_remaining} אימונים`:''}<br>
+        ${debt>0?`💸 חוב: <b style="color:#f87171;">${_asstFmtCurrency(debt)}</b><br>`:''}${(c.no_show_count||0)?`🚫 ${c.no_show_count} היעדרויות<br>`:''}${lastSeen!==null?`👁 נכנס לפני ${lastSeen} ימים`:'👁 טרם נכנס'}
+        <div style="margin-top:6px;"><a onclick="selectClient('${esc(c.email)}')" style="color:#60a5fa;cursor:pointer;text-decoration:underline;font-size:0.78rem;">פתח כרטיס מלא ←</a></div></div>`, answer: `פרטי ${c.name}` };
+    }
+    if (cs.length > 1) return { html: warn('כמה התאמות: ' + cs.map(nameOf).join(', ') + ' — פרט יותר'), answer: 'רב-משמעי' };
+
+    return { html: warn('לא הבנתי 🤔 נסה: "כמה לקוחות פעילים", "מי חייב כסף", "פרטי לקוח [שם]", או כתוב <b>עזרה</b>'), answer: 'לא הובן' };
+    function ok(t) { return `<div class="asst-box" style="border-color:rgba(74,222,128,0.4);">✅ ${t}</div>`; }
+    function warn(t) { return `<div class="asst-box" style="border-color:rgba(251,191,36,0.4);">${t}</div>`; }
+  }
+  async function runAssistant(preset) {
+    const inp = document.getElementById('asst-input');
+    const q = (preset != null ? preset : (inp?.value || '')).trim();
+    if (!q) return;
+    if (inp && preset != null) inp.value = q;
+    const res = document.getElementById('asst-result');
+    if (res) res.innerHTML = '<div style="color:#888;font-size:0.82rem;padding:6px 0;">🤖 בודק...</div>';
+    let out;
+    try { out = await assistantAnswer(q); }
+    catch (e) { out = { html: `<div class="asst-box" style="border-color:rgba(248,113,113,0.4);">שגיאה: ${esc(e.message)}</div>`, answer: 'שגיאה' }; }
+    if (res) res.innerHTML = out.html;
+    sb.from('assistant_log').insert({ coach_email: coachEmail, query: q, answer: (out.answer || '').slice(0, 300), action: out.action || null, channel: 'panel' }).then(() => {}, () => {});
+    if (out.action) { await loadClients(); }  // refresh after a mutating action
   }
 
   /* 🎯 UNIFIED CLIENT HEALTH SCORE (0–100) — folds churn, attendance, chat,
