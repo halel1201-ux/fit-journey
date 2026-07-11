@@ -7695,16 +7695,22 @@ ${NUTRITION_DB}
           <div style="font-size:0.7rem;color:var(--muted);">הכנסות</div>
         </div>
       </div>
-      ${leads.map(l => `
+      ${leads.map(l => {
+        const nm = l.client_name || (l.client_email ? l.client_email.split('@')[0] : 'ליד');
+        const dateStr = new Date(l.created_at).toLocaleDateString('he-IL',{day:'2-digit',month:'2-digit',year:'numeric'});
+        const isChat = l.source === 'chat';
+        const planTxt = isChat ? '💬 מהצ׳אט' : (labels[l.plan_months] || (l.plan_months ? l.plan_months+' חודש' : 'ליד'));
+        const phone = l.lead_phone ? `<a href="tel:${esc(l.lead_phone)}" onclick="event.stopPropagation()" style="color:#4ade80;text-decoration:none;font-weight:700;">📞 ${esc(l.lead_phone)}</a>` : '';
+        return `
         <div class="lead-row">
-          <div style="flex:1;">
-            <div class="lead-name">${esc(l.client_name || l.client_email.split('@')[0])}</div>
-            <div class="lead-plan">${labels[l.plan_months]||l.plan_months+' חודש'} · ${new Date(l.created_at).toLocaleDateString('he-IL',{day:'2-digit',month:'2-digit',year:'numeric'})}</div>
+          <div style="flex:1;min-width:0;">
+            <div class="lead-name">${esc(nm)} ${phone}</div>
+            <div class="lead-plan">${planTxt} · ${dateStr}${l.lead_note ? ' · '+esc(l.lead_note) : ''}</div>
           </div>
-          <div class="lead-price">${l.plan_price} ₪</div>
+          ${l.plan_price ? `<div class="lead-price">${l.plan_price} ₪</div>` : ''}
           <span class="lead-status ${l.status}">${l.status==='paid'?'✓ שולם':'⏳ ליד'}</span>
           ${l.status==='lead' ? `<button class="btn-mark-paid" onclick="markPaid('${l.id}',this)">סמן שולם</button>` : ''}
-        </div>`).join('')}`;
+        </div>`; }).join('')}`;
   }
   async function markPaid(id, btn) {
     btn.disabled = true;

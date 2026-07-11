@@ -3060,8 +3060,40 @@
       q:'צור קשר',
       a:'נשמח לדבר! פנה אלינו ישירות ב'+waLink+' ונחזור אליך בהקדם 🙏' }
   ];
-  var FALLBACK = 'לא בטוח שהבנתי בדיוק 🤔 אפשר לבחור אחת מהשאלות למעלה, או לדבר איתנו ישירות ב'+waLink+' ונענה על הכול.';
+  var FALLBACK = 'לא בטוח שהבנתי בדיוק 🤔 אפשר לבחור אחת מהשאלות למעלה, או להשאיר פרטים ונחזור אליך — או לדבר איתנו ישירות ב'+waLink+'.';
   var STARTERS = [0,1,2,3,11]; // אינדקסים לצ'יפים הראשוניים
+
+  // ── לכידת ליד: איסוף שם→טלפון→מטרה ושליחה לפאנל ──
+  var LEAD_FN = 'https://luwknflmhvcxgifzxgrk.supabase.co/functions/v1/lead-capture';
+  var LEAD_KEY = 'sb_publishable_k3M7SfBeiBGs3rTKewBzWQ_7RHRskB9';
+  var LEAD_RE = /להשאיר פרטים|תחזרו אלי|תתקשרו|שיחזרו אלי|רוצה להצטרף|רוצה להתחיל|תחזור אלי|צרו איתי קשר|לתאם/;
+  var leadStep = null, leadData = {};
+  function startLead(){ leadStep='name'; leadData={}; setTimeout(function(){ addMsg('אשמח לחזור אליך! 🙌 מה השם המלא שלך?','bot'); },240); }
+  function handleLead(text){
+    text=(text||'').trim();
+    if(leadStep==='name'){ if(text.length<2){ addMsg('רק שם מלא בבקשה 🙏','bot'); return; } leadData.name=text; leadStep='phone'; setTimeout(function(){ addMsg('מעולה '+esc(text)+'! מה מספר הטלפון שלך? 📞','bot'); },200); return; }
+    if(leadStep==='phone'){ var d=text.replace(/\D/g,''); if(d.length<9){ addMsg('המספר לא נראה תקין — נסה שוב 📞','bot'); return; } leadData.phone=text; leadStep='goal'; setTimeout(function(){ addMsg('אחרון: מה המטרה שלך? (מסה / חיטוב / שינוי גוף / אחר) — או כתוב "דלג"','bot'); },200); return; }
+    if(leadStep==='goal'){ leadData.note = /^דלג/.test(text)?'':text; leadStep=null; submitLead(); return; }
+  }
+  function submitLead(){
+    addMsg('שולח את הפרטים... ⏳','bot');
+    fetch(LEAD_FN,{ method:'POST', headers:{ 'Content-Type':'application/json','apikey':LEAD_KEY,'Authorization':'Bearer '+LEAD_KEY }, body:JSON.stringify(leadData) })
+      .then(function(r){ return r.json(); })
+      .then(function(j){
+        if(j && j.ok){ addMsg('תודה '+esc(leadData.name)+'! 🎉 הפרטים נשלחו ונחזור אליך בהקדם. בינתיים אפשר לדבר איתנו גם ב'+waLink+'.','bot'); }
+        else{ addMsg('אופס, משהו השתבש בשליחה. אפשר לפנות ישירות ב'+waLink+' 🙏','bot'); }
+      })
+      .catch(function(){ addMsg('אין חיבור כרגע — פנה אלינו ב'+waLink+' ונדאג לך 🙏','bot'); });
+  }
+  function renderLeadChip(){
+    var c=document.getElementById('fjChips');
+    var b=document.createElement('button');
+    b.className='fj-chip';
+    b.style.cssText='background:linear-gradient(135deg,#FF6B00,#FF8C00);color:#fff;border-color:transparent;font-weight:800;';
+    b.textContent='📞 השאירו פרטים ונחזור אליכם';
+    b.onclick=function(){ addMsg('📞 השאירו פרטים ונחזור אליכם','user'); startLead(); };
+    c.appendChild(b);
+  }
 
   var started = false;
   function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
@@ -3093,6 +3125,8 @@
   }
   function ask(userText, forcedIdx){
     addMsg(esc(userText),'user');
+    if(leadStep){ handleLead(userText); return; }                       // באמצע השארת פרטים
+    if(typeof forcedIdx!=='number' && LEAD_RE.test(userText.toLowerCase())){ startLead(); return; }
     var idx = (typeof forcedIdx==='number')?forcedIdx:matchFaq(userText);
     setTimeout(function(){
       if(idx>=0){ addMsg(FAQ[idx].a.replace(/\n/g,'<br>'),'bot'); }
@@ -3111,6 +3145,7 @@
       started=true;
       addMsg('היי! 👋 אני העוזר של Fit Journey. מה תרצה לדעת על הליווי או על האפליקציה?','bot');
       renderChips(STARTERS);
+      renderLeadChip();
       setTimeout(function(){ document.getElementById('fjInput').focus(); },120);
     }
   };
