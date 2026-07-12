@@ -8483,7 +8483,10 @@ ${NUTRITION_DB}
           let content = '';
           if (m.file_url) {
             const isImg = /\.(jpg|jpeg|png|gif|webp)(\?.*)?$/i.test(m.file_url);
-            content = isImg
+            const isAudio = /\.(webm|m4a|mp3|ogg|wav|mp4)(\?.*)?$/i.test(m.file_url) && /voice|הקלטה|audio/i.test(m.file_name||'');
+            content = isAudio
+              ? `<audio controls preload="none" src="${m.file_url}" style="max-width:210px;height:36px;"></audio>`
+              : isImg
               ? `<a href="${m.file_url}" target="_blank"><img src="${m.file_url}" style="max-width:160px;max-height:120px;border-radius:6px;display:block;"/></a>`
               : `<a href="${m.file_url}" target="_blank" style="color:${isMe?'#fff':'var(--orange)'};text-decoration:none;">📎 ${esc(m.file_name||'קובץ')}</a>`;
             if (m.content) content += `<div style="margin-top:4px;white-space:pre-wrap;">${esc(m.content)}</div>`;
@@ -8518,6 +8521,7 @@ ${NUTRITION_DB}
           placeholder="כתוב הודעה למתאמן..."
           onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMessageAsCoach();}"
           onfocus="this.style.borderColor='var(--orange)'" onblur="this.style.borderColor='rgba(255,255,255,0.1)'"/>
+        <button id="coach-mic-btn" onclick="toggleCoachVoice()" title="הקלט הודעה קולית" style="width:38px;height:38px;flex-shrink:0;border-radius:8px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:var(--muted);font-size:1rem;cursor:pointer;">🎙️</button>
         <button class="btn-sm btn-orange" onclick="sendMessageAsCoach()" style="white-space:nowrap;">שלח ←</button>
       </div>`;
     const msgsEl = document.getElementById('coach-chat-msgs');
@@ -8535,6 +8539,40 @@ ${NUTRITION_DB}
     markChatSeen(email);
     loadUnreadCounts();
     toast('היסטוריית הצ\'אט נוקתה', 'ok');
+  }
+
+  /* 🎙️ coach voice note — record → upload to client-files → send to the client */
+  let _cVoiceRec = null, _cVoiceChunks = [], _cVoiceStream = null, _cVoiceTimer = null;
+  async function toggleCoachVoice() {
+    if (!requireEdit()) return;
+    const mic = document.getElementById('coach-mic-btn'); const inp = document.getElementById('coach-chat-inp');
+    if (_cVoiceRec && _cVoiceRec.state === 'recording') { _cVoiceRec.stop(); return; }
+    if (!navigator.mediaDevices?.getUserMedia) { toast('הקלטה לא נתמכת', 'err'); return; }
+    try { _cVoiceStream = await navigator.mediaDevices.getUserMedia({ audio: true }); }
+    catch (e) { toast('צריך אישור מיקרופון', 'err'); return; }
+    const mime = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : (MediaRecorder.isTypeSupported('audio/mp4') ? 'audio/mp4' : '');
+    _cVoiceChunks = [];
+    _cVoiceRec = new MediaRecorder(_cVoiceStream, mime ? { mimeType: mime } : undefined);
+    _cVoiceRec.ondataavailable = e => { if (e.data.size) _cVoiceChunks.push(e.data); };
+    _cVoiceRec.onstop = async () => {
+      clearInterval(_cVoiceTimer); _cVoiceStream.getTracks().forEach(t => t.stop());
+      mic.textContent = '🎙️'; mic.style.color = ''; mic.style.borderColor = 'rgba(255,255,255,0.1)';
+      if (inp) inp.placeholder = 'כתוב הודעה למתאמן...';
+      const blob = new Blob(_cVoiceChunks, { type: _cVoiceChunks[0]?.type || 'audio/webm' });
+      if (blob.size < 800) return;
+      const email = activeEmail; if (!email) return;
+      const ext = blob.type.includes('mp4') ? 'm4a' : 'webm';
+      const path = `messages/${coachEmail}/${Date.now()}_voice-note.${ext}`;
+      const { error: upErr } = await sb.storage.from('client-files').upload(path, blob, { upsert: false, contentType: blob.type });
+      if (upErr) { toast('שגיאה בשליחת ההקלטה', 'err'); return; }
+      const fileUrl = sb.storage.from('client-files').getPublicUrl(path).data.publicUrl;
+      const { data: newMsg, error } = await sb.from('messages').insert({ coach_email: coachEmail, client_email: email, sender_email: coachEmail, content: null, file_url: fileUrl, file_name: `voice-note.${ext}` }).select().single();
+      if (error) { toast('שגיאה: ' + error.message, 'err'); return; }
+      if (newMsg && !coachMessages.find(m => m.id === newMsg.id)) { coachMessages.push(newMsg); renderCoachChat(); }
+    };
+    _cVoiceRec.start();
+    let secs = 0; mic.textContent = '⏹'; mic.style.color = '#f87171'; mic.style.borderColor = 'rgba(248,113,113,0.6)';
+    _cVoiceTimer = setInterval(() => { secs++; if (inp) inp.placeholder = `🔴 מקליט... ${Math.floor(secs/60)}:${String(secs%60).padStart(2,'0')} — לחץ ⏹ לשליחה`; if (secs >= 180) _cVoiceRec.stop(); }, 1000);
   }
 
   async function sendMessageAsCoach() {

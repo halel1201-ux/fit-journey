@@ -4970,7 +4970,10 @@ ${foodList || 'אין פריטים'}
       let content = '';
       if (m.file_url) {
         const isImg = /\.(jpg|jpeg|png|gif|webp)(\?.*)?$/i.test(m.file_url);
-        content = isImg
+        const isAudio = /\.(webm|m4a|mp3|ogg|wav|mp4)(\?.*)?$/i.test(m.file_url) && /voice|הקלטה|audio/i.test(m.file_name||'');
+        content = isAudio
+          ? `<audio controls preload="none" src="${m.file_url}" style="max-width:230px;height:38px;"></audio>`
+          : isImg
           ? `<a href="${m.file_url}" target="_blank"><img src="${m.file_url}" style="max-width:220px;max-height:160px;border-radius:8px;display:block;"/></a>`
           : `<a href="${m.file_url}" target="_blank" style="color:${isMe?'#fff':'var(--orange)'};text-decoration:none;">📎 ${esc(m.file_name||'קובץ')}</a>`;
         if (m.content) content += `<div style="margin-top:5px;white-space:pre-wrap;">${esc(m.content)}</div>`;
@@ -5018,6 +5021,54 @@ ${foodList || 'אין פריטים'}
     const btn = document.getElementById('btn-ov-file');
     btn.classList.add('has-file'); btn.title = '📎 ' + file.name;
     document.getElementById('chat-ov-inp').placeholder = '📎 ' + file.name + ' (הוסף הודעה)';
+  }
+
+  /* 🎙️ VOICE MESSAGES — record via MediaRecorder → upload to client-files → send */
+  let _voiceRec = null, _voiceChunks = [], _voiceStream = null, _voiceTimer = null;
+  async function toggleVoiceRecord() {
+    const mic = document.getElementById('btn-ov-mic');
+    if (_voiceRec && _voiceRec.state === 'recording') { _voiceRec.stop(); return; }
+    if (!navigator.mediaDevices?.getUserMedia) { alert('הקלטת קול לא נתמכת במכשיר הזה'); return; }
+    try { _voiceStream = await navigator.mediaDevices.getUserMedia({ audio: true }); }
+    catch (e) { alert('צריך אישור גישה למיקרופון כדי להקליט'); return; }
+    const mime = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : (MediaRecorder.isTypeSupported('audio/mp4') ? 'audio/mp4' : '');
+    _voiceChunks = [];
+    _voiceRec = new MediaRecorder(_voiceStream, mime ? { mimeType: mime } : undefined);
+    _voiceRec.ondataavailable = e => { if (e.data.size) _voiceChunks.push(e.data); };
+    _voiceRec.onstop = async () => {
+      clearInterval(_voiceTimer);
+      _voiceStream.getTracks().forEach(t => t.stop());
+      mic.textContent = '🎙️'; mic.style.color = ''; mic.style.borderColor = '';
+      const inp = document.getElementById('chat-ov-inp'); inp.placeholder = activeChatTab === 'private' ? 'הודעה פרטית למאמן...' : 'הודעה לקבוצה...';
+      const blob = new Blob(_voiceChunks, { type: _voiceChunks[0]?.type || 'audio/webm' });
+      if (blob.size < 800) return;  // too short / cancelled
+      await sendVoiceNote(blob);
+    };
+    _voiceRec.start();
+    let secs = 0;
+    mic.textContent = '⏹'; mic.style.color = '#f87171'; mic.style.borderColor = 'rgba(248,113,113,0.6)';
+    const inp = document.getElementById('chat-ov-inp');
+    _voiceTimer = setInterval(() => { secs++; inp.placeholder = `🔴 מקליט... ${Math.floor(secs/60)}:${String(secs%60).padStart(2,'0')} — לחץ ⏹ לשליחה`; if (secs >= 180) _voiceRec.stop(); }, 1000);
+  }
+  async function sendVoiceNote(blob) {
+    if (!clientData?.coach_email) return;
+    const ext = (blob.type.includes('mp4') ? 'm4a' : 'webm');
+    const path = `messages/${currentEmail}/${Date.now()}_voice-note.${ext}`;
+    let fileUrl = null;
+    try {
+      const { error: upErr } = await sb.storage.from('client-files').upload(path, blob, { upsert: false, contentType: blob.type });
+      if (upErr) { showDashToast('שגיאה בשליחת ההקלטה'); return; }
+      fileUrl = sb.storage.from('client-files').getPublicUrl(path).data.publicUrl;
+    } catch (e) { showDashToast('שגיאה בשליחת ההקלטה'); return; }
+    const fileName = `voice-note.${ext}`;
+    if (activeChatTab === 'private') {
+      const { data: newMsg, error } = await sb.from('messages').insert({ coach_email: clientData.coach_email, client_email: currentEmail, sender_email: currentEmail, content: null, file_url: fileUrl, file_name: fileName }).select().single();
+      if (!error && newMsg && !chatMessages.find(m => m.id === newMsg.id)) { chatMessages.push(newMsg); renderOverlayMsgs(); }
+    } else {
+      const senderName = clientData?.name || currentEmail.split('@')[0];
+      const { data: newMsg, error } = await sb.from('group_messages').insert({ coach_email: clientData.coach_email, sender_email: currentEmail, sender_name: senderName, content: null, file_url: fileUrl, file_name: fileName }).select().single();
+      if (!error && newMsg && !groupMessages.find(m => m.id === newMsg.id)) { groupMessages.push(newMsg); renderOverlayMsgs(); }
+    }
   }
 
   /* ── Send message ── */
@@ -5816,6 +5867,7 @@ ${foodList || 'אין פריטים'}
   <div class="chat-ov-inp-row">
     <input type="file" id="chat-ov-file-inp" style="display:none;" accept="image/*,.pdf" onchange="attachOvFile()"/>
     <button class="btn-ov-file" id="btn-ov-file" onclick="document.getElementById('chat-ov-file-inp').click()" title="צרף קובץ">📎</button>
+    <button class="btn-ov-file" id="btn-ov-mic" onclick="toggleVoiceRecord()" title="הקלט הודעה קולית">🎙️</button>
     <input class="chat-ov-inp" id="chat-ov-inp" placeholder="הודעה..."
       onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendOverlayMsg();}"/>
     <button class="btn-ov-send" id="btn-ov-send" onclick="sendOverlayMsg()">↑</button>
