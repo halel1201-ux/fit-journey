@@ -50,6 +50,17 @@ export function scoreClient(c: {
   return { score: Math.min(score, 100), reasons }
 }
 
+// deterministic fix for recurring Haiku Hebrew slips (prompt alone isn't reliable)
+function sanitizeHebrew(t: string): string {
+  return t
+    .replace(/בואנו/g, 'בוא')             // "בואנו נחזור" → "בוא נחזור" (בואנו אינה מילה)
+    .replace(/שמנתי/g, 'שמתי')            // "שמנתי לב" → "שמתי לב"
+    .replace(/סטש(?![א-ת])/g, 'סשן')      // "סטש קל" → "סשן קל"
+    .replace(/נחזורה/g, 'נחזור')
+    .replace(/[ \t]{2,}/g, ' ')            // collapse doubled spaces from replacements
+    .trim()
+}
+
 async function composeMessage(coachName: string, clientName: string, goal: string | null, reasons: string[]): Promise<string> {
   const goalHeb = goal ? (goalMap[goal] ?? goal) : ''
   const fallback = `היי ${clientName}, שמתי לב שקצת נעלמת 🙂 בוא נחזור למסלול — מה מתאים לך השבוע?`
@@ -59,13 +70,13 @@ async function composeMessage(coachName: string, clientName: string, goal: strin
       headers: { 'x-api-key': ANTHROPIC_KEY, 'anthropic-version': '2023-06-01', 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model: CLAUDE_MODEL, max_tokens: 200,
-        system: 'אתה מנסח הודעות וואטסאפ קצרות בשם מאמן כושר ללקוח שנעלם. עברית תקינה וטבעית בלבד — "בוא נ..." (לא "בואנו"), "שמתי לב" (לא "שמנתי"). 2-3 משפטים, חם ובגובה העיניים, בלי אשמה ובלי לחץ, עם הצעה קונקרטית אחת לחזרה. בלי פתיחות גנריות כמו "אני מקווה שהכל בסדר". החזר רק את ההודעה עצמה.',
+        system: 'אתה מנסח הודעות וואטסאפ קצרות בשם מאמן כושר ללקוח שנעלם. עברית תקינה, טבעית ומדוברת בלבד. אל תמציא מילים ואל תשבש: כתוב "בוא נחזור" (לא "בואנו"), "שמתי לב" (לא "שמנתי"), "סשן" (לא "סטש"). השתמש רק במילים עבריות אמיתיות ותקינות. 2-3 משפטים, חם ובגובה העיניים, בלי אשמה ובלי לחץ, עם הצעה קונקרטית אחת לחזרה. בלי פתיחות גנריות כמו "אני מקווה שהכל בסדר". החזר רק את ההודעה עצמה.',
         messages: [{ role: 'user', content: `המאמן: ${coachName}. הלקוח: ${clientName}${goalHeb ? ` (מטרה: ${goalHeb})` : ''}. מה שקרה: ${reasons.join('; ')}. נסח את ההודעה.` }],
       }),
     })
     if (!res.ok) return fallback
     const j = await res.json()
-    const text = (j.content?.[0]?.text || '').trim()
+    const text = sanitizeHebrew((j.content?.[0]?.text || '').trim())
     return text || fallback
   } catch { return fallback }
 }
