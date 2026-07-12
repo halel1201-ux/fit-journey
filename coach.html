@@ -521,6 +521,17 @@
 
 <div class="toast" id="toast"></div>
 
+<!-- PLAN TEMPLATE LIBRARY -->
+<div id="tpl-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:1000;overflow-y:auto;padding:16px;">
+  <div style="max-width:520px;margin:40px auto;background:linear-gradient(160deg,#17181c,#0d0e11);border:1px solid rgba(167,139,250,0.3);border-radius:16px;padding:18px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+      <div style="font-weight:900;font-size:1.1rem;color:#fff;" id="tpl-title">📚 ספריית תבניות</div>
+      <button onclick="document.getElementById('tpl-overlay').style.display='none'" style="background:none;border:none;color:#888;font-size:1.4rem;cursor:pointer;">✕</button>
+    </div>
+    <div id="tpl-body"><div style="color:#888;text-align:center;padding:20px;">טוען...</div></div>
+  </div>
+</div>
+
 <!-- LTV + COHORT REPORT -->
 <div id="ltv-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:1000;overflow-y:auto;padding:16px;">
   <div style="max-width:760px;margin:0 auto;background:linear-gradient(160deg,#17181c,#0d0e11);border:1px solid rgba(167,139,250,0.3);border-radius:16px;padding:18px;">
@@ -3135,6 +3146,61 @@
     toast('שני הצדדים תוגמלו ✓', 'ok');
   }
 
+  /* 📚 PLAN TEMPLATE LIBRARY — save the current training/nutrition plan as a
+     reusable template and apply it to any client in one click. */
+  async function saveAsTemplate(kind) {
+    if (!requireEdit()) return;
+    const plan = kind === 'training' ? trainingPlan : nutritionPlan;
+    if (!plan || !plan.length) { toast(kind === 'training' ? 'אין ימי אימון לשמור' : 'אין ארוחות לשמור', 'err'); return; }
+    const name = prompt(kind === 'training' ? 'שם התבנית (למשל "מסה 4 ימים ABCD"):' : 'שם התבנית (למשל "תפריט חיטוב 2000 קל׳"):');
+    if (name === null) return;
+    if (!name.trim()) { toast('צריך שם לתבנית', 'err'); return; }
+    const { error } = await sb.from('plan_templates').insert({ coach_email: coachEmail, kind, name: name.trim(), plan: JSON.parse(JSON.stringify(plan)) });
+    if (error) { toast('שגיאה: ' + error.message, 'err'); return; }
+    toast('התבנית נשמרה 📚 ✓', 'ok');
+  }
+  async function openTemplates(kind) {
+    const ov = document.getElementById('tpl-overlay'); ov.style.display = 'block';
+    document.getElementById('tpl-title').textContent = kind === 'training' ? '📚 תבניות אימון' : '📚 תבניות תזונה';
+    document.getElementById('tpl-body').innerHTML = '<div style="color:#888;text-align:center;padding:20px;">טוען...</div>';
+    const { data } = await sb.from('plan_templates').select('*').eq('coach_email', coachEmail).eq('kind', kind).order('created_at', { ascending: false });
+    const list = data || [];
+    document.getElementById('tpl-body').innerHTML = list.length ? list.map(t => {
+      const cnt = Array.isArray(t.plan) ? t.plan.length : 0;
+      const sub = kind === 'training' ? `${cnt} ימי אימון` : `${cnt} ארוחות`;
+      return `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:11px 14px;margin-bottom:8px;flex-wrap:wrap;">
+        <div style="min-width:0;"><div style="font-weight:800;color:#fff;">${esc(t.name)}</div><div style="font-size:0.72rem;color:#888;">${sub} · ${new Date(t.created_at).toLocaleDateString('he-IL')}</div></div>
+        <div style="display:flex;gap:6px;flex-shrink:0;">
+          <button class="btn-sm btn-orange" style="font-size:0.74rem;" onclick="applyTemplate(${t.id},'${kind}')">↧ החל על המתאמן</button>
+          <button class="btn-sm btn-outline" style="font-size:0.74rem;border-color:rgba(248,113,113,0.4);color:#f87171;" onclick="deleteTemplate(${t.id},'${kind}')">🗑</button>
+        </div>
+      </div>`;
+    }).join('') : '<div style="color:#666;text-align:center;padding:20px;">אין תבניות עדיין — בנה תוכנית ולחץ "💾 שמור כתבנית"</div>';
+  }
+  async function applyTemplate(id, kind) {
+    if (!requireEdit()) return;
+    if (!activeEmail) { toast('בחר מתאמן קודם', 'err'); return; }
+    const { data: t } = await sb.from('plan_templates').select('plan').eq('id', id).eq('coach_email', coachEmail).maybeSingle();
+    if (!t) { toast('התבנית לא נמצאה', 'err'); return; }
+    const plan = JSON.parse(JSON.stringify(t.plan || []));
+    if (kind === 'training') {
+      if (trainingPlan.length && !confirm('להחליף את תוכנית האימון הנוכחית בתבנית? (עדיין לא נשמר — תוכל לבדוק לפני שמירה)')) return;
+      trainingPlan = plan; renderTrainingEditor();
+      document.querySelector('#training-editor')?.scrollIntoView({ behavior: 'smooth' });
+    } else {
+      if (nutritionPlan.length && !confirm('להחליף את התפריט הנוכחי בתבנית? (עדיין לא נשמר)')) return;
+      nutritionPlan = plan; renderNutritionEditor();
+      document.querySelector('#nutrition-editor')?.scrollIntoView({ behavior: 'smooth' });
+    }
+    document.getElementById('tpl-overlay').style.display = 'none';
+    toast('התבנית הוחלה — בדוק ולחץ שמור ✓', 'ok');
+  }
+  async function deleteTemplate(id, kind) {
+    if (!confirm('למחוק את התבנית?')) return;
+    await sb.from('plan_templates').delete().eq('id', id).eq('coach_email', coachEmail);
+    openTemplates(kind);
+  }
+
   function openAddModal() {
     document.getElementById('add-modal').classList.add('open');
     ['new-name','new-email','new-start','new-end','new-refcode'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
@@ -4180,6 +4246,8 @@ ${exLines || 'אין'}
           <button class="btn-sm btn-outline" id="btn-paste-day" style="display:none;border-color:rgba(255,215,0,0.4);color:#FFD700;" onclick="pasteDay()">📋 הדבק אימון</button>
           <button class="btn-sm btn-outline" id="btn-paste-plan" style="display:none;border-color:rgba(74,222,128,0.4);color:#4ade80;" onclick="pastePlan()">📋 הדבק תוכנית</button>
           <button class="btn-sm btn-outline" style="border-color:rgba(120,150,255,0.4);color:#9bb3ff;" onclick="archiveCurrentPlan()">🗄️ ארכב תוכנית נוכחית</button>
+          <button class="btn-sm btn-outline" style="border-color:rgba(167,139,250,0.45);color:#c4b5fd;" onclick="saveAsTemplate('training')">💾 שמור כתבנית</button>
+          <button class="btn-sm btn-outline" style="border-color:rgba(167,139,250,0.45);color:#c4b5fd;" onclick="openTemplates('training')">📚 תבניות</button>
         </div>
         <div id="training-editor"></div>
         <button class="btn-sm btn-orange" style="margin-top:14px;" onclick="saveTraining()">שמור תוכנית</button>
@@ -4196,6 +4264,8 @@ ${exLines || 'אין'}
             <button class="btn-sm btn-outline" onclick="copyNutriDay()" style="border-color:rgba(255,215,0,0.35);color:#FFD700;">📋 העתק יום</button>
             <button class="btn-sm btn-outline" id="btn-paste-meal" style="display:none;" onclick="pasteMeal()">📋 הדבק ארוחה</button>
             <button class="btn-sm btn-outline" id="btn-paste-nutri-day" style="display:none;border-color:rgba(74,222,128,0.4);color:#4ade80;" onclick="pasteNutriDay()">📋 הדבק יום</button>
+            <button class="btn-sm btn-outline" style="border-color:rgba(167,139,250,0.45);color:#c4b5fd;" onclick="saveAsTemplate('nutrition')">💾 שמור כתבנית</button>
+            <button class="btn-sm btn-outline" style="border-color:rgba(167,139,250,0.45);color:#c4b5fd;" onclick="openTemplates('nutrition')">📚 תבניות</button>
           </div>
         </div>
         <div id="nutrition-editor"></div>
