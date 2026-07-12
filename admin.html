@@ -1341,12 +1341,19 @@
             <button class="btn-sm btn-outline" style="font-size:0.7rem;padding:4px 9px;" onclick="event.stopPropagation();setCoachTokensDirect('${c.id}','${c.email}')">קבע</button>
             <button class="btn-sm btn-outline" style="font-size:0.7rem;padding:4px 9px;" onclick="event.stopPropagation();openCoachTokenHistory('${c.email}','${esc(c.name||c.email)}')">🧾 היסטוריה</button>
           </div>
-          <div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,215,0,0.12);display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
-            <span style="font-size:0.72rem;font-weight:700;color:#FFD700;">⭐ פרימיום (מחולל מיידי):</span>
-            <span style="font-size:0.72rem;color:${c.premium_until && c.premium_until >= todayStr() ? '#4ade80' : '#888'};">${c.premium_until ? (c.premium_until >= todayStr() ? 'פעיל עד ' + c.premium_until : 'פג ' + c.premium_until) : 'לא פעיל'}</span>
-            <button class="btn-sm btn-orange" style="font-size:0.7rem;padding:4px 9px;" onclick="event.stopPropagation();grantPremium('${c.id}','${c.email}',1)">+חודש +2,500 טוקנים</button>
-            ${c.premium_until ? `<button class="btn-sm btn-outline" style="font-size:0.7rem;padding:4px 9px;border-color:rgba(248,113,113,0.35);color:#f87171;" onclick="event.stopPropagation();revokePremium('${c.id}')">בטל</button>` : ''}
-          </div>
+          ${(() => {
+            const isPrem = c.premium_until && c.premium_until >= todayStr();
+            return `<div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,215,0,0.12);display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+            <span style="font-size:0.72rem;font-weight:700;color:#aaa;">מסלול:</span>
+            ${isPrem
+              ? `<span style="font-size:0.74rem;font-weight:800;color:#FFD700;">⭐ פרימיום</span><span style="font-size:0.66rem;color:#888;">מאמן שני + מחולל מיידי · פעיל עד ${c.premium_until}</span>`
+              : `<span style="font-size:0.74rem;font-weight:800;color:#9bb3ff;">🔵 רגיל</span>${c.premium_until ? `<span style="font-size:0.64rem;color:#f87171;">(פג ${c.premium_until})</span>` : ''}`}
+            ${isPrem
+              ? `<button class="btn-sm btn-outline" style="font-size:0.7rem;padding:4px 9px;" onclick="event.stopPropagation();grantPremium('${c.id}','${c.email}',1)">+חודש</button>
+                 <button class="btn-sm btn-outline" style="font-size:0.7rem;padding:4px 9px;border-color:rgba(248,113,113,0.35);color:#f87171;" onclick="event.stopPropagation();revokePremium('${c.id}')">↩ החזר לרגיל</button>`
+              : `<button class="btn-sm btn-orange" style="font-size:0.7rem;padding:4px 9px;" onclick="event.stopPropagation();grantPremium('${c.id}','${c.email}',1)">⭐ שדרג לפרימיום (+חודש +2,500 טוקנים)</button>`}
+          </div>`;
+          })()}
         </div>`;
 
         const pendingApproveHtml = r === 'pending' ? `

@@ -4252,7 +4252,7 @@ ${exLines || 'אין'}
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
           <button class="btn-sm btn-orange" onclick="saveProfile()">שמור פרטים</button>
           <button class="btn-sm btn-outline" onclick="openReceiptModal()" style="border-color:rgba(74,222,128,0.4);color:#4ade80;">🧾 הנפק קבלה</button>
-          ${(coachRole === 'senior' || isStudioOwner) ? `<button class="btn-sm btn-outline" onclick="setClientPassword()" style="border-color:rgba(255,215,0,0.35);color:#FFD700;" title="הגדר סיסמה = מספר הטלפון (ספרות בלבד)">🔑 הגדר סיסמה</button>` : ''}
+          ${(coachRole === 'senior' || coachRole === 'admin' || isStudioOwner) ? `<button class="btn-sm btn-outline" onclick="setClientPassword()" style="border-color:rgba(255,215,0,0.35);color:#FFD700;" title="הגדר סיסמה = מספר הטלפון (ספרות בלבד)">🔑 הגדר סיסמה</button>` : ''}
         </div>
       </div>
 
@@ -5067,7 +5067,7 @@ ${exLines || 'אין'}
   /* הגדרת סיסמה ללקוח — מאמן בכיר בלבד (לקוחות מאמן רגיל מנוהלים ע"י אדמין) */
   async function setClientPassword() {
     if (!requireEdit()) return;
-    if (coachRole !== 'senior') { toast('פעולה זו מוגבלת למאמן בכיר', 'err'); return; }
+    if (coachRole !== 'senior' && coachRole !== 'admin' && !isStudioOwner) { toast('פעולה זו מוגבלת למאמן בכיר', 'err'); return; }
     const phone = document.getElementById('e-phone').value.trim();
     const email = activeEmail;
     if (!phone) { toast('יש להזין מספר טלפון קודם', 'err'); return; }
