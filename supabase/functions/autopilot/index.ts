@@ -35,7 +35,7 @@ function detectEscalation(text: string): boolean {
   return ESCALATION_PATTERNS.some(p => p.test(text))
 }
 
-function buildSystemPrompt(coachName: string, clientName: string, clientGoal: string | null, training: string | null, nutrition: string | null, foodToday: string, exLib: string): string {
+function buildSystemPrompt(coachName: string, clientName: string, clientGoal: string | null, training: string | null, nutrition: string | null, foodToday: string, exLib: string, foodRef: string): string {
   const goalMap: Record<string, string> = { cut: 'חיטוב', recomp: 'ריקומפוזיציה', mass: 'מסה', peak_week: 'פייק וויק' }
   const goalHeb = clientGoal ? (goalMap[clientGoal] ?? clientGoal) : 'לא הוגדרה'
   return `אתה עוזר ה-AI של מאמן הכושר ${coachName}, שמגיב ללקוחות בשמו כאשר הוא לא זמין.
@@ -69,7 +69,10 @@ ${exLib.slice(0, 6000)}
 - התאם אנרגיה: שאלה קצרה → תשובה קצרה. מתלהב → תתלהב איתו; מתוסכל → תרגיע ותכוון. מותר חום אנושי ("כל הכבוד על אתמול", "אני יודע שזה קשה, אתה בכיוון הנכון").
 
 הכשרת תזונה — חובה לפעול לפיה בכל שאלה על אוכל/קלוריות/מאקרו:
-- ⚠️ ענה תמיד על המאכל הספציפי שהלקוח שאל עליו בלבד. אל תחליף אותו במאכל אחר. הדוגמאות למטה הן להמחשת שיטת החישוב בלבד — אל תחיל דוגמה של מאכל אחד על מאכל שונה.
+- ⚠️ ענה תמיד על המאכל הספציפי שהלקוח שאל עליו בלבד. אל תחליף אותו במאכל אחר. הדוגמאות למטה הן להמחשת שיטת החישוב בלבד — אל תחיל דוגמה של מאכל אחד על מאכל שונה.${foodRef ? `
+- 🔎 ערכים מאומתים מהמאגר הלאומי של משרד הבריאות (ל-100 גרם), הרלוונטיים לשאלה הנוכחית — העדף אותם על פני הערכה חופשית:
+${foodRef}
+(אלה ערכים ל-100 גרם — הכפל במשקל המנה בפועל.)` : ''}
 - אסור לזרוק מספר קלוריות "מהאוויר". כל הערכה מתבססת על פירוק המנה לרכיבים והערכת משקל בגרמים.
 - שיטת חישוב: (א) פרק לרכיבים. (ב) הערך משקל בגרמים לכל רכיב. (ג) חשב לפי ערכים ל-100 גר'. (ד) תן טווח והסבר ממה נובע ההבדל.
 - ערכי מאקרו: חלבון 4 קק"ל/גר', פחמימה 4, שומן 9, אלכוהול 7.
@@ -196,11 +199,25 @@ async function processItem(item: { id: number; coach_email: string; client_email
     const exText = (exLib as {name?:string;muscle_group?:string;sub_muscle_group?:string;video_url?:string}[] ?? [])
       .map(e => `${e.name} [${e.muscle_group ?? ''}${e.sub_muscle_group ? '/' + e.sub_muscle_group : ''}]${e.video_url ? ' 🎥' + e.video_url : ''}`).join('\n')
 
+    // 🔎 Retrieval: for food/nutrition questions, pull the relevant verified rows
+    // from the national food DB (4,600+ items) so the model computes from real
+    // values — only for food questions, so we don't bloat every reply.
+    let foodRef = ''
+    if (/קלורי|מאקרו|חלבון|פחמימ|שומן|כמה.*(קק|קלור|אוכל|לאכול|יש ב|גרם)|אכלתי|ארוח|תזונ|ערך תזונ|דיאט|פחמימות/.test(item.message_text)) {
+      try {
+        const { data: matches } = await sb.rpc('search_food', { q: item.message_text, lim: 12 })
+        if (matches && (matches as unknown[]).length) {
+          foodRef = (matches as { name: string; kcal: number; protein: number; carbs: number; fat: number }[])
+            .map(m => `${m.name} | ${m.kcal} קק״ל | חלבון ${m.protein} | פחמ׳ ${m.carbs} | שומן ${m.fat}`).join('\n')
+        }
+      } catch (_) { /* retrieval is best-effort; fall back to inline reference */ }
+    }
+
     const systemPrompt = buildSystemPrompt(
       coachName, clientName, client?.goal ?? null,
       typeof training?.plan === 'string' ? training.plan : JSON.stringify(training?.plan ?? ''),
       typeof nutrition?.plan === 'string' ? nutrition.plan : JSON.stringify(nutrition?.plan ?? ''),
-      foodToday, exText,
+      foodToday, exText, foodRef,
     )
 
     const msgs: { role: 'user' | 'assistant'; content: string }[] =
