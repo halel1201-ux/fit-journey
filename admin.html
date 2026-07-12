@@ -1346,7 +1346,7 @@
             return `<div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,215,0,0.12);display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
             <span style="font-size:0.72rem;font-weight:700;color:#aaa;">מסלול:</span>
             ${isPrem
-              ? `<span style="font-size:0.74rem;font-weight:800;color:#FFD700;">⭐ פרימיום</span><span style="font-size:0.66rem;color:#888;">מאמן שני + מחולל מיידי · פעיל עד ${c.premium_until}</span>`
+              ? `<span style="font-size:0.74rem;font-weight:800;color:#FFD700;">⭐ פרימיום</span><span style="font-size:0.66rem;color:#888;">🧠 המאמן השני (מוח AI) + 2,500 טוקנים · פעיל עד ${c.premium_until}</span>`
               : `<span style="font-size:0.74rem;font-weight:800;color:#9bb3ff;">🔵 רגיל</span>${c.premium_until ? `<span style="font-size:0.64rem;color:#f87171;">(פג ${c.premium_until})</span>` : ''}`}
             ${isPrem
               ? `<button class="btn-sm btn-outline" style="font-size:0.7rem;padding:4px 9px;" onclick="event.stopPropagation();grantPremium('${c.id}','${c.email}',1)">+חודש</button>

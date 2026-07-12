@@ -3792,9 +3792,9 @@
     chip.innerHTML = `<span title="היצמדות להרגלים ב-7 ימים אחרונים (${week.length} דיווחים)" style="font-weight:900;color:${color};background:${color}1a;border:1px solid ${color}44;border-radius:8px;padding:2px 8px;">💪 הרגלים ${adher}%</span>`;
   }
 
-  /* ── QUICK GENERATOR (המחולל המיידי — פרימיום, כרגע אדמין בלבד) ── */
+  /* ── QUICK GENERATOR (המאמן השני — פרימיום, כרגע אדמין בלבד) ── */
   function openQuickGen() {
-    if (!isPremium) { toast('המחולל המיידי זמין בחבילת הפרימיום', 'err'); return; }
+    if (!isPremium) { toast('המאמן השני זמין בחבילת הפרימיום', 'err'); return; }
     if (!activeEmail) { toast('בחר מתאמן קודם', 'err'); return; }
     document.getElementById('qg-status').textContent = '';
     document.getElementById('quickgen-modal').style.display = 'flex';
@@ -4122,7 +4122,7 @@ ${exLines || 'אין'}
       <!-- QUICK NAV -->
       <div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:20px;">
         <button onclick="openAiReport()" style="padding:6px 12px;background:linear-gradient(135deg,rgba(168,85,247,0.15),rgba(255,107,0,0.1));border:1px solid rgba(168,85,247,0.4);border-radius:20px;color:#c4a5ff;font-family:'Heebo',sans-serif;font-size:0.78rem;font-weight:700;cursor:pointer;white-space:nowrap;">📊 דוח AI</button>
-        ${isPremium ? `<button onclick="openQuickGen()" style="padding:6px 12px;background:linear-gradient(135deg,rgba(255,107,0,0.2),rgba(255,215,0,0.12));border:1px solid rgba(255,215,0,0.45);border-radius:20px;color:#FFD700;font-family:'Heebo',sans-serif;font-size:0.78rem;font-weight:700;cursor:pointer;white-space:nowrap;">⚡ מחולל מיידי <span style="font-size:0.6rem;opacity:0.7;">פרימיום</span></button>` : ''}
+        ${isPremium ? `<button onclick="openQuickGen()" style="padding:6px 12px;background:linear-gradient(135deg,rgba(255,107,0,0.2),rgba(255,215,0,0.12));border:1px solid rgba(255,215,0,0.45);border-radius:20px;color:#FFD700;font-family:'Heebo',sans-serif;font-size:0.78rem;font-weight:700;cursor:pointer;white-space:nowrap;">🧠 המאמן השני <span style="font-size:0.6rem;opacity:0.7;">פרימיום</span></button>` : ''}
         ${[['🏋️ אימון','#training-editor'],['🥗 תזונה','#nutrition-editor'],['🔄 סייקל','#cycle-editor'],['📈 התקדמות','#progress-editor'],['📏 היקפים','#measurements-editor'],['💬 צ\'אט','#sec-chat'],['📋 צ\'ק-אין','#sec-checkin']].map(([l,t])=>
           `<button onclick="document.querySelector('${t}')?.scrollIntoView({behavior:'smooth',block:'start'})" style="padding:6px 12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:20px;color:var(--muted);font-family:'Heebo',sans-serif;font-size:0.78rem;font-weight:700;cursor:pointer;transition:all 0.15s;white-space:nowrap;" onmouseover="this.style.borderColor='rgba(255,107,0,0.4)';this.style.color='var(--orange)'" onmouseout="this.style.borderColor='rgba(255,255,255,0.1)';this.style.color='var(--muted)'">${l}</button>`
         ).join('')}
@@ -9709,14 +9709,14 @@ ${NUTRITION_DB}
   </div>
 </div>
 
-<!-- ═══ QUICK GENERATOR MODAL — המחולל המיידי (פרימיום/אדמין) ═══ -->
+<!-- ═══ QUICK GENERATOR MODAL — המאמן השני (פרימיום/אדמין) ═══ -->
 <div id="quickgen-modal" style="display:none;position:fixed;inset:0;z-index:9997;background:rgba(0,0,0,0.9);align-items:center;justify-content:center;padding:16px;" onclick="if(event.target===this)closeQuickGen()">
   <div style="background:linear-gradient(160deg,#17181c 0%,#0d0e11 100%);border:1px solid rgba(255,215,0,0.4);border-radius:20px;box-shadow:0 0 60px rgba(255,215,0,0.15);max-width:430px;width:100%;position:relative;padding:24px 22px 20px;">
     <button onclick="closeQuickGen()" style="position:absolute;top:12px;left:14px;background:none;border:none;color:#666;font-size:1.3rem;cursor:pointer;">✕</button>
     <div style="text-align:center;margin-bottom:16px;">
-      <div style="font-size:1.9rem;">⚡</div>
-      <div style="font-weight:900;font-size:1.1rem;color:#fff;">המחולל המיידי</div>
-      <div style="font-size:0.72rem;color:#FFD700;margin-top:2px;">אימון + תפריט מלאים בזרימה אחת · פרימיום</div>
+      <div style="font-size:1.9rem;">🧠</div>
+      <div style="font-weight:900;font-size:1.1rem;color:#fff;">המאמן השני</div>
+      <div style="font-size:0.72rem;color:#FFD700;margin-top:2px;">המוח השני שלך — בונה אימון + תפריט מלאים בשניות · פרימיום</div>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
       <div>
