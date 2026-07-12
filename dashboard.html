@@ -5334,7 +5334,7 @@ ${foodList || 'אין פריטים'}
     if (!coachEmail) return;
     try {
       const { data } = await sb.from('coaches')
-        .select('logo_url,cover_url,brand_color,tagline')
+        .select('logo_url,cover_url,brand_color,tagline,name,app_name')
         .eq('email', coachEmail).single();
       if (data) applyBranding(data);
     } catch(e) { /* table columns may not exist yet — silent */ }
@@ -5378,6 +5378,50 @@ ${foodList || 'אין פריטים'}
         logoEl.parentNode.insertBefore(tag, logoEl.nextSibling);
       }
     }
+
+    // 5. 📱 Branded PWA — dynamic manifest so installing gives "the coach's app"
+    applyPwaBranding(b);
+  }
+
+  /* 📱 build a per-coach PWA manifest at runtime (name, theme color, icon) so the
+     installed home-screen app is branded to the coach, not generic Fit Journey. */
+  function applyPwaBranding(b) {
+    try {
+      const color = (b.brand_color && b.brand_color !== '#FF6B00') ? b.brand_color : '#FF6B00';
+      const appName = (b.app_name && b.app_name.trim()) || (b.tagline && b.tagline.trim()) || (b.name && b.name.trim()) || 'Fit Journey';
+      const shortName = appName.length > 12 ? appName.slice(0, 12) : appName;
+      const icon = b.logo_url || 'icon-512.png';
+      // theme-color + title + apple touch icon
+      let themeMeta = document.querySelector('meta[name="theme-color"]');
+      if (!themeMeta) { themeMeta = document.createElement('meta'); themeMeta.name = 'theme-color'; document.head.appendChild(themeMeta); }
+      themeMeta.content = color;
+      document.title = appName;
+      let apple = document.querySelector('link[rel="apple-touch-icon"]');
+      if (!apple) { apple = document.createElement('link'); apple.rel = 'apple-touch-icon'; document.head.appendChild(apple); }
+      apple.href = icon;
+      let appleTitle = document.querySelector('meta[name="apple-mobile-web-app-title"]');
+      if (!appleTitle) { appleTitle = document.createElement('meta'); appleTitle.name = 'apple-mobile-web-app-title'; document.head.appendChild(appleTitle); }
+      appleTitle.content = shortName;
+      // dynamic manifest via blob URL
+      const manifest = {
+        name: appName, short_name: shortName,
+        description: b.tagline || 'ליווי אימונים ותזונה אישי',
+        start_url: location.pathname.replace(/[^/]*$/, '') + 'dashboard.html',
+        scope: location.pathname.replace(/[^/]*$/, ''),
+        display: 'standalone', orientation: 'portrait',
+        background_color: '#0a0a0a', theme_color: color,
+        icons: [
+          { src: icon, sizes: '192x192', type: 'image/png', purpose: 'any' },
+          { src: icon, sizes: '512x512', type: 'image/png', purpose: 'any' },
+        ],
+      };
+      const blob = new Blob([JSON.stringify(manifest)], { type: 'application/manifest+json' });
+      const url = URL.createObjectURL(blob);
+      let link = document.querySelector('link[rel="manifest"]');
+      if (!link) { link = document.createElement('link'); link.rel = 'manifest'; document.head.appendChild(link); }
+      if (link.dataset.blob) { try { URL.revokeObjectURL(link.href); } catch (e) {} }
+      link.href = url; link.dataset.blob = '1';
+    } catch (e) { /* branding manifest is best-effort */ }
   }
 
   /* ══════════════════════════════════════

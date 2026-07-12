@@ -912,7 +912,16 @@
     <input type="text" id="brand-tagline" maxlength="50"
       placeholder="לדוגמה: Train Hard · Be Elite"
       oninput="document.getElementById('prev-tagline').textContent=this.value||'ליווי אישי'"
-      style="width:100%;padding:10px 14px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:var(--white);font-family:'Heebo',sans-serif;font-size:0.9rem;outline:none;transition:border-color 0.2s;margin-bottom:28px;"/>
+      style="width:100%;padding:10px 14px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:var(--white);font-family:'Heebo',sans-serif;font-size:0.9rem;outline:none;transition:border-color 0.2s;margin-bottom:22px;"/>
+
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+      <div style="width:8px;height:8px;border-radius:50%;background:#a78bfa;"></div>
+      <div style="font-size:0.85rem;font-weight:900;">📱 שם האפליקציה (במסך הבית של המתאמן)</div>
+    </div>
+    <input type="text" id="brand-appname" maxlength="30"
+      placeholder="לדוגמה: HF Coaching — האפליקציה שלך"
+      style="width:100%;padding:10px 14px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:var(--white);font-family:'Heebo',sans-serif;font-size:0.9rem;outline:none;transition:border-color 0.2s;margin-bottom:8px;"/>
+    <div style="font-size:0.72rem;color:#888;margin-bottom:28px;">כשמתאמן מתקין את האתר למסך הבית — זה השם והצבע שיופיעו. האפליקציה תיראה כשלך 📱</div>
 
     <button class="btn-sm btn-orange" style="width:100%;padding:13px;font-size:1rem;" id="brand-save-btn" onclick="saveBranding()">💾 שמור מיתוג</button>
     <div id="brand-save-msg" style="display:none;text-align:center;margin-top:14px;font-size:0.88rem;color:#4ade80;font-weight:700;">✓ מיתוג נשמר והוחל!</div>
@@ -7981,7 +7990,7 @@ ${NUTRITION_DB}
   }
 
   async function loadBranding() {
-    const { data } = await sb.from('coaches').select('logo_url,cover_url,brand_color,tagline,phone').eq('email', coachEmail).single();
+    const { data } = await sb.from('coaches').select('logo_url,cover_url,brand_color,tagline,phone,app_name').eq('email', coachEmail).single();
     if (!data) return;
     _brandLogoUrl  = data.logo_url  || null;
     _brandCoverUrl = data.cover_url || null;
@@ -7995,6 +8004,7 @@ ${NUTRITION_DB}
     document.getElementById('brand-color-hex').textContent = _brandColor;
     document.getElementById('brand-tagline').value = data.tagline || '';
     document.getElementById('prev-tagline').textContent = data.tagline || 'ליווי אישי';
+    const appNameEl = document.getElementById('brand-appname'); if (appNameEl) appNameEl.value = data.app_name || '';
 
     // Render swatches with active state
     document.getElementById('color-swatches').innerHTML = BRAND_SWATCHES.map(c =>
@@ -8168,6 +8178,7 @@ ${NUTRITION_DB}
       const updates = {
         brand_color: _brandColor,
         tagline: document.getElementById('brand-tagline').value.trim() || null,
+        app_name: document.getElementById('brand-appname')?.value.trim() || null,
       };
       if (logoUrl  !== undefined) updates.logo_url  = logoUrl  || null;
       if (coverUrl !== undefined) updates.cover_url = coverUrl || null;
