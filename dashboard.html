@@ -933,6 +933,9 @@
     <!-- DAILY HABITS -->
     <div id="habits-card" style="display:none;margin-bottom:20px;"></div>
 
+    <!-- COMMUNITY FEED -->
+    <div id="community-card" style="display:none;margin-bottom:20px;"></div>
+
     <!-- REFERRAL CARD (invite a friend) -->
     <div id="referral-card" style="display:none;margin-bottom:20px;"></div>
 
@@ -1645,6 +1648,7 @@
     renderWeightRow();
     renderReferralCard();
     renderHabitsCard();
+    renderCommunity();
     await loadWaterData();
     await Promise.all([loadCycle(), loadProgressEntries(), loadCoachBranding(client.coach_email), loadMessages(), loadCheckin()]);
     initPeriodCard(); // כרטיס מחזור לנשים
@@ -2415,6 +2419,77 @@
   }
   async function toggleHabit(k) { _habitToday[k] = !_habitToday[k]; await saveHabitToday(); renderHabitsCard(); }
   async function setHabitMood(v) { _habitToday.mood = (_habitToday.mood === v ? null : v); await saveHabitToday(); renderHabitsCard(); }
+
+  /* 🌐 COMMUNITY FEED — per-coach community: posts + photos + likes */
+  let _feedPhoto = null;
+  async function renderCommunity() {
+    const card = document.getElementById('community-card'); if (!card || !clientData?.coach_email) return;
+    const owner = clientData.coach_email;
+    const { data: posts } = await sb.from('feed_posts').select('*').eq('coach_email', owner).order('created_at', { ascending: false }).limit(40);
+    const list = posts || [];
+    let likesByPost = {}, myLikes = {};
+    if (list.length) {
+      const ids = list.map(p => p.id);
+      const { data: likes } = await sb.from('feed_likes').select('post_id,user_email').in('post_id', ids);
+      (likes || []).forEach(l => { likesByPost[l.post_id] = (likesByPost[l.post_id] || 0) + 1; if (l.user_email === currentEmail) myLikes[l.post_id] = true; });
+    }
+    card.style.display = 'block';
+    card.innerHTML = `
+      <div style="background:radial-gradient(120% 80% at 50% 0%,rgba(139,92,246,0.1),transparent 60%),linear-gradient(160deg,#17181c,#0d0e11);border:1px solid rgba(139,92,246,0.3);border-radius:16px;padding:16px;">
+        <div style="font-weight:900;font-size:1.02rem;color:#fff;margin-bottom:10px;">🌐 קהילת המתאמנים</div>
+        <div style="display:flex;gap:8px;align-items:flex-start;margin-bottom:6px;">
+          <textarea id="feed-input" rows="2" placeholder="שתף עדכון, ניצחון או שאלה עם הקהילה..." style="flex:1;padding:9px 12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:10px;color:#fff;font-family:'Heebo';font-size:0.84rem;resize:vertical;"></textarea>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:14px;">
+          <div><input type="file" id="feed-photo-inp" accept="image/*" style="display:none;" onchange="attachFeedPhoto(this.files[0])"><button onclick="document.getElementById('feed-photo-inp').click()" id="feed-photo-btn" style="padding:7px 12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:10px;color:#aaa;font-family:'Heebo';font-size:0.78rem;cursor:pointer;">📷 תמונה</button></div>
+          <button onclick="submitPost()" style="padding:8px 18px;background:linear-gradient(135deg,#8b5cf6,#a855f7);color:#fff;border:none;border-radius:10px;font-family:'Heebo';font-weight:800;font-size:0.82rem;cursor:pointer;">פרסם</button>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          ${list.length ? list.map(p => {
+            const mine = p.author_email === currentEmail;
+            const liked = myLikes[p.id]; const cnt = likesByPost[p.id] || 0;
+            const when = new Date(p.created_at).toLocaleString('he-IL', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+            return `<div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:11px 13px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">
+                <div style="font-weight:800;color:#c4b5fd;font-size:0.85rem;">${esc(p.author_name || p.author_email.split('@')[0])}${p.author_email === owner ? ' <span style="font-size:0.62rem;color:#FFD700;">מאמן</span>' : ''}</div>
+                <div style="font-size:0.66rem;color:#666;">${when}${mine ? ` · <span onclick="deletePost(${p.id})" style="color:#f87171;cursor:pointer;">מחק</span>` : ''}</div>
+              </div>
+              ${p.content ? `<div style="font-size:0.86rem;color:#ddd;white-space:pre-wrap;line-height:1.5;">${esc(p.content)}</div>` : ''}
+              ${p.image_url ? `<a href="${p.image_url}" target="_blank"><img src="${p.image_url}" style="margin-top:7px;max-width:100%;max-height:280px;border-radius:10px;display:block;"/></a>` : ''}
+              <div style="margin-top:8px;"><button onclick="toggleLike(${p.id})" style="background:none;border:none;cursor:pointer;font-size:0.82rem;color:${liked ? '#f472b6' : '#888'};font-weight:700;font-family:'Heebo';">${liked ? '❤️' : '🤍'} ${cnt || ''} ${cnt ? 'לייקים' : 'אהבתי'}</button></div>
+            </div>`;
+          }).join('') : '<div style="color:#666;text-align:center;padding:14px;font-size:0.84rem;">עדיין אין פוסטים — היה הראשון לשתף! 👋</div>'}
+        </div>
+      </div>`;
+  }
+  function attachFeedPhoto(f) { _feedPhoto = f || null; const b = document.getElementById('feed-photo-btn'); if (b && f) { b.textContent = '📷 ' + (f.name.length > 14 ? f.name.slice(0, 12) + '…' : f.name); b.style.color = '#4ade80'; } }
+  async function submitPost() {
+    const text = (document.getElementById('feed-input')?.value || '').trim();
+    if (!text && !_feedPhoto) { showDashToast('כתוב משהו או צרף תמונה'); return; }
+    let imageUrl = null;
+    if (_feedPhoto) {
+      try {
+        const path = `feed/${currentEmail}/${Date.now()}_${_feedPhoto.name.replace(/[^a-zA-Z0-9._-]/g, '-')}`;
+        const { error: upErr } = await sb.storage.from('client-files').upload(path, _feedPhoto, { upsert: false, contentType: _feedPhoto.type });
+        if (!upErr) imageUrl = sb.storage.from('client-files').getPublicUrl(path).data.publicUrl;
+      } catch (e) {}
+    }
+    const { error } = await sb.from('feed_posts').insert({ coach_email: clientData.coach_email, author_email: currentEmail, author_name: clientData.name || currentEmail.split('@')[0], content: text || null, image_url: imageUrl });
+    if (error) { showDashToast('שגיאה בפרסום'); return; }
+    _feedPhoto = null; renderCommunity();
+    showDashToast('פורסם לקהילה 🌐');
+  }
+  async function toggleLike(postId) {
+    const { data: existing } = await sb.from('feed_likes').select('post_id').eq('post_id', postId).eq('user_email', currentEmail).maybeSingle();
+    if (existing) await sb.from('feed_likes').delete().eq('post_id', postId).eq('user_email', currentEmail);
+    else await sb.from('feed_likes').insert({ post_id: postId, user_email: currentEmail });
+    renderCommunity();
+  }
+  async function deletePost(postId) {
+    if (!confirm('למחוק את הפוסט?')) return;
+    await sb.from('feed_posts').delete().eq('id', postId).eq('author_email', currentEmail);
+    renderCommunity();
+  }
 
   /* 🎁 REFERRAL — the client's personal code + one-tap WhatsApp share */
   async function renderReferralCard() {
