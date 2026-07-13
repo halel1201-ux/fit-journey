@@ -778,6 +778,40 @@
 
 <div class="container" id="main" style="display:none;position:relative;z-index:1;">
 
+  <!-- 🏠 HOME LAUNCHER (עיצוב 7) -->
+  <style>
+    .hl-tile{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;height:112px;background:rgba(255,255,255,0.055);border:1px solid rgba(255,255,255,0.13);border-radius:22px;color:#fff;font-family:'Heebo',sans-serif;cursor:pointer;transition:transform .15s,border-color .15s,background .15s;-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);}
+    .hl-tile:hover{transform:translateY(-2px);border-color:rgba(255,140,0,0.5);background:rgba(255,255,255,0.08);}
+    .hl-tile .hl-ic{font-size:31px;line-height:1;} .hl-tile .hl-lbl{font-size:0.92rem;font-weight:900;}
+    .hl-book{background:rgba(255,255,255,0.06);color:#cbd;border:1px solid rgba(255,255,255,0.1);border-radius:10px;font-family:'Heebo',sans-serif;font-weight:700;font-size:0.8rem;padding:7px 14px;cursor:pointer;white-space:nowrap;}
+    .hl-book.act{background:linear-gradient(135deg,var(--orange),#FF8C00);color:#fff;border-color:transparent;}
+  </style>
+  <div id="home-launcher" style="padding-top:4px;">
+    <div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;">
+      <button class="hl-book act" onclick="goHomeScreen()">בית</button>
+      <button class="hl-book" onclick="goDetail('workouts')">אימון</button>
+      <button class="hl-book" onclick="goDetail('nutrition')">תזונה</button>
+      <button class="hl-book" onclick="goDetail('workouts','community-card')">קהילה</button>
+    </div>
+    <div onclick="goDetail('workouts')" style="display:flex;align-items:center;gap:9px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:10px 14px;margin-bottom:16px;cursor:pointer;">
+      <span style="font-size:1.1rem;">🚶</span>
+      <div style="flex:1;height:8px;background:rgba(255,255,255,0.08);border-radius:5px;overflow:hidden;"><div id="hl-steps-fill" style="width:0%;height:100%;background:linear-gradient(90deg,#4ade80,#22c55e);border-radius:5px;transition:width .4s;"></div></div>
+      <span id="hl-steps-num" style="font-weight:900;font-size:0.9rem;color:#4ade80;">0</span>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px;">
+      <button class="hl-tile" onclick="goDetail('nutrition')"><span class="hl-ic">🥗</span><span class="hl-lbl">תפריט</span></button>
+      <button class="hl-tile" onclick="goDetail('workouts')"><span class="hl-ic">🏋️</span><span class="hl-lbl">תוכנית</span></button>
+      <button class="hl-tile" onclick="goDetail('records')"><span class="hl-ic">🏆</span><span class="hl-lbl">טבלת שיאים</span></button>
+      <button class="hl-tile" onclick="goDetail('workouts','community-card')"><span class="hl-ic">🌐</span><span class="hl-lbl">קהילה</span></button>
+    </div>
+    <div id="hl-renew" style="display:flex;align-items:center;justify-content:space-between;gap:10px;background:linear-gradient(135deg,rgba(255,107,0,0.16),rgba(255,215,0,0.06));border:1px solid rgba(255,140,0,0.5);border-radius:16px;padding:14px 16px;box-shadow:0 4px 18px rgba(0,0,0,0.3);">
+      <div><div style="font-size:0.72rem;color:var(--muted);">⏳ נותרו לסיום הליווי</div><div style="margin-top:2px;"><span id="hl-cd-num" style="font-size:1.5rem;font-weight:900;color:var(--orange);">—</span> <span style="color:var(--orange);font-weight:800;">ימים</span></div></div>
+      <button onclick="renewFromHome()" style="background:linear-gradient(135deg,var(--orange),#FF8C00);color:#fff;border:none;border-radius:12px;font-family:'Heebo',sans-serif;font-weight:800;font-size:0.9rem;padding:12px 16px;cursor:pointer;box-shadow:0 3px 14px rgba(255,107,0,0.4);white-space:nowrap;">🔄 חדש ליווי ←</button>
+    </div>
+  </div>
+
+  <div id="detail-view" style="display:none;">
+
   <!-- HERO: ימים לליווי -->
   <div class="timer-card" id="timer-card">
     <div class="hero-ring" id="hero-ring">
@@ -1090,10 +1124,14 @@
     </div>
   </div>
 
+  </div><!-- /detail-view -->
 </div>
 
 <!-- BOTTOM TAB BAR -->
 <div class="tabbar" id="tabbar" style="display:none;">
+  <button class="tab-btn" onclick="goHomeScreen()">
+    <span class="tab-ic">🏠</span><span>בית</span>
+  </button>
   <button class="tab-btn active" data-tab="workouts" onclick="switchTab('workouts')">
     <span class="tab-ic">🏋️</span><span>אימונים</span>
   </button>
@@ -1587,6 +1625,9 @@
       document.getElementById('client-name').textContent = email.split('@')[0];
       document.getElementById('timer-card').innerHTML = '<div style="color:#555;padding:20px;">ממתין לאישור מאמן — צור קשר עם הלל להפעלת האזור האישי שלך.</div>';
       document.getElementById('tabbar').style.display = 'none';
+      // pending client: no launcher — show the detail-view so the waiting message is visible
+      const _hl = document.getElementById('home-launcher'); if (_hl) _hl.style.display = 'none';
+      const _dv = document.getElementById('detail-view'); if (_dv) _dv.style.display = 'block';
       return;
     }
 
@@ -1655,6 +1696,7 @@
     await Promise.all([loadCycle(), loadProgressEntries(), loadCoachBranding(client.coach_email), loadMessages(), loadCheckin()]);
     initPeriodCard(); // כרטיס מחזור לנשים
     showFab(); // תמיד הצג כפתור צ'אט
+    goHomeScreen(); // 🏠 נחיתה במסך הבית (עיצוב 7)
   }
 
   function renderPackageCard(pkg) {
@@ -2728,6 +2770,9 @@
   function renderSteps() {
     const el = document.getElementById('steps-today');
     if (el) el.textContent = (_stepsToday + _pedoCount).toLocaleString('he-IL');
+    // keep the home-launcher steps bar in sync
+    const sf = document.getElementById('hl-steps-fill'), sn = document.getElementById('hl-steps-num');
+    if (sf || sn) { const s = _stepsToday + _pedoCount; if (sf) sf.style.width = Math.min(100, s / 10000 * 100) + '%'; if (sn) sn.textContent = s.toLocaleString('he-IL'); }
   }
   async function saveSteps() {
     if (_pedoCount > 0) { _stepsToday += _pedoCount; _pedoCount = 0; }
@@ -3306,6 +3351,41 @@
     if (name === 'measurements' && progressChart) {
       requestAnimationFrame(() => progressChart.resize());
     }
+  }
+
+  /* ── 🏠 HOME LAUNCHER (עיצוב 7) — נחיתה נקייה, ניווט לתצוגות הקיימות ── */
+  function goDetail(tab, scrollId) {
+    const hl = document.getElementById('home-launcher'); if (hl) hl.style.display = 'none';
+    const dv = document.getElementById('detail-view'); if (dv) dv.style.display = 'block';
+    const tb = document.getElementById('tabbar'); if (tb) tb.style.display = 'flex';
+    if (tab) switchTab(tab);
+    window.scrollTo({ top: 0, behavior: 'instant' });
+    if (scrollId) setTimeout(() => document.getElementById(scrollId)?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 140);
+  }
+  function goHomeScreen() {
+    const dv = document.getElementById('detail-view'); if (dv) dv.style.display = 'none';
+    const tb = document.getElementById('tabbar'); if (tb) tb.style.display = 'none';
+    const hl = document.getElementById('home-launcher'); if (hl) hl.style.display = 'block';
+    renderLauncher();
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }
+  function renderLauncher() {
+    // steps
+    const steps = (typeof _stepsToday !== 'undefined' ? _stepsToday : 0) + (typeof _pedoCount !== 'undefined' ? _pedoCount : 0);
+    const sf = document.getElementById('hl-steps-fill'); if (sf) sf.style.width = Math.min(100, steps / 10000 * 100) + '%';
+    const sn = document.getElementById('hl-steps-num'); if (sn) sn.textContent = steps.toLocaleString('he-IL');
+    // countdown to coaching end
+    const cd = document.getElementById('hl-cd-num');
+    if (cd && clientData?.coaching_end) {
+      const days = Math.max(0, Math.ceil((new Date(clientData.coaching_end) - new Date()) / 86400000));
+      cd.textContent = days;
+      cd.style.color = days <= 7 ? '#f87171' : 'var(--orange)';
+    } else if (cd) { cd.textContent = '—'; }
+  }
+  function renewFromHome() {
+    goDetail('nutrition');
+    if (clientData?.coach_email) showRenewal(clientData.coach_email);
+    setTimeout(() => document.getElementById('renewal-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 200);
   }
 
   /* ── HISTORY ── */
