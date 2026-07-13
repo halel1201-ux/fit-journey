@@ -335,7 +335,7 @@
       <p>לחץ על <code>👤 כרטיס קשר</code> לראות מייל, טלפון, תאריכי ליווי ומסלול — עם כפתורי WhatsApp ומייל מהיר.</p>
 
       <div class="tip-box orange">
-        <strong>💡 טיפ:</strong> ניתן לחלוק לקוחות בין מאמנים. אדמין יכול לשנות את שדה <code>coach_email</code> בלקוח כדי להעביר אותו.
+        <strong>💡 טיפ:</strong> ניתן לחלוק לקוחות בין מאמנים — מנהל המערכת יכול להעביר לקוח ממאמן אחד לאחר.
       </div>
     </div>
 
@@ -430,7 +430,7 @@
       </table>
 
       <h3 class="sub-h">סיום סייקל</h3>
-      <p>לחץ <code>סיים & העבר להיסטוריה</code> — הסייקל הנוכחי ייאגר ב-<code>cycle_history</code> ויתחיל חדש.</p>
+      <p>לחץ <code>סיים & העבר להיסטוריה</code> — הסייקל הנוכחי ייאגר בהיסטוריה ויתחיל חדש.</p>
 
       <div class="tip-box orange">
         <strong>⚠️ פרטיות:</strong> שדה "פרוטוקול / פרטים" מיועד לך בלבד — הלקוח לא רואה אותו בדשבורד.
@@ -496,7 +496,7 @@
             <tr><td class="icon-col">🏋️</td><td>מאמן כותב הודעה</td><td>מופיעה מיד בדשבורד הלקוח</td></tr>
             <tr><td class="icon-col">👤</td><td>לקוח כותב הודעה</td><td>מופיעה מיד בפאנל המאמן</td></tr>
             <tr><td class="icon-col">👤</td><td>לקוח מעלה קובץ/תמונה</td><td>נשמר ב-Storage ונגיש לשניהם</td></tr>
-            <tr><td class="icon-col">⚡</td><td>Realtime</td><td>עדכון ללא רענון עמוד</td></tr>
+            <tr><td class="icon-col">⚡</td><td>עדכון בזמן אמת</td><td>עדכון ללא רענון עמוד</td></tr>
           </tbody>
         </table>
       </div>
@@ -723,7 +723,7 @@
       <div class="card" style="margin-bottom:10px;">
         <div class="card-tag">שאלה</div>
         <p><strong>לקוח לא רואה את הלוגו שלי בדשבורד</strong></p>
-        <p>וודא שסיימת להעלות ושמרת את המיתוג. הלקוח צריך לרענן את הדשבורד. בדוק שה-bucket <code>coach-assets</code> קיים ב-Supabase Storage.</p>
+        <p>וודא שסיימת להעלות ושמרת את המיתוג, והלקוח ריענן את הדשבורד. אם התקלה נמשכת — פנה לתמיכה.</p>
       </div>
 
       <div class="card" style="margin-bottom:10px;">
@@ -735,7 +735,7 @@
       <div class="card" style="margin-bottom:10px;">
         <div class="card-tag">שאלה</div>
         <p><strong>הצ'אט לא מתעדכן בזמן אמת</strong></p>
-        <p>ודא שה-<code>Realtime</code> פעיל בטבלת <code>messages</code> ב-Supabase. עבור ל-Table Editor ← messages ← לחץ <code>Enable Realtime</code>.</p>
+        <p>אם ההודעות לא מתעדכנות מיד — רענן את הדף. ההודעות אמורות להופיע תוך שניות; אם התקלה נמשכת, פנה לתמיכה.</p>
       </div>
 
       <div class="card" style="margin-bottom:10px;">
@@ -747,13 +747,13 @@
       <div class="card" style="margin-bottom:10px;">
         <div class="card-tag">שאלה</div>
         <p><strong>הלקוח לא רואה את קטע הצ'ק-אין</strong></p>
-        <p>הצ'ק-אין מופיע רק ללקוחות עם <code>coach_email</code> מוגדר. וודא שהלקוח שויך אליך ושהדשבורד נטען מחדש.</p>
+        <p>הצ'ק-אין מופיע רק ללקוחות המשויכים אליך. ודא שהלקוח מופיע ברשימת הלקוחות שלך, ושהדשבורד נטען מחדש.</p>
       </div>
 
       <div class="card">
         <div class="card-tag">שאלה</div>
         <p><strong>רוצה להוסיף מאמן נוסף לפלטפורמה</strong></p>
-        <p>פנה לאדמין הראשי (הלל) ← הוא יוסיף אותך לטבלת <code>coaches</code> ב-Supabase ← יצור משתמש Auth ← יגדיר לך סיסמה.</p>
+        <p>פנה למנהל המערכת (הלל) — הוא יוסיף אותך למערכת ויגדיר לך שם משתמש וסיסמה לכניסה.</p>
       </div>
     </div>
 
