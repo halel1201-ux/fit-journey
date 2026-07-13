@@ -3383,9 +3383,9 @@
     } else if (cd) { cd.textContent = '—'; }
   }
   function renewFromHome() {
-    goDetail('nutrition');
+    goDetail('workouts');   // renewal-section lives inside the workouts tab
     if (clientData?.coach_email) showRenewal(clientData.coach_email);
-    setTimeout(() => document.getElementById('renewal-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 200);
+    setTimeout(() => document.getElementById('renewal-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 220);
   }
 
   /* ── HISTORY ── */
