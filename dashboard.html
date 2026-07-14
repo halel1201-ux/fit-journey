@@ -928,6 +928,9 @@
     <!-- 🔋 באנר דילоуד — מופיע כשמזוהה ירידה בביצועים -->
     <div id="deload-banner" style="display:none;margin-bottom:18px;"></div>
 
+    <!-- 📊 סיכום שבועי — שיפור באחוזים מול שבוע שעבר (מתאפס ביום ראשון) -->
+    <div id="week-summary-card" style="display:none;margin-bottom:18px;"></div>
+
     <!-- כרטיס "היום שלי" — מרכז אימון/תזונה/צעדים/רצף -->
     <div id="today-card" style="display:none;margin-bottom:18px;background:radial-gradient(130% 90% at 50% 0%,rgba(255,107,0,0.13) 0%,rgba(255,107,0,0) 55%),linear-gradient(160deg,#17181c 0%,#0d0e11 100%);border:1px solid rgba(255,107,0,0.32);border-radius:18px;padding:18px 18px 16px;box-shadow:0 8px 30px rgba(0,0,0,0.35);">
       <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px;">
@@ -1685,6 +1688,7 @@
     renderDeloadBanner();
     renderHistory(logs || []);
     renderTodayCard(); // כרטיס "היום שלי" (משתמש ב-workoutLogs + trainingPlanLocal + steps + יעד תזונה)
+    renderWeekSummary(); // 📊 סיכום שבועי — שיפור מול שבוע שעבר
     loadProgressPhotos();
     initInjuryGuidance();
     if (clientData?.studio_owner_email && (clientData.client_type === 'studio' || clientData.client_type === 'both')) renderStudioClient();
@@ -2699,6 +2703,62 @@
       if (days.has(key)) { streak++; d.setDate(d.getDate() - 1); } else break;
     }
     return streak;
+  }
+
+  /* 📊 WEEKLY SUMMARY — % improvement per parameter vs last week (week starts Sunday) */
+  function weekStartSunday(d) { const x = new Date(d); x.setHours(0, 0, 0, 0); x.setDate(x.getDate() - x.getDay()); return x; }
+  async function renderWeekSummary() {
+    const card = document.getElementById('week-summary-card'); if (!card) return;
+    const thisWk = weekStartSunday(new Date());
+    const lastWk = new Date(thisWk); lastWk.setDate(lastWk.getDate() - 7);
+    // LOCAL date (stored dates are local via todayStr — never toISOString, off-by-one in Israel TZ)
+    const iso = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    const tIso = iso(thisWk), lIso = iso(lastWk);
+    const inThis = dt => dt >= tIso, inLast = dt => dt >= lIso && dt < tIso;
+    const [{ data: steps }, { data: habits }, { data: foods }] = await Promise.all([
+      sb.from('daily_steps').select('date,steps').eq('client_email', currentEmail).gte('date', lIso),
+      sb.from('daily_habits').select('*').eq('client_email', currentEmail).gte('date', lIso),
+      sb.from('food_logs').select('log_date,protein').eq('client_email', currentEmail).gte('log_date', lIso),
+    ]);
+    const rows = [];
+    const pushRow = (ic, lbl, tv, lv, unit, isPct) => {
+      if (!tv && !lv) return;
+      const fmt = v => isPct ? Math.round(v) + '%' : (unit === 'ק״ג' ? Math.round(v).toLocaleString('he-IL') : (v >= 100 ? Math.round(v).toLocaleString('he-IL') : v.toFixed(v < 10 ? 1 : 0)));
+      let badge;
+      if (lv > 0) {
+        const pct = Math.round((tv - lv) / lv * 100);
+        const up = pct >= 0;
+        badge = `<span style="font-weight:900;font-size:0.86rem;color:${up ? '#4ade80' : '#f87171'};white-space:nowrap;">${up ? '▲' : '▼'} ${up ? '+' : ''}${pct}%</span>`;
+      } else {
+        badge = `<span style="font-size:0.72rem;color:#888;white-space:nowrap;">שבוע ראשון</span>`;
+      }
+      rows.push(`<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 0;border-top:1px solid rgba(255,255,255,0.06);">
+        <div style="display:flex;align-items:center;gap:8px;"><span style="font-size:1.05rem;">${ic}</span><span style="font-size:0.84rem;color:#ddd;">${lbl}</span></div>
+        <div style="display:flex;align-items:center;gap:10px;"><span style="font-size:0.82rem;font-weight:800;color:#fff;">${fmt(tv)}${unit && unit !== 'ק״ג' && !isPct ? '' : ''}</span>${badge}</div>
+      </div>`);
+    };
+    // 🏋️ workout volume (sum)
+    { let t = 0, l = 0; (workoutLogs || []).forEach(w => { const dt = (w.log_date || '').slice(0, 10); const v = (w.total_volume > 0 ? w.total_volume : calcVolume(w.exercises)) || 0; if (inThis(dt)) t += v; else if (inLast(dt)) l += v; }); pushRow('🏋️', 'נפח אימונים', t, l, 'ק״ג', false); }
+    // 🚶 steps (daily avg)
+    { let t = 0, tn = 0, l = 0, ln = 0; (steps || []).forEach(r => { const dt = (r.date || '').slice(0, 10); const v = +r.steps || 0; if (inThis(dt)) { t += v; tn++; } else if (inLast(dt)) { l += v; ln++; } }); pushRow('🚶', 'צעדים (ממוצע יומי)', tn ? t / tn : 0, ln ? l / ln : 0, '', false); }
+    // 💪 habits adherence
+    { const adh = arr => { let s = 0, n = 0; arr.forEach(r => { s += ['water', 'nutrition', 'sleep', 'activity'].filter(k => r[k]).length / 4; n++; }); return n ? s / n * 100 : 0; };
+      const th = adh((habits || []).filter(r => inThis((r.date || '').slice(0, 10)))), lh = adh((habits || []).filter(r => inLast((r.date || '').slice(0, 10)))); pushRow('💪', 'היצמדות להרגלים', th, lh, '%', true); }
+    // 🥗 protein (daily avg)
+    { let t = 0, tn = 0, l = 0, ln = 0; (foods || []).forEach(r => { const dt = (r.log_date || '').slice(0, 10); const v = +r.protein || 0; if (inThis(dt)) { t += v; tn++; } else if (inLast(dt)) { l += v; ln++; } }); pushRow('🥗', 'חלבון (ממוצע יומי, ג׳)', tn ? t / tn : 0, ln ? l / ln : 0, '', false); }
+
+    if (!rows.length) { card.style.display = 'none'; return; }
+    const rangeTxt = `${thisWk.toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit' })} – היום`;
+    card.style.display = 'block';
+    card.innerHTML = `
+      <div style="background:radial-gradient(120% 80% at 50% 0%,rgba(96,165,250,0.1),transparent 60%),linear-gradient(160deg,#17181c,#0d0e11);border:1px solid rgba(96,165,250,0.3);border-radius:18px;padding:16px 18px;">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px;">
+          <div style="font-weight:900;font-size:1.02rem;color:#fff;">📊 הסיכום השבועי שלי</div>
+          <div style="font-size:0.68rem;color:#888;">${rangeTxt}</div>
+        </div>
+        <div style="font-size:0.7rem;color:#8ab4f8;margin-bottom:4px;">שיפור באחוזים מול השבוע שעבר (מתאפס ביום ראשון)</div>
+        ${rows.join('')}
+      </div>`;
   }
 
   async function renderTodayCard() {
