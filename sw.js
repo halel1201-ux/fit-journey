@@ -3,7 +3,7 @@
 // (שני SW-ים נפרדים על "/" גורמים לבעיות הרשמה ל-Push, בעיקר ב-iOS Safari)
 importScripts('https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js');
 
-const CACHE = 'hf-v3'; // bumped: forces all installed clients to drop stale cache
+const CACHE = 'hf-v4'; // bumped: new FJ app logo/icons — forces installed clients to drop stale cache
 
 // relative paths — work from root AND from a subpath like /fit-journey/
 const STATIC = [
@@ -14,7 +14,10 @@ const STATIC = [
   './dashboard.html',
   './food.html',
   './manifest.json',
-  './icon.svg',
+  './icon-192.png',
+  './icon-512.png',
+  './apple-touch-icon.png',
+  './favicon.png',
 ];
 
 /* ── Install: cache static files ── */
