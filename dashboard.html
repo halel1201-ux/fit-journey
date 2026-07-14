@@ -5539,6 +5539,11 @@ ${foodList || 'אין פריטים'}
       let apple = document.querySelector('link[rel="apple-touch-icon"]');
       if (!apple) { apple = document.createElement('link'); apple.rel = 'apple-touch-icon'; document.head.appendChild(apple); }
       apple.href = icon;
+      // browser-tab favicon → coach logo too (fully branded)
+      if (b.logo_url) {
+        document.querySelectorAll('link[rel="icon"], link[rel="shortcut icon"]').forEach(el => el.parentNode.removeChild(el));
+        const fav = document.createElement('link'); fav.rel = 'icon'; fav.href = b.logo_url; document.head.appendChild(fav);
+      }
       let appleTitle = document.querySelector('meta[name="apple-mobile-web-app-title"]');
       if (!appleTitle) { appleTitle = document.createElement('meta'); appleTitle.name = 'apple-mobile-web-app-title'; document.head.appendChild(appleTitle); }
       appleTitle.content = shortName;
@@ -5550,10 +5555,15 @@ ${foodList || 'אין פריטים'}
         scope: location.pathname.replace(/[^/]*$/, ''),
         display: 'standalone', orientation: 'portrait',
         background_color: '#0a0a0a', theme_color: color,
-        icons: [
-          { src: icon, sizes: '192x192', type: 'image/png', purpose: 'any' },
-          { src: icon, sizes: '512x512', type: 'image/png', purpose: 'any' },
-        ],
+        icons: (() => {
+          const ext = (icon.split('?')[0].split('.').pop() || '').toLowerCase();
+          const t = ext === 'png' ? 'image/png' : (ext === 'jpg' || ext === 'jpeg') ? 'image/jpeg' : ext === 'svg' ? 'image/svg+xml' : ext === 'webp' ? 'image/webp' : 'image/png';
+          return [
+            { src: icon, sizes: '192x192', type: t, purpose: 'any' },
+            { src: icon, sizes: '512x512', type: t, purpose: 'any' },
+            { src: icon, sizes: '512x512', type: t, purpose: 'maskable' },
+          ];
+        })(),
       };
       const blob = new Blob([JSON.stringify(manifest)], { type: 'application/manifest+json' });
       const url = URL.createObjectURL(blob);
