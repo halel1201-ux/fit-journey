@@ -505,6 +505,7 @@
         <div class="kpi-card" style="--kc:#f87171;"><div class="kpi-val" id="kpi-debt-open">—</div><div class="kpi-label">חוב פתוח כולל</div></div>
         <div class="kpi-card" style="--kc:#fb923c;"><div class="kpi-val" id="kpi-debt-clients">—</div><div class="kpi-label">מתאמנים עם חוב</div></div>
       </div>
+      <button onclick="openAccounting()" style="width:100%;margin-bottom:14px;padding:10px;background:linear-gradient(135deg,rgba(74,222,128,0.15),rgba(255,215,0,0.08));border:1px solid rgba(74,222,128,0.4);border-radius:12px;color:#86efac;font-family:'Heebo',sans-serif;font-size:0.85rem;font-weight:800;cursor:pointer;transition:all 0.15s;" onmouseover="this.style.borderColor='rgba(74,222,128,0.7)'" onmouseout="this.style.borderColor='rgba(74,222,128,0.4)'">📒 ניהול חשבונות — מאזן רווח והפסד</button>
       <button onclick="openLtvReport()" style="width:100%;margin-bottom:14px;padding:10px;background:linear-gradient(135deg,rgba(167,139,250,0.15),rgba(255,107,0,0.1));border:1px solid rgba(167,139,250,0.4);border-radius:12px;color:#c4b5fd;font-family:'Heebo',sans-serif;font-size:0.85rem;font-weight:800;cursor:pointer;transition:all 0.15s;" onmouseover="this.style.borderColor='rgba(167,139,250,0.7)'" onmouseout="this.style.borderColor='rgba(167,139,250,0.4)'">📊 דוח LTV + שימור לקוחות (קוהורט)</button>
       <button onclick="openCoachCommunity()" style="width:100%;margin-bottom:14px;padding:10px;background:linear-gradient(135deg,rgba(139,92,246,0.15),rgba(167,139,250,0.08));border:1px solid rgba(139,92,246,0.4);border-radius:12px;color:#c4b5fd;font-family:'Heebo',sans-serif;font-size:0.85rem;font-weight:800;cursor:pointer;">🌐 קהילת המתאמנים שלי — פרסם ונהל</button>
       <!-- Coach-brings-coach referral -->
@@ -521,6 +522,47 @@
 </div>
 
 <div class="toast" id="toast"></div>
+
+<!-- 📒 ניהול חשבונות — מאזן רווח והפסד -->
+<div id="acct-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:1000;overflow-y:auto;padding:16px;">
+  <div style="max-width:660px;margin:24px auto;background:linear-gradient(160deg,#17181c,#0d0e11);border:1px solid rgba(74,222,128,0.28);border-radius:16px;padding:18px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+      <div style="font-weight:900;font-size:1.15rem;color:#fff;">📒 ניהול חשבונות</div>
+      <button onclick="document.getElementById('acct-overlay').style.display='none'" style="background:none;border:none;color:#888;font-size:1.4rem;cursor:pointer;">✕</button>
+    </div>
+    <div style="font-size:0.76rem;color:var(--muted);margin-bottom:14px;">מאזן רווח והפסד — הקבלות שהנפקת מול הוצאות העסק</div>
+
+    <div id="acct-periods" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;"></div>
+
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;">
+      <div class="kpi-card" style="--kc:#4ade80;"><div class="kpi-val" id="acct-income" style="font-size:1.15rem;">—</div><div class="kpi-label">הכנסות</div></div>
+      <div class="kpi-card" style="--kc:#f87171;"><div class="kpi-val" id="acct-expense" style="font-size:1.15rem;">—</div><div class="kpi-label">הוצאות</div></div>
+      <div class="kpi-card" id="acct-net-card" style="--kc:#4ade80;"><div class="kpi-val" id="acct-net" style="font-size:1.15rem;">—</div><div class="kpi-label">רווח נקי</div></div>
+    </div>
+
+    <!-- הוספת הוצאה -->
+    <div style="background:rgba(248,113,113,0.06);border:1px solid rgba(248,113,113,0.2);border-radius:12px;padding:12px;margin-bottom:16px;">
+      <div style="font-size:0.82rem;font-weight:800;color:#fca5a5;margin-bottom:9px;">➕ רישום הוצאה חדשה</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+        <input id="exp-date" type="date" style="padding:9px 10px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:#fff;font-family:'Heebo';font-size:0.82rem;"/>
+        <input id="exp-amount" type="number" inputmode="decimal" placeholder="סכום ₪" style="padding:9px 10px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:#fff;font-family:'Heebo';font-size:0.82rem;"/>
+      </div>
+      <input id="exp-cat" list="exp-cats" placeholder="קטגוריה (שכירות, ציוד, שיווק, רו״ח...)" style="width:100%;box-sizing:border-box;padding:9px 10px;margin-bottom:8px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:#fff;font-family:'Heebo';font-size:0.82rem;"/>
+      <datalist id="exp-cats"><option value="שכירות"></option><option value="ציוד"></option><option value="שיווק ופרסום"></option><option value="תוכנות ומנויים"></option><option value="רואה חשבון"></option><option value="רכב ודלק"></option><option value="מיסים"></option><option value="השתלמויות"></option><option value="אחר"></option></datalist>
+      <input id="exp-desc" placeholder="תיאור (אופציונלי)" style="width:100%;box-sizing:border-box;padding:9px 10px;margin-bottom:9px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:#fff;font-family:'Heebo';font-size:0.82rem;"/>
+      <button onclick="addExpense()" style="width:100%;padding:10px;background:linear-gradient(135deg,#ef4444,#f87171);color:#fff;border:none;border-radius:9px;font-family:'Heebo';font-weight:800;font-size:0.85rem;cursor:pointer;">הוסף הוצאה</button>
+      <div id="exp-status" style="font-size:0.76rem;margin-top:7px;min-height:1em;"></div>
+    </div>
+
+    <div style="display:flex;gap:6px;margin-bottom:10px;">
+      <button id="acct-tab-inc" onclick="acctShowList('income')" class="asst-chip" style="flex:1;">🧾 הכנסות</button>
+      <button id="acct-tab-exp" onclick="acctShowList('expense')" class="asst-chip" style="flex:1;">💸 הוצאות</button>
+    </div>
+    <div id="acct-list"><div style="color:#555;text-align:center;padding:16px;font-size:0.82rem;">טוען...</div></div>
+
+    <button onclick="printAccounting()" style="width:100%;margin-top:14px;padding:10px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.15);border-radius:10px;color:#ccc;font-family:'Heebo';font-size:0.82rem;font-weight:700;cursor:pointer;">🖨 הדפס / ייצא מאזן</button>
+  </div>
+</div>
 
 <!-- COACH COMMUNITY -->
 <div id="comm-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:1000;overflow-y:auto;padding:16px;">
@@ -4061,7 +4103,12 @@ ${exLines || 'אין'}
     if (daysStr === null) return;
     const days = parseInt(daysStr, 10);
     if (!Number.isFinite(days) || days < 1 || days > 365) { toast('הזן מספר ימים בין 1 ל-365', 'err'); return; }
-    const { data: cl } = await sb.from('clients').select('coaching_end,frozen_until').eq('email', activeEmail).maybeSingle();
+    const { data: cl } = await sb.from('clients').select('coaching_end,frozen_until,freeze_blocked_until').eq('email', activeEmail).maybeSingle();
+    // a client who self-unfroze forfeits freezing for 30 days — coach may still override
+    if (cl?.freeze_blocked_until && cl.freeze_blocked_until >= todayStr()) {
+      const until = new Date(cl.freeze_blocked_until + 'T12:00:00').toLocaleDateString('he-IL');
+      if (!confirm(`הלקוח הפשיר את הליווי לאחרונה — הקפאה חסומה עד ${until}.\nלהקפיא בכל זאת (עקיפת מאמן)?`)) return;
+    }
     // frozen_until = today + days ; push coaching_end forward by the same amount (period preserved)
     const until = new Date(); until.setDate(until.getDate() + days);
     const untilStr = until.toISOString().slice(0, 10);
@@ -5149,6 +5196,187 @@ ${exLines || 'אין'}
   function reprintReceipt(id) {
     const r = clientReceiptsList.find(x => x.id === id);
     if (r) printReceipt(r);
+  }
+
+  /* ══════════════════════════════════════════════════════
+     📒 ניהול חשבונות — מאזן רווח והפסד (מנהל חשבונות מובנה)
+     הכנסות = כל הקבלות שהמאמן הנפיק · הוצאות = coach_expenses
+  ══════════════════════════════════════════════════════ */
+  const ACCT_PERIODS = [
+    { k: '1m',  label: 'חודש אחרון',  months: 1 },
+    { k: '3m',  label: '3 חודשים',    months: 3 },
+    { k: '6m',  label: '6 חודשים',    months: 6 },
+    { k: '12m', label: 'שנה אחרונה',  months: 12 },
+    { k: 'ytd', label: 'מתחילת השנה', ytd: true },
+  ];
+  let acctPeriod   = '1m';
+  let acctIncome   = [];
+  let acctExpenses = [];
+  let acctListMode = 'income';
+
+  const acctIso = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  function acctPeriodStart(k) {
+    const p = ACCT_PERIODS.find(x => x.k === k) || ACCT_PERIODS[0];
+    if (p.ytd) return new Date(new Date().getFullYear(), 0, 1);
+    const s = new Date(); s.setMonth(s.getMonth() - p.months);
+    return s;
+  }
+  function acctPeriodLabel() { return (ACCT_PERIODS.find(x => x.k === acctPeriod) || ACCT_PERIODS[0]).label; }
+
+  async function openAccounting() {
+    document.getElementById('acct-overlay').style.display = 'block';
+    document.getElementById('acct-periods').innerHTML = ACCT_PERIODS.map(p =>
+      `<button onclick="setAcctPeriod('${p.k}')" class="asst-chip" id="acctp-${p.k}">${p.label}</button>`).join('');
+    const ex = document.getElementById('exp-date'); if (ex && !ex.value) ex.value = acctIso(new Date());
+    _acctHighlight();
+    await loadAccounting();
+  }
+  function _acctHighlight() {
+    ACCT_PERIODS.forEach(p => {
+      const b = document.getElementById('acctp-' + p.k); if (!b) return;
+      const on = p.k === acctPeriod;
+      b.style.background   = on ? 'rgba(74,222,128,0.18)' : '';
+      b.style.borderColor  = on ? 'rgba(74,222,128,0.55)' : '';
+      b.style.color        = on ? '#86efac' : '';
+    });
+    ['inc', 'exp'].forEach(t => {
+      const b = document.getElementById('acct-tab-' + t); if (!b) return;
+      const on = (t === 'inc' && acctListMode === 'income') || (t === 'exp' && acctListMode === 'expense');
+      b.style.background  = on ? 'rgba(255,255,255,0.1)' : '';
+      b.style.borderColor = on ? 'rgba(255,255,255,0.3)' : '';
+      b.style.color       = on ? '#fff' : '';
+    });
+  }
+  function setAcctPeriod(k) { acctPeriod = k; _acctHighlight(); loadAccounting(); }
+
+  async function loadAccounting() {
+    const startStr = acctIso(acctPeriodStart(acctPeriod));
+    const [{ data: rec }, { data: exp }] = await Promise.all([
+      sb.from('receipts').select('receipt_number,client_name,amount,receipt_date,description,payment_method')
+        .eq('coach_email', coachEmail).gte('receipt_date', startStr).order('receipt_date', { ascending: false }),
+      sb.from('coach_expenses').select('*')
+        .eq('coach_email', coachEmail).gte('expense_date', startStr).order('expense_date', { ascending: false }),
+    ]);
+    acctIncome = rec || []; acctExpenses = exp || [];
+    const inc = acctIncome.reduce((s, r) => s + Number(r.amount || 0), 0);
+    const out = acctExpenses.reduce((s, e) => s + Number(e.amount || 0), 0);
+    const net = inc - out;
+    const fmt = n => '₪' + Math.round(n).toLocaleString('he-IL');
+    document.getElementById('acct-income').textContent  = fmt(inc);
+    document.getElementById('acct-expense').textContent = fmt(out);
+    const netEl = document.getElementById('acct-net');
+    netEl.textContent = (net < 0 ? '-₪' : '₪') + Math.abs(Math.round(net)).toLocaleString('he-IL');
+    document.getElementById('acct-net-card').style.setProperty('--kc', net < 0 ? '#f87171' : '#4ade80');
+    netEl.style.color = net < 0 ? '#f87171' : '#4ade80';
+    acctShowList(acctListMode);
+  }
+
+  function acctShowList(mode) {
+    acctListMode = mode; _acctHighlight();
+    const el = document.getElementById('acct-list'); if (!el) return;
+    const dfmt = s => new Date(s + 'T12:00:00').toLocaleDateString('he-IL');
+    const money = n => Number(n).toLocaleString('he-IL', { minimumFractionDigits: 0 });
+    if (mode === 'income') {
+      if (!acctIncome.length) { el.innerHTML = '<div style="color:#555;text-align:center;padding:16px;font-size:0.82rem;">אין קבלות בתקופה זו</div>'; return; }
+      el.innerHTML = acctIncome.map(r => `
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:9px 12px;background:rgba(74,222,128,0.04);border:1px solid rgba(74,222,128,0.14);border-radius:9px;margin-bottom:6px;">
+          <div style="min-width:0;">
+            <div style="font-size:0.82rem;font-weight:800;color:#eee;">${esc(r.client_name || '—')}</div>
+            <div style="font-size:0.72rem;color:var(--muted);margin-top:2px;">${dfmt(r.receipt_date)} · ${esc(r.receipt_number)}${r.description ? ' · ' + esc(r.description) : ''}</div>
+          </div>
+          <div style="font-size:1rem;font-weight:900;color:#4ade80;white-space:nowrap;">+${money(r.amount)} ₪</div>
+        </div>`).join('');
+    } else {
+      if (!acctExpenses.length) { el.innerHTML = '<div style="color:#555;text-align:center;padding:16px;font-size:0.82rem;">אין הוצאות בתקופה זו — הוסף הוצאה למעלה</div>'; return; }
+      el.innerHTML = acctExpenses.map(e => `
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:9px 12px;background:rgba(248,113,113,0.04);border:1px solid rgba(248,113,113,0.14);border-radius:9px;margin-bottom:6px;">
+          <div style="min-width:0;">
+            <div style="font-size:0.82rem;font-weight:800;color:#eee;">${esc(e.category || 'הוצאה')}</div>
+            <div style="font-size:0.72rem;color:var(--muted);margin-top:2px;">${dfmt(e.expense_date)}${e.description ? ' · ' + esc(e.description) : ''}</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;white-space:nowrap;">
+            <div style="font-size:1rem;font-weight:900;color:#f87171;">-${money(e.amount)} ₪</div>
+            <button onclick="delExpense(${e.id})" title="מחק" style="background:none;border:none;color:#666;font-size:1rem;cursor:pointer;">🗑</button>
+          </div>
+        </div>`).join('');
+    }
+  }
+
+  async function addExpense() {
+    if (!requireEdit()) return;
+    const amount = parseFloat(document.getElementById('exp-amount').value);
+    const date   = document.getElementById('exp-date').value;
+    const cat    = document.getElementById('exp-cat').value.trim();
+    const desc   = document.getElementById('exp-desc').value.trim();
+    const st     = document.getElementById('exp-status');
+    if (!amount || amount <= 0) { st.style.color = '#ff7070'; st.textContent = 'יש להזין סכום תקין'; return; }
+    if (!date) { st.style.color = '#ff7070'; st.textContent = 'יש לבחור תאריך'; return; }
+    st.style.color = 'var(--muted)'; st.textContent = 'שומר...';
+    const { error } = await sb.from('coach_expenses').insert({
+      coach_email: coachEmail, expense_date: date, category: cat || null, description: desc || null, amount,
+    });
+    if (error) { st.style.color = '#ff7070'; st.textContent = 'שגיאה: ' + error.message; return; }
+    document.getElementById('exp-amount').value = '';
+    document.getElementById('exp-cat').value = '';
+    document.getElementById('exp-desc').value = '';
+    st.style.color = '#4ade80'; st.textContent = '✓ ההוצאה נרשמה';
+    setTimeout(() => { st.textContent = ''; }, 1800);
+    acctListMode = 'expense';
+    await loadAccounting();
+  }
+
+  async function delExpense(id) {
+    if (!requireEdit()) return;
+    if (!confirm('למחוק הוצאה זו?')) return;
+    const { error } = await sb.from('coach_expenses').delete().eq('id', id).eq('coach_email', coachEmail);
+    if (error) { toast('שגיאה: ' + error.message, 'err'); return; }
+    await loadAccounting();
+  }
+
+  function printAccounting() {
+    const dfmt = s => new Date(s + 'T12:00:00').toLocaleDateString('he-IL');
+    const money = n => Number(n).toLocaleString('he-IL', { minimumFractionDigits: 0 });
+    const inc = acctIncome.reduce((s, r) => s + Number(r.amount || 0), 0);
+    const out = acctExpenses.reduce((s, e) => s + Number(e.amount || 0), 0);
+    const net = inc - out;
+    const incRows = acctIncome.map(r => `<tr><td>${dfmt(r.receipt_date)}</td><td>${esc(r.client_name || '—')}</td><td>${esc(r.receipt_number)}</td><td style="text-align:left;color:#0a7a34;">+${money(r.amount)} ₪</td></tr>`).join('') || '<tr><td colspan="4" style="color:#999;">אין הכנסות</td></tr>';
+    const expRows = acctExpenses.map(e => `<tr><td>${dfmt(e.expense_date)}</td><td>${esc(e.category || 'הוצאה')}</td><td>${esc(e.description || '')}</td><td style="text-align:left;color:#b91c1c;">-${money(e.amount)} ₪</td></tr>`).join('') || '<tr><td colspan="4" style="color:#999;">אין הוצאות</td></tr>';
+    const w = window.open('', '_blank');
+    if (!w) { toast('חסום ע״י הדפדפן — אפשר חלונות קופצים', 'err'); return; }
+    w.document.write(`<!doctype html><html lang="he" dir="rtl"><head><meta charset="utf-8"><title>מאזן רווח והפסד</title>
+      <style>
+        *{font-family:'Heebo',Arial,sans-serif;box-sizing:border-box;}
+        body{margin:0;padding:28px;color:#111;}
+        h1{font-size:1.4rem;margin:0 0 2px;}
+        .sub{color:#666;font-size:0.85rem;margin-bottom:18px;}
+        .cards{display:flex;gap:12px;margin-bottom:22px;}
+        .c{flex:1;border:1px solid #ddd;border-radius:10px;padding:12px 14px;}
+        .c .l{font-size:0.72rem;color:#888;}
+        .c .v{font-size:1.3rem;font-weight:900;margin-top:2px;}
+        h2{font-size:1rem;margin:20px 0 8px;border-bottom:2px solid #eee;padding-bottom:4px;}
+        table{width:100%;border-collapse:collapse;font-size:0.82rem;}
+        th,td{text-align:right;padding:6px 8px;border-bottom:1px solid #eee;}
+        th{color:#888;font-size:0.72rem;}
+        .tot{margin-top:6px;font-weight:900;text-align:left;padding:6px 8px;}
+        @media print{ button{display:none;} }
+      </style></head><body>
+      <h1>📒 מאזן רווח והפסד — ${esc(coachName || coachEmail)}</h1>
+      <div class="sub">תקופה: ${acctPeriodLabel()} · הופק ${new Date().toLocaleDateString('he-IL')}</div>
+      <div class="cards">
+        <div class="c"><div class="l">הכנסות</div><div class="v" style="color:#0a7a34;">₪${money(inc)}</div></div>
+        <div class="c"><div class="l">הוצאות</div><div class="v" style="color:#b91c1c;">₪${money(out)}</div></div>
+        <div class="c"><div class="l">רווח נקי</div><div class="v" style="color:${net < 0 ? '#b91c1c' : '#0a7a34'};">${net < 0 ? '-' : ''}₪${money(Math.abs(net))}</div></div>
+      </div>
+      <h2>🧾 הכנסות (${acctIncome.length})</h2>
+      <table><thead><tr><th>תאריך</th><th>לקוח</th><th>מס׳ קבלה</th><th style="text-align:left;">סכום</th></tr></thead><tbody>${incRows}</tbody></table>
+      <div class="tot" style="color:#0a7a34;">סה״כ הכנסות: ₪${money(inc)}</div>
+      <h2>💸 הוצאות (${acctExpenses.length})</h2>
+      <table><thead><tr><th>תאריך</th><th>קטגוריה</th><th>תיאור</th><th style="text-align:left;">סכום</th></tr></thead><tbody>${expRows}</tbody></table>
+      <div class="tot" style="color:#b91c1c;">סה״כ הוצאות: ₪${money(out)}</div>
+      <div class="tot" style="font-size:1.1rem;border-top:2px solid #333;margin-top:12px;padding-top:10px;">רווח נקי: ${net < 0 ? '-' : ''}₪${money(Math.abs(net))}</div>
+      <button onclick="window.print()" style="margin-top:20px;padding:10px 20px;background:#FF6B00;color:#fff;border:none;border-radius:8px;font-weight:800;cursor:pointer;">🖨 הדפס</button>
+      </body></html>`);
+    w.document.close();
   }
 
   /* ══════════════════════════════════════════════════════

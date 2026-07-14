@@ -3434,13 +3434,61 @@
     const steps = (typeof _stepsToday !== 'undefined' ? _stepsToday : 0) + (typeof _pedoCount !== 'undefined' ? _pedoCount : 0);
     const sf = document.getElementById('hl-steps-fill'); if (sf) sf.style.width = Math.min(100, steps / 10000 * 100) + '%';
     const sn = document.getElementById('hl-steps-num'); if (sn) sn.textContent = steps.toLocaleString('he-IL');
-    // countdown to coaching end
-    const cd = document.getElementById('hl-cd-num');
-    if (cd && clientData?.coaching_end) {
-      const days = Math.max(0, Math.ceil((new Date(clientData.coaching_end) - new Date()) / 86400000));
-      cd.textContent = days;
-      cd.style.color = days <= 7 ? '#f87171' : 'var(--orange)';
-    } else if (cd) { cd.textContent = '—'; }
+    // renew / countdown card — swaps to a frozen state when the subscription is paused
+    const renew = document.getElementById('hl-renew');
+    if (!renew) return;
+    const frozen = clientData?.frozen_until && clientData.frozen_until >= todayStr();
+    if (frozen) {
+      const untilTxt = new Date(clientData.frozen_until + 'T12:00:00').toLocaleDateString('he-IL');
+      renew.style.background   = 'linear-gradient(135deg,rgba(56,189,248,0.16),rgba(56,189,248,0.05))';
+      renew.style.borderColor  = 'rgba(56,189,248,0.5)';
+      renew.style.boxShadow    = '0 4px 18px rgba(0,0,0,0.3)';
+      renew.innerHTML =
+        `<div><div style="font-size:0.72rem;color:#7dd3fc;">❄️ הליווי שלך מוקפא</div>` +
+        `<div style="margin-top:2px;font-size:0.95rem;font-weight:900;color:#bae6fd;">עד ${untilTxt}</div></div>` +
+        `<button onclick="clientUnfreeze()" style="background:linear-gradient(135deg,#38bdf8,#0ea5e9);color:#fff;border:none;border-radius:12px;font-family:'Heebo',sans-serif;font-weight:800;font-size:0.9rem;padding:12px 16px;cursor:pointer;box-shadow:0 3px 14px rgba(56,189,248,0.45);white-space:nowrap;">☀️ הפשר ליווי</button>`;
+    } else {
+      const days = clientData?.coaching_end ? Math.max(0, Math.ceil((new Date(clientData.coaching_end) - new Date()) / 86400000)) : null;
+      renew.style.background  = 'linear-gradient(135deg,rgba(255,107,0,0.16),rgba(255,215,0,0.06))';
+      renew.style.borderColor = 'rgba(255,140,0,0.5)';
+      renew.style.boxShadow   = '0 4px 18px rgba(0,0,0,0.3)';
+      renew.innerHTML =
+        `<div><div style="font-size:0.72rem;color:var(--muted);">⏳ נותרו לסיום הליווי</div>` +
+        `<div style="margin-top:2px;"><span style="font-size:1.5rem;font-weight:900;color:${days !== null && days <= 7 ? '#f87171' : 'var(--orange)'};">${days !== null ? days : '—'}</span> <span style="color:var(--orange);font-weight:800;">ימים</span></div></div>` +
+        `<button onclick="renewFromHome()" style="background:linear-gradient(135deg,var(--orange),#FF8C00);color:#fff;border:none;border-radius:12px;font-family:'Heebo',sans-serif;font-weight:800;font-size:0.9rem;padding:12px 16px;cursor:pointer;box-shadow:0 3px 14px rgba(255,107,0,0.4);white-space:nowrap;">🔄 חדש ליווי ←</button>`;
+    }
+  }
+
+  /* ☀️ הפשרת ליווי ע״י הלקוח — ממשיכה את הספירה מרגע ההפשרה (מקזזת את הימים
+     שנותרו בהקפאה מתאריך הסיום). הפשרה עצמית חוסמת הקפאה חוזרת ל-30 יום. */
+  async function clientUnfreeze() {
+    if (!clientData?.frozen_until || clientData.frozen_until < todayStr()) return;
+    const ok = confirm('להפשיר את הליווי עכשיו?\n\nהספירה לסיום הליווי תמשיך מהרגע הזה.\n\n(הפשרת החשבון מבטלת את האפשרות להקפיא שוב בחודש הקרוב)');
+    if (!ok) return;
+    // reclaim the not-yet-used frozen days so the countdown resumes from today
+    const remaining = Math.max(0, Math.round((new Date(clientData.frozen_until + 'T12:00:00') - new Date(todayStr() + 'T12:00:00')) / 86400000));
+    const block = new Date(); block.setDate(block.getDate() + 30);
+    const patch = {
+      frozen_until: null,
+      freeze_blocked_until: block.getFullYear() + '-' + String(block.getMonth() + 1).padStart(2, '0') + '-' + String(block.getDate()).padStart(2, '0'),
+    };
+    if (clientData.coaching_end && remaining > 0) {
+      const base = new Date(clientData.coaching_end + 'T12:00:00'); base.setDate(base.getDate() - remaining);
+      patch.coaching_end = base.getFullYear() + '-' + String(base.getMonth() + 1).padStart(2, '0') + '-' + String(base.getDate()).padStart(2, '0');
+    }
+    const { error } = await sb.from('clients').update(patch).eq('email', currentEmail);
+    if (error) { showDashToast('שגיאה: ' + error.message); return; }
+    try {
+      if (clientData.coach_email)
+        await sb.from('messages').insert({ coach_email: clientData.coach_email, client_email: currentEmail, sender_email: currentEmail,
+          content: '☀️ הפשרתי את הליווי — חזרתי לפעילות מלאה 💪' });
+    } catch (e) { /* chat notice is best-effort */ }
+    clientData.frozen_until = null;
+    clientData.freeze_blocked_until = patch.freeze_blocked_until;
+    if (patch.coaching_end) clientData.coaching_end = patch.coaching_end;
+    showDashToast('הליווי הופשר ☀️ — הספירה ממשיכה');
+    renderLauncher();
+    if (typeof renderStudioClient === 'function') renderStudioClient();
   }
   function renewFromHome() {
     goDetail('workouts');   // renewal-section lives inside the workouts tab
