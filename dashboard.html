@@ -489,7 +489,7 @@
     .manual-food-toggle:hover { color:var(--orange); }
     .manual-form-wrap { background:rgba(255,107,0,0.04); border:1px solid rgba(255,107,0,0.2); border-radius:12px; padding:14px; margin-top:8px; margin-bottom:4px; }
     .manual-row-lbl { font-size:0.7rem; font-weight:700; color:var(--muted); margin-bottom:6px; }
-    .manual-inputs-row { display:grid; grid-template-columns:2fr 1fr 1fr 1fr 1fr; gap:7px; margin-bottom:10px; }
+    .manual-inputs-row { display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:7px; margin-bottom:10px; }
     @media (max-width:500px) { .manual-inputs-row { grid-template-columns:1fr 1fr; } }
     .manual-inp { padding:9px 10px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:8px; color:var(--white); font-family:'Heebo',sans-serif; font-size:0.82rem; outline:none; width:100%; }
     .manual-inp:focus { border-color:var(--orange); }
@@ -1578,6 +1578,7 @@
   let waterLogs           = [];
   let waterTarget         = 2500;
   let manualFoodOpen      = false;
+  let manualMode          = 'per100';   // 'per100' (values per 100g + grams) | 'unit' (values per portion × count)
 
   async function init() {
     let { data: { session } } = await sb.auth.getSession();
@@ -3989,17 +3990,23 @@ ${foodList || 'אין פריטים'}
         </div>
         <div class="food-preview" id="food-preview"></div>
       </div>
-      <button class="manual-food-toggle" onclick="toggleManualFood()">${manualFoodOpen ? '▲ סגור' : '+ הוסף ידנית (ללא מאגר)'}</button>
+      <button class="manual-food-toggle" onclick="toggleManualFood()">${manualFoodOpen ? '▲ סגור' : '+ הוסף מזון ידני (לא במאגר)'}</button>
       ${manualFoodOpen ? `<div class="manual-form-wrap">
-        <div class="manual-row-lbl">ערכים ישירים (לא לפי 100 גרם):</div>
-        <div class="manual-inputs-row">
-          <input class="manual-inp" id="mf-name" placeholder="שם המאכל" type="text"/>
-          <input class="manual-inp" id="mf-cal"  placeholder="קלוריות"  type="number" min="0"/>
-          <input class="manual-inp" id="mf-prot" placeholder="חלבון g"  type="number" min="0"/>
-          <input class="manual-inp" id="mf-carb" placeholder="פחמימה g" type="number" min="0"/>
-          <input class="manual-inp" id="mf-fat"  placeholder="שומן g"   type="number" min="0"/>
+        <div style="display:flex;gap:6px;margin-bottom:10px;">
+          <button onclick="setManualMode('per100')" style="flex:1;padding:8px;border-radius:8px;font-family:'Heebo',sans-serif;font-size:0.8rem;font-weight:800;cursor:pointer;border:1px solid ${manualMode==='per100'?'var(--orange)':'rgba(255,255,255,0.14)'};background:${manualMode==='per100'?'rgba(255,107,0,0.15)':'rgba(255,255,255,0.03)'};color:${manualMode==='per100'?'var(--orange)':'var(--muted)'};">ערכים ל-100 גרם</button>
+          <button onclick="setManualMode('unit')" style="flex:1;padding:8px;border-radius:8px;font-family:'Heebo',sans-serif;font-size:0.8rem;font-weight:800;cursor:pointer;border:1px solid ${manualMode==='unit'?'var(--orange)':'rgba(255,255,255,0.14)'};background:${manualMode==='unit'?'rgba(255,107,0,0.15)':'rgba(255,255,255,0.03)'};color:${manualMode==='unit'?'var(--orange)':'var(--muted)'};">ערכים למנה / יחידה</button>
         </div>
-        <button class="btn-manual-add" id="btn-manual-add" onclick="addManualFood()">הכנס מאכל</button>
+        <input class="manual-inp" id="mf-name" placeholder="שם המאכל" type="text" style="margin-bottom:8px;"/>
+        <div class="manual-row-lbl">${manualMode==='per100' ? 'ערכים ל-100 גרם:' : 'ערכים למנה / יחידה אחת:'}</div>
+        <div class="manual-inputs-row">
+          <input class="manual-inp" id="mf-cal"  placeholder="קלוריות"  type="number" min="0" inputmode="decimal" oninput="updateManualPreview()"/>
+          <input class="manual-inp" id="mf-prot" placeholder="חלבון g"  type="number" min="0" inputmode="decimal" oninput="updateManualPreview()"/>
+          <input class="manual-inp" id="mf-carb" placeholder="פחמימה g" type="number" min="0" inputmode="decimal" oninput="updateManualPreview()"/>
+          <input class="manual-inp" id="mf-fat"  placeholder="שומן g"   type="number" min="0" inputmode="decimal" oninput="updateManualPreview()"/>
+        </div>
+        <input class="manual-inp" id="mf-amt" placeholder="${manualMode==='per100' ? 'כמות בגרמים (למשל 150)' : 'כמות יחידות (ברירת מחדל 1)'}" type="number" min="0" step="0.1" inputmode="decimal" oninput="updateManualPreview()" style="margin-bottom:8px;"/>
+        <div id="mf-preview" style="font-size:0.8rem;color:var(--orange);font-weight:700;margin-bottom:10px;min-height:1em;"></div>
+        <button class="btn-manual-add" id="btn-manual-add" onclick="addManualFood()">➕ הוסף למעקב היומי</button>
       </div>` : ''}
       ${logHtml || '<div style="color:#444;font-size:0.85rem;text-align:center;padding:20px 0;">לא נרשם אוכל היום עדיין 🍽️</div>'}`;
   }
@@ -4785,26 +4792,53 @@ ${foodList || 'אין פריטים'}
     manualFoodOpen = !manualFoodOpen;
     renderNutriBody();
   }
-
-  async function addManualFood() {
-    const name = document.getElementById('mf-name')?.value.trim();
+  function setManualMode(m) { manualMode = m; renderNutriBody(); }
+  function updateManualPreview() {
+    const el = document.getElementById('mf-preview'); if (!el) return;
     const cal  = parseFloat(document.getElementById('mf-cal')?.value)  || 0;
     const prot = parseFloat(document.getElementById('mf-prot')?.value) || 0;
     const carb = parseFloat(document.getElementById('mf-carb')?.value) || 0;
     const fat  = parseFloat(document.getElementById('mf-fat')?.value)  || 0;
-    if (!name) { document.getElementById('mf-name')?.focus(); return; }
+    const amt  = parseFloat(document.getElementById('mf-amt')?.value)  || 0;
+    let r;
+    if (manualMode === 'per100') { if (amt <= 0) { el.textContent = ''; return; } r = amt / 100; }
+    else { r = amt > 0 ? amt : 1; }
+    if (cal <= 0 && prot <= 0 && carb <= 0 && fat <= 0) { el.textContent = ''; return; }
+    const rnd = n => Math.round(n * 10) / 10;
+    el.textContent = `← סה״כ שיתווסף: ${Math.round(cal * r)} קק"ל · חלבון ${rnd(prot * r)}g · פחמימה ${rnd(carb * r)}g · שומן ${rnd(fat * r)}g`;
+  }
+
+  async function addManualFood() {
+    const name = document.getElementById('mf-name')?.value.trim();
+    let cal  = parseFloat(document.getElementById('mf-cal')?.value)  || 0;
+    let prot = parseFloat(document.getElementById('mf-prot')?.value) || 0;
+    let carb = parseFloat(document.getElementById('mf-carb')?.value) || 0;
+    let fat  = parseFloat(document.getElementById('mf-fat')?.value)  || 0;
+    const amt = parseFloat(document.getElementById('mf-amt')?.value);
+    if (!name) { document.getElementById('mf-name')?.focus(); showDashToast('הזן שם מאכל'); return; }
+    let grams = 0;
+    if (manualMode === 'per100') {
+      grams = amt || 0;
+      if (grams <= 0) { document.getElementById('mf-amt')?.focus(); showDashToast('הזן כמות בגרמים'); return; }
+      const r = grams / 100; cal *= r; prot *= r; carb *= r; fat *= r;
+    } else {
+      const units = (amt && amt > 0) ? amt : 1;
+      cal *= units; prot *= units; carb *= units; fat *= units;
+    }
+    if (cal <= 0 && prot <= 0 && carb <= 0 && fat <= 0) { showDashToast('הזן ערכים תזונתיים'); return; }
+    cal = Math.round(cal); prot = Math.round(prot * 10) / 10; carb = Math.round(carb * 10) / 10; fat = Math.round(fat * 10) / 10;
     const btn = document.getElementById('btn-manual-add');
     if (btn) { btn.disabled = true; btn.textContent = 'מוסיף...'; }
-    const today = todayStr();
     const { data, error } = await sb.from('food_logs').insert({
-      client_email: currentEmail, log_date: today,
-      food_name: name, grams: 0, calories: cal, protein: prot, carbs: carb, fat, meal_type: nutriMeal
+      client_email: currentEmail, log_date: todayStr(),
+      food_name: name, grams: Math.round(grams), calories: cal, protein: prot, carbs: carb, fat, meal_type: nutriMeal
     }).select().single();
-    if (btn) { btn.disabled = false; btn.textContent = 'הכנס מאכל'; }
-    if (error) return;
+    if (btn) { btn.disabled = false; btn.textContent = '➕ הוסף למעקב היומי'; }
+    if (error) { showDashToast('שגיאה: ' + error.message); return; }
     foodLogs.push(data);
     manualFoodOpen = false;
     renderNutriBody();
+    showDashToast(name + ' נוסף למעקב ✓');
   }
 
   /* ── VOLUME ── */
