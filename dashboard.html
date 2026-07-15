@@ -1569,6 +1569,7 @@
   let foodLogs            = null;
   let recipes             = null;
   let nutriMode           = 'track';
+  let nutriDayType        = null;   // 'training' | 'rest' | 'target' — which day's menu the client views
   let altChoices          = {};
   let openAltPanelKey     = null;
   let nutriMeal           = 'בוקר';
@@ -3851,7 +3852,22 @@ ${foodList || 'אין פריטים'}
       const loggedMeals = new Set(
         (foodLogs||[]).filter(l=>l.meal_type&&l.meal_type.startsWith('plan__')).map(l=>l.meal_type.slice(7))
       );
+      // 🗓 day-type: if the coach tagged meals per day, show a selector and filter the menu
+      const hasDayTags = nutritionPlanLocal.some(m => m.day_type && m.day_type !== 'any');
+      if (hasDayTags && nutriDayType === null) {
+        const trainedToday = (workoutLogs||[]).some(l => l.log_date === todayStr());
+        nutriDayType = trainedToday ? 'training' : 'rest';
+      }
+      const isRecomp = (clientData && clientData.goal === 'recomp') || nutritionPlanLocal.some(m => m.day_type === 'target');
+      const dayOpts = [['training','🏋️ יום אימון'],['rest','😴 יום מנוחה']];
+      if (isRecomp) dayOpts.push(['target','🎯 שריר מטרה']);
+      const daySelector = hasDayTags ? `
+        <div style="display:flex;gap:6px;margin-bottom:6px;flex-wrap:wrap;">
+          ${dayOpts.map(([v,l]) => `<button onclick="setNutriDay('${v}')" style="flex:1;min-width:90px;padding:9px 8px;border-radius:10px;font-family:'Heebo',sans-serif;font-size:0.82rem;font-weight:800;cursor:pointer;border:1px solid ${nutriDayType===v?'var(--orange)':'rgba(255,255,255,0.14)'};background:${nutriDayType===v?'rgba(255,107,0,0.15)':'rgba(255,255,255,0.03)'};color:${nutriDayType===v?'var(--orange)':'var(--muted)'};">${l}</button>`).join('')}
+        </div>
+        <div style="font-size:0.72rem;color:#666;margin:0 0 12px;text-align:center;">📋 התפריט מותאם לסוג היום שבחרת</div>` : '';
       const planHtml = nutritionPlanLocal.map((meal, mi) => {
+        if (hasDayTags && meal.day_type && meal.day_type !== 'any' && meal.day_type !== nutriDayType) return '';
         const isLogged = loggedMeals.has(meal.meal);
         const items = meal.items || [];
         let tot = {cal:0,p:0,c:0,f:0};
@@ -3915,7 +3931,7 @@ ${foodList || 'אין פריטים'}
           </div>
         </div>`;
       }).join('');
-      body.innerHTML = tabs + planHtml;
+      body.innerHTML = tabs + daySelector + (planHtml.trim() ? planHtml : '<div class="empty">אין ארוחות מוגדרות ליום זה 🥗</div>');
       return;
     }
 
@@ -3989,6 +4005,7 @@ ${foodList || 'אין פריטים'}
   }
 
   function setNutriMode(m) { nutriMode=m; renderNutriBody(); }
+  function setNutriDay(t) { nutriDayType=t; renderNutriBody(); }
   function setNutriMeal(m)  { nutriMeal=m; renderNutriBody(); }
 
   function onFoodInput(val) {
