@@ -800,7 +800,7 @@
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px;">
       <button class="hl-tile" onclick="goDetail('nutrition')"><span class="hl-ic">🥗</span><span class="hl-lbl">תפריט</span></button>
-      <button class="hl-tile" onclick="goDetail('workouts')"><span class="hl-ic">🏋️</span><span class="hl-lbl">תוכנית</span></button>
+      <button class="hl-tile" onclick="goDetail('workouts','training-wrap')"><span class="hl-ic">🏋️</span><span class="hl-lbl">תוכנית</span></button>
       <button class="hl-tile" onclick="goDetail('records')"><span class="hl-ic">🏆</span><span class="hl-lbl">טבלת שיאים</span></button>
       <button class="hl-tile" onclick="goDetail('workouts','community-card')"><span class="hl-ic">🌐</span><span class="hl-lbl">קהילה</span></button>
     </div>
@@ -808,6 +808,8 @@
       <div><div style="font-size:0.72rem;color:var(--muted);">⏳ נותרו לסיום הליווי</div><div style="margin-top:2px;"><span id="hl-cd-num" style="font-size:1.5rem;font-weight:900;color:var(--orange);">—</span> <span style="color:var(--orange);font-weight:800;">ימים</span></div></div>
       <button onclick="renewFromHome()" style="background:linear-gradient(135deg,var(--orange),#FF8C00);color:#fff;border:none;border-radius:12px;font-family:'Heebo',sans-serif;font-weight:800;font-size:0.9rem;padding:12px 16px;cursor:pointer;box-shadow:0 3px 14px rgba(255,107,0,0.4);white-space:nowrap;">🔄 חדש ליווי ←</button>
     </div>
+    <div id="hl-debt" style="display:none;margin-top:14px;"></div>
+    <div id="hl-extra" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px;"></div>
   </div>
 
   <div id="detail-view" style="display:none;">
@@ -1570,6 +1572,9 @@
   let recipes             = null;
   let nutriMode           = 'track';
   let nutriDayType        = null;   // 'training' | 'rest' | 'target' — which day's menu the client views
+  let _coachReferralEnabled = false; // coach-controlled referral program
+  let _coachReferralReward  = '';
+  let clientDebtBalance     = 0;     // surfaced on the home launcher
   let altChoices          = {};
   let openAltPanelKey     = null;
   let nutriMeal           = 'בוקר';
@@ -1811,13 +1816,15 @@
   function renderDebtCardClient() {
     const txns = clientDebtTxnsLocal || [];
     const card = document.getElementById('debt-card-client');
-    if (!txns.length) { card.style.display = 'none'; return; }
+    if (!txns.length) { card.style.display = 'none'; clientDebtBalance = 0; if (typeof renderLauncher === 'function') renderLauncher(); return; }
     card.style.display = 'block';
     let balance = 0;
     txns.filter(t => t.status === 'approved').forEach(t => {
       balance += t.type === 'charge' ? (+t.amount||0) : -(+t.amount||0);
     });
     balance = Math.round(balance * 100) / 100;
+    clientDebtBalance = balance;
+    if (typeof renderLauncher === 'function') renderLauncher();
     const col = debtBalColor(balance);
     const badge = document.getElementById('debt-status-badge');
     badge.textContent = balance <= 0 ? '🟢 אין חוב' : (balance > 500 ? '🔴 חוב משמעותי' : '🟠 חוב קטן');
@@ -2544,6 +2551,13 @@
   /* 🎁 REFERRAL — the client's personal code + one-tap WhatsApp share */
   async function renderReferralCard() {
     const card = document.getElementById('referral-card'); if (!card || !clientData) return;
+    // coach-controlled: the program shows only when the coach enabled it + uses the coach's reward
+    try {
+      const { data: cs } = await sb.from('coaches').select('referral_enabled,referral_reward').eq('email', clientData.coach_email).maybeSingle();
+      _coachReferralEnabled = !!cs?.referral_enabled;
+      _coachReferralReward  = cs?.referral_reward || '';
+    } catch (e) { _coachReferralEnabled = false; }
+    if (!_coachReferralEnabled) { card.style.display = 'none'; if (typeof renderLauncher === 'function') renderLauncher(); return; }
     let code = clientData.referral_code;
     if (!code) {
       // lazily generate a unique short code and persist it
@@ -2556,12 +2570,13 @@
       clientData.referral_code = code;
     }
     if (!code) return;
-    const shareMsg = `היי! אני מתאמן/ת בליווי אישי והתוצאות מדברות 💪 בוא/י להצטרף — תגיד/י שהקוד שלי הוא ${code} ושנינו נקבל מתנה! 🎁`;
+    const rewardTxt = _coachReferralReward || 'מתנה מהמאמן';
+    const shareMsg = `היי! אני מתאמן/ת בליווי אישי והתוצאות מדברות 💪 בוא/י להצטרף — תגיד/י שהקוד שלי הוא ${code} ושנינו נקבל ${rewardTxt}! 🎁`;
     card.style.display = 'block';
     card.innerHTML = `
       <div style="background:radial-gradient(120% 80% at 50% 0%,rgba(255,215,0,0.1),transparent 60%),linear-gradient(160deg,#17181c,#0d0e11);border:1px solid rgba(255,215,0,0.3);border-radius:16px;padding:16px;">
         <div style="font-weight:900;font-size:1.02rem;color:#fff;margin-bottom:4px;">🎁 הזמן חבר — ושניכם מרוויחים</div>
-        <div style="font-size:0.78rem;color:#aaa;margin-bottom:12px;">שתף את הקוד האישי שלך. חבר שיצטרף — שניכם מקבלים מתנה מהמאמן.</div>
+        <div style="font-size:0.78rem;color:#aaa;margin-bottom:12px;">שתף את הקוד האישי שלך. חבר שיצטרף — שניכם מקבלים: <b style="color:#FFD700;">${esc(rewardTxt)}</b></div>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
           <div onclick="copyReferralCode('${code}')" style="flex:1;min-width:120px;text-align:center;background:rgba(255,215,0,0.08);border:1px dashed rgba(255,215,0,0.5);border-radius:10px;padding:10px;cursor:pointer;">
             <div style="font-size:0.62rem;color:#888;">הקוד שלי (לחץ להעתקה)</div>
@@ -3458,6 +3473,29 @@
         `<div><div style="font-size:0.72rem;color:var(--muted);">⏳ נותרו לסיום הליווי</div>` +
         `<div style="margin-top:2px;"><span style="font-size:1.5rem;font-weight:900;color:${days !== null && days <= 7 ? '#f87171' : 'var(--orange)'};">${days !== null ? days : '—'}</span> <span style="color:var(--orange);font-weight:800;">ימים</span></div></div>` +
         `<button onclick="renewFromHome()" style="background:linear-gradient(135deg,var(--orange),#FF8C00);color:#fff;border:none;border-radius:12px;font-family:'Heebo',sans-serif;font-weight:800;font-size:0.9rem;padding:12px 16px;cursor:pointer;box-shadow:0 3px 14px rgba(255,107,0,0.4);white-space:nowrap;">🔄 חדש ליווי ←</button>`;
+    }
+    // 💳 debt on the home — only when there's an open balance
+    const debtEl = document.getElementById('hl-debt');
+    if (debtEl) {
+      if (clientDebtBalance > 0) {
+        debtEl.style.display = 'block';
+        debtEl.innerHTML = `<div onclick="goDetail('workouts','debt-card-client')" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:10px;background:linear-gradient(135deg,rgba(248,113,113,0.14),rgba(248,113,113,0.04));border:1px solid rgba(248,113,113,0.4);border-radius:16px;padding:12px 16px;">
+          <div><div style="font-size:0.72rem;color:#fca5a5;">💳 יתרת חוב פתוחה</div><div style="font-size:1.25rem;font-weight:900;color:#f87171;margin-top:2px;">${clientDebtBalance.toLocaleString('he-IL')} ₪</div></div>
+          <span style="background:rgba(248,113,113,0.2);color:#fca5a5;border-radius:10px;padding:9px 12px;font-size:0.78rem;font-weight:800;white-space:nowrap;">פרטים ותשלום ←</span></div>`;
+      } else { debtEl.style.display = 'none'; debtEl.innerHTML = ''; }
+    }
+    // 🔗 full-control shortcuts — every panel section, one tap away
+    const extraEl = document.getElementById('hl-extra');
+    if (extraEl) {
+      const shortcuts = [
+        ["goDetail('measurements')", '📏 מדידות'],
+        ["goDetail('history')", '📊 היסטוריה'],
+        ["goDetail('workouts','debt-card-client')", '💳 תשלומים'],
+      ];
+      if (_coachReferralEnabled) shortcuts.push(["goDetail('workouts','referral-card')", '🎁 חבר מביא חבר']);
+      extraEl.innerHTML = shortcuts.map(([fn, l]) =>
+        `<button onclick="${fn}" style="padding:12px 8px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:14px;color:#ddd;font-family:'Heebo',sans-serif;font-size:0.84rem;font-weight:800;cursor:pointer;">${l}</button>`
+      ).join('');
     }
   }
 

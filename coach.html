@@ -508,6 +508,8 @@
       <button onclick="openAccounting()" style="width:100%;margin-bottom:14px;padding:10px;background:linear-gradient(135deg,rgba(74,222,128,0.15),rgba(255,215,0,0.08));border:1px solid rgba(74,222,128,0.4);border-radius:12px;color:#86efac;font-family:'Heebo',sans-serif;font-size:0.85rem;font-weight:800;cursor:pointer;transition:all 0.15s;" onmouseover="this.style.borderColor='rgba(74,222,128,0.7)'" onmouseout="this.style.borderColor='rgba(74,222,128,0.4)'">📒 ניהול חשבונות — מאזן רווח והפסד</button>
       <button onclick="openLtvReport()" style="width:100%;margin-bottom:14px;padding:10px;background:linear-gradient(135deg,rgba(167,139,250,0.15),rgba(255,107,0,0.1));border:1px solid rgba(167,139,250,0.4);border-radius:12px;color:#c4b5fd;font-family:'Heebo',sans-serif;font-size:0.85rem;font-weight:800;cursor:pointer;transition:all 0.15s;" onmouseover="this.style.borderColor='rgba(167,139,250,0.7)'" onmouseout="this.style.borderColor='rgba(167,139,250,0.4)'">📊 דוח LTV + שימור לקוחות (קוהורט)</button>
       <button onclick="openCoachCommunity()" style="width:100%;margin-bottom:14px;padding:10px;background:linear-gradient(135deg,rgba(139,92,246,0.15),rgba(167,139,250,0.08));border:1px solid rgba(139,92,246,0.4);border-radius:12px;color:#c4b5fd;font-family:'Heebo',sans-serif;font-size:0.85rem;font-weight:800;cursor:pointer;">🌐 קהילת המתאמנים שלי — פרסם ונהל</button>
+      <!-- הגדרת חבר מביא חבר למתאמנים (מופעל ע״י המאמן + הטבה שהוא קובע) -->
+      <div id="referral-settings-card" style="margin-bottom:20px;"></div>
       <!-- Coach-brings-coach referral -->
       <div id="coach-referral-card" style="margin-bottom:20px;"></div>
       <!-- הפניות ממתינות (חבר מביא חבר) -->
@@ -2987,6 +2989,7 @@
     renderReferrals();
     renderWinBack();
     renderCoachReferral();
+    renderReferralSettings();
 
     const alertsEl = document.getElementById('lobby-alerts');
     if (!alertsEl) return;
@@ -3097,6 +3100,39 @@
 
       <div style="font-weight:800;font-size:0.9rem;color:#fff;margin-bottom:6px;">🏆 5 הלקוחות המובילים ב-LTV</div>
       <div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:10px 14px;">${topClients}</div>`;
+  }
+
+  /* 🎁 CLIENT REFERRAL PROGRAM SETTINGS — coach turns it on/off and defines the reward.
+     Clients see the "invite a friend" card only when this is enabled. */
+  async function renderReferralSettings() {
+    const box = document.getElementById('referral-settings-card'); if (!box) return;
+    const { data } = await sb.from('coaches').select('referral_enabled,referral_reward').eq('email', coachEmail).maybeSingle();
+    const on = !!data?.referral_enabled;
+    const reward = data?.referral_reward || '';
+    box.innerHTML = `
+      <div style="background:radial-gradient(120% 80% at 50% 0%,rgba(255,215,0,0.08),transparent 60%),linear-gradient(160deg,#17181c,#0d0e11);border:1px solid rgba(255,215,0,0.28);border-radius:16px;padding:15px 16px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px;">
+          <div style="font-weight:900;font-size:0.98rem;color:#fff;">🎁 חבר מביא חבר <span style="font-size:0.64rem;color:#FFD700;font-weight:600;">מוצג למתאמנים רק כשמופעל</span></div>
+          <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;flex-shrink:0;">
+            <input type="checkbox" id="ref-enabled" ${on ? 'checked' : ''} style="width:18px;height:18px;accent-color:#FFD700;cursor:pointer;">
+            <span id="ref-enabled-lbl" style="font-size:0.8rem;font-weight:700;color:${on ? '#4ade80' : '#888'};">${on ? 'פעיל' : 'כבוי'}</span>
+          </label>
+        </div>
+        <input id="ref-reward" value="${esc(reward)}" placeholder="ההטבה לכל חבר שמצטרף (למשל: חודש חינם / ₪100 הנחה בחידוש)" style="width:100%;box-sizing:border-box;padding:9px 12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:9px;color:#fff;font-family:'Heebo',sans-serif;font-size:0.84rem;margin-bottom:9px;">
+        <button onclick="saveReferralSettings()" style="width:100%;padding:9px;background:linear-gradient(135deg,#FFD700,#FFC200);color:#000;border:none;border-radius:9px;font-family:'Heebo',sans-serif;font-weight:800;font-size:0.84rem;cursor:pointer;">שמור הגדרות</button>
+        <div id="ref-set-status" style="font-size:0.74rem;margin-top:6px;min-height:1em;"></div>
+      </div>`;
+    const cb = document.getElementById('ref-enabled');
+    if (cb) cb.onchange = () => { const l = document.getElementById('ref-enabled-lbl'); if (l) { l.textContent = cb.checked ? 'פעיל' : 'כבוי'; l.style.color = cb.checked ? '#4ade80' : '#888'; } };
+  }
+  async function saveReferralSettings() {
+    if (!requireEdit()) return;
+    const enabled = document.getElementById('ref-enabled')?.checked || false;
+    const reward  = document.getElementById('ref-reward')?.value.trim() || null;
+    const st = document.getElementById('ref-set-status');
+    if (enabled && !reward) { if (st) { st.style.color = '#ff7070'; st.textContent = 'כשהתוכנית פעילה חובה להגדיר הטבה לחבר'; } return; }
+    const { error } = await sb.from('coaches').update({ referral_enabled: enabled, referral_reward: reward }).eq('email', coachEmail);
+    if (st) { if (error) { st.style.color = '#ff7070'; st.textContent = 'שגיאה: ' + error.message; } else { st.style.color = '#4ade80'; st.textContent = '✓ נשמר'; setTimeout(() => { if (st) st.textContent = ''; }, 1600); } }
   }
 
   /* 🤝 COACH-BRINGS-COACH — the coach's own referral code + tokens reward status.
