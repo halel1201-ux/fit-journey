@@ -2888,17 +2888,50 @@
      falls back to the phone's built-in pedometer on web. Steps → daily_steps,
      latest weight → clients.current_weight, sleep-ok → daily_habits.sleep. */
   function _healthPlugin() {
-    return (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.HealthConnect)
-        || window.HealthConnect || window.CapacitorHealth || null;
+    const P = (window.Capacitor && window.Capacitor.Plugins) || {};
+    // capacitor-health (HealthKit + Health Connect, unified) first; legacy shapes as fallback
+    return P.HealthPlugin || P.Health || P.HealthConnect || window.HealthConnect || window.CapacitorHealth || null;
   }
   async function syncHealthActivity(silent) {
     const HC = _healthPlugin();
+
+    /* ── capacitor-health: one API for iOS HealthKit + Android Health Connect ── */
+    if (HC && typeof HC.queryAggregated === 'function') {
+      try {
+        // Android: Health Connect must be installed/available; iOS: HealthKit is built-in
+        if (typeof HC.isHealthAvailable === 'function') {
+          const av = await HC.isHealthAvailable().catch(() => ({ available: false }));
+          if (!av || !av.available) {
+            if (!silent) showDashToast('אפליקציית הבריאות לא זמינה במכשיר — התקן "Health Connect" (אנדרואיד) / ודא שאפליקציית "בריאות" פעילה (iPhone)');
+            return false;
+          }
+        }
+        // ⬅️ this pops the LOCAL health app's permission dialog (HealthKit / Health Connect)
+        if (typeof HC.requestHealthPermissions === 'function') {
+          try { await HC.requestHealthPermissions({ permissions: ['READ_STEPS', 'READ_WORKOUTS'] }); }
+          catch (e) { if (!silent) showDashToast('לא אושרה הרשאה לאפליקציית הבריאות'); return false; }
+        }
+        const start = new Date(); start.setHours(0, 0, 0, 0);
+        const res = await HC.queryAggregated({
+          startDate: start.toISOString(), endDate: new Date().toISOString(),
+          dataType: 'steps', bucket: 'day'
+        }).catch(() => null);
+        const steps = (((res && res.aggregatedData) || [])).reduce((s, r) => s + (Number(r.value) || 0), 0);
+        _stepsToday = Math.round(steps); _pedoCount = 0;
+        await sb.from('daily_steps').upsert({ client_email: currentEmail, date: todayStr(), steps: _stepsToday, source: 'health', updated_at: new Date().toISOString() }, { onConflict: 'client_email,date' });
+        renderSteps();
+        if (!silent) showDashToast(`⌚ סונכרן מהבריאות: ${_stepsToday.toLocaleString('he-IL')} צעדים ✓`);
+        if (!silent && document.getElementById('today-card')?.style.display !== 'none') renderTodayCard();
+        return true;
+      } catch (e) { if (!silent) showDashToast('שגיאה בסנכרון הבריאות'); return false; }
+    }
+
+    /* ── legacy Health Connect-shaped plugin (readRecords) ── */
     if (HC && typeof HC.readRecords === 'function') {
       try {
         if (typeof HC.requestPermissions === 'function') { try { await HC.requestPermissions({ read: ['Steps', 'Weight', 'SleepSession'] }); } catch (e) {} }
         const startOfDay = todayStr() + 'T00:00:00.000Z';
         const nowIso = new Date().toISOString();
-        // steps today
         const sr = await HC.readRecords({ type: 'Steps', startTime: startOfDay, endTime: nowIso }).catch(() => null);
         const steps = ((sr && (sr.records || sr.result || [])) || []).reduce((s, r) => s + (r.count || r.value || 0), 0);
         if (steps > 0) {
@@ -2906,7 +2939,6 @@
           await sb.from('daily_steps').upsert({ client_email: currentEmail, date: todayStr(), steps: _stepsToday, source: 'health', updated_at: new Date().toISOString() }, { onConflict: 'client_email,date' });
           renderSteps();
         }
-        // latest weight (last 30d)
         try {
           const wr = await HC.readRecords({ type: 'Weight', startTime: new Date(Date.now() - 30 * 864e5).toISOString(), endTime: nowIso });
           const recs = (wr && (wr.records || wr.result)) || []; const last = recs[recs.length - 1];
@@ -2918,8 +2950,9 @@
         return true;
       } catch (e) { if (!silent) showDashToast('שגיאה בסנכרון הבריאות'); return false; }
     }
-    // no native plugin (web / emulator) → phone pedometer
-    if (!silent) { showDashToast('סנכרון שעון/בריאות אוטומטי זמין באפליקציה 📱 — בינתיים הפעלתי מצב הליכה 🚶'); togglePedometer(); }
+
+    /* ── web / no native plugin → offer manual or pedometer ── */
+    if (!silent) { showDashToast('סנכרון עם אפליקציית הבריאות זמין רק באפליקציה המותקנת 📱 — בינתיים מצב הליכה/הזנה ידנית'); togglePedometer(); }
     return false;
   }
 
