@@ -747,16 +747,17 @@
       <div class="f-group"><label>שם מלא</label><input id="new-name" placeholder="ישראל ישראלי"/></div>
       <div class="f-group"><label>אימייל</label><input id="new-email" type="email" placeholder="client@email.com" style="direction:ltr;text-align:right;"/></div>
       <div class="form-grid">
-        <div class="f-group"><label>תחילת ליווי</label><input id="new-start" type="date"/></div>
-        <div class="f-group"><label>סיום ליווי</label><input id="new-end" type="date"/></div>
+        <div class="f-group"><label>תחילת מנוי</label><input id="new-start" type="date" onchange="syncNewClientEnd()"/></div>
+        <div class="f-group"><label>סיום מנוי (אוטומטי)</label><input id="new-end" type="date"/></div>
       </div>
       <div class="form-grid">
         <div class="f-group">
-          <label>סוג מסלול</label>
-          <select id="new-plan">
+          <label>סוג מנוי</label>
+          <select id="new-plan" onchange="syncNewClientEnd()">
             <option value="ליווי חודשי">ליווי חודשי</option>
             <option value="ליווי 3 חודשים">ליווי 3 חודשים</option>
             <option value="ליווי חצי שנה">ליווי חצי שנה</option>
+            <option value="ליווי שנתי">ליווי שנתי</option>
           </select>
         </div>
         <div class="f-group">
@@ -3348,7 +3349,15 @@
   function openAddModal() {
     document.getElementById('add-modal').classList.add('open');
     ['new-name','new-email','new-start','new-end','new-refcode'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+    const s = document.getElementById('new-start'); if (s) s.value = todayStr(); // ברירת מחדל: מהיום, סיום מחושב מהסוג
+    syncNewClientEnd();
     document.getElementById('add-err').style.display = 'none';
+  }
+  function syncNewClientEnd() {
+    const start = document.getElementById('new-start')?.value;
+    const months = PLAN_MONTHS[document.getElementById('new-plan')?.value];
+    if (!start || !months) return;
+    const endEl = document.getElementById('new-end'); if (endEl) endEl.value = _addMonths(start, months);
   }
   function closeAddModal() {
     document.getElementById('add-modal').classList.remove('open');
@@ -4267,8 +4276,17 @@ ${exLines || 'אין'}
             </label>
             <input id="e-email" type="email" value="${esc(client.email)}" style="direction:ltr;text-align:right;"/>
           </div>
-          <div class="f-group"><label>תחילת ליווי</label><input id="e-start" type="date" value="${client.coaching_start || ''}"/></div>
-          <div class="f-group"><label>סיום ליווי</label><input id="e-end" type="date" value="${client.coaching_end || ''}"/></div>
+          <div class="f-group"><label>תחילת מנוי</label><input id="e-start" type="date" value="${client.coaching_start || ''}" onchange="syncClientEnd()"/></div>
+          <div class="f-group"><label>סוג מנוי</label>
+            <select id="e-plan" onchange="syncClientEnd()">
+              <option value="" ${!client.plan_type ? 'selected' : ''}>— ידני —</option>
+              <option ${client.plan_type === 'ליווי חודשי' ? 'selected' : ''}>ליווי חודשי</option>
+              <option ${client.plan_type === 'ליווי 3 חודשים' ? 'selected' : ''}>ליווי 3 חודשים</option>
+              <option ${client.plan_type === 'ליווי חצי שנה' ? 'selected' : ''}>ליווי חצי שנה</option>
+              <option ${client.plan_type === 'ליווי שנתי' ? 'selected' : ''}>ליווי שנתי</option>
+            </select></div>
+          <div class="f-group"><label>סיום מנוי (אוטומטי)</label><input id="e-end" type="date" value="${client.coaching_end || ''}"/></div>
+          <div class="f-group" style="grid-column:1/-1;"><button type="button" class="btn-sm btn-outline" onclick="renewFromToday()" style="width:100%;border-color:rgba(74,222,128,0.4);color:#4ade80;">🔄 חדש מהיום — מנוי חדש לפי הסוג (אחרי תשלום חידוש)</button></div>
           ${isStudioOwner ? `
           <div class="f-group"><label>סוג לקוח</label>
             <select id="e-client-type">
@@ -5101,6 +5119,28 @@ ${exLines || 'אין'}
     }
   }
 
+  /* ── 📅 subscription dates: end auto-computes from start + plan type ── */
+  const PLAN_MONTHS = { 'ליווי חודשי': 1, 'ליווי 3 חודשים': 3, 'ליווי חצי שנה': 6, 'ליווי שנתי': 12 };
+  const _addMonths = (dateStr, months) => {
+    const d = new Date(dateStr + 'T12:00:00'); d.setMonth(d.getMonth() + months);
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  };
+  function syncClientEnd() {
+    const start = document.getElementById('e-start')?.value;
+    const months = PLAN_MONTHS[document.getElementById('e-plan')?.value];
+    if (!start || !months) return; // ידני / חסר תאריך → משאיר את הסיום כפי שהוא
+    const endEl = document.getElementById('e-end'); if (endEl) endEl.value = _addMonths(start, months);
+  }
+  // חידוש מרגע התשלום: מתחיל מנוי חדש מהיום לאורך תקופת הסוג שנבחר
+  function renewFromToday() {
+    const months = PLAN_MONTHS[document.getElementById('e-plan')?.value];
+    if (!months) { toast('בחר סוג מנוי קודם', 'err'); return; }
+    const today = todayStr();
+    const s = document.getElementById('e-start'); if (s) s.value = today;
+    const e = document.getElementById('e-end');   if (e) e.value = _addMonths(today, months);
+    toast('התאריכים עודכנו לחידוש מהיום — לחץ שמור פרטים', 'ok');
+  }
+
   /* ── SAVE PROFILE ── */
   async function saveProfile() {
     if (!requireEdit()) return;
@@ -5109,6 +5149,7 @@ ${exLines || 'אין'}
     const newEmail = document.getElementById('e-email')?.value.trim().toLowerCase() || activeEmail;
     const start  = document.getElementById('e-start').value;
     const end    = document.getElementById('e-end').value;
+    const plan   = document.getElementById('e-plan')?.value || null;
     const cal    = parseInt(document.getElementById('e-cal').value)    || null;
     const prot   = parseInt(document.getElementById('e-prot').value)   || null;
     const carb   = parseInt(document.getElementById('e-carb').value)   || null;
@@ -5130,7 +5171,7 @@ ${exLines || 'אין'}
       if (_r?.error) { toast('שגיאה בעדכון מייל התחברות: ' + _r.error, 'err'); return; }
       activeEmail = newEmail;
     }
-    const updatePayload = { name, phone, coaching_start: start, coaching_end: end,
+    const updatePayload = { name, phone, coaching_start: start, coaching_end: end, plan_type: plan,
                 target_calories: cal, target_protein: prot, target_carbs: carb, target_fat: fat,
                 target_water: water, current_weight: weight, gender,
                 goal: goal || null, peak_week_start: pwStart || null, stage_date: stageDate || null };

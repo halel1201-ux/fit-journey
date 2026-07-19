@@ -1864,17 +1864,19 @@
               ${coachOpts}
             </select>
           </div>
-          <div class="f-group"><label>תחילת ליווי</label><input id="e-start" type="date" value="${client.coaching_start||''}"/></div>
-          <div class="f-group"><label>סיום ליווי</label><input id="e-end" type="date" value="${client.coaching_end||''}"/></div>
+          <div class="f-group"><label>תחילת מנוי</label><input id="e-start" type="date" value="${client.coaching_start||''}" onchange="syncClientEnd()"/></div>
+          <div class="f-group"><label>סיום מנוי (אוטומטי)</label><input id="e-end" type="date" value="${client.coaching_end||''}"/></div>
         </div>
-        <div class="f-group" style="margin-bottom:16px;">
-          <label>סוג מסלול</label>
-          <select id="e-plan">
+        <div class="f-group" style="margin-bottom:10px;">
+          <label>סוג מנוי</label>
+          <select id="e-plan" onchange="syncClientEnd()">
             <option ${client.plan_type==='ליווי חודשי'?'selected':''}>ליווי חודשי</option>
             <option ${client.plan_type==='ליווי 3 חודשים'?'selected':''}>ליווי 3 חודשים</option>
             <option ${client.plan_type==='ליווי חצי שנה'?'selected':''}>ליווי חצי שנה</option>
+            <option ${client.plan_type==='ליווי שנתי'?'selected':''}>ליווי שנתי</option>
           </select>
         </div>
+        <button type="button" class="btn-sm btn-outline" onclick="renewFromToday()" style="width:100%;margin-bottom:16px;border-color:rgba(74,222,128,0.4);color:#4ade80;">🔄 חדש מהיום — מנוי חדש לפי הסוג (אחרי תשלום חידוש)</button>
         <div style="margin-bottom:16px;">
           <div style="font-size:0.78rem;font-weight:700;color:var(--muted);margin-bottom:8px;">יעדי מאקרו יומיים</div>
           <div class="form-grid" style="grid-template-columns:1fr 1fr 1fr 1fr;">
@@ -2748,6 +2750,27 @@ ${hasFile ? '' : `4. התאם כמויות וערכים מדויקים למשק�
   }
 
   /* ── PROFILE ── */
+  /* ── 📅 subscription dates: end auto-computes from start + plan type ── */
+  const PLAN_MONTHS = { 'ליווי חודשי': 1, 'ליווי 3 חודשים': 3, 'ליווי חצי שנה': 6, 'ליווי שנתי': 12 };
+  const _addMonths = (dateStr, months) => {
+    const d = new Date(dateStr + 'T12:00:00'); d.setMonth(d.getMonth() + months);
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  };
+  function syncClientEnd() {
+    const start = document.getElementById('e-start')?.value;
+    const months = PLAN_MONTHS[document.getElementById('e-plan')?.value];
+    if (!start || !months) return;
+    const endEl = document.getElementById('e-end'); if (endEl) endEl.value = _addMonths(start, months);
+  }
+  function renewFromToday() {
+    const months = PLAN_MONTHS[document.getElementById('e-plan')?.value];
+    if (!months) { toast('בחר סוג מנוי קודם', 'err'); return; }
+    const today = todayStr();
+    const s = document.getElementById('e-start'); if (s) s.value = today;
+    const e = document.getElementById('e-end');   if (e) e.value = _addMonths(today, months);
+    toast('התאריכים עודכנו לחידוש מהיום — לחץ שמור', 'ok');
+  }
+
   async function saveProfile() {
     const name       = document.getElementById('e-name').value.trim();
     const phone      = document.getElementById('e-phone').value.trim();
