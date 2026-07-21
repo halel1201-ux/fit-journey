@@ -2028,31 +2028,90 @@
     document.getElementById('day-' + i).classList.toggle('open');
   }
 
-  /* ── 📝 EXERCISE NOTES — personal per-exercise journal (persists across sessions) ── */
-  let _exNoteKeys = new Set();     // exercise_keys that already have notes (for the dot)
-  let _exNotesKey = '', _exNotesName = '';
+  /* ── 📝 EXERCISE NOTES — personal per-exercise journal (kinds, targets, voice, edit) ── */
+  let _exNoteKeys = new Set();      // keys that have any notes (dot)
+  let _exOpenTargets = {};          // key -> [{id,note}] open "next time" targets
+  let _exNotesKey = '', _exNotesName = '', _exNoteKind = 'note', _exNoteCtx = '';
+  const EX_NOTE_KINDS = [['note', '📝 הערה'], ['target', '🎯 בפעם הבאה'], ['pain', '🩹 כאב']];
+  const EX_NOTE_ICON = { note: '📝', target: '🎯', pr: '🏆', pain: '🩹' };
+  const EX_CHIPS = ['קל — להעלות', 'כבד מדי', '+2.5 ק"ג', 'עוד חזרה', 'טכניקה'];
+
   async function loadExNoteKeys() {
     try {
-      const { data } = await sb.from('exercise_notes').select('exercise_key').eq('client_email', currentEmail);
+      const { data } = await sb.from('exercise_notes').select('id,exercise_key,kind,done,note').eq('client_email', currentEmail);
       _exNoteKeys = new Set((data || []).map(r => r.exercise_key));
-    } catch (e) { _exNoteKeys = new Set(); }
+      _exOpenTargets = {};
+      (data || []).filter(r => r.kind === 'target' && !r.done).forEach(r => { (_exOpenTargets[r.exercise_key] = _exOpenTargets[r.exercise_key] || []).push({ id: r.id, note: r.note }); });
+    } catch (e) { _exNoteKeys = new Set(); _exOpenTargets = {}; }
     if (trainingPlanLocal && trainingPlanLocal.length) renderTraining(trainingPlanLocal);
   }
-  function exNoteBtn(name) {
-    const key = (name || '').trim();
-    const has = _exNoteKeys.has(key);
-    const nm = key.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-    return `<button onclick="event.stopPropagation();openExerciseNotes('${nm}')" title="יומן הערות אישי" style="position:relative;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);color:#ccc;border-radius:8px;padding:3px 8px;font-size:0.82rem;cursor:pointer;flex-shrink:0;">📝${has ? '<span style="position:absolute;top:-3px;left:-3px;width:9px;height:9px;background:var(--orange);border-radius:50%;border:1.5px solid #111;"></span>' : ''}</button>`;
+  function _exDot(key) {
+    const tgt = (_exOpenTargets[key] || []).length;
+    if (tgt) return '<span style="position:absolute;top:-6px;left:-6px;font-size:0.7rem;">🎯</span>';
+    return _exNoteKeys.has(key) ? '<span style="position:absolute;top:-3px;left:-3px;width:9px;height:9px;background:var(--orange);border-radius:50%;border:1.5px solid #111;"></span>' : '';
   }
-  function openExerciseNotes(name) {
-    _exNotesName = name || ''; _exNotesKey = (name || '').trim();
+  function exNoteBtn(name, ei) {
+    const key = (name || '').trim();
+    const nm = key.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+    const click = (ei != null) ? `openExerciseNotesFromSession(${ei})` : `openExerciseNotes('${nm}')`;
+    return `<button onclick="event.stopPropagation();${click}" title="יומן הערות אישי" style="position:relative;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);color:#ccc;border-radius:8px;padding:3px 8px;font-size:0.82rem;cursor:pointer;flex-shrink:0;">📝${_exDot(key)}</button>`;
+  }
+  // 🎯 open targets banner inside the active-workout exercise block
+  function exTargetBanner(name) {
+    const tgts = _exOpenTargets[(name || '').trim()] || [];
+    if (!tgts.length) return '';
+    return tgts.map(t => `<div id="extgt-${t.id}" style="margin:4px 0 6px;padding:7px 10px;background:rgba(255,107,0,0.1);border:1px solid rgba(255,107,0,0.45);border-radius:8px;font-size:0.8rem;color:#ffb066;display:flex;justify-content:space-between;align-items:center;gap:8px;">
+      <span style="min-width:0;">🎯 <strong>בפעם הבאה:</strong> ${esc(t.note)}</span>
+      <button onclick="markTargetDone(${t.id})" style="flex-shrink:0;background:rgba(74,222,128,0.15);border:1px solid rgba(74,222,128,0.5);color:#4ade80;border-radius:7px;padding:4px 9px;font-size:0.72rem;font-weight:800;cursor:pointer;font-family:'Heebo',sans-serif;">✓ ביצעתי</button></div>`).join('');
+  }
+  async function markTargetDone(id) {
+    await sb.from('exercise_notes').update({ done: true }).eq('id', id).eq('client_email', currentEmail);
+    const el = document.getElementById('extgt-' + id); if (el) el.remove();
+    for (const k in _exOpenTargets) _exOpenTargets[k] = _exOpenTargets[k].filter(t => t.id !== id);
+    showDashToast('כל הכבוד! יעד הושלם 💪');
+  }
+  function openExerciseNotesFromSession(ei) {
+    const ex = workoutSession && workoutSession.exercises && workoutSession.exercises[ei]; if (!ex) return;
+    let ctx = '';
+    const done = (ex.sets || []).filter(s => (+s.weight > 0) || (+s.reps > 0));
+    if (done.length) { const s = done[done.length - 1]; ctx = `${s.weight || 0}×${s.reps || 0}`; }
+    openExerciseNotes(ex.name, ctx);
+  }
+  function openExerciseNotes(name, ctx) {
+    _exNotesName = name || ''; _exNotesKey = (name || '').trim(); _exNoteKind = 'note'; _exNoteCtx = ctx || '';
     document.getElementById('exnotes-title').textContent = '📝 ' + _exNotesName;
     document.getElementById('exnotes-input').value = '';
     document.getElementById('exnotes-list').innerHTML = '<div style="color:#666;text-align:center;padding:20px;">טוען...</div>';
+    renderExAddArea();
     document.getElementById('exnotes-overlay').style.display = 'flex';
     loadExerciseNotes();
   }
   function closeExNotes() { document.getElementById('exnotes-overlay').style.display = 'none'; }
+  function renderExAddArea() {
+    const kEl = document.getElementById('exnotes-kinds');
+    if (kEl) kEl.innerHTML = EX_NOTE_KINDS.map(([k, l]) => `<button onclick="setExNoteKind('${k}')" style="flex:1;padding:7px 4px;border-radius:8px;font-family:'Heebo',sans-serif;font-size:0.76rem;font-weight:800;cursor:pointer;border:1px solid ${_exNoteKind === k ? 'var(--orange)' : 'rgba(255,255,255,0.14)'};background:${_exNoteKind === k ? 'rgba(255,107,0,0.15)' : 'rgba(255,255,255,0.03)'};color:${_exNoteKind === k ? 'var(--orange)' : 'var(--muted)'};">${l}</button>`).join('');
+    const cEl = document.getElementById('exnotes-chips');
+    if (cEl) {
+      const chips = [...(_exNoteCtx ? [['📊 ' + _exNoteCtx, _exNoteCtx]] : []), ...EX_CHIPS.map(c => [c, c])];
+      cEl.innerHTML = chips.map(([lbl, txt]) => `<button onclick="insertExChip('${txt.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}')" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);color:#bbb;border-radius:14px;padding:5px 10px;font-size:0.72rem;cursor:pointer;font-family:'Heebo',sans-serif;">${esc(lbl)}</button>`).join('');
+    }
+  }
+  function setExNoteKind(k) {
+    _exNoteKind = k; renderExAddArea();
+    const inp = document.getElementById('exnotes-input');
+    if (inp) inp.placeholder = k === 'target' ? 'מה לנסות בפעם הבאה? (+2.5 ק"ג / שיפוע 1)' : k === 'pain' ? 'מה כאב / הרגשה לא תקינה?' : 'הערה חדשה...';
+  }
+  function insertExChip(txt) { const inp = document.getElementById('exnotes-input'); if (!inp) return; inp.value = (inp.value ? inp.value.replace(/\s*$/, '') + ' ' : '') + txt; inp.focus(); }
+  function startExVoice() {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) { showDashToast('הכתבה קולית לא נתמכת בדפדפן הזה'); return; }
+    const r = new SR(); r.lang = 'he-IL'; r.interimResults = false; r.maxAlternatives = 1;
+    const mic = document.getElementById('exnotes-mic'); if (mic) mic.textContent = '🔴';
+    r.onresult = e => { const t = e.results[0][0].transcript; const inp = document.getElementById('exnotes-input'); if (inp) inp.value = (inp.value ? inp.value + ' ' : '') + t; };
+    r.onerror = () => showDashToast('שגיאת הכתבה קולית');
+    r.onend = () => { if (mic) mic.textContent = '🎤'; };
+    try { r.start(); } catch (e) { if (mic) mic.textContent = '🎤'; }
+  }
   async function loadExerciseNotes() {
     const { data } = await sb.from('exercise_notes').select('*')
       .eq('client_email', currentEmail).eq('exercise_key', _exNotesKey)
@@ -2064,35 +2123,59 @@
     if (!notes.length) { el.innerHTML = '<div style="color:#666;text-align:center;padding:24px;font-size:0.85rem;line-height:1.6;">אין הערות עדיין 📝<br>כתוב את ההערה הראשונה שלך למטה 👇</div>'; return; }
     el.innerHTML = notes.map(n => {
       const d = new Date(n.created_at).toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit', year: '2-digit' });
-      return `<div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:10px 12px;margin-bottom:8px;">
+      const icon = EX_NOTE_ICON[n.kind] || '📝';
+      const isTarget = n.kind === 'target';
+      const doneChip = isTarget ? `<button onclick="toggleExTargetDone(${n.id},${n.done ? 'false' : 'true'})" style="background:${n.done ? 'rgba(74,222,128,0.15)' : 'rgba(255,255,255,0.05)'};border:1px solid ${n.done ? 'rgba(74,222,128,0.5)' : 'rgba(255,255,255,0.15)'};color:${n.done ? '#4ade80' : '#999'};border-radius:7px;padding:3px 8px;font-size:0.68rem;font-weight:800;cursor:pointer;font-family:'Heebo',sans-serif;">${n.done ? '✓ בוצע' : 'סמן בוצע'}</button>` : '';
+      const reply = n.coach_reply ? `<div style="margin-top:6px;padding:7px 10px;background:rgba(96,165,250,0.1);border:1px solid rgba(96,165,250,0.3);border-radius:8px;font-size:0.8rem;color:#93c5fd;">💬 <strong>המאמן:</strong> ${esc(n.coach_reply)}</div>` : '';
+      return `<div id="exn-${n.id}" style="background:rgba(255,255,255,0.04);border:1px solid ${isTarget && !n.done ? 'rgba(255,107,0,0.35)' : 'rgba(255,255,255,0.08)'};border-radius:12px;padding:10px 12px;margin-bottom:8px;">
         <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:5px;">
-          <span style="font-size:0.7rem;color:var(--orange);font-weight:800;">📅 ${d}</span>
-          <button onclick="deleteExerciseNote(${n.id})" title="מחק" style="background:none;border:none;color:#666;cursor:pointer;font-size:0.88rem;">🗑</button>
+          <span style="font-size:0.7rem;color:var(--orange);font-weight:800;">${icon} ${d}</span>
+          <div style="display:flex;gap:8px;align-items:center;">
+            ${doneChip}
+            <button onclick="editExNote(${n.id})" title="עריכה" style="background:none;border:none;color:#888;cursor:pointer;font-size:0.82rem;">✏️</button>
+            <button onclick="deleteExerciseNote(${n.id})" title="מחק" style="background:none;border:none;color:#666;cursor:pointer;font-size:0.86rem;">🗑</button>
+          </div>
         </div>
-        <div style="font-size:0.88rem;color:#eee;line-height:1.55;white-space:pre-wrap;word-break:break-word;">${esc(n.note)}</div>
+        <div class="exn-text" style="font-size:0.88rem;color:#eee;line-height:1.55;white-space:pre-wrap;word-break:break-word;">${esc(n.note)}</div>
+        ${reply}
       </div>`;
     }).join('');
+  }
+  function editExNote(id) {
+    const box = document.getElementById('exn-' + id); if (!box) return;
+    const txtEl = box.querySelector('.exn-text'); if (!txtEl) return;
+    const cur = txtEl.textContent;
+    txtEl.outerHTML = `<div class="exn-text"><textarea id="exn-edit-${id}" rows="3" style="width:100%;box-sizing:border-box;padding:8px 10px;background:rgba(255,255,255,0.06);border:1px solid var(--orange);border-radius:8px;color:#fff;font-family:'Heebo',sans-serif;font-size:0.86rem;resize:none;">${esc(cur)}</textarea>
+      <div style="display:flex;gap:6px;margin-top:6px;"><button onclick="saveExNoteEdit(${id})" style="flex:1;padding:7px;background:var(--orange);color:#fff;border:none;border-radius:7px;font-family:'Heebo',sans-serif;font-weight:800;font-size:0.78rem;cursor:pointer;">שמור</button><button onclick="loadExerciseNotes()" style="flex:1;padding:7px;background:rgba(255,255,255,0.06);color:#ccc;border:1px solid rgba(255,255,255,0.15);border-radius:7px;font-family:'Heebo',sans-serif;font-size:0.78rem;cursor:pointer;">ביטול</button></div></div>`;
+    const t = document.getElementById('exn-edit-' + id); if (t) { t.focus(); t.setSelectionRange(t.value.length, t.value.length); }
+  }
+  async function saveExNoteEdit(id) {
+    const t = document.getElementById('exn-edit-' + id); if (!t) return; const note = t.value.trim();
+    if (!note) { showDashToast('הערה ריקה — למחיקה השתמש ב-🗑'); return; }
+    const { error } = await sb.from('exercise_notes').update({ note }).eq('id', id).eq('client_email', currentEmail);
+    if (error) { showDashToast('שגיאה: ' + error.message); return; }
+    await loadExerciseNotes(); showDashToast('הערה עודכנה ✓');
+  }
+  async function toggleExTargetDone(id, done) {
+    await sb.from('exercise_notes').update({ done }).eq('id', id).eq('client_email', currentEmail);
+    await loadExerciseNotes(); loadExNoteKeys();
   }
   async function addExerciseNote() {
     const inp = document.getElementById('exnotes-input'); const note = inp.value.trim();
     if (!note) { inp.focus(); return; }
     const btn = document.getElementById('exnotes-add-btn'); if (btn) { btn.disabled = true; btn.textContent = 'מוסיף...'; }
-    const { error } = await sb.from('exercise_notes').insert({ client_email: currentEmail, exercise_key: _exNotesKey, exercise_name: _exNotesName, note });
-    if (btn) { btn.disabled = false; btn.textContent = '＋ הוסף הערה'; }
+    const { error } = await sb.from('exercise_notes').insert({ client_email: currentEmail, exercise_key: _exNotesKey, exercise_name: _exNotesName, note, kind: _exNoteKind });
+    if (btn) { btn.disabled = false; btn.textContent = '＋ הוסף'; }
     if (error) { showDashToast('שגיאה: ' + error.message); return; }
-    inp.value = '';
-    _exNoteKeys.add(_exNotesKey);
-    await loadExerciseNotes();
-    if (trainingPlanLocal && trainingPlanLocal.length) renderTraining(trainingPlanLocal); // refresh the dot (safe — not the live session)
-    showDashToast('הערה נשמרה ✓');
+    inp.value = ''; _exNoteKeys.add(_exNotesKey);
+    await loadExerciseNotes(); loadExNoteKeys();
+    showDashToast(_exNoteKind === 'target' ? 'יעד נשמר 🎯' : 'הערה נשמרה ✓');
   }
   async function deleteExerciseNote(id) {
     if (!confirm('למחוק הערה זו?')) return;
     const { error } = await sb.from('exercise_notes').delete().eq('id', id).eq('client_email', currentEmail);
     if (error) { showDashToast('שגיאה: ' + error.message); return; }
-    await loadExerciseNotes();
-    const { data } = await sb.from('exercise_notes').select('id').eq('client_email', currentEmail).eq('exercise_key', _exNotesKey).limit(1);
-    if (!(data || []).length) { _exNoteKeys.delete(_exNotesKey); if (trainingPlanLocal && trainingPlanLocal.length) renderTraining(trainingPlanLocal); }
+    await loadExerciseNotes(); loadExNoteKeys();
   }
 
   function renderNutrition(plan) {
@@ -3084,11 +3167,12 @@
           <div style="display:flex;gap:5px;flex-shrink:0;">
             <button class="btn-demo" onclick="openDemo('${ex.name.replace(/'/g,"\\'")}','${(ex.video_url||'').replace(/'/g,"\\'")}',${ex.demo_ex_id||'null'})">הדגמה ▶</button>
             <button class="btn-swap" onclick="openSwapModal(${ei})">🔄 החלפה</button>
-            ${exNoteBtn(ex.name)}
+            ${exNoteBtn(ex.name, ei)}
             <button class="btn-swap" id="setvid-btn-${ei}" onclick="document.getElementById('setvid-inp-${ei}').click()" title="צלם סט לבדיקת המאמן (עד סרטון אחד לתרגיל)" style="${setVideos[ei] ? 'border-color:#4ade80;color:#4ade80;' : ''}">${setVideos[ei] ? '🎥 ✓' : '🎥 תיעוד'}</button>
             <input type="file" id="setvid-inp-${ei}" accept="video/*" capture="environment" style="display:none;" onchange="attachSetVideo(${ei}, this.files[0]); this.value='';">
           </div>
         </div>
+        ${exTargetBanner(ex.name)}
         ${ex.overloadTip ? `<div style="margin:4px 0 6px;padding:7px 10px;background:${ex.overloadTip.color}14;border:1px solid ${ex.overloadTip.color}55;border-radius:8px;font-size:0.78rem;line-height:1.45;color:${ex.overloadTip.color};">${ex.overloadTip.icon} <strong>עומס מתקדם:</strong> ${esc(ex.overloadTip.text)}</div>` : ''}
         ${tech ? `<div style="margin:4px 0 6px;padding:8px 10px;background:rgba(124,58,237,0.12);border:1px solid rgba(168,85,247,0.4);border-radius:8px;font-size:0.8rem;line-height:1.5;color:#c4a5ff;"><strong style="color:#c4a5ff;">🎯 ${tech.name}:</strong> ${esc(tech.explain)}</div>` : ''}
         ${ex.description ? `<div class="session-ex-desc">${esc(ex.description)}</div>` : ''}
@@ -3444,6 +3528,15 @@
       setTimeout(() => celebratePR(prs), 600);   // 💥 full celebration (confetti + share)
       // בדוק אם שיא הנבחרת נשבר ושלח הודעת מערכת לקבוצה
       checkAndPostTeamRecords(prs, exercises, histLogs);
+      // 🏆 auto-log each PR into the exercise-notes journal
+      const prRows = prs.map(p => {
+        const ex = exercises.find(e => e.name === p.exercise);
+        let best = { weight: 0, reps: 0, orm: 0 };
+        (ex?.sets || []).forEach(s => { const o = calc1RM(s.weight, s.reps); if (o > best.orm) best = { weight: +s.weight || 0, reps: +s.reps || 0, orm: o }; });
+        const detail = best.weight ? `${best.weight}×${best.reps} (≈${Math.round(p.orm)} ק"ג 1RM)` : `≈${Math.round(p.orm)} ק"ג 1RM`;
+        return { client_email: currentEmail, exercise_key: (p.exercise || '').trim(), exercise_name: p.exercise, kind: 'pr', note: `🏆 שיא חדש! ${detail}` };
+      });
+      sb.from('exercise_notes').insert(prRows).then(() => { if (typeof loadExNoteKeys === 'function') loadExNoteKeys(); }, () => {});
     }
 
     recLogs = null;
@@ -6468,9 +6561,14 @@ ${foodList || 'אין פריטים'}
       <button onclick="closeExNotes()" style="background:none;border:none;color:#999;font-size:1.5rem;line-height:1;cursor:pointer;flex-shrink:0;">✕</button>
     </div>
     <div id="exnotes-list" style="flex:1;overflow-y:auto;padding:14px 16px;-webkit-overflow-scrolling:touch;"></div>
-    <div id="exnotes-add" style="padding:12px 16px 16px;border-top:1px solid rgba(255,255,255,0.07);">
-      <textarea id="exnotes-input" rows="2" placeholder="הערה חדשה... (למשל: יכולתי להרים עוד — לנסות שיפוע 1)" style="width:100%;box-sizing:border-box;padding:10px 12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:10px;color:#fff;font-family:'Heebo',sans-serif;font-size:0.86rem;resize:none;outline:none;margin-bottom:9px;"></textarea>
-      <button onclick="addExerciseNote()" id="exnotes-add-btn" style="width:100%;padding:11px;background:linear-gradient(135deg,var(--orange),#FF8C00);color:#fff;border:none;border-radius:10px;font-family:'Heebo',sans-serif;font-weight:800;font-size:0.9rem;cursor:pointer;">＋ הוסף הערה</button>
+    <div id="exnotes-add" style="padding:10px 16px 16px;border-top:1px solid rgba(255,255,255,0.07);">
+      <div id="exnotes-kinds" style="display:flex;gap:6px;margin-bottom:8px;"></div>
+      <div id="exnotes-chips" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;"></div>
+      <div style="display:flex;gap:8px;align-items:stretch;margin-bottom:9px;">
+        <textarea id="exnotes-input" rows="2" placeholder="הערה חדשה... (למשל: יכולתי להרים עוד — לנסות שיפוע 1)" style="flex:1;box-sizing:border-box;padding:10px 12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:10px;color:#fff;font-family:'Heebo',sans-serif;font-size:0.86rem;resize:none;outline:none;"></textarea>
+        <button id="exnotes-mic" onclick="startExVoice()" title="הכתבה קולית" style="flex-shrink:0;width:46px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);border-radius:10px;color:#ccc;font-size:1.2rem;cursor:pointer;">🎤</button>
+      </div>
+      <button onclick="addExerciseNote()" id="exnotes-add-btn" style="width:100%;padding:11px;background:linear-gradient(135deg,var(--orange),#FF8C00);color:#fff;border:none;border-radius:10px;font-family:'Heebo',sans-serif;font-weight:800;font-size:0.9rem;cursor:pointer;">＋ הוסף</button>
     </div>
   </div>
 </div>
