@@ -1690,6 +1690,7 @@
     trainingPlanLocal  = Array.isArray(tr?.plan) ? (tr.plan || []) : (tr?.plan?.active || []);
     nutritionPlanLocal = nu?.plan || [];
     renderTraining(trainingPlanLocal);
+    loadExNoteKeys(); // 📝 which exercises already have personal notes (for the dot)
     renderResumeBanner(); // אם יש אימון פעיל שנשמר — הצג באנר המשך
     workoutLogs = logs || [];
     renderDeloadBanner();
@@ -2015,6 +2016,7 @@
               ${ex.linked_next ? `<span class="ex-link-badge">🔗</span>` : ''}
               ${ex.sets ? `<span class="ex-sets">${formatSetsDisplay(ex.sets)}</span>` : ''}
               ${ex.video_url ? `<a class="ex-video" href="${ex.video_url}" target="_blank" rel="noopener">▶ צפה</a>` : ''}
+              ${exNoteBtn(ex.name)}
             </div>
           `).join('')}
         </div>
@@ -2024,6 +2026,73 @@
 
   function toggleDay(i) {
     document.getElementById('day-' + i).classList.toggle('open');
+  }
+
+  /* ── 📝 EXERCISE NOTES — personal per-exercise journal (persists across sessions) ── */
+  let _exNoteKeys = new Set();     // exercise_keys that already have notes (for the dot)
+  let _exNotesKey = '', _exNotesName = '';
+  async function loadExNoteKeys() {
+    try {
+      const { data } = await sb.from('exercise_notes').select('exercise_key').eq('client_email', currentEmail);
+      _exNoteKeys = new Set((data || []).map(r => r.exercise_key));
+    } catch (e) { _exNoteKeys = new Set(); }
+    if (trainingPlanLocal && trainingPlanLocal.length) renderTraining(trainingPlanLocal);
+  }
+  function exNoteBtn(name) {
+    const key = (name || '').trim();
+    const has = _exNoteKeys.has(key);
+    const nm = key.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+    return `<button onclick="event.stopPropagation();openExerciseNotes('${nm}')" title="יומן הערות אישי" style="position:relative;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);color:#ccc;border-radius:8px;padding:3px 8px;font-size:0.82rem;cursor:pointer;flex-shrink:0;">📝${has ? '<span style="position:absolute;top:-3px;left:-3px;width:9px;height:9px;background:var(--orange);border-radius:50%;border:1.5px solid #111;"></span>' : ''}</button>`;
+  }
+  function openExerciseNotes(name) {
+    _exNotesName = name || ''; _exNotesKey = (name || '').trim();
+    document.getElementById('exnotes-title').textContent = '📝 ' + _exNotesName;
+    document.getElementById('exnotes-input').value = '';
+    document.getElementById('exnotes-list').innerHTML = '<div style="color:#666;text-align:center;padding:20px;">טוען...</div>';
+    document.getElementById('exnotes-overlay').style.display = 'flex';
+    loadExerciseNotes();
+  }
+  function closeExNotes() { document.getElementById('exnotes-overlay').style.display = 'none'; }
+  async function loadExerciseNotes() {
+    const { data } = await sb.from('exercise_notes').select('*')
+      .eq('client_email', currentEmail).eq('exercise_key', _exNotesKey)
+      .order('created_at', { ascending: false });
+    renderExNotesBody(data || []);
+  }
+  function renderExNotesBody(notes) {
+    const el = document.getElementById('exnotes-list'); if (!el) return;
+    if (!notes.length) { el.innerHTML = '<div style="color:#666;text-align:center;padding:24px;font-size:0.85rem;line-height:1.6;">אין הערות עדיין 📝<br>כתוב את ההערה הראשונה שלך למטה 👇</div>'; return; }
+    el.innerHTML = notes.map(n => {
+      const d = new Date(n.created_at).toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit', year: '2-digit' });
+      return `<div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:10px 12px;margin-bottom:8px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:5px;">
+          <span style="font-size:0.7rem;color:var(--orange);font-weight:800;">📅 ${d}</span>
+          <button onclick="deleteExerciseNote(${n.id})" title="מחק" style="background:none;border:none;color:#666;cursor:pointer;font-size:0.88rem;">🗑</button>
+        </div>
+        <div style="font-size:0.88rem;color:#eee;line-height:1.55;white-space:pre-wrap;word-break:break-word;">${esc(n.note)}</div>
+      </div>`;
+    }).join('');
+  }
+  async function addExerciseNote() {
+    const inp = document.getElementById('exnotes-input'); const note = inp.value.trim();
+    if (!note) { inp.focus(); return; }
+    const btn = document.getElementById('exnotes-add-btn'); if (btn) { btn.disabled = true; btn.textContent = 'מוסיף...'; }
+    const { error } = await sb.from('exercise_notes').insert({ client_email: currentEmail, exercise_key: _exNotesKey, exercise_name: _exNotesName, note });
+    if (btn) { btn.disabled = false; btn.textContent = '＋ הוסף הערה'; }
+    if (error) { showDashToast('שגיאה: ' + error.message); return; }
+    inp.value = '';
+    _exNoteKeys.add(_exNotesKey);
+    await loadExerciseNotes();
+    if (trainingPlanLocal && trainingPlanLocal.length) renderTraining(trainingPlanLocal); // refresh the dot (safe — not the live session)
+    showDashToast('הערה נשמרה ✓');
+  }
+  async function deleteExerciseNote(id) {
+    if (!confirm('למחוק הערה זו?')) return;
+    const { error } = await sb.from('exercise_notes').delete().eq('id', id).eq('client_email', currentEmail);
+    if (error) { showDashToast('שגיאה: ' + error.message); return; }
+    await loadExerciseNotes();
+    const { data } = await sb.from('exercise_notes').select('id').eq('client_email', currentEmail).eq('exercise_key', _exNotesKey).limit(1);
+    if (!(data || []).length) { _exNoteKeys.delete(_exNotesKey); if (trainingPlanLocal && trainingPlanLocal.length) renderTraining(trainingPlanLocal); }
   }
 
   function renderNutrition(plan) {
@@ -3015,6 +3084,7 @@
           <div style="display:flex;gap:5px;flex-shrink:0;">
             <button class="btn-demo" onclick="openDemo('${ex.name.replace(/'/g,"\\'")}','${(ex.video_url||'').replace(/'/g,"\\'")}',${ex.demo_ex_id||'null'})">הדגמה ▶</button>
             <button class="btn-swap" onclick="openSwapModal(${ei})">🔄 החלפה</button>
+            ${exNoteBtn(ex.name)}
             <button class="btn-swap" id="setvid-btn-${ei}" onclick="document.getElementById('setvid-inp-${ei}').click()" title="צלם סט לבדיקת המאמן (עד סרטון אחד לתרגיל)" style="${setVideos[ei] ? 'border-color:#4ade80;color:#4ade80;' : ''}">${setVideos[ei] ? '🎥 ✓' : '🎥 תיעוד'}</button>
             <input type="file" id="setvid-inp-${ei}" accept="video/*" capture="environment" style="display:none;" onchange="attachSetVideo(${ei}, this.files[0]); this.value='';">
           </div>
@@ -6383,6 +6453,24 @@ ${foodList || 'אין פריטים'}
     <div class="demo-cues" id="demo-cues" style="display:none;">
       <div class="demo-cues-title">📋 דגשי ביצוע</div>
       <ol id="demo-cues-list"></ol>
+    </div>
+  </div>
+</div>
+
+<!-- 📝 יומן הערות אישי per-תרגיל -->
+<div id="exnotes-overlay" style="display:none;position:fixed;inset:0;z-index:4000;background:rgba(0,0,0,0.72);align-items:center;justify-content:center;padding:16px;">
+  <div style="width:100%;max-width:440px;max-height:82vh;display:flex;flex-direction:column;background:linear-gradient(160deg,#17181c,#0d0e11);border:1px solid rgba(255,140,0,0.35);border-radius:18px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.6);">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;padding:16px 18px 10px;border-bottom:1px solid rgba(255,255,255,0.07);">
+      <div style="min-width:0;">
+        <div id="exnotes-title" style="font-weight:900;font-size:1.02rem;color:#fff;line-height:1.3;">📝 יומן הערות</div>
+        <div id="exnotes-sub" style="font-size:0.72rem;color:var(--muted);margin-top:2px;">ההערות נשמרות ונשארות לאימונים הבאים</div>
+      </div>
+      <button onclick="closeExNotes()" style="background:none;border:none;color:#999;font-size:1.5rem;line-height:1;cursor:pointer;flex-shrink:0;">✕</button>
+    </div>
+    <div id="exnotes-list" style="flex:1;overflow-y:auto;padding:14px 16px;-webkit-overflow-scrolling:touch;"></div>
+    <div id="exnotes-add" style="padding:12px 16px 16px;border-top:1px solid rgba(255,255,255,0.07);">
+      <textarea id="exnotes-input" rows="2" placeholder="הערה חדשה... (למשל: יכולתי להרים עוד — לנסות שיפוע 1)" style="width:100%;box-sizing:border-box;padding:10px 12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:10px;color:#fff;font-family:'Heebo',sans-serif;font-size:0.86rem;resize:none;outline:none;margin-bottom:9px;"></textarea>
+      <button onclick="addExerciseNote()" id="exnotes-add-btn" style="width:100%;padding:11px;background:linear-gradient(135deg,var(--orange),#FF8C00);color:#fff;border:none;border-radius:10px;font-family:'Heebo',sans-serif;font-weight:800;font-size:0.9rem;cursor:pointer;">＋ הוסף הערה</button>
     </div>
   </div>
 </div>
