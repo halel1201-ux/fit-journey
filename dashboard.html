@@ -1420,11 +1420,18 @@
     try {
       const r = await fetch('strength_exercises.json');
       exerciseDB = await r.json();
-      exerciseByName = {};
-      exerciseDB.forEach(ex => {
-        exerciseByName[ex.name.trim().toLowerCase()] = ex;
-      });
-    } catch(e) {}
+    } catch(e) { exerciseDB = exerciseDB || []; }
+    // 🎬 merge admin-added exercises (video + cues) from the DB
+    try {
+      const { data } = await sb.from('custom_exercises').select('*');
+      (data || []).forEach(c => exerciseDB.push({
+        id: 2000000 + c.id, name: c.name,
+        muscle_groups: c.muscle_group ? [c.muscle_group] : [], muscle_details: [],
+        video: c.video_url || '', thumb: '', cues: c.cues || ''
+      }));
+    } catch (e) {}
+    exerciseByName = {};
+    exerciseDB.forEach(ex => { exerciseByName[ex.name.trim().toLowerCase()] = ex; });
   }
 
   function findExercise(name) {
@@ -1531,7 +1538,11 @@
     persistWorkout();
   }
 
-  function openDemo(name, customUrl, demoExId) {
+  function openDemoSession(ei) {
+    const ex = workoutSession && workoutSession.exercises && workoutSession.exercises[ei];
+    if (ex) openDemo(ex.name, ex.video_url || '', ex.demo_ex_id || null, ex.cues || '');
+  }
+  function openDemo(name, customUrl, demoExId, cuesText) {
     // אם נבחרה הדגמה מותאמת — קח נתונים מאותו תרגיל; אחרת — חפש לפי שם
     const demoEx = demoExId ? exerciseDB.find(e => e.id === demoExId) : null;
     const ex     = demoEx || findExercise(name);
@@ -1547,9 +1558,10 @@
     }
     const cuesWrap = document.getElementById('demo-cues');
     const cuesList = document.getElementById('demo-cues-list');
-    if (ex && ex.cues) {
-      const steps = ex.cues.split('\n').map(s => s.replace(/^\d+\.\s*/, '').trim()).filter(Boolean);
-      cuesList.innerHTML = steps.map(s => `<li>${s}</li>`).join('');
+    const cuesSrc = (cuesText && cuesText.trim()) ? cuesText : (ex && ex.cues) || '';
+    if (cuesSrc) {
+      const steps = cuesSrc.split('\n').map(s => s.replace(/^\d+\.\s*/, '').trim()).filter(Boolean);
+      cuesList.innerHTML = steps.map(s => `<li>${esc(s)}</li>`).join('');
       cuesWrap.style.display = 'block';
     } else {
       cuesWrap.style.display = 'none';
@@ -3165,7 +3177,7 @@
         <div class="session-ex-title">
           <span>${esc(ex.name)}</span>
           <div style="display:flex;gap:5px;flex-shrink:0;">
-            <button class="btn-demo" onclick="openDemo('${ex.name.replace(/'/g,"\\'")}','${(ex.video_url||'').replace(/'/g,"\\'")}',${ex.demo_ex_id||'null'})">הדגמה ▶</button>
+            <button class="btn-demo" onclick="openDemoSession(${ei})">הדגמה ▶</button>
             <button class="btn-swap" onclick="openSwapModal(${ei})">🔄 החלפה</button>
             ${exNoteBtn(ex.name, ei)}
             <button class="btn-swap" id="setvid-btn-${ei}" onclick="document.getElementById('setvid-inp-${ei}').click()" title="צלם סט לבדיקת המאמן (עד סרטון אחד לתרגיל)" style="${setVideos[ei] ? 'border-color:#4ade80;color:#4ade80;' : ''}">${setVideos[ei] ? '🎥 ✓' : '🎥 תיעוד'}</button>

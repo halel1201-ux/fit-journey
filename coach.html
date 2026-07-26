@@ -6531,13 +6531,13 @@ Bro Split: 6-8 תרגילים לשריר, דגש על מבודדים, ניתן 2
             if (bestScore >= 0.1) libMatch = best;
           }
           if (!libMatch) unmatchedNames.push(rawName);
-          const resolvedName = libMatch ? libMatch.name : rawName;
           return {
-            name:        resolvedName,
+            name:        rawName,   // 🔒 לעולם לא מחליפים את התרגיל שהמאמן כתב — רק מצמידים סרטון/דגשים
             sets:        parseSetsToArray(ex.sets || ex.sets_reps),
             description: ex.description || ex.notes || '',
             video_url:   ex.video_url || (libMatch ? libMatch.video : ''),
             demo_ex_id:  libMatch ? libMatch.id : null,
+            cues:        libMatch ? libMatch.cues : (ex.cues || null),
             rest_time:   ex.rest_time || 90,
           };
         })
@@ -6559,9 +6559,24 @@ Bro Split: 6-8 תרגילים לשריר, דגש על מבודדים, ניתן 2
     btn.disabled = false; btn.textContent = '✨ צור תוכנית';
   }
 
+  // מצמיד לכל תרגיל demo_ex_id + סרטון + דגשים מהמאגר, בלי לשנות את שם התרגיל שהמאמן כתב
+  function enrichPlanForSave(plan) {
+    return (plan || []).map(day => ({
+      ...day,
+      exercises: (day.exercises || []).map(ex => {
+        const lib = ex.demo_ex_id ? exerciseLibrary.find(e => e.id === ex.demo_ex_id) : findLibraryMatch(ex.name);
+        return {
+          ...ex,
+          demo_ex_id: ex.demo_ex_id || (lib ? lib.id : null),
+          video_url:  ex.video_url || (lib ? lib.video : ''),
+          cues:       (lib && lib.cues) ? lib.cues : (ex.cues || null),
+        };
+      })
+    }));
+  }
   async function saveTraining(silent) {
     if (!requireEdit()) return;
-    const planData = { active: trainingPlan, archive: trainingArchive };
+    const planData = { active: enrichPlanForSave(trainingPlan), archive: trainingArchive };
     const { error } = await sb.from('training_plans').upsert({client_email:activeEmail,plan:planData,updated_at:new Date().toISOString()},{onConflict:'client_email'});
     if (silent) return !error;
     error ? toast('שגיאה בשמירה','err') : toast('תוכנית נשמרה ✓','ok');
@@ -7492,8 +7507,17 @@ ${NUTRITION_DB}
           sub_muscle_group: md[0] ? md[0].name  : '',
           video:            ex.video || '',
           thumb:            ex.thumb || '',
+          cues:             ex.cues || '',
         };
       });
+      // 🎬 merge admin-added exercises
+      try {
+        const { data } = await sb.from('custom_exercises').select('*');
+        (data || []).forEach(c => exerciseLibrary.push({
+          id: 2000000 + c.id, name: c.name, muscle_group: c.muscle_group || '',
+          sub_muscle_group: '', video: c.video_url || '', thumb: '', cues: c.cues || ''
+        }));
+      } catch (e) {}
     } catch(e) { exerciseLibrary = []; selfHealSW(); }
   }
 

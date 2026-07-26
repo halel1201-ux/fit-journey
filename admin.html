@@ -3371,6 +3371,25 @@ ${hasFile ? '' : `4. התאם כמויות וערכים מדויקים למשק�
             <span class="ai-status" id="ai-ex-status"></span>
           </div>
         </div>
+        <div class="ai-box" style="border-color:rgba(96,165,250,0.3);">
+          <div class="ai-box-title">🎬 מאגר סרטונים — הוספת תרגיל ידנית (סרטון + דגשים)</div>
+          <div style="font-size:0.76rem;color:var(--muted);margin-bottom:10px;">התרגיל יתווסף לכל המאמנים והמתאמנים, עם הסרטון והדגשים שמתחתיו.</div>
+          <div style="display:grid;grid-template-columns:2fr 1fr;gap:8px;margin-bottom:8px;">
+            <input id="cx-name" placeholder="שם התרגיל" style="padding:9px 11px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:#fff;font-family:'Heebo',sans-serif;font-size:0.85rem;"/>
+            <select id="cx-muscle" style="padding:9px 11px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:#fff;font-family:'Heebo',sans-serif;font-size:0.85rem;">${EX_MUSCLES.map(m=>`<option>${m}</option>`).join('')}</select>
+          </div>
+          <div style="display:flex;gap:8px;margin-bottom:8px;align-items:center;">
+            <input id="cx-video" placeholder="קישור לסרטון (URL) — או העלה קובץ ←" style="flex:1;padding:9px 11px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:#fff;font-family:'Heebo',sans-serif;font-size:0.82rem;direction:ltr;text-align:right;"/>
+            <input type="file" id="cx-file" accept="video/*" style="display:none;" onchange="uploadCxVideo(this.files[0])"/>
+            <button class="btn-attach" type="button" onclick="document.getElementById('cx-file').click()">📎 העלה סרטון</button>
+          </div>
+          <textarea id="cx-cues" rows="4" placeholder="דגשי ביצוע — שורה לכל שלב (למשל:&#10;1. שכב על ספסל ישר...&#10;2. הורד את המוט לחזה...)" style="width:100%;box-sizing:border-box;padding:9px 11px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:#fff;font-family:'Heebo',sans-serif;font-size:0.84rem;resize:vertical;margin-bottom:9px;"></textarea>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <button class="btn-sm btn-orange" id="cx-save-btn" onclick="saveCustomExercise()">💾 שמור למאגר</button>
+            <span class="ai-status" id="cx-status"></span>
+          </div>
+          <div id="cx-list" style="margin-top:12px;"></div>
+        </div>
         <div class="lib-tabs" id="ex-tabs">
           ${tabs.map(t=>`<button class="lib-tab${t===activeExTab?' active':''}" onclick="setExTab('${t}')">${t}</button>`).join('')}
         </div>
@@ -3378,6 +3397,60 @@ ${hasFile ? '' : `4. התאם כמויות וערכים מדויקים למשק�
       </div>
     `;
     renderExTable();
+    loadCustomExercises();
+  }
+
+  /* ── 🎬 CUSTOM EXERCISE LIBRARY (video + cues), admin-managed ── */
+  let _customExercises = [];
+  async function loadCustomExercises() {
+    const { data } = await sb.from('custom_exercises').select('*').order('created_at', { ascending: false });
+    _customExercises = data || [];
+    renderCxList();
+  }
+  function renderCxList() {
+    const el = document.getElementById('cx-list'); if (!el) return;
+    if (!_customExercises.length) { el.innerHTML = '<div style="color:#555;font-size:0.8rem;">עדיין לא הוספת תרגילים למאגר הסרטונים.</div>'; return; }
+    el.innerHTML = `<div style="font-size:0.74rem;color:var(--muted);margin-bottom:6px;">תרגילים שהוספת (${_customExercises.length}):</div>` + _customExercises.map(c => `
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:8px;margin-bottom:6px;">
+        <div style="min-width:0;"><div style="font-size:0.84rem;font-weight:700;color:#eee;">${esc(c.name)} <span style="color:#64b4ff;font-size:0.7rem;">${esc(c.muscle_group||'')}</span></div>
+          <div style="font-size:0.7rem;color:#666;margin-top:2px;">${c.video_url?'🎬 סרטון':'⚠ ללא סרטון'} · ${c.cues?'📋 דגשים':'ללא דגשים'}</div></div>
+        <button onclick="deleteCustomExercise(${c.id})" style="background:none;border:none;color:#f87171;cursor:pointer;font-size:0.95rem;flex-shrink:0;">🗑</button>
+      </div>`).join('');
+  }
+  async function uploadCxVideo(file) {
+    if (!file) return;
+    const st = document.getElementById('cx-status'); st.textContent = '⏳ מעלה סרטון...'; st.style.color = 'var(--muted)';
+    try {
+      const ext = (file.name.split('.').pop() || 'mp4').toLowerCase();
+      const path = `exercise-videos/${Date.now()}_${Math.random().toString(36).slice(2, 7)}.${ext}`;
+      const { error } = await sb.storage.from('coach-assets').upload(path, file, { upsert: true, contentType: file.type || 'video/mp4' });
+      if (error) throw error;
+      const { data } = sb.storage.from('coach-assets').getPublicUrl(path);
+      document.getElementById('cx-video').value = data.publicUrl;
+      st.textContent = '✓ הסרטון הועלה'; st.style.color = '#4ade80';
+    } catch (e) { st.textContent = 'שגיאה בהעלאה: ' + (e.message || e) + ' — אפשר להדביק קישור במקום'; st.style.color = '#ff7070'; }
+  }
+  async function saveCustomExercise() {
+    const name = document.getElementById('cx-name').value.trim();
+    const muscle = document.getElementById('cx-muscle').value;
+    const video = document.getElementById('cx-video').value.trim();
+    const cues = document.getElementById('cx-cues').value.trim();
+    const st = document.getElementById('cx-status');
+    if (!name) { st.textContent = 'יש להזין שם תרגיל'; st.style.color = '#ff7070'; return; }
+    const btn = document.getElementById('cx-save-btn'); btn.disabled = true; btn.textContent = 'שומר...';
+    const { error } = await sb.from('custom_exercises').insert({ name, muscle_group: muscle, video_url: video || null, cues: cues || null });
+    btn.disabled = false; btn.textContent = '💾 שמור למאגר';
+    if (error) { st.textContent = 'שגיאה: ' + error.message; st.style.color = '#ff7070'; return; }
+    document.getElementById('cx-name').value = ''; document.getElementById('cx-video').value = ''; document.getElementById('cx-cues').value = '';
+    st.textContent = '✓ נוסף למאגר'; st.style.color = '#4ade80';
+    setTimeout(() => { st.textContent = ''; }, 1800);
+    loadCustomExercises();
+  }
+  async function deleteCustomExercise(id) {
+    if (!confirm('למחוק את התרגיל מהמאגר?')) return;
+    const { error } = await sb.from('custom_exercises').delete().eq('id', id);
+    if (error) { toast('שגיאה: ' + error.message, 'err'); return; }
+    loadCustomExercises();
   }
 
   function setExTab(tab) {
