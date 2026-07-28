@@ -310,6 +310,7 @@
     <button class="btn-sm btn-outline" id="btn-rc-view" onclick="toggleRecipeView()" style="border-color:rgba(255,215,0,0.35);color:#FFD700;">🍳 מתכונים</button>
     <button class="btn-sm btn-outline" id="btn-fi-view" onclick="toggleFoodView()" style="border-color:rgba(74,222,128,0.35);color:#4ade80;">🥦 מזון</button>
     <button class="btn-sm btn-outline" onclick="openCoachesView()" style="border-color:rgba(100,180,255,0.35);color:#64b4ff;">👥 מאמנים</button>
+    <button class="btn-sm btn-outline" onclick="openPresentersView()" style="border-color:rgba(255,215,0,0.35);color:#FFD700;">🎤 פרזנטורים</button>
     <button class="btn-sm btn-outline" onclick="openActivityView()" style="border-color:rgba(248,113,113,0.4);color:#f87171;">🛡️ פעילות</button>
     <button class="btn-sm btn-outline" onclick="openRecords()" style="border-color:rgba(255,215,0,0.35);color:#FFD700;">🏆 שיאים</button>
     <a href="coach.html" class="btn-sm btn-outline" style="text-decoration:none;border-color:rgba(255,107,0,0.4);color:var(--orange);">🎓 מאמן</a>
@@ -1188,6 +1189,166 @@
     renderTokenRequestsSection();
     renderCoachesTable();
     loadStudioDlcRequests();
+  }
+
+  /* ══════════════════════════════════════════════════════
+     🎤 PRESENTERS / SPONSORS — reward program
+  ══════════════════════════════════════════════════════ */
+  let _presReferrals = [], _presPayments = [], _presMonth = '';
+  async function openPresentersView() {
+    activeEmail = null;
+    if (typeof exercisesMode !== 'undefined') exercisesMode = false;
+    if (typeof recipesMode !== 'undefined') recipesMode = false;
+    renderSidebar();
+    document.getElementById('main-area').innerHTML = '<div class="sec-card"><div style="color:#555;padding:20px;">טוען פרזנטורים...</div></div>';
+    const [{ data: cs }, { data: refs }, { data: pays }] = await Promise.all([
+      sb.from('coaches').select('*').order('name'),
+      sb.from('presenter_referrals').select('*').order('created_at'),
+      sb.from('presenter_payments').select('*').order('pay_month', { ascending: false }),
+    ]);
+    coachesList = cs || []; _presReferrals = refs || []; _presPayments = pays || [];
+    if (!_presMonth) { const d = new Date(); _presMonth = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'); }
+    renderPresenters();
+  }
+  function setPresMonth(v) { _presMonth = v; renderPresenters(); }
+  const _presFmt = n => Math.round(n).toLocaleString('he-IL');
+  function renderPresenters() {
+    const main = document.getElementById('main-area'); if (!main) return;
+    const presenters = coachesList.filter(c => c.is_presenter);
+    const nonPres = coachesList.filter(c => !c.is_presenter && c.role && c.role !== 'pending');
+    main.innerHTML = `
+      <div class="sec-card">
+        <div class="sec-card-title">🎤 פרזנטורים / ספונסרים
+          <span style="margin-right:auto;font-size:0.78rem;font-weight:400;color:var(--muted);">חודש חישוב:
+            <input type="month" value="${_presMonth}" onchange="setPresMonth(this.value)" style="padding:5px 8px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.14);border-radius:7px;color:#fff;font-family:'Heebo',sans-serif;"/></span>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:16px;">
+          <select id="pres-add-sel" style="padding:9px 11px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.14);border-radius:8px;color:#fff;font-family:'Heebo',sans-serif;min-width:200px;">
+            ${nonPres.length ? nonPres.map(c => `<option value="${esc(c.email)}">${esc(c.name || c.email)}</option>`).join('') : '<option value="">— אין מאמנים זמינים —</option>'}
+          </select>
+          <button class="btn-sm btn-orange" onclick="addPresenter()">+ הגדר כפרזנטור</button>
+        </div>
+        ${presenters.length ? presenters.map(renderPresenterCard).join('') : '<div style="color:#555;font-size:0.85rem;padding:10px 0;">אין פרזנטורים עדיין — בחר מאמן והגדר אותו כפרזנטור.</div>'}
+      </div>`;
+  }
+  function renderPresenterCard(p) {
+    const refs = _presReferrals.filter(r => r.presenter_email === p.email);
+    const firstPct = +p.presenter_first_pct || 0, recPct = +p.presenter_recurring_pct || 0, recType = p.presenter_recurring_type || 'cash';
+    const commOf = pay => {
+      const pct = pay.kind === 'first' ? firstPct : recPct;
+      const comm = (+pay.amount || 0) * pct / 100;
+      const tokens = (pay.kind === 'recurring' && recType === 'tokens');
+      return { pct, comm, tokens };
+    };
+    // month totals
+    let cashOwed = 0, tokenOwed = 0; const monthDetail = [];
+    _presPayments.filter(x => x.presenter_email === p.email && String(x.pay_month).slice(0, 7) === _presMonth).forEach(x => {
+      const c = commOf(x); if (c.tokens) tokenOwed += c.comm; else cashOwed += c.comm;
+      const rf = refs.find(r => r.referred_email === x.referred_email);
+      monthDetail.push(`${esc(rf?.referred_name || x.referred_email)} · ${x.kind === 'first' ? 'חבילה ראשונה' : 'חודש המשך'} · ${_presFmt(x.amount)}₪ × ${c.pct}% = <b style="color:${c.tokens ? '#c4a5ff' : '#4ade80'};">${_presFmt(c.comm)} ${c.tokens ? 'טוקנים' : '₪'}</b>`);
+    });
+    const freeTxt = p.presenter_free_until ? new Date(p.presenter_free_until + 'T12:00:00').toLocaleDateString('he-IL') : '—';
+    const refBlocks = refs.map(r => {
+      const rpays = _presPayments.filter(x => x.presenter_email === p.email && x.referred_email === r.referred_email);
+      const moneyIn = rpays.reduce((s, x) => s + (+x.amount || 0), 0);
+      const payLines = rpays.map(x => { const c = commOf(x); const inMonth = String(x.pay_month).slice(0, 7) === _presMonth;
+        return `<div style="display:flex;justify-content:space-between;align-items:center;gap:6px;font-size:0.74rem;padding:3px 6px;border-radius:6px;${inMonth ? 'background:rgba(255,215,0,0.06);' : ''}">
+          <span style="color:#bbb;">${new Date(x.pay_month + 'T12:00:00').toLocaleDateString('he-IL', { month: '2-digit', year: '2-digit' })} · ${x.kind === 'first' ? 'ראשונה' : 'המשך'} · ${_presFmt(x.amount)}₪ → <b style="color:${c.tokens ? '#c4a5ff' : '#4ade80'};">${_presFmt(c.comm)}${c.tokens ? ' טוק' : '₪'}</b></span>
+          <button onclick="deletePresenterPayment(${x.id})" style="background:none;border:none;color:#666;cursor:pointer;">✕</button></div>`; }).join('') || '<div style="font-size:0.72rem;color:#555;">אין תשלומים עדיין</div>';
+      return `<div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:9px 11px;margin-bottom:7px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+          <div><span style="font-size:0.84rem;font-weight:700;color:#eee;">${esc(r.referred_name || '—')}</span> <span style="font-size:0.72rem;color:#888;direction:ltr;">${esc(r.referred_email)}</span></div>
+          <div style="font-size:0.8rem;color:#4ade80;font-weight:800;">נכנס: ${_presFmt(moneyIn)} ₪</div>
+        </div>
+        <div style="margin:6px 0;">${payLines}</div>
+        <div style="display:flex;gap:5px;flex-wrap:wrap;align-items:center;">
+          <input id="ppay-amt-${r.id}" type="number" placeholder="סכום ₪" style="width:80px;padding:5px 7px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:6px;color:#fff;font-family:'Heebo',sans-serif;font-size:0.75rem;"/>
+          <select id="ppay-kind-${r.id}" style="padding:5px 7px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:6px;color:#fff;font-family:'Heebo',sans-serif;font-size:0.75rem;"><option value="first">חבילה ראשונה</option><option value="recurring">חודש המשך</option></select>
+          <input id="ppay-month-${r.id}" type="month" value="${_presMonth}" style="padding:5px 7px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:6px;color:#fff;font-family:'Heebo',sans-serif;font-size:0.75rem;"/>
+          <button class="btn-sm btn-outline" style="font-size:0.72rem;padding:4px 9px;" onclick="addPresenterPayment('${esc(p.email)}','${esc(r.referred_email)}',${r.id})">+ תשלום</button>
+          <button onclick="deletePresenterReferral(${r.id})" style="background:none;border:none;color:#f87171;cursor:pointer;font-size:0.8rem;margin-right:auto;">🗑 הסר איש קשר</button>
+        </div>
+      </div>`;
+    }).join('') || '<div style="font-size:0.78rem;color:#555;margin-bottom:8px;">עדיין לא נרשמו אנשים שהובאו.</div>';
+    return `<div style="background:radial-gradient(120% 80% at 50% 0%,rgba(255,215,0,0.06),transparent 60%),linear-gradient(160deg,#181613,#0e0d0b);border:1px solid rgba(255,215,0,0.3);border-radius:16px;padding:16px;margin-bottom:16px;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;margin-bottom:10px;">
+        <div><div style="font-weight:900;font-size:1.05rem;color:#FFD700;">🎤 ${esc(p.name || p.email)}</div>
+          <div style="font-size:0.72rem;color:#888;direction:ltr;text-align:right;">${esc(p.email)}${p.referral_code ? ` · קוד: <b style="color:#FFD700;">${esc(p.referral_code)}</b>` : ''}</div></div>
+        <button onclick="removePresenter('${esc(p.email)}')" style="background:none;border:1px solid rgba(248,113,113,0.4);color:#f87171;border-radius:7px;padding:4px 10px;font-size:0.72rem;cursor:pointer;font-family:'Heebo',sans-serif;">בטל פרזנטור</button>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin-bottom:10px;">
+        <div class="f-group"><label style="font-size:0.7rem;">פאנל חינם עד</label><input id="pcfg-free-${p.id}" type="date" value="${p.presenter_free_until || ''}" style="padding:7px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:6px;color:#fff;font-family:'Heebo',sans-serif;font-size:0.8rem;"/></div>
+        <div class="f-group"><label style="font-size:0.7rem;">% חבילה ראשונה</label><input id="pcfg-first-${p.id}" type="number" value="${firstPct}" style="padding:7px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:6px;color:#fff;font-family:'Heebo',sans-serif;font-size:0.8rem;"/></div>
+        <div class="f-group"><label style="font-size:0.7rem;">% חודש המשך</label><input id="pcfg-rec-${p.id}" type="number" value="${recPct}" style="padding:7px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:6px;color:#fff;font-family:'Heebo',sans-serif;font-size:0.8rem;"/></div>
+        <div class="f-group"><label style="font-size:0.7rem;">סוג תגמול המשך</label><select id="pcfg-type-${p.id}" style="padding:7px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:6px;color:#fff;font-family:'Heebo',sans-serif;font-size:0.8rem;"><option value="cash" ${recType === 'cash' ? 'selected' : ''}>💵 כסף</option><option value="tokens" ${recType === 'tokens' ? 'selected' : ''}>🎫 טוקנים</option></select></div>
+        <div class="f-group" style="display:flex;align-items:flex-end;"><button class="btn-sm btn-orange" style="width:100%;font-size:0.76rem;" onclick="savePresenterConfig(${p.id},'${esc(p.email)}')">💾 שמור</button></div>
+      </div>
+      <div style="font-size:0.72rem;color:var(--muted);margin-bottom:12px;">פאנל חינם עד <b style="color:#eee;">${freeTxt}</b> · תגמול: ${firstPct}% על חבילה ראשונה, ${recPct}% על כל חודש המשך (${recType === 'tokens' ? 'בטוקנים' : 'במזומן'}).</div>
+
+      <div style="background:rgba(74,222,128,0.06);border:1px solid rgba(74,222,128,0.25);border-radius:12px;padding:11px 13px;margin-bottom:12px;">
+        <div style="font-weight:900;font-size:0.9rem;color:#4ade80;margin-bottom:6px;">💰 מגיע לפרזנטור ב-${_presMonth}: ${_presFmt(cashOwed)} ₪${tokenOwed ? ` + ${_presFmt(tokenOwed)} טוקנים` : ''}</div>
+        ${monthDetail.length ? `<div style="font-size:0.74rem;color:#ccc;line-height:1.7;">${monthDetail.map(l => '• ' + l).join('<br>')}</div>` : '<div style="font-size:0.74rem;color:#666;">אין תשלומים בחודש זה.</div>'}
+      </div>
+
+      <div style="font-size:0.8rem;font-weight:800;color:#eee;margin-bottom:8px;">👥 אנשים שהביא (${refs.length}):</div>
+      ${refBlocks}
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;">
+        <input id="pref-name-${p.id}" placeholder="שם" style="flex:1;min-width:90px;padding:7px 9px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:7px;color:#fff;font-family:'Heebo',sans-serif;font-size:0.8rem;"/>
+        <input id="pref-email-${p.id}" placeholder="אימייל" style="flex:1.5;min-width:120px;padding:7px 9px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:7px;color:#fff;font-family:'Heebo',sans-serif;font-size:0.8rem;direction:ltr;text-align:right;"/>
+        <button class="btn-sm btn-outline" style="font-size:0.76rem;" onclick="addPresenterReferral(${p.id},'${esc(p.email)}')">+ הוסף איש קשר</button>
+      </div>
+    </div>`;
+  }
+  async function addPresenter() {
+    const email = document.getElementById('pres-add-sel')?.value; if (!email) return;
+    const { error } = await sb.from('coaches').update({ is_presenter: true }).eq('email', email);
+    if (error) { toast('שגיאה: ' + error.message, 'err'); return; }
+    toast('הוגדר כפרזנטור ✓', 'ok'); openPresentersView();
+  }
+  async function removePresenter(email) {
+    if (!confirm('לבטל את הפרזנטור? (הנתונים שנצברו יישמרו)')) return;
+    await sb.from('coaches').update({ is_presenter: false }).eq('email', email);
+    openPresentersView();
+  }
+  async function savePresenterConfig(id, email) {
+    const free  = document.getElementById('pcfg-free-' + id)?.value || null;
+    const first = parseFloat(document.getElementById('pcfg-first-' + id)?.value) || 0;
+    const rec   = parseFloat(document.getElementById('pcfg-rec-' + id)?.value) || 0;
+    const type  = document.getElementById('pcfg-type-' + id)?.value || 'cash';
+    const patch = { presenter_free_until: free, presenter_first_pct: first, presenter_recurring_pct: rec, presenter_recurring_type: type };
+    if (free) patch.premium_until = free; // 🎁 free panel = free premium until that date
+    const { error } = await sb.from('coaches').update(patch).eq('email', email);
+    if (error) { toast('שגיאה: ' + error.message, 'err'); return; }
+    toast('הגדרות פרזנטור נשמרו ✓', 'ok'); openPresentersView();
+  }
+  async function addPresenterReferral(id, presEmail) {
+    const name = document.getElementById('pref-name-' + id)?.value.trim();
+    const email = document.getElementById('pref-email-' + id)?.value.trim().toLowerCase();
+    if (!email) { toast('הזן אימייל', 'err'); return; }
+    const { error } = await sb.from('presenter_referrals').insert({ presenter_email: presEmail, referred_name: name || null, referred_email: email });
+    if (error) { toast('שגיאה: ' + error.message, 'err'); return; }
+    openPresentersView();
+  }
+  async function deletePresenterReferral(rid) {
+    if (!confirm('להסיר את איש הקשר וכל התשלומים שלו?')) return;
+    const ref = _presReferrals.find(r => r.id === rid);
+    if (ref) await sb.from('presenter_payments').delete().eq('presenter_email', ref.presenter_email).eq('referred_email', ref.referred_email);
+    await sb.from('presenter_referrals').delete().eq('id', rid);
+    openPresentersView();
+  }
+  async function addPresenterPayment(presEmail, refEmail, rid) {
+    const amount = parseFloat(document.getElementById('ppay-amt-' + rid)?.value);
+    const kind = document.getElementById('ppay-kind-' + rid)?.value || 'recurring';
+    const month = document.getElementById('ppay-month-' + rid)?.value;
+    if (!amount || amount <= 0) { toast('הזן סכום', 'err'); return; }
+    const payMonth = (month || _presMonth) + '-01';
+    const { error } = await sb.from('presenter_payments').insert({ presenter_email: presEmail, referred_email: refEmail, amount, kind, pay_month: payMonth });
+    if (error) { toast('שגיאה: ' + error.message, 'err'); return; }
+    openPresentersView();
+  }
+  async function deletePresenterPayment(pid) {
+    await sb.from('presenter_payments').delete().eq('id', pid);
+    openPresentersView();
   }
 
   function renderPendingCoaches() {
