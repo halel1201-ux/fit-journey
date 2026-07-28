@@ -5186,6 +5186,22 @@ ${foodList || 'אין פריטים'}
     document.getElementById('volume-modal').style.display = 'none';
   }
 
+  /* 📋 מעתיק את שם המשתמש לתיוג. אינסטגרם לא מאפשרת לאפליקציה לתייג
+     חשבון אוטומטית בסטורי — לכן מעתיקים ללוח כדי שהדבקה תספיק. */
+  const FJ_TAG = '@fitjourney';
+  async function copyTagHandle() {
+    try {
+      if (navigator.clipboard && window.isSecureContext) { await navigator.clipboard.writeText(FJ_TAG); return true; }
+      const ta = document.createElement('textarea');
+      ta.value = FJ_TAG;
+      ta.style.cssText = 'position:fixed;top:-1000px;opacity:0;';
+      document.body.appendChild(ta); ta.select();
+      const ok = document.execCommand('copy');
+      ta.remove();
+      return ok;
+    } catch (e) { return false; }
+  }
+
   async function shareWorkoutSummary() {
     if (!lastVolumeShareData) return;
     const btn = document.getElementById('vol-share-btn');
@@ -5194,19 +5210,25 @@ ${foodList || 'אין פריטים'}
     try {
       const blob = await renderWorkoutShareImage(lastVolumeShareData);
       const file = new File([blob], 'workout-summary.png', { type: 'image/png' });
+      // 🏷️ מעתיקים את התיוג ללוח — אינסטגרם לא מאפשרת תיוג אוטומטי,
+      // אז המשתמש רק מדביק אותו בסטורי בלחיצה אחת.
+      const copied = await copyTagHandle();
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
         await navigator.share({
           files: [file],
           title: 'נפח אימון',
-          text: `סיימתי אימון ${lastVolumeShareData.dayName || ''} 💪`
+          text: `סיימתי אימון ${lastVolumeShareData.dayName || ''} 💪 @fitjourney`
         });
+        if (copied) showDashToast('📋 @fitjourney הועתק — הדבק בסטורי כדי לתייג אותנו 🎁');
       } else {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url; a.download = 'workout-summary.png';
         document.body.appendChild(a); a.click(); a.remove();
         setTimeout(() => URL.revokeObjectURL(url), 5000);
-        showDashToast('התמונה נשמרה — אפשר לשתף אותה באינסטגרם');
+        showDashToast(copied
+          ? '✓ התמונה נשמרה · 📋 @fitjourney הועתק — הדבק בסטורי ותייג אותנו 🎁'
+          : 'התמונה נשמרה — אפשר לשתף אותה באינסטגרם');
       }
     } catch (e) {
       if (e?.name !== 'AbortError') showDashToast('שגיאה ביצירת התמונה לשיתוף');
@@ -5392,7 +5414,7 @@ ${foodList || 'אין פריטים'}
       }
 
       // ── bottom accent line + footer ──
-      const fY = H - 150;
+      const fY = H - 268;   // מוגבה כדי לפנות מקום לסטיקר התיוג
       const lg = ctx.createLinearGradient(CX - 200, 0, CX + 200, 0);
       lg.addColorStop(0, 'rgba(255,107,0,0)'); lg.addColorStop(0.5, 'rgba(255,107,0,0.7)'); lg.addColorStop(1, 'rgba(255,107,0,0)');
       ctx.fillStyle = lg; rr(CX - 200, fY, 400, 4, 2); ctx.fill();
@@ -5402,10 +5424,31 @@ ${foodList || 'אין פריטים'}
       ctx.fillStyle = 'rgba(255,255,255,0.45)';
       ctx.fillText(new Date().toLocaleDateString('he-IL', { day: 'numeric', month: 'long', year: 'numeric' }), CX, fY + 54);
 
+      /* 🏷️ סטיקר תיוג בסגנון אינסטגרם — בולט, כדי להזכיר למשתמש לתייג */
+      ctx.direction = 'rtl';
+      ctx.textAlign = 'center';
+      ctx.font = '700 26px Heebo, sans-serif';
+      ctx.fillStyle = 'rgba(255,255,255,0.5)';
+      ctx.fillText('תייג אותנו בסטורי 👇', CX, fY + 96);
+
+      const handle = '@fitjourney';
       ctx.direction = 'ltr';
-      ctx.font = '800 30px Heebo, sans-serif';
-      ctx.fillStyle = 'rgba(255,140,0,0.85)';
-      ctx.fillText('@ fitjourney', CX, fY + 100);
+      ctx.font = '900 40px Heebo, sans-serif';
+      const tw = ctx.measureText(handle).width;
+      const padX = 34, padY = 18, stH = 40 + padY * 2;
+      const stW = tw + padX * 2, stX = CX - stW / 2, stY = fY + 122;
+
+      ctx.save();
+      ctx.shadowColor = 'rgba(0,0,0,0.45)';
+      ctx.shadowBlur = 22; ctx.shadowOffsetY = 6;
+      ctx.fillStyle = '#ffffff';
+      rr(stX, stY, stW, stH, stH / 2); ctx.fill();
+      ctx.restore();
+
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = '#111318';
+      ctx.fillText(handle, CX, stY + stH / 2 + 2);
+      ctx.textBaseline = 'alphabetic';
 
       canvas.toBlob(resolve, 'image/png');
     });
