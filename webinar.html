@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8"/>
+  <script>/* opened as a local file:// copy — jump to the live site */if(location.protocol==='file:')location.replace('https://halel1201-ux.github.io/fit-journey/'+location.pathname.split('/').pop()+location.search);</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <link rel="icon" type="image/png" href="favicon.png"/>
+  <link rel="apple-touch-icon" href="apple-touch-icon.png"/>
+  <title>Fit Journey — הפלטפורמה שמנהלת את עסק הליווי שלך</title>
+  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;700;900&display=swap" rel="stylesheet"/>
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    :root{--orange:#FF6B00;--orange2:#FF8C00;--gold:#FFD700;--black:#0a0a0a;--card:rgba(255,255,255,0.04);--muted:#9a9a9a;--border:rgba(255,107,0,0.22);}
+    html{scroll-behavior:smooth;}
+    body{font-family:'Heebo',sans-serif;background:var(--black);color:#fff;min-height:100vh;overflow-x:hidden;}
+    ::-webkit-scrollbar{width:6px;}::-webkit-scrollbar-track{background:#0e0e0e;}::-webkit-scrollbar-thumb{background:var(--orange);border-radius:3px;}
+    a{color:inherit;}
+    .wrap{max-width:1080px;margin:0 auto;padding:0 20px;}
+
+    /* NAV */
+    .topbar{position:sticky;top:0;z-index:100;background:rgba(10,10,10,0.92);backdrop-filter:blur(12px);border-bottom:1px solid rgba(255,107,0,0.14);height:60px;display:flex;align-items:center;}
+    .topbar .wrap{display:flex;align-items:center;justify-content:space-between;width:100%;}
+    .logo{display:flex;align-items:center;gap:9px;font-weight:900;font-size:1.15rem;}
+    .logo img{width:30px;height:30px;border-radius:8px;}
+    .logo span{background:linear-gradient(135deg,var(--orange),var(--gold));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+    .nav-back{font-size:0.82rem;color:var(--muted);text-decoration:none;padding:7px 14px;border:1px solid rgba(255,255,255,0.14);border-radius:8px;transition:all .2s;}
+    .nav-back:hover{color:#fff;border-color:var(--orange);}
+
+    /* HERO */
+    .hero{position:relative;text-align:center;padding:82px 0 64px;background:radial-gradient(ellipse 90% 55% at 50% 0%,rgba(255,107,0,0.16),transparent 65%);}
+    .hero .pill{display:inline-block;font-size:0.76rem;font-weight:700;color:var(--gold);border:1px solid rgba(255,215,0,0.35);background:rgba(255,215,0,0.06);border-radius:30px;padding:6px 16px;margin-bottom:20px;letter-spacing:.4px;}
+    .hero h1{font-size:clamp(2rem,5.4vw,3.4rem);font-weight:900;line-height:1.15;margin-bottom:16px;}
+    .hero h1 b{background:linear-gradient(135deg,var(--orange),var(--gold));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+    .hero p{font-size:clamp(1rem,2.2vw,1.2rem);color:#cfcfcf;max-width:640px;margin:0 auto 30px;line-height:1.75;}
+    .btn{display:inline-block;font-family:'Heebo',sans-serif;font-weight:800;font-size:1rem;border-radius:12px;padding:15px 30px;cursor:pointer;text-decoration:none;transition:transform .15s,box-shadow .2s;border:none;}
+    .btn-primary{background:linear-gradient(135deg,var(--orange),var(--orange2));color:#fff;box-shadow:0 8px 26px rgba(255,107,0,0.4);}
+    .btn-primary:hover{transform:translateY(-2px);box-shadow:0 12px 34px rgba(255,107,0,0.5);}
+    .btn-ghost{background:transparent;color:#fff;border:1px solid rgba(255,255,255,0.22);}
+    .btn-ghost:hover{border-color:var(--orange);color:var(--orange);}
+    .hero-cta{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;}
+    .hero-note{margin-top:18px;font-size:0.82rem;color:#666;}
+
+    /* STAT STRIP */
+    .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:44px auto 0;max-width:720px;}
+    .stat{background:var(--card);border:1px solid rgba(255,255,255,0.07);border-radius:16px;padding:18px 12px;text-align:center;}
+    .stat .n{font-size:1.7rem;font-weight:900;color:var(--orange);}
+    .stat .l{font-size:0.78rem;color:var(--muted);margin-top:4px;}
+
+    /* SECTION */
+    .section{padding:70px 0;}
+    .sec-tag{text-align:center;font-size:0.74rem;font-weight:800;letter-spacing:2px;color:var(--orange);text-transform:uppercase;margin-bottom:10px;}
+    .sec-title{text-align:center;font-size:clamp(1.6rem,4vw,2.3rem);font-weight:900;margin-bottom:12px;}
+    .sec-title b{background:linear-gradient(135deg,var(--orange),var(--gold));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+    .sec-sub{text-align:center;color:var(--muted);max-width:600px;margin:0 auto 44px;line-height:1.75;font-size:0.98rem;}
+
+    /* FEATURE ROWS with mockups */
+    .feat{display:grid;grid-template-columns:1fr 1fr;gap:36px;align-items:center;margin-bottom:56px;}
+    .feat:nth-child(even) .feat-media{order:2;}
+    .feat-body h3{font-size:1.35rem;font-weight:900;margin-bottom:10px;display:flex;align-items:center;gap:9px;}
+    .feat-body p{color:#c4c4c4;line-height:1.8;font-size:0.96rem;margin-bottom:12px;}
+    .feat-body ul{list-style:none;}
+    .feat-body li{font-size:0.9rem;color:#ddd;padding:4px 0 4px 0;display:flex;gap:8px;align-items:flex-start;}
+    .feat-body li::before{content:'✓';color:#4ade80;font-weight:900;flex-shrink:0;}
+
+    /* MOCKUP FRAME */
+    .mock{background:linear-gradient(160deg,#17181c,#0d0e11);border:1px solid rgba(255,107,0,0.28);border-radius:16px;box-shadow:0 20px 50px rgba(0,0,0,0.5);overflow:hidden;}
+    .mock-bar{display:flex;align-items:center;gap:6px;padding:9px 12px;border-bottom:1px solid rgba(255,255,255,0.06);background:rgba(255,255,255,0.02);}
+    .mock-bar i{width:9px;height:9px;border-radius:50%;display:inline-block;}
+    .mock-bar .t{margin-right:auto;font-size:0.68rem;color:#666;}
+    .mock-body{padding:14px;}
+    .m-row{display:flex;align-items:center;gap:9px;padding:8px 10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:9px;margin-bottom:7px;}
+    .m-av{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--orange),var(--gold));flex-shrink:0;}
+    .m-line{height:8px;border-radius:5px;background:rgba(255,255,255,0.12);}
+    .m-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+    .m-kpi{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+    .m-card{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:11px;}
+    .m-card .v{font-size:1.25rem;font-weight:900;}
+    .m-card .k{font-size:0.66rem;color:var(--muted);margin-top:2px;}
+    .m-bars{display:flex;align-items:flex-end;gap:6px;height:70px;padding-top:8px;}
+    .m-bars span{flex:1;background:linear-gradient(180deg,var(--orange),rgba(255,107,0,0.25));border-radius:4px 4px 0 0;}
+    .m-chip{font-size:0.62rem;font-weight:800;padding:3px 8px;border-radius:20px;}
+
+    /* PHONE mock */
+    .phone{width:210px;margin:0 auto;border:6px solid #1c1c1f;border-radius:30px;background:#0d0e11;box-shadow:0 24px 60px rgba(0,0,0,0.6);overflow:hidden;}
+    .phone-top{height:22px;background:#0d0e11;position:relative;}
+    .phone-top::after{content:'';position:absolute;top:7px;left:50%;transform:translateX(-50%);width:52px;height:5px;border-radius:5px;background:#000;}
+    .phone-body{padding:12px;background:radial-gradient(120% 60% at 50% 0,rgba(255,107,0,0.12),transparent 60%);}
+    .tiles{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+    .tile{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:14px;height:62px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:0.62rem;color:#ddd;font-weight:700;}
+    .tile b{font-size:1.2rem;}
+
+    /* PLANS */
+    .plans-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;align-items:stretch;}
+    .plan{position:relative;background:var(--card);border:1px solid rgba(255,255,255,0.1);border-radius:18px;padding:26px 22px;display:flex;flex-direction:column;transition:transform .2s,border-color .2s;}
+    .plan:hover{transform:translateY(-4px);border-color:rgba(255,107,0,0.5);}
+    .plan.feat-plan{border-color:rgba(255,107,0,0.6);box-shadow:0 0 40px rgba(255,107,0,0.12);}
+    .plan-badge{position:absolute;top:-12px;right:22px;font-size:0.68rem;font-weight:800;padding:4px 12px;border-radius:20px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:#ccc;}
+    .plan.feat-plan .plan-badge{background:linear-gradient(135deg,var(--orange),var(--orange2));color:#fff;border:none;}
+    .plan-name{font-size:1.05rem;font-weight:900;margin-bottom:6px;}
+    .plan-price{font-size:2.4rem;font-weight:900;}
+    .plan-price small{font-size:1rem;color:var(--muted);}
+    .plan-per{font-size:0.78rem;color:var(--muted);margin-bottom:16px;}
+    .plan ul{list-style:none;flex:1;margin-bottom:16px;}
+    .plan li{font-size:0.86rem;color:#ddd;padding:5px 0;display:flex;gap:8px;align-items:flex-start;line-height:1.5;}
+    .plan li::before{content:'✓';color:#4ade80;font-weight:900;flex-shrink:0;}
+    .plan .tok{display:flex;align-items:center;gap:8px;font-size:0.82rem;color:var(--gold);background:rgba(255,215,0,0.06);border:1px solid rgba(255,215,0,0.2);border-radius:10px;padding:9px 11px;margin-bottom:16px;}
+    .plan .cta{text-align:center;text-decoration:none;font-weight:800;border-radius:11px;padding:13px;}
+
+    /* CLOSING */
+    .closing{text-align:center;padding:70px 0;background:radial-gradient(ellipse 90% 60% at 50% 100%,rgba(255,107,0,0.14),transparent 65%);}
+    .closing q{font-size:clamp(1.2rem,3vw,1.7rem);font-weight:900;font-style:italic;line-height:1.5;display:block;max-width:640px;margin:0 auto 26px;}
+    footer{text-align:center;padding:34px 0;color:#555;font-size:0.8rem;border-top:1px solid rgba(255,255,255,0.05);}
+    footer a{color:var(--orange);text-decoration:none;}
+
+    /* FLOATING BUY */
+    .buy-float{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);z-index:200;background:linear-gradient(135deg,var(--orange),var(--orange2));color:#fff;font-family:'Heebo',sans-serif;font-weight:900;font-size:1rem;border:none;border-radius:40px;padding:15px 30px;cursor:pointer;box-shadow:0 10px 34px rgba(255,107,0,0.55);display:flex;align-items:center;gap:9px;animation:floatpulse 2.4s ease-in-out infinite;text-decoration:none;}
+    @keyframes floatpulse{0%,100%{box-shadow:0 10px 34px rgba(255,107,0,0.5);}50%{box-shadow:0 10px 44px rgba(255,107,0,0.8);}}
+
+    @media(max-width:760px){
+      .feat{grid-template-columns:1fr;gap:20px;}
+      .feat:nth-child(even) .feat-media{order:0;}
+      .plans-grid{grid-template-columns:1fr;}
+      .stats{max-width:100%;}
+      .hero{padding:60px 0 48px;}
+      .buy-float{font-size:0.92rem;padding:14px 24px;}
+    }
+  </style>
+</head>
+<body>
+
+<div class="topbar"><div class="wrap">
+  <a href="index.html" class="logo"><img src="favicon.png" alt="FJ"/><span>FIT JOURNEY</span></a>
+  <a href="index.html" class="nav-back">← חזרה לאתר</a>
+</div></div>
+
+<!-- HERO -->
+<header class="hero"><div class="wrap">
+  <div class="pill">🎥 הצצה לפלטפורמה למאמנים</div>
+  <h1>נהל את <b>עסק הליווי שלך</b><br/>ממקום אחד — חכם ואוטומטי</h1>
+  <p>Fit Journey היא פלטפורמת ניהול מלאה למאמנים אונליין: תוכניות אימון ותזונה, בינה מלאכותית שבונה עבורך, מעקב מתאמנים, מניעת נטישה, וניהול כספי — הכל באפליקציה אחת ממותגת בשמך.</p>
+  <div class="hero-cta">
+    <a href="#plans" class="btn btn-primary">🚀 לצפייה במסלולים</a>
+    <a href="#how" class="btn btn-ghost">איך זה עובד ↓</a>
+  </div>
+  <div class="hero-note">תשלום דרך ביט · גישה מיידית · ללא עמלות · ללא התחייבות</div>
+
+  <div class="stats">
+    <div class="stat"><div class="n">∞</div><div class="l">מתאמנים ללא הגבלה</div></div>
+    <div class="stat"><div class="n">2</div><div class="l">מנועי AI שבונים לך</div></div>
+    <div class="stat"><div class="n">1</div><div class="l">אפליקציה ממותגת בשמך</div></div>
+  </div>
+</div></header>
+
+<!-- WHAT IS IT -->
+<section class="section" style="padding-top:20px;"><div class="wrap">
+  <div class="sec-tag">בקצרה</div>
+  <h2 class="sec-title">מה זה <b>Fit Journey</b>?</h2>
+  <p class="sec-sub">במקום וואטסאפ, אקסלים ופתקים — פאנל מקצועי אחד שבו אתה מנהל את כל המתאמנים, בונה להם תוכניות בשניות עם AI, שולח קבלות, עוקב אחרי התקדמות, ורואה בדיוק כמה העסק שלך מרוויח. המתאמנים מקבלים אפליקציה יפה עם השם והלוגו שלך.</p>
+</div></section>
+
+<!-- HOW IT HELPS -->
+<section class="section" id="how" style="padding-top:0;"><div class="wrap">
+  <div class="sec-tag">איך זה עוזר לך</div>
+  <h2 class="sec-title">כל העסק שלך — <b>מנוהל בשבילך</b></h2>
+  <p class="sec-sub">הצצה למסכים מהפאנל האמיתי.</p>
+
+  <!-- 1. ניהול מתאמנים -->
+  <div class="feat">
+    <div class="feat-media"><div class="mock">
+      <div class="mock-bar"><i style="background:#ff5f57"></i><i style="background:#febc2e"></i><i style="background:#28c840"></i><span class="t">לובי מאמן</span></div>
+      <div class="mock-body">
+        <div class="m-row"><span class="m-dot" style="background:#4ade80"></span><div class="m-av"></div><div style="flex:1;"><div class="m-line" style="width:60%;margin-bottom:5px;"></div><div class="m-line" style="width:38%;height:6px;background:rgba(255,255,255,0.07)"></div></div><span class="m-chip" style="background:rgba(74,222,128,0.15);color:#4ade80;">פעיל</span></div>
+        <div class="m-row"><span class="m-dot" style="background:#facc15"></span><div class="m-av"></div><div style="flex:1;"><div class="m-line" style="width:52%;margin-bottom:5px;"></div><div class="m-line" style="width:44%;height:6px;background:rgba(255,255,255,0.07)"></div></div><span class="m-chip" style="background:rgba(250,204,21,0.15);color:#facc15;">מסיים בקרוב</span></div>
+        <div class="m-row"><span class="m-dot" style="background:#f87171"></span><div class="m-av"></div><div style="flex:1;"><div class="m-line" style="width:46%;margin-bottom:5px;"></div><div class="m-line" style="width:30%;height:6px;background:rgba(255,255,255,0.07)"></div></div><span class="m-chip" style="background:rgba(248,113,113,0.15);color:#f87171;">בסיכון</span></div>
+      </div>
+    </div></div>
+    <div class="feat-body">
+      <h3>👥 ניהול מתאמנים חכם</h3>
+      <p>כל המתאמנים במקום אחד, עם ציון בריאות, סטטוס מנוי וזיהוי מי בסיכון נטישה — לפני שהוא עוזב.</p>
+      <ul><li>כרטיס מתאמן מלא: אימון, תזונה, מדידות, שיאים</li><li>התראות "מי בסיכון" ו"מי מסיים בקרוב"</li><li>הקפאה/הפשרה, קבלות וניהול חוב</li></ul>
+    </div>
+  </div>
+
+  <!-- 2. המאמן השני (AI) -->
+  <div class="feat">
+    <div class="feat-media"><div class="mock">
+      <div class="mock-bar"><i style="background:#ff5f57"></i><i style="background:#febc2e"></i><i style="background:#28c840"></i><span class="t">🧠 המאמן השני</span></div>
+      <div class="mock-body">
+        <div class="m-card" style="border-color:rgba(255,107,0,0.4);margin-bottom:8px;"><div style="font-size:0.72rem;color:#ffb066;font-weight:800;">⚡ בונה אימון + תפריט...</div><div class="m-bars" style="height:24px;margin-top:8px;"><span style="height:90%"></span><span style="height:60%"></span><span style="height:100%"></span><span style="height:45%"></span><span style="height:75%"></span></div></div>
+        <div class="m-row"><div class="m-line" style="width:70%;"></div><span class="m-chip" style="background:rgba(255,107,0,0.15);color:#ffb066;margin-right:auto;">5×20/15/12/10/8</span></div>
+        <div class="m-row"><div class="m-line" style="width:55%;"></div><span class="m-chip" style="background:rgba(74,222,128,0.15);color:#4ade80;margin-right:auto;">מסה</span></div>
+      </div>
+    </div></div>
+    <div class="feat-body">
+      <h3>🧠 שני מנועי AI שבונים בשבילך</h3>
+      <p>נותן מטרה, ימי אימון ומגבלות — והבינה בונה <b>תוכנית אימון מלאה + תפריט תזונה</b> תוך שניות, לפי שיטת HF ומאגר תזונה מאומת. אתה רק מאשר ומכוונן.</p>
+      <ul><li>עומס מתקדם, טכניקות מתקדמות ודילאוד מובנים</li><li>תזונה איכותית בלבד — בסגנון מפתחי גוף</li><li>חוסך לך שעות של עבודה שחורה על כל מתאמן</li></ul>
+    </div>
+  </div>
+
+  <!-- 3. דשבורד עסקי + חשבונות -->
+  <div class="feat">
+    <div class="feat-media"><div class="mock">
+      <div class="mock-bar"><i style="background:#ff5f57"></i><i style="background:#febc2e"></i><i style="background:#28c840"></i><span class="t">📊 דשבורד עסקי + מאזן</span></div>
+      <div class="mock-body">
+        <div class="m-kpi" style="margin-bottom:8px;">
+          <div class="m-card"><div class="v" style="color:#4ade80;">₪18,400</div><div class="k">הכנסה החודש</div></div>
+          <div class="m-card"><div class="v" style="color:#FFD700;">27</div><div class="k">מתאמנים פעילים</div></div>
+        </div>
+        <div class="m-card"><div class="k" style="margin-bottom:6px;">רווח / הפסד</div><div class="m-bars"><span style="height:50%"></span><span style="height:70%"></span><span style="height:60%"></span><span style="height:90%"></span><span style="height:80%"></span><span style="height:100%"></span></div></div>
+      </div>
+    </div></div>
+    <div class="feat-body">
+      <h3>📊 אתה יודע בדיוק כמה אתה מרוויח</h3>
+      <p>דשבורד עסקי + <b>מנהל חשבונות מובנה</b>: הכנסות מול הוצאות, מאזן רווח/הפסד לפי חודש/רבעון/שנה, דוח LTV ושימור לקוחות — הכל מחושב לבד.</p>
+      <ul><li>ניהול חשבונות: הכנסות, הוצאות ומאזן מודפס</li><li>קבלות דיגיטליות ומעקב חוב פר מתאמן</li><li>דוחות שימור וקוהורט</li></ul>
+    </div>
+  </div>
+
+  <!-- 4. אפליקציה ממותגת למתאמן -->
+  <div class="feat">
+    <div class="feat-media">
+      <div class="phone">
+        <div class="phone-top"></div>
+        <div class="phone-body">
+          <div style="text-align:center;font-size:0.7rem;color:#ffb066;font-weight:800;margin-bottom:8px;">שלום, דני 👋</div>
+          <div class="tiles">
+            <div class="tile"><b>🏋️</b>תוכנית</div><div class="tile"><b>🥗</b>תפריט</div>
+            <div class="tile"><b>🏆</b>שיאים</div><div class="tile"><b>🌐</b>קהילה</div>
+          </div>
+          <div style="margin-top:8px;background:linear-gradient(135deg,rgba(255,107,0,0.16),rgba(255,215,0,0.06));border:1px solid rgba(255,140,0,0.5);border-radius:12px;padding:9px;text-align:center;"><div style="font-size:1.2rem;font-weight:900;color:var(--orange);">104</div><div style="font-size:0.58rem;color:#aaa;">ימים לסיום הליווי</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="feat-body">
+      <h3>📱 אפליקציה יפה — עם השם שלך</h3>
+      <p>המתאמנים מקבלים אפליקציה ממותגת <b>בלוגו ובשם שלך</b>: אימון עם וידאו ודגשים, תפריט חכם, יומן הערות אישי, ליגה קבוצתית, מדידות וצ'אט איתך.</p>
+      <ul><li>מיתוג מלא — הלוגו והאייקון שלך</li><li>סנכרון צעדים, שיאים וחגיגות</li><li>חבר מביא חבר, קבלות ותשלום בביט</li></ul>
+    </div>
+  </div>
+</div></section>
+
+<!-- PLANS (close) -->
+<section class="section" id="plans" style="padding-top:20px;"><div class="wrap">
+  <div class="sec-tag">מסלולים</div>
+  <h2 class="sec-title">בחר את המסלול <b>שלך</b></h2>
+  <p class="sec-sub">תשלום דרך ביט · גישה מיידית · ללא עמלות. אפשר לשדרג/להוריד מסלול בכל עת.</p>
+  <div class="plans-grid">
+
+    <div class="plan">
+      <div class="plan-badge">ללא התחייבות</div>
+      <div class="plan-name">רגיל · חודשי</div>
+      <div class="plan-price"><small>₪</small>250</div>
+      <div class="plan-per">לחודש · גישה מלאה 30 יום</div>
+      <ul>
+        <li>ניהול מתאמנים ללא הגבלה</li>
+        <li>בניית תוכניות אימון ותזונה</li>
+        <li>מאמן-AI אוטומטי + מניעת נטישה</li>
+        <li>לוח בקרה עסקי + ניהול חשבונות</li>
+      </ul>
+      <div class="tok">🪙 <span><strong>1,000</strong> טוקנים AI כלולים</span></div>
+      <a href="coach-signup.html?plan=reg1" class="cta btn-ghost" style="border:1px solid var(--orange);color:var(--orange);">הצטרף עכשיו</a>
+    </div>
+
+    <div class="plan feat-plan">
+      <div class="plan-badge">⭐ פרימיום</div>
+      <div class="plan-name">פרימיום · חודשי</div>
+      <div class="plan-price"><small>₪</small>450</div>
+      <div class="plan-per">לחודש · הכל שברגיל ועוד</div>
+      <ul>
+        <li>🧠 <b>המאמן השני</b> — מוח AI שני שבונה אימון + תפריט מלאים בשניות</li>
+        <li>כל הכלים של המסלול הרגיל</li>
+        <li>עדיפות בתמיכה טכנית</li>
+      </ul>
+      <div class="tok">🪙 <span><strong>3,500</strong> טוקנים AI (2,500 נוספים)</span></div>
+      <a href="coach-signup.html?plan=prem1" class="cta btn-primary">הצטרף עכשיו</a>
+    </div>
+
+    <div class="plan">
+      <div class="plan-badge">הכי משתלם</div>
+      <div class="plan-name">רגיל · שנתי</div>
+      <div class="plan-price"><small>₪</small>2,500</div>
+      <div class="plan-per">לשנה · חסכון של 500 ₪</div>
+      <ul>
+        <li>ניהול מתאמנים ללא הגבלה</li>
+        <li>בניית תוכניות אימון ותזונה</li>
+        <li>מאמן-AI אוטומטי + מניעת נטישה</li>
+        <li>שנה שלמה במחיר משתלם</li>
+      </ul>
+      <div class="tok">🪙 <span><strong>12,000</strong> טוקנים AI כלולים</span></div>
+      <a href="coach-signup.html?plan=reg12" class="cta btn-ghost" style="border:1px solid var(--orange);color:var(--orange);">הצטרף עכשיו</a>
+    </div>
+
+  </div>
+  <p style="text-align:center;margin-top:26px;font-size:0.82rem;color:#555;">יש שאלות? <a href="https://wa.me/972586931163" target="_blank" rel="noopener" style="color:var(--orange);text-decoration:none;">שלח הודעה בוואטסאפ</a></p>
+</div></section>
+
+<!-- CLOSING -->
+<section class="closing"><div class="wrap">
+  <q>"תפסיק לנהל את העסק שלך מהוואטסאפ.<br/>תן לפלטפורמה לעבוד — ותתמקד באימון."</q>
+  <div><a href="#plans" class="btn btn-primary">🚀 התחל עכשיו</a></div>
+</div></section>
+
+<footer>Fit Journey · הפלטפורמה למאמנים אונליין © 2026 · <a href="index.html">חזרה לאתר</a></footer>
+
+<a href="#plans" class="buy-float">🚀 לרכישת מסלול</a>
+
+</body>
+</html>
