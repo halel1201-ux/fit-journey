@@ -950,6 +950,42 @@
     </div>
     <div style="margin-bottom:28px;"></div>
 
+    <!-- SECTION 2.5: APP ICON (frame color + image) -->
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+      <div style="width:8px;height:8px;border-radius:50%;background:#4ade80;"></div>
+      <div style="font-size:0.85rem;font-weight:900;">📱 אייקון האפליקציה</div>
+    </div>
+    <div style="font-size:0.75rem;color:var(--muted);margin-bottom:12px;">מחליף את אייקון ה-FJ במסך הבית ובלשוניות — אצלך ואצל המתאמנים שלך. בחר צבע מסגרת ותמונה שתופיע בפנים.</div>
+
+    <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:16px;margin-bottom:12px;">
+      <!-- live composed preview -->
+      <div style="text-align:center;flex-shrink:0;">
+        <canvas id="icon-preview" width="112" height="112" style="width:112px;height:112px;border-radius:25px;display:block;"></canvas>
+        <div style="font-size:0.64rem;color:#777;margin-top:6px;">תצוגה מקדימה</div>
+      </div>
+      <div style="flex:1;min-width:190px;">
+        <div style="font-size:0.76rem;font-weight:700;color:#ccc;margin-bottom:6px;">צבע מסגרת / רקע</div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+          <input type="color" id="icon-frame-color" value="#0d0e11" oninput="onIconFrameColor(this.value)" style="width:40px;height:40px;border:none;border-radius:8px;cursor:pointer;background:none;padding:0;"/>
+          <span id="icon-frame-hex" style="font-size:0.82rem;font-weight:700;direction:ltr;">#0d0e11</span>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">
+          <button type="button" onclick="onIconFrameColor('#0d0e11')" style="width:26px;height:26px;border-radius:7px;background:#0d0e11;border:1px solid rgba(255,255,255,0.25);cursor:pointer;" title="שחור"></button>
+          <button type="button" onclick="onIconFrameColor('#FF6B00')" style="width:26px;height:26px;border-radius:7px;background:#FF6B00;border:1px solid rgba(255,255,255,0.15);cursor:pointer;" title="כתום"></button>
+          <button type="button" onclick="onIconFrameColor('#FFD700')" style="width:26px;height:26px;border-radius:7px;background:#FFD700;border:1px solid rgba(255,255,255,0.15);cursor:pointer;" title="זהב"></button>
+          <button type="button" onclick="onIconFrameColor('#ffffff')" style="width:26px;height:26px;border-radius:7px;background:#fff;border:1px solid rgba(255,255,255,0.25);cursor:pointer;" title="לבן"></button>
+          <button type="button" onclick="onIconFrameColor('#1e40af')" style="width:26px;height:26px;border-radius:7px;background:#1e40af;border:1px solid rgba(255,255,255,0.15);cursor:pointer;" title="כחול"></button>
+          <button type="button" onclick="onIconFrameColor('#166534')" style="width:26px;height:26px;border-radius:7px;background:#166534;border:1px solid rgba(255,255,255,0.15);cursor:pointer;" title="ירוק"></button>
+        </div>
+        <input type="file" id="brand-icon-file" accept="image/png,image/jpeg,image/webp,image/svg+xml" style="display:none;" onchange="onIconFileChange()"/>
+        <button type="button" class="btn-sm btn-outline" style="width:100%;font-size:0.78rem;" onclick="document.getElementById('brand-icon-file').click()">🖼️ בחר תמונה לאייקון</button>
+        <div id="brand-icon-actions" style="display:none;margin-top:6px;">
+          <button onclick="clearBrandAsset('icon')" style="font-size:0.73rem;color:#f87171;background:none;border:none;cursor:pointer;padding:0;">✕ הסר תמונת אייקון</button>
+        </div>
+      </div>
+    </div>
+    <div style="font-size:0.7rem;color:#777;margin-bottom:28px;">💡 לאחר שמירה — המתאמנים שהתקינו את האפליקציה צריכים להסיר ולהתקין מחדש כדי שמערכת ההפעלה תרענן את האייקון.</div>
+
     <!-- SECTION 3: COLOR -->
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
       <div style="width:8px;height:8px;border-radius:50%;background:#60a5fa;"></div>
@@ -2829,6 +2865,7 @@
     coachPlans = coach.plans || {};
     if (!canEdit && coachRole !== 'pending') showViewOnlyBanner();
     document.getElementById('coach-brand').textContent = `FJ — ${coachName}`;
+    applyCoachOwnIcon(coach);   // 📱 האייקון של המאמן גם על הטלפון שלו
     loadTokens();
     if (isStudioOwner) loadStudio();
     else checkStudioMembership(); // is this coach a member of some studio?
@@ -8505,6 +8542,108 @@ ${NUTRITION_DB}
   let _brandLogoUrl   = null;
   let _brandCoverUrl  = null;
   let _brandColor     = '#FF6B00';
+  /* 📱 app icon: frame color + inner image, composed into a real app icon */
+  let _iconFile = null, _iconImgUrl = null, _iconFrameColor = '#0d0e11';
+
+  /* 📱 מחיל את אייקון האפליקציה של המאמן על הפאנל שלו עצמו
+     (לשונית הדפדפן + מסך הבית), כדי שגם אצלו הוא יחליף את אייקון ה-FJ. */
+  function applyCoachOwnIcon(c) {
+    try {
+      const icon = c && (c.app_icon_url || c.logo_url);
+      if (!icon) return;
+      document.querySelectorAll('link[rel="icon"], link[rel="shortcut icon"]').forEach(el => el.remove());
+      const fav = document.createElement('link'); fav.rel = 'icon'; fav.href = icon; document.head.appendChild(fav);
+      let apple = document.querySelector('link[rel="apple-touch-icon"]');
+      if (!apple) { apple = document.createElement('link'); apple.rel = 'apple-touch-icon'; document.head.appendChild(apple); }
+      apple.href = icon;
+      const appName = (c.app_name && c.app_name.trim()) || (c.name && c.name.trim()) || 'Fit Journey';
+      document.title = appName + ' — פאנל מאמן';
+      const base = location.pathname.replace(/[^/]*$/, '');
+      const manifest = {
+        name: appName + ' — מאמן', short_name: (appName.length > 12 ? appName.slice(0, 12) : appName),
+        start_url: base + 'coach.html', scope: base,
+        display: 'standalone', orientation: 'portrait',
+        background_color: '#0a0a0a', theme_color: c.brand_color || '#FF6B00',
+        icons: [
+          { src: icon, sizes: '192x192', type: 'image/png', purpose: 'any' },
+          { src: icon, sizes: '512x512', type: 'image/png', purpose: 'any' },
+          { src: icon, sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+        ],
+      };
+      const url = URL.createObjectURL(new Blob([JSON.stringify(manifest)], { type: 'application/manifest+json' }));
+      let link = document.querySelector('link[rel="manifest"]');
+      if (!link) { link = document.createElement('link'); link.rel = 'manifest'; document.head.appendChild(link); }
+      if (link.dataset.blob) { try { URL.revokeObjectURL(link.href); } catch (e) {} }
+      link.href = url; link.dataset.blob = '1';
+    } catch (e) { /* best-effort */ }
+  }
+
+  function onIconFrameColor(hex) {
+    _iconFrameColor = hex;
+    const p = document.getElementById('icon-frame-color'); if (p) p.value = hex;
+    const t = document.getElementById('icon-frame-hex');   if (t) t.textContent = hex;
+    drawIconPreview();
+  }
+  function onIconFileChange() {
+    const file = document.getElementById('brand-icon-file').files[0];
+    if (!file) return;
+    if (file.size > 3 * 1024 * 1024) { toast('קובץ גדול מדי (עד 3MB)', 'err'); return; }
+    _iconFile = file;
+    if (_iconImgUrl && _iconImgUrl.startsWith('blob:')) URL.revokeObjectURL(_iconImgUrl);
+    _iconImgUrl = URL.createObjectURL(file);
+    document.getElementById('brand-icon-actions').style.display = 'block';
+    drawIconPreview();
+  }
+  // מצייר אייקון אפליקציה: ריבוע מעוגל בצבע המסגרת + התמונה בפנים
+  function composeIcon(ctx, size, imgEl) {
+    const r = size * 0.225;
+    ctx.clearRect(0, 0, size, size);
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(r, 0);
+    ctx.arcTo(size, 0, size, size, r);
+    ctx.arcTo(size, size, 0, size, r);
+    ctx.arcTo(0, size, 0, 0, r);
+    ctx.arcTo(0, 0, size, 0, r);
+    ctx.closePath();
+    ctx.clip();
+    ctx.fillStyle = _iconFrameColor || '#0d0e11';
+    ctx.fillRect(0, 0, size, size);
+    if (imgEl && imgEl.width) {
+      const pad = size * 0.16, box = size - pad * 2;
+      const sc = Math.min(box / imgEl.width, box / imgEl.height);
+      const w = imgEl.width * sc, h = imgEl.height * sc;
+      ctx.drawImage(imgEl, (size - w) / 2, (size - h) / 2, w, h);
+    } else {
+      ctx.fillStyle = 'rgba(255,255,255,0.35)';
+      ctx.font = `900 ${size * 0.16}px Heebo, sans-serif`;
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText('בחר תמונה', size / 2, size / 2);
+    }
+    ctx.restore();
+  }
+  function drawIconPreview() {
+    const cv = document.getElementById('icon-preview'); if (!cv) return;
+    const ctx = cv.getContext('2d');
+    const src = _iconImgUrl;
+    if (!src) { composeIcon(ctx, cv.width, null); return; }
+    const img = new Image(); img.crossOrigin = 'anonymous';
+    img.onload  = () => composeIcon(ctx, cv.width, img);
+    img.onerror = () => composeIcon(ctx, cv.width, null);
+    img.src = src;
+  }
+  // מייצר PNG 512×512 של האייקון המורכב, להעלאה
+  function renderIconBlob() {
+    return new Promise(resolve => {
+      const cv = document.createElement('canvas'); cv.width = 512; cv.height = 512;
+      const ctx = cv.getContext('2d');
+      if (!_iconImgUrl) { composeIcon(ctx, 512, null); return cv.toBlob(resolve, 'image/png'); }
+      const img = new Image(); img.crossOrigin = 'anonymous';
+      img.onload  = () => { composeIcon(ctx, 512, img); cv.toBlob(resolve, 'image/png'); };
+      img.onerror = () => { composeIcon(ctx, 512, null); cv.toBlob(resolve, 'image/png'); };
+      img.src = _iconImgUrl;
+    });
+  }
 
   function openBranding() {
     document.getElementById('brand-overlay').classList.add('open');
@@ -8522,12 +8661,20 @@ ${NUTRITION_DB}
   }
 
   async function loadBranding() {
-    const { data } = await sb.from('coaches').select('logo_url,cover_url,brand_color,tagline,phone,app_name').eq('email', coachEmail).single();
+    const { data } = await sb.from('coaches').select('logo_url,cover_url,brand_color,tagline,phone,app_name,icon_frame_color,app_icon_url,icon_src_url').eq('email', coachEmail).single();
     if (!data) return;
     _brandLogoUrl  = data.logo_url  || null;
     _brandCoverUrl = data.cover_url || null;
     _brandColor    = data.brand_color || '#FF6B00';
     coachPhone     = data.phone || null;
+    // 📱 app icon state
+    _iconFrameColor = data.icon_frame_color || '#0d0e11';
+    _iconImgUrl     = data.icon_src_url || null;   // התמונה הגולמית (לפני המסגרת)
+    _iconFile       = null;
+    const ifp = document.getElementById('icon-frame-color'); if (ifp) ifp.value = _iconFrameColor;
+    const ifh = document.getElementById('icon-frame-hex');   if (ifh) ifh.textContent = _iconFrameColor;
+    const ia  = document.getElementById('brand-icon-actions'); if (ia) ia.style.display = _iconImgUrl ? 'block' : 'none';
+    drawIconPreview();
 
     document.getElementById('cp-name').value  = coachName  || '';
     document.getElementById('cp-phone').value = coachPhone || '';
@@ -8619,6 +8766,15 @@ ${NUTRITION_DB}
   }
 
   function clearBrandAsset(type) {
+    if (type === 'icon') {
+      _iconFile = null;
+      if (_iconImgUrl && _iconImgUrl.startsWith('blob:')) URL.revokeObjectURL(_iconImgUrl);
+      _iconImgUrl = null;
+      const f = document.getElementById('brand-icon-file'); if (f) f.value = '';
+      const a = document.getElementById('brand-icon-actions'); if (a) a.style.display = 'none';
+      drawIconPreview();
+      return;
+    }
     if (type === 'logo') {
       _brandLogoFile = null; _brandLogoUrl = null;
       document.getElementById('brand-logo-file').value = '';
@@ -8707,16 +8863,42 @@ ${NUTRITION_DB}
         _brandCoverFile = null; _brandCoverUrl = coverUrl;
       }
 
+      /* 📱 אייקון האפליקציה: מעלים את התמונה הגולמית + מרכיבים אייקון 512×512
+         עם המסגרת הצבועה, כדי שהוא יחליף את אייקון ה-FJ אצל כולם. */
+      let iconSrcUrl = _iconImgUrl, appIconUrl;
+      if (_iconFile) {
+        const iext = (_iconFile.name.split('.').pop() || 'png').toLowerCase();
+        iconSrcUrl = await uploadBrandFile(_iconFile, `${coachEmail}/icon-src.${iext}`);
+        _iconFile = null;
+        if (_iconImgUrl && _iconImgUrl.startsWith('blob:')) URL.revokeObjectURL(_iconImgUrl);
+        _iconImgUrl = iconSrcUrl;
+      }
+      if (_iconImgUrl) {
+        const iconBlob = await renderIconBlob();
+        if (iconBlob) {
+          const iconFile = new File([iconBlob], 'app-icon.png', { type: 'image/png' });
+          appIconUrl = await uploadBrandFile(iconFile, `${coachEmail}/app-icon.png`);
+          appIconUrl += (appIconUrl.includes('?') ? '&' : '?') + 'v=' + Date.now(); // עוקף cache
+        }
+      } else { iconSrcUrl = null; appIconUrl = null; }
+
       const updates = {
         brand_color: _brandColor,
         tagline: document.getElementById('brand-tagline').value.trim() || null,
         app_name: document.getElementById('brand-appname')?.value.trim() || null,
+        icon_frame_color: _iconFrameColor || null,
+        icon_src_url: iconSrcUrl || null,
+        app_icon_url: appIconUrl || null,
       };
       if (logoUrl  !== undefined) updates.logo_url  = logoUrl  || null;
       if (coverUrl !== undefined) updates.cover_url = coverUrl || null;
 
       const { error } = await sb.from('coaches').update(updates).eq('email', coachEmail);
       if (error) throw error;
+
+      applyCoachOwnIcon({ ...updates, name: coachName });  // מחיל מיד גם על הפאנל של המאמן
+      const ia2 = document.getElementById('brand-icon-actions');
+      if (ia2) ia2.style.display = _iconImgUrl ? 'block' : 'none';
 
       btn.disabled = false; btn.textContent = '💾 שמור מיתוג';
       msg.style.display = 'block';

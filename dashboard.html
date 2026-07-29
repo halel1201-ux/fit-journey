@@ -5862,7 +5862,7 @@ ${foodList || 'אין פריטים'}
     if (!coachEmail) return;
     try {
       const { data } = await sb.from('coaches')
-        .select('logo_url,cover_url,brand_color,tagline,name,app_name')
+        .select('logo_url,cover_url,brand_color,tagline,name,app_name,app_icon_url')
         .eq('email', coachEmail).single();
       if (data) applyBranding(data);
     } catch(e) { /* table columns may not exist yet — silent */ }
@@ -5918,7 +5918,8 @@ ${foodList || 'אין פריטים'}
       const color = (b.brand_color && b.brand_color !== '#FF6B00') ? b.brand_color : '#FF6B00';
       const appName = (b.app_name && b.app_name.trim()) || (b.tagline && b.tagline.trim()) || (b.name && b.name.trim()) || 'Fit Journey';
       const shortName = appName.length > 12 ? appName.slice(0, 12) : appName;
-      const icon = b.logo_url || 'icon-512.png';
+      // אייקון מורכב (תמונה + מסגרת) קודם, אחריו הלוגו, ולבסוף אייקון ברירת המחדל
+      const icon = b.app_icon_url || b.logo_url || 'icon-512.png';
       // theme-color + title + apple touch icon
       let themeMeta = document.querySelector('meta[name="theme-color"]');
       if (!themeMeta) { themeMeta = document.createElement('meta'); themeMeta.name = 'theme-color'; document.head.appendChild(themeMeta); }
@@ -5927,10 +5928,10 @@ ${foodList || 'אין פריטים'}
       let apple = document.querySelector('link[rel="apple-touch-icon"]');
       if (!apple) { apple = document.createElement('link'); apple.rel = 'apple-touch-icon'; document.head.appendChild(apple); }
       apple.href = icon;
-      // browser-tab favicon → coach logo too (fully branded)
-      if (b.logo_url) {
+      // browser-tab favicon → the coach's app icon (or logo) too (fully branded)
+      if (b.app_icon_url || b.logo_url) {
         document.querySelectorAll('link[rel="icon"], link[rel="shortcut icon"]').forEach(el => el.parentNode.removeChild(el));
-        const fav = document.createElement('link'); fav.rel = 'icon'; fav.href = b.logo_url; document.head.appendChild(fav);
+        const fav = document.createElement('link'); fav.rel = 'icon'; fav.href = icon; document.head.appendChild(fav);
       }
       let appleTitle = document.querySelector('meta[name="apple-mobile-web-app-title"]');
       if (!appleTitle) { appleTitle = document.createElement('meta'); appleTitle.name = 'apple-mobile-web-app-title'; document.head.appendChild(appleTitle); }
