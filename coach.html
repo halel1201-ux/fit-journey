@@ -20,6 +20,10 @@
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root { --orange:#FF6B00; --gold:#FFD700; --black:#090909; --graphite:#111; --white:#fff; --muted:#888; --card:rgba(255,255,255,0.04); --border:rgba(255,107,0,0.25); }
+
+    /* 🎨 תפריטי בחירה (select): רקע כהה + כיתוב לבן — אחרת האופציות לא נראות */
+    select { color-scheme: dark; }
+    select option, select optgroup { background-color:#1a1a1a; color:#ffffff; }
     body { font-family: 'Heebo', sans-serif; background-color: var(--black); background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 130 80'%3E%3Ctext x='65' y='65' text-anchor='middle' font-family='Arial Black%2Csans-serif' font-weight='900' font-size='68' fill='%23FF6B00' opacity='0.08'%3EFJ%3C/text%3E%3C/svg%3E"); background-attachment: fixed; background-position: center center; background-repeat: no-repeat; background-size: 140px; color: var(--white); min-height: 100vh; }
     /* FJ watermark on all full-screen overlays */
     .plans-overlay, #coach-grp-overlay, #loader { background-color: var(--black); background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 130 80'%3E%3Ctext x='65' y='65' text-anchor='middle' font-family='Arial Black%2Csans-serif' font-weight='900' font-size='68' fill='%23FF6B00' opacity='0.08'%3EFJ%3C/text%3E%3C/svg%3E"); background-attachment: fixed; background-position: center center; background-repeat: no-repeat; background-size: 140px; }
@@ -8913,6 +8917,7 @@ ${NUTRITION_DB}
      FEATURE 1 — ניהול סייקל (מאמן)
   ══════════════════════════════════════════════════════ */
   let clientCycle = null;
+  let _cycleDraft = null;   // עריכה שטרם נשמרה (סטטוס/מטרה/תאריך/פרטים)
   let cycleCompounds = [
     { name:'', dose:'', inj_per_week:'' },
     { name:'', dose:'', inj_per_week:'' }
@@ -8937,6 +8942,7 @@ ${NUTRITION_DB}
   ];
 
   async function loadCycleForClient(email) {
+    _cycleDraft = null;   // מתאמן חדש — אין טיוטה
     try {
       const { data } = await sb.from('cycles').select('*').eq('client_email', email).maybeSingle();
       clientCycle = data;
@@ -8949,10 +8955,24 @@ ${NUTRITION_DB}
     renderCycleEditor();
   }
 
+  /* טיוטה של עריכה שטרם נשמרה — כדי שהוספת/מחיקת שורת חומר לא תאפס
+     את הסטטוס/מטרה שהמאמן בחר (הבאג: חזרה ל"טבעי" בלחיצה על "הוסף חומר"). */
+  function captureCycleDraft() {
+    const s = document.getElementById('cy-status');
+    if (!s) return;
+    _cycleDraft = {
+      ...(_cycleDraft || clientCycle || {}),
+      status:     s.value,
+      goal:       document.getElementById('cy-goal')?.value    ?? (clientCycle?.goal || 'general'),
+      start_date: document.getElementById('cy-start')?.value   || (clientCycle?.start_date || todayStr()),
+      details:    document.getElementById('cy-details')?.value ?? (clientCycle?.details || ''),
+    };
+  }
+
   function renderCycleEditor() {
     const wrap = document.getElementById('cycle-editor');
     if (!wrap) return;
-    const cy = clientCycle;
+    const cy = _cycleDraft || clientCycle;
     const selStatus = cy?.status || 'natural';
     const selGoal   = cy?.goal   || 'general';
 
@@ -9043,12 +9063,14 @@ ${NUTRITION_DB}
   }
 
   function addCompoundRow() {
+    captureCycleDraft();          // שומר את הבחירות הנוכחיות לפני רינדור מחדש
     cycleCompounds = getCompoundsFromDOM();
     cycleCompounds.push({ name:'', dose:'', inj_per_week:'' });
     renderCycleEditor();
   }
 
   function removeCompoundRow(idx) {
+    captureCycleDraft();
     cycleCompounds = getCompoundsFromDOM();
     cycleCompounds.splice(idx, 1);
     if (cycleCompounds.length === 0) cycleCompounds = [{ name:'', dose:'', inj_per_week:'' }];
@@ -9082,6 +9104,7 @@ ${NUTRITION_DB}
 
     if (error) { toast('שגיאה: '+error.message,'err'); return; }
     clientCycle = data;
+    _cycleDraft = null;   // נשמר — הטיוטה כבר לא רלוונטית
     cycleCompounds = compounds.length > 0 ? compounds : [{ name:'', dose:'', inj_per_week:'' }];
     renderCycleEditor();
     toast('סייקל נשמר ✓','ok');
@@ -9099,6 +9122,7 @@ ${NUTRITION_DB}
     });
     await sb.from('cycles').delete().eq('client_email',activeEmail);
     clientCycle = null;
+    _cycleDraft = null;
     cycleCompounds = [{ name:'', dose:'', inj_per_week:'' }, { name:'', dose:'', inj_per_week:'' }];
     renderCycleEditor();
     toast('סייקל הועבר להיסטוריה ✓','ok');

@@ -18,6 +18,10 @@
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root { --orange:#FF6B00; --gold:#FFD700; --black:#090909; --graphite:#111; --white:#fff; --muted:#888; --card:rgba(255,255,255,0.04); --border:rgba(255,107,0,0.25); }
+
+    /* 🎨 תפריטי בחירה (select): רקע כהה + כיתוב לבן — אחרת האופציות לא נראות */
+    select { color-scheme: dark; }
+    select option, select optgroup { background-color:#1a1a1a; color:#ffffff; }
     body { font-family: 'Heebo', sans-serif; background: var(--black); color: var(--white); min-height: 100vh; }
     ::-webkit-scrollbar { width: 5px; } ::-webkit-scrollbar-track { background: #0e0e0e; } ::-webkit-scrollbar-thumb { background: var(--orange); border-radius: 3px; }
 

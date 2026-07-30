@@ -20,6 +20,10 @@
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root { --orange:#FF6B00; --gold:#FFD700; --black:#090909; --graphite:#111; --white:#fff; --muted:#aaa; --card:rgba(255,255,255,0.04); --border:rgba(255,107,0,0.25); }
+
+    /* 🎨 תפריטי בחירה (select): רקע כהה + כיתוב לבן — אחרת האופציות לא נראות */
+    select { color-scheme: dark; }
+    select option, select optgroup { background-color:#1a1a1a; color:#ffffff; }
     html { scroll-behavior: smooth; }
     body { font-family: 'Heebo', sans-serif; background-color: var(--black); background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 130 80'%3E%3Ctext x='65' y='65' text-anchor='middle' font-family='Arial Black%2Csans-serif' font-weight='900' font-size='68' fill='%23FF6B00' opacity='0.08'%3EFJ%3C/text%3E%3C/svg%3E"); background-attachment: fixed; background-position: center center; background-repeat: no-repeat; background-size: 140px; color: var(--white); min-height: 100vh; }
     /* FJ watermark on all full-screen overlays */
