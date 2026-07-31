@@ -109,6 +109,22 @@
     animation:fadeStage .4s ease forwards;
   }
   @keyframes fadeStage{to{opacity:0;}}
+
+  /* ─── Coach-branded icon mode (replaces the "FJ" text shards) ─── */
+  .shard.branded{
+    text-shadow:none;
+    font-size:0;
+  }
+  .shard.branded .tile{
+    width:190px;height:190px;
+    border-radius:42px;
+    display:flex;align-items:center;justify-content:center;
+    overflow:hidden;
+  }
+  .shard.branded .tile img{
+    width:72%;height:72%;object-fit:contain;
+  }
+  .shard.branded .tile.full img{width:100%;height:100%;}
 </style>
 </head>
 <body>
@@ -157,6 +173,32 @@
   const flash    = document.getElementById('flash');
   const stage    = document.getElementById('stage');
 
+  // ── Coach branding (cached by dashboard.html on the previous launch) ──
+  // Each shard keeps its own clip-path, so swapping the FJ text for an identical
+  // icon tile in all 9 shards still shatters exactly the same way.
+  (function applyBrand(){
+    var b = null;
+    try { b = JSON.parse(localStorage.getItem('fj_brand_cache') || 'null'); } catch(e) {}
+    if (!b) return;
+    var frame = b.frame || b.color || '#FF6B00';
+    var shards = document.querySelectorAll('.shard');
+    if (b.icon) {
+      var tile = '<div class="tile' + (b.full ? ' full' : '') + '" style="background:linear-gradient(135deg,' + frame + ',' + frame + '99);">'
+               + '<img src="' + b.icon + '" alt=""/></div>';
+      shards.forEach(function(s){ s.classList.add('branded'); s.innerHTML = tile; });
+      logoWrap.style.filter = 'drop-shadow(0 0 34px ' + frame + 'e6) drop-shadow(0 0 70px ' + frame + '66)';
+    } else if (b.color) {
+      // no icon uploaded — at least honour the brand colour on the FJ mark
+      shards.forEach(function(s){
+        s.style.color = b.color;
+        s.style.textShadow = '0 0 40px ' + b.color + 'e6, 0 0 80px ' + b.color + '66';
+      });
+    }
+    if (b.frame || b.color) {
+      document.querySelectorAll('.crack-glow').forEach(function(g){ g.style.stroke = frame + '80'; });
+    }
+  })();
+
   // ── Animate a crack path (dashoffset 300→0) ──
   function animateCrack(id, delay, dur){
     const el = document.getElementById(id);
@@ -204,8 +246,11 @@
   }, 1500);
 
   // ── STEP 4: Fade out → login ──
-  setTimeout(()=>{ stage.classList.add('fadeout'); }, 2050);
-  setTimeout(()=>{ window.location.replace('login.html'); }, 2450);
+  // In the native app the full-length intro just feels slow, so shorten it there.
+  // The website keeps the original timing.
+  var _inApp = location.protocol === 'capacitor:' || (window.Capacitor && window.Capacitor.isNativePlatform);
+  setTimeout(()=>{ stage.classList.add('fadeout'); }, _inApp ? 650 : 2050);
+  setTimeout(()=>{ window.location.replace('login.html'); }, _inApp ? 900 : 2450);
 })();
 </script>
 </body>

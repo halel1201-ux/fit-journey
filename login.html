@@ -13,6 +13,10 @@
   <meta name="apple-mobile-web-app-title" content="HF Coaching">
   <link rel="apple-touch-icon" href="apple-touch-icon.png"/>
   <title>כניסה — HF Coaching</title>
+  <link rel="preconnect" href="https://luwknflmhvcxgifzxgrk.supabase.co" crossorigin>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;700;900&display=swap" rel="stylesheet"/>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <style>
@@ -59,6 +63,10 @@
       letter-spacing: -1.5px; z-index: 1;
       text-shadow: 0 2px 6px rgba(0,0,0,0.35);
     }
+    /* coach-branded icon: the artwork sits inside the frame, so kill the FJ gloss */
+    .fj-icon.branded::before { display: none; }
+    .fj-icon img { width: 72%; height: 72%; object-fit: contain; z-index: 1; }
+    .fj-icon.branded.full img { width: 100%; height: 100%; }
     .hf-sub { font-size: 0.77rem; color: var(--muted); letter-spacing: 1.5px; margin-top: 4px; }
     .card-body { padding: 28px 28px 32px; }
 
@@ -86,7 +94,7 @@
     .field input:focus { border-color: var(--orange); }
     .btn-go {
       width: 100%; padding: 13px; margin-top: 4px;
-      background: linear-gradient(135deg, var(--orange), #FF8C00);
+      background: linear-gradient(135deg, var(--orange), var(--orange2, #FF8C00));
       color: var(--white); font-family: 'Heebo', sans-serif;
       font-size: 1rem; font-weight: 700; border: none; border-radius: 8px;
       cursor: pointer; transition: opacity 0.2s, transform 0.15s;
@@ -120,9 +128,37 @@
 <body>
 <div class="card">
   <div class="card-top">
-    <div class="fj-icon"><span>FJ</span></div>
-    <div class="hf-sub">FIT JOURNEY · אזור אישי</div>
+    <div class="fj-icon" id="fj-icon"><span>FJ</span></div>
+    <div class="hf-sub" id="fj-sub">FIT JOURNEY · אזור אישי</div>
   </div>
+  <script>
+  /* Coach branding, cached by dashboard.html on a previous launch — applied inline
+     (before paint) so the trainee never sees the generic FJ mark flash first. */
+  (function(){
+    var b = null;
+    try { b = JSON.parse(localStorage.getItem('fj_brand_cache') || 'null'); } catch(e) {}
+    if (!b) return;
+    var frame = b.frame || b.color || null;
+    var el = document.getElementById('fj-icon');
+    if (b.icon && el) {
+      el.classList.add('branded');
+      if (b.full) el.classList.add('full');
+      el.innerHTML = '<img src="' + b.icon + '" alt=""/>';
+    }
+    if (frame && el) {
+      el.style.background = 'linear-gradient(145deg,' + frame + ' 0%,' + frame + 'cc 100%)';
+      el.style.boxShadow = '0 0 0 1px ' + frame + '66, 0 8px 32px ' + frame + '73, 0 2px 8px rgba(0,0,0,0.6)';
+    }
+    if (b.name) {
+      var sub = document.getElementById('fj-sub');
+      if (sub) sub.textContent = b.name + ' · אזור אישי';
+    }
+    if (b.color) {
+      document.documentElement.style.setProperty('--orange', b.color);
+      document.documentElement.style.setProperty('--orange2', b.color);
+    }
+  })();
+  </script>
   <div class="card-body">
     <div class="msg err" id="err"></div>
     <div class="msg ok"  id="ok"></div>
@@ -154,6 +190,7 @@
 
       <button class="btn-go" id="btn" onclick="handleSubmit()">כניסה</button>
       <p class="hint" id="hint">הסיסמה הוגדרה עבורך על ידי המאמן.</p>
+      <p class="hint" style="margin-top:10px;"><a href="privacy.html" style="color:var(--muted);text-decoration:underline;">מדיניות פרטיות</a></p>
     </div>
   </div>
 </div>

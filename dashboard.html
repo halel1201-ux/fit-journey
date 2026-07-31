@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8"/>
   <script>/* opened as a local file:// copy — fetch/SW are blocked there; jump to the live site */if(location.protocol==='file:')location.replace('https://halel1201-ux.github.io/fit-journey/'+location.pathname.split('/').pop()+location.search);</script>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
   <link rel="icon" type="image/png" href="favicon.png"/>
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#FF6B00">
@@ -13,14 +13,19 @@
   <meta name="apple-mobile-web-app-title" content="HF Coaching">
   <link rel="apple-touch-icon" href="apple-touch-icon.png"/>
   <title>אזור אישי — HF Coaching</title>
+  <link rel="preconnect" href="https://luwknflmhvcxgifzxgrk.supabase.co" crossorigin>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;700;900&display=swap" rel="stylesheet"/>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js" defer></script>
   <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root { --orange:#FF6B00; --gold:#FFD700; --black:#090909; --graphite:#111; --white:#fff; --muted:#aaa; --card:rgba(255,255,255,0.04); --border:rgba(255,107,0,0.25); }
     html { scroll-behavior: smooth; }
+    html, body { overflow-x: clip; } /* block sideways drag/reveal of off-screen fixed panels */
     body { font-family: 'Heebo', sans-serif; background-color: var(--black); background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 130 80'%3E%3Ctext x='65' y='65' text-anchor='middle' font-family='Arial Black%2Csans-serif' font-weight='900' font-size='68' fill='%23FF6B00' opacity='0.08'%3EFJ%3C/text%3E%3C/svg%3E"); background-attachment: fixed; background-position: center center; background-repeat: no-repeat; background-size: 140px; color: var(--white); min-height: 100vh; }
     /* FJ watermark on all full-screen overlays */
     .chat-overlay, .ai-chat-panel > *, #loader { background-color: var(--black); background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 130 80'%3E%3Ctext x='65' y='65' text-anchor='middle' font-family='Arial Black%2Csans-serif' font-weight='900' font-size='68' fill='%23FF6B00' opacity='0.08'%3EFJ%3C/text%3E%3C/svg%3E"); background-attachment: fixed; background-position: center center; background-repeat: no-repeat; background-size: 140px; }
@@ -118,7 +123,7 @@
       position: fixed; bottom: 0; left: 0; right: 0; z-index: 120;
       display: flex; background: rgba(17,17,17,0.95); backdrop-filter: blur(12px);
       border-top: 1px solid rgba(255,255,255,0.08);
-      padding: 8px 4px calc(8px + env(safe-area-inset-bottom));
+      padding: 8px 4px calc(8px + var(--sab,0px));
     }
     .tab-btn {
       flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px;
@@ -304,7 +309,7 @@
     .session-overlay { position: fixed; inset: 0; z-index: 300; background: var(--black); display: none; flex-direction: column; }
     .session-overlay.open { display: flex; }
     .session-hdr {
-      flex-shrink: 0; height: 62px; padding: 0 16px;
+      flex-shrink: 0; height: calc(62px + var(--sat,0px)); padding: var(--sat,0px) 16px 0; box-sizing: border-box;
       background: rgba(9,9,9,0.97); backdrop-filter: blur(14px);
       border-bottom: 1px solid rgba(255,107,0,0.15);
       display: flex; align-items: center; gap: 14px;
@@ -459,7 +464,7 @@
     .ai-msg.user { background:rgba(255,107,0,0.15); border:1px solid rgba(255,107,0,0.3); align-self:flex-end; border-radius:12px 12px 4px 12px; }
     .ai-msg.bot  { background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.08); align-self:flex-start; border-radius:12px 12px 12px 4px; }
     .ai-msg.loading { color:var(--muted); font-style:italic; }
-    .ai-inp-row { padding:12px 16px 20px; border-top:1px solid rgba(255,255,255,0.07); display:flex; gap:8px; flex-shrink:0; background:#0f0f0f; }
+    .ai-inp-row { padding:12px 16px calc(20px + var(--sab,0px)); border-top:1px solid rgba(255,255,255,0.07); display:flex; gap:8px; flex-shrink:0; background:#0f0f0f; }
     .ai-inp { flex:1; padding:10px 14px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); border-radius:10px; color:var(--white); font-family:'Heebo',sans-serif; font-size:0.9rem; outline:none; }
     .ai-inp:focus { border-color:var(--orange); }
     .btn-ai-send { padding:10px 18px; background:var(--orange); border:none; border-radius:10px; color:#fff; font-family:'Heebo',sans-serif; font-size:0.88rem; font-weight:700; cursor:pointer; }
@@ -699,7 +704,7 @@
   .chat-meta { font-size:0.62rem; color:#555; margin-top:3px; }
   /* ── CHAT FAB ── */
   .chat-fab {
-    position:fixed; bottom:84px; left:20px; z-index:200;
+    position:fixed; bottom:calc(84px + var(--sab,0px)); left:20px; z-index:200;
     width:54px; height:54px; border-radius:50%; border:none; cursor:pointer;
     background:linear-gradient(135deg,var(--orange),#FF8C00);
     display:none; align-items:center; justify-content:center; font-size:1.3rem;
@@ -718,7 +723,7 @@
   .chat-overlay { position:fixed; inset:0; z-index:310; background-color:var(--black); background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 130 80'%3E%3Ctext x='65' y='65' text-anchor='middle' font-family='Arial Black%2Csans-serif' font-weight='900' font-size='68' fill='%23FF6B00' opacity='0.08'%3EFJ%3C/text%3E%3C/svg%3E"); background-attachment:fixed; background-position:center center; background-repeat:no-repeat; background-size:140px; display:none; flex-direction:column; }
   .chat-overlay.open { display:flex; }
   .chat-ov-hdr {
-    flex-shrink:0; height:58px; padding:0 14px;
+    flex-shrink:0; height:calc(58px + var(--sat,0px)); padding:var(--sat,0px) 14px 0; box-sizing:border-box;
     background:rgba(13,13,13,0.98); backdrop-filter:blur(14px);
     border-bottom:1px solid rgba(255,255,255,0.07);
     display:flex; align-items:center; gap:10px;
@@ -739,7 +744,7 @@
   .grp-sender { display:flex; align-items:center; gap:6px; margin-bottom:3px; }
   .grp-av { width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.62rem; font-weight:900; color:#fff; flex-shrink:0; }
   .grp-name { font-size:0.7rem; font-weight:700; }
-  .chat-ov-inp-row { flex-shrink:0; padding:10px 12px; background:#0d0d0d; border-top:1px solid rgba(255,255,255,0.07); display:flex; gap:8px; align-items:center; padding-bottom:max(10px,env(safe-area-inset-bottom)); }
+  .chat-ov-inp-row { flex-shrink:0; padding:10px 12px; background:#0d0d0d; border-top:1px solid rgba(255,255,255,0.07); display:flex; gap:8px; align-items:center; padding-bottom:calc(10px + var(--sab,0px)); }
   .chat-ov-inp { flex:1; padding:11px 16px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); border-radius:24px; color:var(--white); font-family:'Heebo',sans-serif; font-size:0.93rem; outline:none; transition:border-color 0.2s; }
   .chat-ov-inp:focus { border-color:rgba(255,107,0,0.45); }
   .btn-ov-send { width:42px; height:42px; border-radius:50%; background:linear-gradient(135deg,var(--orange),#FF8C00); border:none; color:#fff; font-size:1.1rem; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:opacity 0.2s; box-shadow:0 2px 12px rgba(255,107,0,0.35); }
@@ -769,7 +774,18 @@
   </div>
   <div style="display:flex;gap:8px;align-items:center;">
     <a id="btn-admin-link" href="admin.html" style="display:none;padding:7px 18px;background:linear-gradient(135deg,var(--orange),#FF8C00);border-radius:6px;color:#fff;font-family:'Heebo',sans-serif;font-size:0.85rem;font-weight:700;text-decoration:none;">פאנל ניהול</a>
-    <a id="btn-coach-link" href="coach.html" style="display:none;padding:7px 18px;background:transparent;border:1px solid rgba(255,107,0,0.4);border-radius:6px;color:var(--orange);font-family:'Heebo',sans-serif;font-size:0.85rem;font-weight:700;text-decoration:none;">החלף מצב — מאמן</a>
+    <style>
+      .coach-sw{position:relative;display:inline-block;width:42px;height:24px;flex:none;}
+      .coach-sw input{opacity:0;width:0;height:0;position:absolute;}
+      .coach-sw .coach-sl{position:absolute;inset:0;background:rgba(255,255,255,0.18);border:1px solid rgba(255,107,0,0.45);border-radius:24px;transition:.2s;}
+      .coach-sw .coach-sl::before{content:"";position:absolute;height:16px;width:16px;right:4px;top:3px;background:#fff;border-radius:50%;transition:.2s;}
+      .coach-sw input:checked + .coach-sl{background:var(--orange);border-color:var(--orange);}
+      .coach-sw input:checked + .coach-sl::before{transform:translateX(-18px);}
+    </style>
+    <label id="btn-coach-link" style="display:none;align-items:center;gap:8px;cursor:pointer;color:var(--orange);font-family:'Heebo',sans-serif;font-size:0.85rem;font-weight:700;user-select:none;">
+      <span>מצב מאמן</span>
+      <span class="coach-sw"><input type="checkbox" id="coach-switch" onchange="if(this.checked){window.location.href='coach.html';}"><span class="coach-sl"></span></span>
+    </label>
     <button class="btn-logout" onclick="goHome()" title="דף הבית">🏠</button>
     <button class="btn-logout" onclick="forceAppUpdate()" title="עדכון האפליקציה">🔄</button>
     <button class="btn-logout" onclick="logout()">יציאה</button>
@@ -791,7 +807,7 @@
       <button class="hl-book act" onclick="goHomeScreen()">בית</button>
       <button class="hl-book" onclick="goDetail('workouts')">אימון</button>
       <button class="hl-book" onclick="goDetail('nutrition')">תזונה</button>
-      <button class="hl-book" onclick="goDetail('workouts','community-card')">קהילה</button>
+      <button class="hl-book" onclick="goCommunity()">קהילה</button>
     </div>
     <div onclick="goDetail('workouts')" style="display:flex;align-items:center;gap:9px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:10px 14px;margin-bottom:16px;cursor:pointer;">
       <span style="font-size:1.1rem;">🚶</span>
@@ -799,10 +815,10 @@
       <span id="hl-steps-num" style="font-weight:900;font-size:0.9rem;color:#4ade80;">0</span>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px;">
-      <button class="hl-tile" onclick="goDetail('nutrition')"><span class="hl-ic">🥗</span><span class="hl-lbl">תפריט</span></button>
-      <button class="hl-tile" onclick="goDetail('workouts','training-wrap')"><span class="hl-ic">🏋️</span><span class="hl-lbl">תוכנית</span></button>
-      <button class="hl-tile" onclick="goDetail('records')"><span class="hl-ic">🏆</span><span class="hl-lbl">טבלת שיאים</span></button>
-      <button class="hl-tile" onclick="goDetail('workouts','community-card')"><span class="hl-ic">🌐</span><span class="hl-lbl">קהילה</span></button>
+      <button class="hl-tile" onclick="goDetail('nutrition','nutri-body')"><span class="hl-ic">🥗</span><span class="hl-lbl">תפריט</span></button>
+      <button class="hl-tile" onclick="goTrainingPlan()"><span class="hl-ic">🏋️</span><span class="hl-lbl">תוכנית שלי</span></button>
+      <button class="hl-tile" onclick="goDetail('records','rec-body')"><span class="hl-ic">🏆</span><span class="hl-lbl">טבלת שיאים</span></button>
+      <button class="hl-tile" onclick="goCommunity()"><span class="hl-ic">🌐</span><span class="hl-lbl">קהילה</span></button>
     </div>
     <div id="hl-renew" style="display:flex;align-items:center;justify-content:space-between;gap:10px;background:linear-gradient(135deg,rgba(255,107,0,0.16),rgba(255,215,0,0.06));border:1px solid rgba(255,140,0,0.5);border-radius:16px;padding:14px 16px;box-shadow:0 4px 18px rgba(0,0,0,0.3);">
       <div><div style="font-size:0.72rem;color:var(--muted);">⏳ נותרו לסיום הליווי</div><div style="margin-top:2px;"><span id="hl-cd-num" style="font-size:1.5rem;font-weight:900;color:var(--orange);">—</span> <span style="color:var(--orange);font-weight:800;">ימים</span></div></div>
@@ -956,7 +972,7 @@
     </div>
 
     <!-- STEPS CARD — מד צעדים -->
-    <div style="margin-bottom:16px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:12px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+    <div id="steps-card" style="margin-bottom:16px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:12px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
       <div style="font-size:1.5rem;">🚶</div>
       <div style="flex:1;min-width:120px;">
         <div style="font-size:0.72rem;color:#888;">צעדים היום</div>
@@ -1151,6 +1167,9 @@
   </button>
   <button class="tab-btn" data-tab="history" onclick="switchTab('history')">
     <span class="tab-ic">📊</span><span>היסטוריה</span>
+  </button>
+  <button class="tab-btn" onclick="goCycle()">
+    <span class="tab-ic">🔄</span><span>הסייקל שלי</span>
   </button>
 </div>
 
@@ -1625,7 +1644,7 @@
 
     const { data: coachRow } = await sb.from('coaches').select('email').eq('email', email).single();
     if (coachRow) {
-      document.getElementById('btn-coach-link').style.display = 'block';
+      document.getElementById('btn-coach-link').style.display = 'inline-flex';
     }
 
     const { data: client } = await sb.from('clients').select('*').eq('email', email).single();
@@ -3408,7 +3427,7 @@
     const filled = saved.exercises.reduce((a, ex) => a + (ex.sets || []).filter(s => s.completed || s.weight || s.reps).length, 0);
     const b = document.createElement('div');
     b.id = 'resume-workout-banner';
-    b.style.cssText = 'position:fixed;left:12px;right:12px;bottom:78px;z-index:2500;background:linear-gradient(135deg,rgba(255,107,0,0.96),rgba(255,140,0,0.96));border-radius:12px;padding:12px 14px;box-shadow:0 6px 24px rgba(0,0,0,0.4);display:flex;align-items:center;gap:10px;font-family:\'Heebo\',sans-serif;';
+    b.style.cssText = 'position:fixed;left:12px;right:12px;bottom:calc(78px + var(--sab,0px));z-index:2500;background:linear-gradient(135deg,rgba(255,107,0,0.96),rgba(255,140,0,0.96));border-radius:12px;padding:12px 14px;box-shadow:0 6px 24px rgba(0,0,0,0.4);display:flex;align-items:center;gap:10px;font-family:\'Heebo\',sans-serif;';
     b.innerHTML = `
       <div style="flex:1;color:#fff;">
         <div style="font-weight:900;font-size:0.92rem;">⏸ אימון פעיל: ${esc(saved.dayName || '')}</div>
@@ -3625,6 +3644,8 @@
       showDashToast('🔒 התוכן נעול — חדש את הליווי כדי לגשת לתזונה');
       return;
     }
+    if (typeof clearWorkoutScope === 'function') clearWorkoutScope();
+    const _cl = document.getElementById('cycle-lock'); if (_cl) _cl.style.display = 'none';
     document.querySelectorAll('.tab-page').forEach(p => p.classList.remove('active'));
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     document.getElementById('tab-' + name)?.classList.add('active');
@@ -3643,9 +3664,88 @@
     const hl = document.getElementById('home-launcher'); if (hl) hl.style.display = 'none';
     const dv = document.getElementById('detail-view'); if (dv) dv.style.display = 'block';
     const tb = document.getElementById('tabbar'); if (tb) tb.style.display = 'flex';
+    clearWorkoutScope();
     if (tab) switchTab(tab);
     window.scrollTo({ top: 0, behavior: 'instant' });
     if (scrollId) setTimeout(() => document.getElementById(scrollId)?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 140);
+  }
+
+  /* ── Scoped views: a home shortcut opens the workouts tab showing ONLY its own
+        sections, instead of the full scrolling page. clearWorkoutScope() restores
+        everything (used whenever a normal tab is opened). ── */
+  const WORKOUT_SECTIONS = ['deload-banner','week-summary-card','today-card','health-decl-banner',
+    'steps-card','studio-section','habits-card','community-card','referral-card','injury-ai-section',
+    'progress-photos-section','cycle-section','checkin-section','renewal-section','plan-training-section'];
+  let _workoutScope = null;
+
+  function clearWorkoutScope() {
+    if (!_workoutScope) return;
+    _workoutScope = null;
+    WORKOUT_SECTIONS.forEach(id => {
+      const el = document.getElementById(id);
+      if (el && el.dataset.prevDisplay !== undefined) { el.style.display = el.dataset.prevDisplay; delete el.dataset.prevDisplay; }
+    });
+    const dc = document.getElementById('debt-card-client');
+    if (dc && dc.dataset.prevDisplay !== undefined) { dc.style.display = dc.dataset.prevDisplay; delete dc.dataset.prevDisplay; }
+  }
+
+  function scopeWorkouts(keepIds) {
+    clearWorkoutScope();
+    _workoutScope = keepIds;
+    WORKOUT_SECTIONS.forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      if (el.dataset.prevDisplay === undefined) el.dataset.prevDisplay = el.style.display || '';
+      if (!keepIds.includes(id)) el.style.display = 'none';
+      else if (el.style.display === 'none' && el.dataset.prevDisplay === 'none') el.style.display = '';
+    });
+  }
+
+  // 🏋️ תוכנית שלי — the plan, the renewal countdown and the money status only
+  function goTrainingPlan() {
+    goDetail('workouts');
+    scopeWorkouts(['plan-training-section','renewal-section']);
+    const dc = document.getElementById('debt-card-client');
+    if (dc) { if (dc.dataset.prevDisplay === undefined) dc.dataset.prevDisplay = dc.style.display || ''; }
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }
+
+  // 🌐 קהילה — community, referrals and habits, up to the weekly check-in (no cycle)
+  function goCommunity() {
+    goDetail('workouts');
+    scopeWorkouts(['habits-card','community-card','referral-card','checkin-section']);
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }
+
+  // 🔄 הסייקל שלי — cycle only; locked for natural athletes
+  function goCycle() {
+    goDetail('workouts');
+    scopeWorkouts(['cycle-section']);
+    renderCycleLock();
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }
+
+  function renderCycleLock() {
+    const sec = document.getElementById('cycle-section');
+    if (!sec) return;
+    const isNatural = !cycleData || cycleData.status === 'natural';
+    let lock = document.getElementById('cycle-lock');
+    if (isNatural) {
+      sec.style.display = 'none';
+      if (!lock) {
+        lock = document.createElement('div');
+        lock.id = 'cycle-lock';
+        lock.style.cssText = 'margin:20px 0;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.1);border-radius:16px;padding:34px 20px;text-align:center;';
+        lock.innerHTML = '<div style="font-size:2.6rem;margin-bottom:10px;">🔒</div>' +
+          '<div style="font-weight:900;font-size:1.05rem;color:#fff;margin-bottom:6px;">הסייקל שלי — נעול</div>' +
+          '<div style="font-size:0.85rem;color:#888;line-height:1.6;">הפיצ׳ר זמין למתאמנים בליווי סייקל.<br>אתה מוגדר כ־<b style="color:#4ade80;">טבעי</b> 💪</div>';
+        sec.parentNode.insertBefore(lock, sec);
+      }
+      lock.style.display = 'block';
+    } else {
+      if (lock) lock.style.display = 'none';
+      sec.style.display = 'block';
+    }
   }
   function goHomeScreen() {
     const dv = document.getElementById('detail-view'); if (dv) dv.style.display = 'none';
@@ -5862,14 +5962,29 @@ ${foodList || 'אין פריטים'}
     if (!coachEmail) return;
     try {
       const { data } = await sb.from('coaches')
-        .select('logo_url,cover_url,brand_color,tagline,name,app_name')
+        .select('logo_url,cover_url,brand_color,tagline,name,app_name,app_icon_url,icon_frame_color,icon_full')
         .eq('email', coachEmail).single();
       if (data) applyBranding(data);
     } catch(e) { /* table columns may not exist yet — silent */ }
   }
 
+  /* splash.html + login.html run BEFORE we know which coach the trainee belongs to,
+     so stash the branding here and let those screens read it on the next launch. */
+  function cacheBrandingForEarlyScreens(b) {
+    try {
+      localStorage.setItem('fj_brand_cache', JSON.stringify({
+        icon:  b.app_icon_url || b.logo_url || null,
+        frame: b.icon_frame_color || b.brand_color || null,
+        full:  !!b.icon_full,
+        color: b.brand_color || null,
+        name:  (b.app_name || '').trim() || (b.name || '').trim() || null,
+      }));
+    } catch(e) { /* private mode / quota — branding just stays generic */ }
+  }
+
   function applyBranding(b) {
     if (!b) return;
+    cacheBrandingForEarlyScreens(b);
     const root = document.documentElement;
 
     // 1. Brand color → override --orange everywhere
@@ -5918,7 +6033,7 @@ ${foodList || 'אין פריטים'}
       const color = (b.brand_color && b.brand_color !== '#FF6B00') ? b.brand_color : '#FF6B00';
       const appName = (b.app_name && b.app_name.trim()) || (b.tagline && b.tagline.trim()) || (b.name && b.name.trim()) || 'Fit Journey';
       const shortName = appName.length > 12 ? appName.slice(0, 12) : appName;
-      const icon = b.logo_url || 'icon-512.png';
+      const icon = b.app_icon_url || b.logo_url || 'icon-512.png';
       // theme-color + title + apple touch icon
       let themeMeta = document.querySelector('meta[name="theme-color"]');
       if (!themeMeta) { themeMeta = document.createElement('meta'); themeMeta.name = 'theme-color'; document.head.appendChild(themeMeta); }

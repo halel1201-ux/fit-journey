@@ -13,18 +13,49 @@
   <meta name="apple-mobile-web-app-title" content="HF Coaching">
   <link rel="apple-touch-icon" href="apple-touch-icon.png"/>
   <title>פאנל מאמן — HF Coaching</title>
+  <link rel="preconnect" href="https://luwknflmhvcxgifzxgrk.supabase.co" crossorigin>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;700;900&display=swap" rel="stylesheet"/>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js" defer></script>
   <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root { --orange:#FF6B00; --gold:#FFD700; --black:#090909; --graphite:#111; --white:#fff; --muted:#888; --card:rgba(255,255,255,0.04); --border:rgba(255,107,0,0.25); }
+    html, body { overflow-x: clip; } /* block sideways drag/reveal of off-screen fixed panels */
     body { font-family: 'Heebo', sans-serif; background-color: var(--black); background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 130 80'%3E%3Ctext x='65' y='65' text-anchor='middle' font-family='Arial Black%2Csans-serif' font-weight='900' font-size='68' fill='%23FF6B00' opacity='0.08'%3EFJ%3C/text%3E%3C/svg%3E"); background-attachment: fixed; background-position: center center; background-repeat: no-repeat; background-size: 140px; color: var(--white); min-height: 100vh; }
     /* FJ watermark on all full-screen overlays */
     .plans-overlay, #coach-grp-overlay, #loader { background-color: var(--black); background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 130 80'%3E%3Ctext x='65' y='65' text-anchor='middle' font-family='Arial Black%2Csans-serif' font-weight='900' font-size='68' fill='%23FF6B00' opacity='0.08'%3EFJ%3C/text%3E%3C/svg%3E"); background-attachment: fixed; background-position: center center; background-repeat: no-repeat; background-size: 140px; }
     ::-webkit-scrollbar { width: 5px; } ::-webkit-scrollbar-track { background: #0e0e0e; } ::-webkit-scrollbar-thumb { background: var(--orange); border-radius: 3px; }
-    .topnav { height: 58px; background: rgba(9,9,9,0.95); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(255,107,0,0.15); display: flex; align-items: center; justify-content: space-between; padding: 0 20px; position: sticky; top: 0; z-index: 100; }
+    .topnav { background: rgba(9,9,9,0.95); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(255,107,0,0.15); display: flex; flex-direction: column; align-items: stretch; position: sticky; top: 0; z-index: 100; }
+    .tn-row { min-height: 58px; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; }
+    .tn-hero { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 8px 14px 10px; border-top: 1px solid rgba(255,255,255,0.06); }
+    .tn-pills { display: flex; gap: 8px; align-items: center; }
+    .tn-bal-lbl { font-size: 0.62rem; color: var(--muted); font-weight: 700; margin-inline-start: 2px; }
+    /* "מצב מאמן" on/off switch (same as dashboard) */
+    .coach-sw { position:relative; display:inline-block; width:42px; height:24px; flex:none; }
+    .coach-sw input { opacity:0; width:0; height:0; position:absolute; }
+    .coach-sw .coach-sl { position:absolute; inset:0; background:rgba(255,255,255,0.18); border:1px solid rgba(255,107,0,0.45); border-radius:24px; transition:.2s; }
+    .coach-sw .coach-sl::before { content:""; position:absolute; height:16px; width:16px; right:4px; top:3px; background:#fff; border-radius:50%; transition:.2s; }
+    .coach-sw input:checked + .coach-sl { background:var(--orange); border-color:var(--orange); }
+    .coach-sw input:checked + .coach-sl::before { transform:translateX(-18px); }
+    #coach-mode-pill { align-items:center; gap:8px; cursor:pointer; color:var(--orange); font-family:'Heebo',sans-serif; font-size:0.72rem; font-weight:700; user-select:none; padding:4px 10px; border:1px solid rgba(255,107,0,0.4); border-radius:8px; background:rgba(255,107,0,0.06); justify-content:space-between; }
+    @media (max-width: 768px) {
+      .tn-hero { flex-direction: column; align-items: stretch; padding: 9px 12px 11px; }
+      .tn-hero #token-badge-wrap { width: 100%; justify-content: space-between; padding: 11px 14px; border-radius: 14px; background: linear-gradient(120deg, rgba(255,107,0,0.16), rgba(255,215,0,0.05)); border: 1px solid rgba(255,107,0,0.32); }
+      .tn-hero #token-balance { font-size: 1.15rem; font-weight: 900; color: var(--orange); }
+      .tn-pills { width: 100%; }
+      .tn-pills > * { flex: 1 1 0; justify-content: center; }
+    }
+    /* Desktop (website) keeps the original single-row bar — the B layout is phone-only */
+    @media (min-width: 769px) {
+      .topnav { flex-direction: row; align-items: center; padding: 0 20px; }
+      .tn-row { flex: 1; min-height: 58px; }
+      .tn-hero { border-top: none; padding: 0; flex-wrap: nowrap; gap: 8px; }
+      .tn-bal-lbl { display: none; }
+    }
     .topnav-brand { font-size: 1.2rem; font-weight: 900; background: linear-gradient(135deg, var(--orange), var(--gold)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
     .topnav-sub { font-size: 0.75rem; color: var(--muted); }
     .btn-sm { padding: 7px 16px; border-radius: 6px; font-family: 'Heebo', sans-serif; font-size: 0.82rem; font-weight: 700; cursor: pointer; transition: background 0.2s, opacity 0.2s; }
@@ -73,6 +104,7 @@
     @media (max-width: 600px) { .form-grid, .form-grid.cols-3 { grid-template-columns: 1fr; } }
     .f-group { display: flex; flex-direction: column; gap: 5px; }
     .f-group label { font-size: 0.77rem; font-weight: 700; color: var(--muted); }
+    .macro-grid label { color: var(--orange); text-shadow: 0 0 7px rgba(255,107,0,0.5); font-weight: 800; }
     .f-group input, .f-group select { padding: 9px 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 7px; color: var(--white); font-family: 'Heebo', sans-serif; font-size: 0.88rem; outline: none; transition: border-color 0.2s; }
     .f-group input:focus, .f-group select:focus { border-color: var(--orange); }
     .f-group select option { background: #1a1a1a; }
@@ -102,6 +134,9 @@
     .nutri-header { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 1fr 1fr auto; gap: 6px; margin-bottom: 6px; }
     .nutri-header span { font-size: 0.7rem; font-weight: 700; color: var(--muted); text-align: center; padding: 0 2px; }
     .nutri-header span:first-child { text-align: right; }
+    .mi-cell { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+    .mi-cell input { width: 100%; }
+    .mi-cell label { display: none; }
     .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); padding: 10px 22px; border-radius: 8px; font-size: 0.88rem; font-weight: 700; z-index: 999; transition: opacity 0.3s; opacity: 0; pointer-events: none; }
     .toast.ok  { background: rgba(60,200,60,0.15); border: 1px solid rgba(60,200,60,0.4); color: #70dd70; }
     .toast.err { background: rgba(255,60,60,0.15); border: 1px solid rgba(255,60,60,0.4); color: #ff7070; }
@@ -177,7 +212,7 @@
     /* PUSH OVERLAY */
     .push-overlay { position:fixed;inset:0;z-index:350;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,0.6);opacity:0;pointer-events:none;transition:opacity 0.2s; }
     .push-overlay.open { opacity:1;pointer-events:auto; }
-    .push-drawer { width:100%;max-width:520px;background:#131313;border:1px solid rgba(255,107,0,0.2);border-radius:18px 18px 0 0;padding:24px 20px 32px;max-height:80vh;overflow-y:auto;transform:translateY(40px);transition:transform 0.25s; }
+    .push-drawer { width:100%;max-width:520px;background:#131313;border:1px solid rgba(255,107,0,0.2);border-radius:18px 18px 0 0;padding:24px 20px calc(32px + var(--sab,0px));max-height:80vh;overflow-y:auto;transform:translateY(40px);transition:transform 0.25s; }
     .push-overlay.open .push-drawer { transform:translateY(0); }
     .push-head { display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;font-size:1rem;font-weight:900; }
     .push-head button { background:rgba(255,255,255,0.07);border:none;color:#888;width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:1rem; }
@@ -201,7 +236,7 @@
     /* PLANS OVERLAY */
     .plans-overlay { position: fixed; inset: 0; z-index: 400; background-color: var(--black); background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 130 80'%3E%3Ctext x='65' y='65' text-anchor='middle' font-family='Arial Black%2Csans-serif' font-weight='900' font-size='68' fill='%23FF6B00' opacity='0.08'%3EFJ%3C/text%3E%3C/svg%3E"); background-attachment: fixed; background-position: center center; background-repeat: no-repeat; background-size: 140px; display: none; flex-direction: column; overflow: hidden; }
     .plans-overlay.open { display: flex; }
-    .plans-hdr { flex-shrink: 0; height: 62px; padding: 0 18px; background: rgba(9,9,9,0.97); backdrop-filter: blur(14px); border-bottom: 1px solid rgba(255,107,0,0.2); display: flex; align-items: center; justify-content: space-between; }
+    .plans-hdr { flex-shrink: 0; height: calc(62px + var(--sat,0px)); padding: var(--sat,0px) 18px 0; box-sizing: border-box; background: rgba(9,9,9,0.97); backdrop-filter: blur(14px); border-bottom: 1px solid rgba(255,107,0,0.2); display: flex; align-items: center; justify-content: space-between; }
     .plans-hdr-title { font-size: 1.1rem; font-weight: 900; background: linear-gradient(135deg,var(--orange),var(--gold)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
     .plans-body { flex: 1; overflow-y: auto; padding: 20px 16px 100px; max-width: 800px; margin: 0 auto; width: 100%; }
     .plans-tabs { display: flex; gap: 8px; margin-bottom: 24px; }
@@ -234,7 +269,7 @@
     /* RECORDS */
     .records-overlay { position: fixed; inset: 0; z-index: 400; background: var(--black); display: none; flex-direction: column; overflow: hidden; }
     .records-overlay.open { display: flex; }
-    .rec-hdr { flex-shrink: 0; height: 62px; padding: 0 18px; background: rgba(9,9,9,0.97); backdrop-filter: blur(14px); border-bottom: 1px solid rgba(255,215,0,0.2); display: flex; align-items: center; justify-content: space-between; }
+    .rec-hdr { flex-shrink: 0; height: calc(62px + var(--sat,0px)); padding: var(--sat,0px) 18px 0; box-sizing: border-box; background: rgba(9,9,9,0.97); backdrop-filter: blur(14px); border-bottom: 1px solid rgba(255,215,0,0.2); display: flex; align-items: center; justify-content: space-between; }
     .rec-hdr-title { font-size: 1.1rem; font-weight: 900; background: linear-gradient(135deg,#FFD700,#FF6B00); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
     .btn-close-rec { background: rgba(255,255,255,0.07); border: none; color: var(--muted); width: 34px; height: 34px; border-radius: 50%; cursor: pointer; font-size: 1rem; }
     .rec-body { flex: 1; overflow-y: auto; padding: 20px 16px 40px; max-width: 700px; margin: 0 auto; width: 100%; }
@@ -263,15 +298,21 @@
     .no-records { text-align:center; padding:40px 20px; color:#444; font-size:0.9rem; }
 
     .btn-mob-menu { display:none; align-items:center; gap:5px; background:rgba(255,107,0,0.1); border:1px solid rgba(255,107,0,0.3); border-radius:6px; color:var(--orange); padding:7px 12px; font-family:'Heebo',sans-serif; font-size:0.82rem; font-weight:700; cursor:pointer; }
-    .sidebar-bd { display:none; position:fixed; inset:0; top:58px; background:rgba(0,0,0,0.65); z-index:140; }
+    .sidebar-bd { display:none; position:fixed; inset:0; top:var(--topnav-h,58px); background:rgba(0,0,0,0.65); z-index:140; }
     .sidebar-bd.open { display:block; }
 
     .bottom-nav { display:none; }
     @media (max-width: 768px) {
       .layout { display:block; }
-      .sidebar { position:fixed; right:0; top:58px; height:calc(100vh - 58px); height:calc(100dvh - 58px); width:280px; z-index:150; transform:translateX(110%); transition:transform 0.3s ease; box-shadow:-6px 0 24px rgba(0,0,0,0.6); overflow:hidden; }
+      .sidebar { position:fixed; right:0; top:var(--topnav-h,58px); height:calc(100dvh - var(--topnav-h,58px)); width:280px; z-index:150; transform:translateX(110%); transition:transform 0.3s ease; box-shadow:-6px 0 24px rgba(0,0,0,0.6); overflow:hidden; }
+    /* keep the last client above the fixed bottom-nav (62px) + home indicator */
+    .sidebar .client-list { padding-bottom: calc(108px + var(--sab,0px)); } /* clears the 62px bar + the raised center chat button (protrudes ~24px) */
       .sidebar.mob-open { transform:translateX(0); }
-      .main { padding:16px 14px 80px; width:100%; }
+      .main { padding:16px 14px calc(104px + var(--sab,0px)); width:100%; } /* clear the bottom bar + raised chat button */
+      body.nav-hidden .main { padding-bottom:calc(24px + var(--sab,0px)); }
+      body.nav-hidden .bottom-nav { transform:translateY(120%); }
+      body.nav-hidden #coach-chat-fab { display:none !important; }
+      .bottom-nav { transition:transform 0.25s ease; }
       .btn-mob-menu { display:none !important; }
       .topnav { padding:0 12px; }
       .topnav-sub { display:none; }
@@ -280,17 +321,22 @@
       .form-grid { grid-template-columns:1fr 1fr; }
       .ex-row { grid-template-columns:1fr 1fr; }
       .item-row { grid-template-columns:1fr 1fr 1fr; }
-      .nutri-header { grid-template-columns:1fr 1fr 1fr; }
-      .nutri-header span:nth-child(n+4) { display:none; }
+      .nutri-header { display:none; } /* labels moved into each value cell */
+      .mi-cell label { display:block; font-size:0.58rem; font-weight:800; color:var(--orange); text-shadow:0 0 5px rgba(255,107,0,0.5); text-align:center; }
+      .meal-block-head { flex-wrap:wrap; }
+      .meal-block { overflow-x:auto; }
+      .plan-editor-card, .sec-card { overflow-x:auto; }
       .sec-card { padding:16px 14px; }
-      .bottom-nav { display:flex; position:fixed; bottom:0; left:0; right:0; z-index:150; background:rgba(10,10,10,0.97); backdrop-filter:blur(14px); border-top:1px solid rgba(255,107,0,0.15); height:62px; align-items:stretch; }
-      #coach-chat-fab { bottom:80px !important; } /* מעל ה-bottom-nav */
+      .bottom-nav { display:flex; position:fixed; bottom:0; left:0; right:0; z-index:150; background:rgba(10,10,10,0.97); backdrop-filter:blur(14px); border-top:1px solid rgba(255,107,0,0.15); height:calc(62px + var(--sab,0px)); padding-bottom:var(--sab,0px); box-sizing:border-box; align-items:stretch; }
+      #coach-chat-fab { display:none !important; } /* הוחלף בכפתור הצ'אט המרכזי בבר התחתון */
       .bn-item { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; cursor:pointer; background:none; border:none; color:var(--muted); font-family:'Heebo',sans-serif; font-size:0.6rem; font-weight:700; transition:color 0.2s; padding:0; text-decoration:none; }
       .bn-item:hover, .bn-item.active { color:var(--orange); }
       .bn-icon { font-size:1.3rem; line-height:1; }
-      .bn-more-menu { position:fixed; bottom:62px; left:0; right:0; background:rgba(15,15,15,0.98); border-top:1px solid rgba(255,255,255,0.07); padding:8px 0; z-index:160; display:none; }
+      .bn-center { position:relative; overflow:visible; }
+      .bn-center-btn { width:54px; height:54px; border-radius:50%; background:linear-gradient(135deg,#3B82F6,#8B5CF6); display:flex; align-items:center; justify-content:center; font-size:1.5rem; margin-top:-24px; box-shadow:0 4px 16px rgba(99,102,241,0.55); border:3px solid var(--black); }
+      .bn-more-menu { position:fixed; bottom:calc(62px + var(--sab,0px) + 8px); left:0; right:0; background:rgba(15,15,15,0.98); border-top:1px solid rgba(255,255,255,0.07); border-bottom:1px solid rgba(255,255,255,0.07); padding:8px 0; z-index:160; display:none; }
       .bn-more-menu.open { display:block; }
-      .bn-more-item { display:flex; align-items:center; gap:12px; padding:13px 20px; font-size:0.9rem; font-weight:700; color:var(--white); cursor:pointer; border:none; background:none; font-family:'Heebo',sans-serif; width:100%; }
+      .bn-more-item { display:flex; align-items:center; gap:12px; padding:13px 20px; font-size:0.9rem; font-weight:700; color:var(--white); cursor:pointer; border:none; background:none; font-family:'Heebo',sans-serif; width:100%; text-decoration:none; }
       .bn-more-item:hover { background:rgba(255,107,0,0.08); color:var(--orange); }
     }
     @media (max-width: 480px) {
@@ -298,7 +344,7 @@
     }
     .notif-bell { position:relative; cursor:pointer; }
     .notif-badge { position:absolute; top:-4px; right:-4px; background:var(--orange); color:#fff; font-size:0.6rem; font-weight:900; width:16px; height:16px; border-radius:50%; display:flex; align-items:center; justify-content:center; }
-    .notif-panel { position:fixed; top:58px; left:0; right:0; bottom:0; z-index:200; display:none; }
+    .notif-panel { position:fixed; top:var(--topnav-h,58px); left:0; right:0; bottom:0; z-index:200; display:none; }
     .notif-panel.open { display:flex; }
     .notif-overlay { position:absolute; inset:0; background:rgba(0,0,0,0.5); }
     .notif-drawer { position:absolute; top:0; left:0; width:420px; max-width:100vw; height:100%; background:#161616; border-right:1px solid rgba(255,107,0,0.2); overflow-y:auto; z-index:1; padding:20px; }
@@ -350,7 +396,7 @@
     /* ── BRANDING OVERLAY ── */
     .brand-overlay { position:fixed; inset:0; z-index:420; background:var(--black); display:none; flex-direction:column; overflow:hidden; }
     .brand-overlay.open { display:flex; }
-    .brand-hdr { flex-shrink:0; height:62px; padding:0 18px; background:rgba(9,9,9,0.97); backdrop-filter:blur(14px); border-bottom:1px solid rgba(255,215,0,0.2); display:flex; align-items:center; justify-content:space-between; }
+    .brand-hdr { flex-shrink:0; height:calc(62px + var(--sat,0px)); padding:var(--sat,0px) 18px 0; box-sizing:border-box; background:rgba(9,9,9,0.97); backdrop-filter:blur(14px); border-bottom:1px solid rgba(255,215,0,0.2); display:flex; align-items:center; justify-content:space-between; }
     .brand-hdr-title { font-size:1.1rem; font-weight:900; background:linear-gradient(135deg,#FFD700,#FF6B00); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
     .brand-body { flex:1; overflow-y:auto; padding:24px 20px 80px; max-width:640px; margin:0 auto; width:100%; }
     .brand-preview-box { background:rgba(9,9,9,0.9); border:1px solid rgba(255,255,255,0.08); border-radius:12px; padding:16px 18px; margin-bottom:24px; }
@@ -360,6 +406,10 @@
     .brand-upload-zone { border:2px dashed rgba(255,255,255,0.15); border-radius:12px; padding:24px; text-align:center; cursor:pointer; transition:border-color 0.2s,background 0.2s; margin-bottom:6px; }
     .brand-upload-zone:hover { border-color:rgba(255,107,0,0.4); background:rgba(255,107,0,0.04); }
     .brand-upload-zone.has-logo { border-color:rgba(74,222,128,0.4); background:rgba(74,222,128,0.04); }
+    /* app-icon tile — mimics the rounded-square iOS icon, frame colour behind the artwork */
+    .brand-icon-tile { width:74px; height:74px; border-radius:18px; flex-shrink:0; display:flex; align-items:center; justify-content:center; overflow:hidden; font-weight:900; font-size:1.5rem; color:#fff; box-shadow:0 4px 14px rgba(0,0,0,0.45); }
+    .brand-icon-tile img { width:72%; height:72%; object-fit:contain; }
+    .brand-icon-tile.full img { width:100%; height:100%; }
     .color-swatch-row { display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; }
     .color-swatch { width:32px; height:32px; border-radius:8px; cursor:pointer; border:2px solid transparent; transition:transform 0.15s,border-color 0.15s; flex-shrink:0; }
     .color-swatch:hover { transform:scale(1.15); }
@@ -373,11 +423,16 @@
     .day-body { padding-top:10px; }
 
     /* scroll-to-top button */
-    #scroll-top-btn { position:fixed;bottom:80px;left:18px;z-index:8000;width:38px;height:38px;border-radius:50%;background:rgba(255,107,0,0.15);border:1px solid rgba(255,107,0,0.4);color:var(--orange);font-size:1.1rem;display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:0;transition:opacity 0.25s,background 0.2s;pointer-events:none; }
+    #scroll-top-btn { position:fixed;bottom:calc(80px + var(--sab,0px));left:18px;z-index:8000;width:38px;height:38px;border-radius:50%;background:rgba(255,107,0,0.15);border:1px solid rgba(255,107,0,0.4);color:var(--orange);font-size:1.1rem;display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:0;transition:opacity 0.25s,background 0.2s;pointer-events:none; }
     #scroll-top-btn.visible { opacity:1;pointer-events:auto; }
+    /* mirror of the scroll-top button — collapses/expands the bottom bar */
+    #nav-toggle-btn { display:none; position:fixed;bottom:calc(80px + var(--sab,0px));right:18px;z-index:8000;width:38px;height:38px;border-radius:50%;background:rgba(255,107,0,0.15);border:1px solid rgba(255,107,0,0.4);color:var(--orange);font-size:1rem;align-items:center;justify-content:center;cursor:pointer;transition:background 0.2s,bottom 0.25s; }
+    #nav-toggle-btn:hover { background:rgba(255,107,0,0.3); }
+    body.nav-hidden #nav-toggle-btn { bottom:calc(18px + var(--sab,0px)); }
+    @media (max-width: 768px) { #nav-toggle-btn { display:flex; } }
     #scroll-top-btn:hover { background:rgba(255,107,0,0.3); }
     /* MEASUREMENTS */
-    .meas-modal-overlay { position:fixed;inset:0;z-index:400;background:rgba(0,0,0,0.82);backdrop-filter:blur(6px);display:none;align-items:flex-start;justify-content:center;padding:16px;overflow-y:auto; }
+    .meas-modal-overlay { position:fixed;inset:0;z-index:400;background:rgba(0,0,0,0.82);backdrop-filter:blur(6px);display:none;align-items:flex-start;justify-content:center;padding:calc(16px + var(--sat,0px)) 16px calc(16px + var(--sab,0px));overflow-y:auto; }
     .meas-modal-overlay.open { display:flex; }
     .meas-modal-inner { background:#161616;border:1px solid rgba(255,107,0,0.35);border-radius:16px;padding:22px 20px;width:100%;max-width:580px;box-shadow:0 0 60px rgba(255,107,0,0.13);margin:auto; }
     .meas-modal-title { font-size:1rem;font-weight:900;color:var(--orange);margin-bottom:16px;display:flex;align-items:center;justify-content:space-between; }
@@ -407,36 +462,19 @@
 <div id="loader"><div class="spin"></div></div>
 
 <div class="topnav">
-  <div>
-    <div class="topnav-brand" id="coach-brand">FJ Coach</div>
-    <div class="topnav-sub" id="coach-sub">פאנל מאמן</div>
-  </div>
-  <div style="display:flex;gap:8px;align-items:center;">
-    <button id="studio-mode-btn" onclick="openStudioView()" style="display:none;align-items:center;gap:5px;padding:4px 11px;border-radius:8px;font-size:0.74rem;font-weight:800;border:1px solid rgba(255,215,0,0.45);background:rgba(255,215,0,0.1);color:#FFD700;cursor:pointer;font-family:'Heebo',sans-serif;">🏢 מצב סטודיו</button>
-    <span id="license-days-badge" style="display:none;padding:4px 10px;border-radius:8px;font-size:0.72rem;font-weight:700;"></span>
-    <!-- Autopilot toggle -->
-    <button id="autopilot-btn" onclick="toggleAutopilot()" title="מאמן אוטומטי — AI עונה ללקוחות כשאתה לא זמין"
-      style="display:none;align-items:center;gap:5px;padding:4px 10px;border-radius:8px;font-size:0.72rem;font-weight:700;
-             border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.04);color:#888;cursor:pointer;
-             font-family:'Heebo',sans-serif;transition:all 0.25s;">
-      🤖 מאמן אוטומטי
-    </button>
-    <div id="token-badge-wrap">
-      <svg width="30" height="16" viewBox="0 0 30 16" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;">
-        <rect x="0" y="0" width="25" height="16" rx="3" fill="#FF6B00"/>
-        <rect x="25.5" y="5" width="4" height="6" rx="1.5" fill="#FF6B00"/>
-        <text x="12.5" y="11.5" font-family="Arial Black,sans-serif" font-size="7.5" font-weight="900" fill="#000" text-anchor="middle">FJ</text>
-      </svg>
-      <span id="token-balance">—</span>
-      <button class="btn-token-buy" onclick="openTokenHistory()" style="background:rgba(255,255,255,0.08);" title="היסטוריית שימוש">🧾</button>
-      <button class="btn-token-buy" onclick="openTokenShop()">+ רכוש</button>
+  <div class="tn-row">
+    <div>
+      <div class="topnav-brand" id="coach-brand">FJ Coach</div>
+      <div class="topnav-sub" id="coach-sub">פאנל מאמן</div>
     </div>
-    <div class="notif-bell" onclick="openNotifPanel()" id="notif-bell-wrap">
-      <button class="btn-sm btn-outline" style="border-color:rgba(255,107,0,0.3);color:var(--orange);">🔔</button>
-      <span class="notif-badge" id="notif-badge" style="display:none;">0</span>
-    </div>
-    <div class="topnav-desktop-btns" style="display:flex;gap:8px;align-items:center;">
-      <button class="btn-mob-menu" onclick="toggleMobileSidebar()">☰ מתאמנים</button>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <button id="studio-mode-btn" onclick="openStudioView()" style="display:none;align-items:center;gap:5px;padding:4px 11px;border-radius:8px;font-size:0.74rem;font-weight:800;border:1px solid rgba(255,215,0,0.45);background:rgba(255,215,0,0.1);color:#FFD700;cursor:pointer;font-family:'Heebo',sans-serif;">🏢 מצב סטודיו</button>
+      <div class="notif-bell" onclick="openNotifPanel()" id="notif-bell-wrap">
+        <button class="btn-sm btn-outline" style="border-color:rgba(255,107,0,0.3);color:var(--orange);">🔔</button>
+        <span class="notif-badge" id="notif-badge" style="display:none;">0</span>
+      </div>
+      <div class="topnav-desktop-btns" style="display:flex;gap:8px;align-items:center;">
+        <button class="btn-mob-menu" onclick="toggleMobileSidebar()">☰ מתאמנים</button>
       <button class="btn-sm btn-outline" onclick="openGroupChat()" style="border-color:rgba(74,222,128,0.4);color:#4ade80;position:relative;">💬 קבוצה<span id="grp-coach-badge" style="display:none;position:absolute;top:-5px;right:-5px;background:#ef4444;color:#fff;border-radius:9px;font-size:0.58rem;font-weight:900;padding:1px 5px;border:2px solid var(--black);"></span></button>
       <button class="btn-sm btn-outline" onclick="openBranding()" style="border-color:rgba(255,215,0,0.35);color:#FFD700;">🎨 מיתוג</button>
       <button class="btn-sm btn-outline" onclick="openRecords()" style="border-color:rgba(255,215,0,0.35);color:#FFD700;">🏆 שיאים</button>
@@ -448,6 +486,28 @@
       <a id="btn-trainee-link" href="dashboard.html" style="display:none;" class="btn-sm btn-outline">החלף מצב — מתאמן</a>
       <button class="btn-sm btn-outline" onclick="goHomeCoach()" title="חזרה לפאנל">🏠 בית</button>
       <button class="btn-sm btn-outline" onclick="logout()">יציאה</button>
+      </div>
+    </div>
+  </div>
+  <div class="tn-hero">
+    <div id="token-badge-wrap">
+      <svg width="30" height="16" viewBox="0 0 30 16" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;">
+        <rect x="0" y="0" width="25" height="16" rx="3" fill="#FF6B00"/>
+        <rect x="25.5" y="5" width="4" height="6" rx="1.5" fill="#FF6B00"/>
+        <text x="12.5" y="11.5" font-family="Arial Black,sans-serif" font-size="7.5" font-weight="900" fill="#000" text-anchor="middle">FJ</text>
+      </svg>
+      <span class="tn-bal-lbl">יתרת טוקנים</span>
+      <span id="token-balance">—</span>
+      <button class="btn-token-buy" onclick="openTokenHistory()" style="background:rgba(255,255,255,0.08);" title="היסטוריית שימוש">🧾</button>
+      <button class="btn-token-buy" onclick="openTokenShop()">+ רכוש</button>
+    </div>
+    <div class="tn-pills">
+      <button id="autopilot-btn" onclick="toggleAutopilot()" title="מאמן אוטומטי — AI עונה ללקוחות כשאתה לא זמין" style="display:none;align-items:center;gap:5px;padding:4px 10px;border-radius:8px;font-size:0.72rem;font-weight:700;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.04);color:#888;cursor:pointer;font-family:'Heebo',sans-serif;transition:all 0.25s;">🤖 מאמן אוטומטי</button>
+      <span id="license-days-badge" style="display:none;padding:4px 10px;border-radius:8px;font-size:0.72rem;font-weight:700;"></span>
+      <label id="coach-mode-pill" style="display:none;">
+        <span>מצב מאמן</span>
+        <span class="coach-sw"><input type="checkbox" id="coach-mode-switch" checked onchange="if(!this.checked){window.location.href='dashboard.html';}"><span class="coach-sl"></span></span>
+      </label>
     </div>
   </div>
 </div>
@@ -542,7 +602,7 @@
 </div>
 
 <!-- 📒 ניהול חשבונות — מאזן רווח והפסד -->
-<div id="acct-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:1000;overflow-y:auto;padding:16px;">
+<div id="acct-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:1000;overflow-y:auto;padding:calc(16px + var(--sat,0px)) 16px calc(16px + var(--sab,0px));">
   <div style="max-width:660px;margin:24px auto;background:linear-gradient(160deg,#17181c,#0d0e11);border:1px solid rgba(74,222,128,0.28);border-radius:16px;padding:18px;">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
       <div style="font-weight:900;font-size:1.15rem;color:#fff;">📒 ניהול חשבונות</div>
@@ -583,7 +643,7 @@
 </div>
 
 <!-- COACH COMMUNITY -->
-<div id="comm-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:1000;overflow-y:auto;padding:16px;">
+<div id="comm-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:1000;overflow-y:auto;padding:calc(16px + var(--sat,0px)) 16px calc(16px + var(--sab,0px));">
   <div style="max-width:560px;margin:30px auto;background:linear-gradient(160deg,#17181c,#0d0e11);border:1px solid rgba(139,92,246,0.3);border-radius:16px;padding:18px;">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
       <div style="font-weight:900;font-size:1.1rem;color:#fff;">🌐 קהילת המתאמנים</div>
@@ -598,7 +658,7 @@
 </div>
 
 <!-- PLAN TEMPLATE LIBRARY -->
-<div id="tpl-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:1000;overflow-y:auto;padding:16px;">
+<div id="tpl-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:1000;overflow-y:auto;padding:calc(16px + var(--sat,0px)) 16px calc(16px + var(--sab,0px));">
   <div style="max-width:520px;margin:40px auto;background:linear-gradient(160deg,#17181c,#0d0e11);border:1px solid rgba(167,139,250,0.3);border-radius:16px;padding:18px;">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
       <div style="font-weight:900;font-size:1.1rem;color:#fff;" id="tpl-title">📚 ספריית תבניות</div>
@@ -609,7 +669,7 @@
 </div>
 
 <!-- LTV + COHORT REPORT -->
-<div id="ltv-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:1000;overflow-y:auto;padding:16px;">
+<div id="ltv-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:1000;overflow-y:auto;padding:calc(16px + var(--sat,0px)) 16px calc(16px + var(--sab,0px));">
   <div style="max-width:760px;margin:0 auto;background:linear-gradient(160deg,#17181c,#0d0e11);border:1px solid rgba(167,139,250,0.3);border-radius:16px;padding:18px;">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
       <div style="font-weight:900;font-size:1.15rem;color:#fff;">📊 דוח LTV + שימור לקוחות</div>
@@ -840,6 +900,16 @@
       <span class="client-card-label">מחזור</span>
       <span class="client-card-val" id="cc-period"></span>
     </div>
+    <div class="client-card-row">
+      <span class="client-card-label">דרך הגעה</span>
+      <select id="cc-acq" onchange="saveClientAcq()"
+        style="flex:1;padding:7px 10px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:var(--white);font-family:'Heebo',sans-serif;font-size:0.84rem;font-weight:600;outline:none;cursor:pointer;">
+        <option value="">— לא צוין —</option>
+        <option value="friend">🤝 חבר מביא חבר</option>
+        <option value="instagram">📸 פנייה באינסטגרם</option>
+        <option value="gym">🏋️ פנייה פיזית במכון הכושר</option>
+      </select>
+    </div>
     <!-- חבילת מנוי -->
     <div id="cc-pkg-section" style="margin-top:14px;padding:12px;background:rgba(255,107,0,0.05);border:1px solid rgba(255,107,0,0.15);border-radius:10px;display:none;">
       <div style="font-size:0.72rem;font-weight:900;color:var(--orange);margin-bottom:8px;letter-spacing:0.5px;">📦 חבילת מנוי</div>
@@ -907,8 +977,15 @@
           <div id="prev-tagline" style="font-size:0.72rem;color:rgba(255,255,255,0.7);font-weight:700;letter-spacing:0.5px;">ליווי אישי</div>
         </div>
       </div>
-      <div style="padding:10px 14px;background:rgba(255,255,255,0.03);border-top:1px solid rgba(255,255,255,0.06);">
-        <div style="font-size:0.7rem;color:var(--muted);">← כך יראה הדשבורד של המתאמנים שלך</div>
+      <div style="padding:10px 14px;background:rgba(255,255,255,0.03);border-top:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;gap:12px;">
+        <div class="brand-icon-tile" id="prev-icon-tile" style="width:52px;height:52px;border-radius:13px;font-size:1.05rem;">FJ</div>
+        <div>
+          <div style="font-size:0.7rem;color:var(--muted);display:flex;align-items:center;gap:6px;">
+            <span id="prev-dot" style="width:7px;height:7px;border-radius:50%;background:var(--orange);display:inline-block;"></span>
+            <span id="prev-appname">Fit Journey</span>
+          </div>
+          <div style="font-size:0.66rem;color:#777;margin-top:2px;">האייקון והצבע שהמתאמן יראה בפתיחת האפליקציה</div>
+        </div>
       </div>
     </div>
 
@@ -929,6 +1006,44 @@
     <div id="brand-logo-actions" style="display:none;margin-top:6px;margin-bottom:4px;">
       <button onclick="clearBrandAsset('logo')" style="font-size:0.75rem;color:#f87171;background:none;border:none;cursor:pointer;padding:0;">✕ הסר לוגו</button>
     </div>
+    <div style="margin-bottom:28px;"></div>
+
+    <!-- SECTION 1B: APP ICON + FRAME COLOUR -->
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+      <div style="width:8px;height:8px;border-radius:50%;background:#f472b6;"></div>
+      <div style="font-size:0.85rem;font-weight:900;">📲 אייקון האפליקציה</div>
+    </div>
+    <div style="font-size:0.75rem;color:var(--muted);margin-bottom:12px;">מחליף את אייקון "FJ" במסך הפתיחה ובמסך ההתחברות של המתאמנים שלך. בחר צבע מסגרת והכנס אייקון לתוכו.</div>
+
+    <div style="display:flex;align-items:center;gap:16px;margin-bottom:14px;">
+      <div class="brand-icon-tile" id="icon-big-preview" style="background:linear-gradient(135deg,#FF6B00,#FF6B0099);">FJ</div>
+      <div style="flex:1;">
+        <label style="font-size:0.72rem;color:var(--muted);display:block;margin-bottom:6px;">צבע המסגרת (הרקע מאחורי האייקון)</label>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <input type="color" id="icon-frame-pick" value="#FF6B00" oninput="onIconFrameChange(this.value)"
+            style="width:40px;height:40px;border:none;border-radius:8px;cursor:pointer;background:none;padding:0;flex-shrink:0;"/>
+          <div id="icon-frame-hex" style="font-size:0.85rem;font-weight:700;direction:ltr;">#FF6B00</div>
+        </div>
+        <div class="color-swatch-row" id="icon-frame-swatches"></div>
+      </div>
+    </div>
+
+    <input type="file" id="brand-icon-file" accept="image/png,image/svg+xml,image/jpeg,image/webp" style="display:none;" onchange="onIconFileChange()"/>
+    <div class="brand-upload-zone" id="brand-icon-zone" onclick="document.getElementById('brand-icon-file').click()">
+      <div id="brand-icon-content">
+        <div style="font-size:1.8rem;margin-bottom:5px;">📲</div>
+        <div style="font-size:0.84rem;font-weight:700;">לחץ להעלאת אייקון</div>
+        <div style="font-size:0.7rem;color:var(--muted);margin-top:3px;">PNG שקוף מומלץ · ריבועי · עד 2MB</div>
+      </div>
+    </div>
+    <div id="brand-icon-actions" style="display:none;margin-top:6px;margin-bottom:4px;display:flex;gap:14px;align-items:center;">
+      <button onclick="clearBrandAsset('icon')" style="font-size:0.75rem;color:#f87171;background:none;border:none;cursor:pointer;padding:0;">✕ הסר אייקון</button>
+      <label style="font-size:0.75rem;color:var(--muted);display:flex;align-items:center;gap:5px;cursor:pointer;">
+        <input type="checkbox" id="icon-fill-full" onchange="onIconFillChange()" style="accent-color:var(--orange);"/>
+        האייקון ימלא את כל הריבוע (בלי שוליים)
+      </label>
+    </div>
+    <div style="font-size:0.7rem;color:#777;margin-top:8px;">💡 אם לא תעלה אייקון — ישמש הלוגו שהעלית למעלה, ואם גם הוא חסר — האותיות "FJ".</div>
     <div style="margin-bottom:28px;"></div>
 
     <!-- SECTION 2: BACKGROUND / COVER IMAGE -->
@@ -2419,7 +2534,7 @@
     if (document.getElementById('view-only-banner')) return;
     const b = document.createElement('div');
     b.id = 'view-only-banner';
-    b.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9999;background:linear-gradient(90deg,#334155,#475569);color:#fff;text-align:center;padding:6px 12px;font-family:\'Heebo\',sans-serif;font-size:0.78rem;font-weight:700;box-shadow:0 2px 8px rgba(0,0,0,0.3);';
+    b.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9999;background:linear-gradient(90deg,#334155,#475569);color:#fff;text-align:center;padding:calc(6px + var(--sat,0px)) 12px 6px;font-family:\'Heebo\',sans-serif;font-size:0.78rem;font-weight:700;box-shadow:0 2px 8px rgba(0,0,0,0.3);';
     b.textContent = '👁 מצב צפייה בלבד — מאמן רגיל אינו יכול לערוך. לעריכה פנה למנהל.';
     document.body.appendChild(b);
     document.body.style.paddingTop = '30px';
@@ -2869,6 +2984,8 @@
       document.getElementById('btn-trainee-link').style.display = 'block';
       const bl2 = document.getElementById('bn-trainee-link2');
       if (bl2) bl2.style.display = 'flex';
+      const cmp = document.getElementById('coach-mode-pill');
+      if (cmp) cmp.style.display = 'inline-flex';
     }
     await Promise.all([loadClients(), loadExerciseLibrary(), loadFoodItems()]);
     loadChurnAlerts();
@@ -4347,7 +4464,7 @@ ${exLines || 'אין'}
         </div>
         <div style="margin-bottom:16px;">
           <div style="font-size:0.78rem;font-weight:700;color:var(--muted);margin-bottom:8px;">יעדי מאקרו יומיים</div>
-          <div class="form-grid" style="grid-template-columns:1fr 1fr 1fr 1fr;">
+          <div class="form-grid macro-grid" style="grid-template-columns:repeat(auto-fit,minmax(120px,1fr));">
             <div class="f-group"><label>קלוריות</label><input id="e-cal" type="number" value="${client.target_calories||''}" placeholder="2000"/></div>
             <div class="f-group"><label>חלבון (g)</label><input id="e-prot" type="number" value="${client.target_protein||''}" placeholder="150"/></div>
             <div class="f-group"><label>פחמימה (g)</label><input id="e-carb" type="number" value="${client.target_carbs||''}" placeholder="250"/></div>
@@ -4582,7 +4699,7 @@ ${exLines || 'אין'}
       <div class="sec-card-title">📦 חבילת מנוי
         <span style="color:${col};font-size:0.82rem;font-weight:700;">${pkgStatusLabel(p.status)}</span>
       </div>
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px;">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:18px;">
         <div style="text-align:center;padding:12px 6px;background:rgba(74,222,128,0.07);border:1px solid rgba(74,222,128,0.2);border-radius:10px;">
           <div style="font-size:1.2rem;font-weight:900;color:#4ade80;">${paid.toLocaleString()} ₪</div>
           <div style="font-size:0.65rem;color:var(--muted);margin-top:3px;">שולם</div>
@@ -5041,9 +5158,13 @@ ${exLines || 'אין'}
   }
   // ─────────────────────────────────────────────────────────────────
 
+  let _ccEmail = null;   // which client the open card belongs to
+
   function openClientCard(email) {
     const c = clients.find(x => x.email === email);
     if (!c) return;
+    _ccEmail = email;
+    document.getElementById('cc-acq').value = c.acq_source || '';
     const initials = (c.name || '?').split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase();
     document.getElementById('cc-avatar').textContent = initials;
     document.getElementById('cc-name').textContent   = c.name;
@@ -5099,6 +5220,21 @@ ${exLines || 'אין'}
     document.getElementById('client-card-modal').classList.add('open');
   }
   function closeClientCard() { document.getElementById('client-card-modal').classList.remove('open'); }
+
+  /* how this trainee found us — the coach sets it straight from the card */
+  async function saveClientAcq() {
+    const sel = document.getElementById('cc-acq');
+    if (!_ccEmail) return;
+    if (!requireEdit()) { const c0 = clients.find(x => x.email === _ccEmail); sel.value = c0?.acq_source || ''; return; }
+    const val = sel.value || null;
+    sel.disabled = true;
+    const { error } = await sb.from('clients').update({ acq_source: val }).eq('email', _ccEmail);
+    sel.disabled = false;
+    if (error) { toast('שגיאה בשמירת דרך ההגעה: ' + error.message, 'err'); return; }
+    const c = clients.find(x => x.email === _ccEmail);
+    if (c) c.acq_source = val;
+    toast('✓ דרך הגעה נשמרה', 'ok');
+  }
 
   async function deleteClientCoach() {
     if (!requireEdit()) return;
@@ -5221,7 +5357,30 @@ ${exLines || 'אין'}
     toast(`✓ סיסמה הוגדרה: ${password}`, 'ok');
   }
 
+  // Collapse/expand the bottom bar so it never hides content (e.g. the weekly check-in).
+  function toggleBottomNav() {
+    const hidden = document.body.classList.toggle('nav-hidden');
+    if (hidden) closeBnSheets();
+    const btn = document.getElementById('nav-toggle-btn');
+    if (btn) { btn.textContent = hidden ? '▲' : '▼'; btn.title = hidden ? 'הצג את סרגל הניווט' : 'הסתר את סרגל הניווט'; }
+    try { localStorage.setItem('fj_nav_hidden', hidden ? '1' : '0'); } catch (e) {}
+  }
+  addEventListener('DOMContentLoaded', function () {
+    try {
+      if (localStorage.getItem('fj_nav_hidden') === '1') {
+        document.body.classList.add('nav-hidden');
+        const btn = document.getElementById('nav-toggle-btn');
+        if (btn) { btn.textContent = '▲'; btn.title = 'הצג את סרגל הניווט'; }
+      }
+    } catch (e) {}
+  });
+
+  function closeBnSheets() {
+    document.getElementById('bn-db-menu').classList.remove('open');
+    document.getElementById('bn-manage-menu').classList.remove('open');
+  }
   function toggleMobileSidebar() {
+    closeBnSheets();
     document.getElementById('sidebar').classList.toggle('mob-open');
     document.querySelector('.sidebar-bd').classList.toggle('open');
   }
@@ -5229,8 +5388,15 @@ ${exLines || 'אין'}
     document.getElementById('sidebar').classList.remove('mob-open');
     document.querySelector('.sidebar-bd').classList.remove('open');
   }
-  function toggleMoreMenu() {
-    document.getElementById('bn-more-menu').classList.toggle('open');
+  function toggleDbMenu() {
+    closeMobileSidebar();
+    document.getElementById('bn-manage-menu').classList.remove('open');
+    document.getElementById('bn-db-menu').classList.toggle('open');
+  }
+  function toggleManageMenu() {
+    closeMobileSidebar();
+    document.getElementById('bn-db-menu').classList.remove('open');
+    document.getElementById('bn-manage-menu').classList.toggle('open');
   }
 
   /* ── UTILS ── */
@@ -5563,7 +5729,7 @@ ${exLines || 'אין'}
     el.innerHTML = `
       <div style="margin-bottom:12px;">
         <div style="font-size:0.88rem;font-weight:900;color:#FFD700;margin-bottom:10px;">יום ${pwActiveDay + 1}${isStage ? ' 🏆 — יום הבמה!' : ''} · ${dateLabel}</div>
-        <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:12px;">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin-bottom:12px;">
           ${[
             { id:'pw-sodium',  label:'מלח (מ"ג)',  val: d.sodium_mg, ph:'3000' },
             { id:'pw-protein', label:'חלבון (g)',   val: d.protein_g, ph:'220'  },
@@ -7450,11 +7616,11 @@ ${NUTRITION_DB}
           <input value="${esc(item.food)}" oninput="nutritionPlan[${mi}].items[${ii}].food=this.value;showFoodSuggCoach(this,${mi},${ii})" onblur="setTimeout(hideFoodSuggCoach,160)" autocomplete="off" placeholder="מזון" style="flex:1;min-width:0;padding:6px 8px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:6px;color:#fff;font-family:'Heebo',sans-serif;font-size:0.8rem;outline:none;"/>
           <button onclick="toggleItemExpand(${mi},${ii})" style="padding:3px 7px;background:${exp?'rgba(255,107,0,0.2)':'rgba(255,255,255,0.04)'};border:1px solid ${exp?'rgba(255,107,0,0.45)':'rgba(255,255,255,0.1)'};border-radius:5px;color:${exp?'var(--orange)':'#666'};cursor:pointer;font-size:0.65rem;flex-shrink:0;">${exp?'▲':'▼'}</button>
         </div>
-        <input value="${esc(item.quantity)}" oninput="onQuantityInput(${mi},${ii},this.value)" placeholder="כמות"/>
-        <input value="${item.calories||''}" oninput="nutritionPlan[${mi}].items[${ii}].calories=+this.value" placeholder="קל׳" type="number"/>
-        <input value="${item.protein||''}"  oninput="nutritionPlan[${mi}].items[${ii}].protein=+this.value"  placeholder="P"   type="number"/>
-        <input value="${item.carbs||''}"    oninput="nutritionPlan[${mi}].items[${ii}].carbs=+this.value"    placeholder="C"   type="number"/>
-        <input value="${item.fat||''}"      oninput="nutritionPlan[${mi}].items[${ii}].fat=+this.value"      placeholder="F"   type="number"/>
+        <div class="mi-cell"><label>כמות</label><input value="${esc(item.quantity)}" oninput="onQuantityInput(${mi},${ii},this.value)" placeholder="כמות"/></div>
+        <div class="mi-cell"><label>קלוריות</label><input value="${item.calories||''}" oninput="nutritionPlan[${mi}].items[${ii}].calories=+this.value" placeholder="קל׳" type="number"/></div>
+        <div class="mi-cell"><label>חלבון</label><input value="${item.protein||''}"  oninput="nutritionPlan[${mi}].items[${ii}].protein=+this.value"  placeholder="P"   type="number"/></div>
+        <div class="mi-cell"><label>פחמימה</label><input value="${item.carbs||''}"    oninput="nutritionPlan[${mi}].items[${ii}].carbs=+this.value"    placeholder="C"   type="number"/></div>
+        <div class="mi-cell"><label>שומן</label><input value="${item.fat||''}"      oninput="nutritionPlan[${mi}].items[${ii}].fat=+this.value"      placeholder="F"   type="number"/></div>
         <button onclick="toggleItemAlt(${mi},${ii})" style="padding:3px 7px;background:${altOpen||alts.length?'rgba(96,180,255,0.12)':'rgba(255,255,255,0.04)'};border:1px solid ${altOpen||alts.length?'rgba(96,180,255,0.4)':'rgba(255,255,255,0.1)'};border-radius:5px;color:${altOpen||alts.length?'#60b4ff':'#555'};cursor:pointer;font-size:0.65rem;flex-shrink:0;" title="הוסף חלופות">🔄${alts.length?' '+alts.length:''}</button>
         <button class="btn-sm btn-red" onclick="removeItem(${mi},${ii})">✕</button>
       </div>
@@ -8413,7 +8579,7 @@ ${NUTRITION_DB}
 
     // 5 stats cards
     document.getElementById('stats-cards-wrap').innerHTML = `
-      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:6px;">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:6px;">
         <div style="text-align:center;padding:12px 6px;background:rgba(255,107,0,0.07);border:1px solid rgba(255,107,0,0.2);border-radius:10px;">
           <div style="font-size:1.6rem;font-weight:900;color:var(--orange);">${clients.length}</div>
           <div style="font-size:0.65rem;color:var(--muted);margin-top:2px;">מתאמנים</div>
@@ -8505,6 +8671,61 @@ ${NUTRITION_DB}
   let _brandLogoUrl   = null;
   let _brandCoverUrl  = null;
   let _brandColor     = '#FF6B00';
+  let _brandIconFile  = null;
+  let _brandIconUrl   = null;
+  let _iconFrameColor = '#FF6B00';
+  let _iconFull       = false;
+  let _brandLogoPreview = null;
+
+  /* the app-icon tile the trainee sees on splash/login — mirrored in two preview spots */
+  function renderIconPreview() {
+    const src = _brandIconUrl || _brandLogoPreview || _brandLogoUrl || null;
+    const inner = src ? `<img src="${src}" alt="icon"/>` : 'FJ';
+    [['icon-big-preview', true], ['prev-icon-tile', false]].forEach(([id]) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.innerHTML = inner;
+      el.style.background = `linear-gradient(135deg,${_iconFrameColor},${_iconFrameColor}99)`;
+      el.classList.toggle('full', _iconFull && !!src);
+    });
+  }
+
+  function renderIconFrameSwatches() {
+    const box = document.getElementById('icon-frame-swatches');
+    if (!box) return;
+    box.innerHTML = BRAND_SWATCHES.map(c =>
+      `<div class="color-swatch${c===_iconFrameColor?' active':''}" style="background:${c};width:24px;height:24px;border-radius:6px;" onclick="onIconFrameChange('${c}')" title="${c}"></div>`
+    ).join('');
+  }
+
+  function onIconFrameChange(hex) {
+    _iconFrameColor = hex;
+    document.getElementById('icon-frame-pick').value = hex;
+    document.getElementById('icon-frame-hex').textContent = hex;
+    renderIconFrameSwatches();
+    renderIconPreview();
+  }
+
+  function onIconFillChange() {
+    _iconFull = document.getElementById('icon-fill-full').checked;
+    renderIconPreview();
+  }
+
+  function onIconFileChange() {
+    const file = document.getElementById('brand-icon-file').files[0];
+    if (!file || file.size > 2*1024*1024) { alert('קובץ גדול מדי — מקסימום 2MB'); return; }
+    _brandIconFile = file;
+    const reader = new FileReader();
+    reader.onload = e => {
+      _brandIconUrl = e.target.result;   // data-URL preview until saved
+      document.getElementById('brand-icon-zone').classList.add('has-logo');
+      document.getElementById('brand-icon-content').innerHTML =
+        `<img src="${_brandIconUrl}" style="height:54px;max-width:130px;object-fit:contain;border-radius:6px;"/><div style="font-size:0.7rem;color:#4ade80;margin-top:5px;">✓ ${file.name}</div>`;
+      document.getElementById('brand-icon-actions').style.display = 'flex';
+      renderIconPreview();
+    };
+    reader.readAsDataURL(file);
+  }
 
   function openBranding() {
     document.getElementById('brand-overlay').classList.add('open');
@@ -8522,12 +8743,15 @@ ${NUTRITION_DB}
   }
 
   async function loadBranding() {
-    const { data } = await sb.from('coaches').select('logo_url,cover_url,brand_color,tagline,phone,app_name').eq('email', coachEmail).single();
+    const { data } = await sb.from('coaches').select('logo_url,cover_url,brand_color,tagline,phone,app_name,app_icon_url,icon_frame_color,icon_full').eq('email', coachEmail).single();
     if (!data) return;
-    _brandLogoUrl  = data.logo_url  || null;
-    _brandCoverUrl = data.cover_url || null;
-    _brandColor    = data.brand_color || '#FF6B00';
-    coachPhone     = data.phone || null;
+    _brandLogoUrl   = data.logo_url  || null;
+    _brandCoverUrl  = data.cover_url || null;
+    _brandColor     = data.brand_color || '#FF6B00';
+    _brandIconUrl   = data.app_icon_url || null;
+    _iconFrameColor = data.icon_frame_color || data.brand_color || '#FF6B00';
+    _iconFull       = !!data.icon_full;
+    coachPhone      = data.phone || null;
 
     document.getElementById('cp-name').value  = coachName  || '';
     document.getElementById('cp-phone').value = coachPhone || '';
@@ -8562,8 +8786,23 @@ ${NUTRITION_DB}
       document.getElementById('brand-cover-actions').style.display = 'block';
     }
 
+    // Populate the app-icon section
+    document.getElementById('icon-frame-pick').value    = _iconFrameColor;
+    document.getElementById('icon-frame-hex').textContent = _iconFrameColor;
+    document.getElementById('icon-fill-full').checked    = _iconFull;
+    if (_brandIconUrl) {
+      document.getElementById('brand-icon-zone').classList.add('has-logo');
+      document.getElementById('brand-icon-content').innerHTML =
+        `<img src="${_brandIconUrl}" style="height:50px;max-width:120px;object-fit:contain;border-radius:6px;"/><div style="font-size:0.7rem;color:#4ade80;margin-top:5px;">✓ אייקון מוגדר</div>`;
+      document.getElementById('brand-icon-actions').style.display = 'flex';
+    }
+    renderIconFrameSwatches();
+    renderIconPreview();
+
     // Apply preview color
     document.getElementById('prev-dot').style.background = _brandColor;
+    const prevName = document.getElementById('prev-appname');
+    if (prevName) prevName.textContent = (data.app_name || '').trim() || coachName || 'Fit Journey';
     const thumb = document.getElementById('prev-logo-thumb');
     thumb.style.background = `linear-gradient(135deg,${_brandColor},${_brandColor}99)`;
     thumb.style.color = '#fff';
@@ -8597,6 +8836,8 @@ ${NUTRITION_DB}
       const thumb = document.getElementById('prev-logo-thumb');
       thumb.innerHTML = `<img src="${url}" alt="logo"/>`;
       thumb.style.background = 'transparent';
+      _brandLogoPreview = url;   // so the icon tile can fall back to it before saving
+      renderIconPreview();
     };
     reader.readAsDataURL(file);
   }
@@ -8619,14 +8860,24 @@ ${NUTRITION_DB}
   }
 
   function clearBrandAsset(type) {
+    if (type === 'icon') {
+      _brandIconFile = null; _brandIconUrl = null;
+      document.getElementById('brand-icon-file').value = '';
+      document.getElementById('brand-icon-zone').classList.remove('has-logo');
+      document.getElementById('brand-icon-content').innerHTML = `<div style="font-size:1.8rem;margin-bottom:5px;">📲</div><div style="font-size:0.84rem;font-weight:700;">לחץ להעלאת אייקון</div><div style="font-size:0.7rem;color:var(--muted);margin-top:3px;">PNG שקוף מומלץ · ריבועי · עד 2MB</div>`;
+      document.getElementById('brand-icon-actions').style.display = 'none';
+      renderIconPreview();
+      return;
+    }
     if (type === 'logo') {
-      _brandLogoFile = null; _brandLogoUrl = null;
+      _brandLogoFile = null; _brandLogoUrl = null; _brandLogoPreview = null;
       document.getElementById('brand-logo-file').value = '';
       document.getElementById('brand-upload-zone').classList.remove('has-logo');
       document.getElementById('brand-upload-content').innerHTML = `<div style="font-size:1.8rem;margin-bottom:5px;">🏷️</div><div style="font-size:0.84rem;font-weight:700;">לחץ להעלאת לוגו</div><div style="font-size:0.7rem;color:var(--muted);margin-top:3px;">PNG / SVG / JPG / WebP · עד 2MB</div>`;
       document.getElementById('brand-logo-actions').style.display = 'none';
       const thumb = document.getElementById('prev-logo-thumb');
       thumb.innerHTML = 'FJ'; thumb.style.background = `linear-gradient(135deg,${_brandColor},${_brandColor}99)`;
+      renderIconPreview();
     } else {
       _brandCoverFile = null; _brandCoverUrl = null;
       document.getElementById('brand-cover-file').value = '';
@@ -8707,10 +8958,20 @@ ${NUTRITION_DB}
         _brandCoverFile = null; _brandCoverUrl = coverUrl;
       }
 
+      let iconUrl = _brandIconFile ? null : _brandIconUrl;
+      if (_brandIconFile) {
+        const ext = _brandIconFile.name.split('.').pop();
+        iconUrl = await uploadBrandFile(_brandIconFile, `${coachEmail}/app-icon.${ext}`);
+        _brandIconFile = null; _brandIconUrl = iconUrl;
+      }
+
       const updates = {
         brand_color: _brandColor,
         tagline: document.getElementById('brand-tagline').value.trim() || null,
         app_name: document.getElementById('brand-appname')?.value.trim() || null,
+        app_icon_url: iconUrl || null,
+        icon_frame_color: _iconFrameColor,
+        icon_full: _iconFull,
       };
       if (logoUrl  !== undefined) updates.logo_url  = logoUrl  || null;
       if (coverUrl !== undefined) updates.cover_url = coverUrl || null;
@@ -9300,7 +9561,7 @@ ${NUTRITION_DB}
           <div style="font-size:0.82rem;font-weight:900;color:var(--gold);">שבוע ${new Date(e.week_date+'T12:00:00').toLocaleDateString('he-IL')}</div>
           <div style="font-size:0.7rem;color:var(--muted);">${new Date(e.submitted_at).toLocaleDateString('he-IL')}</div>
         </div>
-        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;text-align:center;">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;text-align:center;">
           ${[['⚡ אנרגיה',e.energy_level,'#FB923C'],['😴 שינה',e.sleep_quality,'#60A5FA'],['🔥 מוטיבציה',e.motivation,'#4ADE80'],['✅ עמידה',e.adherence,'#FBBF24']].map(([l,v,c])=>`
             <div>
               <div style="font-size:1rem;font-weight:900;color:${c};">${v}/10</div>
@@ -9939,7 +10200,7 @@ ${NUTRITION_DB}
 
 <!-- GROUP CHAT OVERLAY (coach) -->
 <div class="coach-grp-overlay" id="coach-grp-overlay" style="position:fixed;inset:0;z-index:310;background-color:var(--black);background-image:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 130 80'%3E%3Ctext x='65' y='65' text-anchor='middle' font-family='Arial Black%2Csans-serif' font-weight='900' font-size='68' fill='%23FF6B00' opacity='0.08'%3EFJ%3C/text%3E%3C/svg%3E&quot;);background-attachment:fixed;background-position:center center;background-repeat:no-repeat;background-size:140px;display:none;flex-direction:column;">
-  <div style="flex-shrink:0;height:58px;padding:0 14px;background:rgba(13,13,13,0.98);backdrop-filter:blur(14px);border-bottom:1px solid rgba(255,255,255,0.07);display:flex;align-items:center;gap:10px;">
+  <div style="flex-shrink:0;height:calc(58px + var(--sat,0px));padding:var(--sat,0px) 14px 0;box-sizing:border-box;background:rgba(13,13,13,0.98);backdrop-filter:blur(14px);border-bottom:1px solid rgba(255,255,255,0.07);display:flex;align-items:center;gap:10px;">
     <button onclick="closeGroupChat()" style="background:none;border:none;color:var(--muted);font-size:1.3rem;cursor:pointer;padding:4px 8px;">←</button>
     <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#3B82F6,#8B5CF6);display:flex;align-items:center;justify-content:center;font-size:1rem;font-weight:900;flex-shrink:0;">👥</div>
     <div style="flex:1;">
@@ -9968,7 +10229,7 @@ ${NUTRITION_DB}
     </div>
   </div>
   <!-- INPUT ROW -->
-  <div style="flex-shrink:0;padding:8px 12px 12px;background:#0d0d0d;display:flex;gap:8px;align-items:center;">
+  <div style="flex-shrink:0;padding:8px 12px calc(12px + var(--sab,0px));background:#0d0d0d;display:flex;gap:8px;align-items:center;">
     <input id="coach-grp-inp" style="flex:1;padding:11px 16px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:24px;color:var(--white);font-family:'Heebo',sans-serif;font-size:0.93rem;outline:none;" placeholder="הודעה לכל הקבוצה..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendCoachGroupMsg();}"/>
     <button onclick="sendCoachGroupMsg()" style="width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,#3B82F6,#8B5CF6);border:none;color:#fff;font-size:1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 12px rgba(59,130,246,0.4);">↑</button>
   </div>
@@ -9979,35 +10240,31 @@ ${NUTRITION_DB}
   <button class="bn-item" onclick="toggleMobileSidebar()">
     <span class="bn-icon">👥</span>מתאמנים
   </button>
+  <button class="bn-item" onclick="toggleDbMenu()">
+    <span class="bn-icon">🗂️</span>מאגרים
+  </button>
+  <button class="bn-item bn-center" onclick="openGroupChat()">
+    <span class="bn-center-btn">💬</span>
+    <span id="grp-mob-badge" style="display:none;position:absolute;top:-8px;right:14px;background:#ef4444;color:#fff;border-radius:9px;font-size:0.58rem;font-weight:900;padding:1px 5px;border:2px solid var(--black);"></span>
+  </button>
   <button class="bn-item" onclick="openRecords()">
-    <span class="bn-icon">🏆</span>שיאים
+    <span class="bn-icon">🏆</span>ליגה
   </button>
-  <a href="exercises.html?from=coach" class="bn-item">
-    <span class="bn-icon">🏋️</span>תרגילים
-  </a>
-  <a href="food.html?from=coach" class="bn-item">
-    <span class="bn-icon">🥗</span>מזון
-  </a>
-  <button class="bn-item" onclick="openPlans()">
-    <span class="bn-icon">💰</span>מסלולים
-  </button>
-  <button class="bn-item" onclick="openGroupChat()" style="position:relative;">
-    <span class="bn-icon">💬</span>קבוצה
-    <span id="grp-mob-badge" style="display:none;position:absolute;top:2px;right:10px;background:#ef4444;color:#fff;border-radius:9px;font-size:0.58rem;font-weight:900;padding:1px 5px;"></span>
-  </button>
-  <button class="bn-item" onclick="openPushOverlay()">
-    <span class="bn-icon">📣</span>הודעות
-  </button>
-  <button class="bn-item" onclick="toggleMoreMenu()">
-    <span class="bn-icon">⋯</span>עוד
+  <button class="bn-item" onclick="toggleManageMenu()">
+    <span class="bn-icon">⚙️</span>ניהול
   </button>
 </nav>
 
-<div class="bn-more-menu" id="bn-more-menu" onclick="toggleMoreMenu()">
-  <button class="bn-more-item" id="bn-trainee-link2" style="display:none;" onclick="window.location.href='dashboard.html'">
-    🔄 החלף למצב מתאמן
-  </button>
-  <button class="bn-more-item" onclick="logout()">🚪 יציאה</button>
+<div class="bn-more-menu" id="bn-db-menu" onclick="toggleDbMenu()">
+  <a href="exercises.html?from=coach" class="bn-more-item">🏋️ מאגר תרגילים</a>
+  <a href="food.html?from=coach" class="bn-more-item">🥗 מאגר מזון</a>
+</div>
+<div class="bn-more-menu" id="bn-manage-menu" onclick="toggleManageMenu()">
+  <button class="bn-more-item" onclick="openPushOverlay()">📣 הודעות ו-Push</button>
+  <button class="bn-more-item" onclick="openPlans()">💰 מסלולים לחידוש</button>
+  <button class="bn-more-item" onclick="openBranding()">🎨 מיתוג</button>
+  <a href="coach-guide.html" class="bn-more-item">📖 מדריך</a>
+  <button class="bn-more-item" onclick="logout()">🚪 התנתק</button>
 </div>
 
 <!-- PUSH NOTIFICATIONS OVERLAY -->
@@ -10432,6 +10689,7 @@ ${NUTRITION_DB}
 
   <!-- scroll-to-top -->
   <button id="scroll-top-btn" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="חזור למעלה">▲</button>
+  <button id="nav-toggle-btn" onclick="toggleBottomNav()" title="הסתר/הצג את סרגל הניווט">▼</button>
   <script>
     (function() {
       const btn = document.getElementById('scroll-top-btn');
@@ -10538,5 +10796,15 @@ ${NUTRITION_DB}
     <div id="rec-status" style="margin-top:10px;font-size:0.8rem;text-align:center;"></div>
   </div>
 </div>
+<script>
+  // Publish the real top-nav height so fixed overlays (sidebar, its backdrop, the
+  // notifications panel) sit right below it — the bar is taller on mobile after the
+  // B redesign, so a hard-coded 58px no longer holds.
+  function setTopnavH(){ var t=document.querySelector('.topnav'); if(t) document.documentElement.style.setProperty('--topnav-h', t.offsetHeight + 'px'); }
+  addEventListener('DOMContentLoaded', setTopnavH);
+  addEventListener('resize', setTopnavH);
+  addEventListener('orientationchange', function(){ setTimeout(setTopnavH, 100); });
+  setTimeout(setTopnavH, 500); setTimeout(setTopnavH, 1500);
+</script>
 </body>
 </html>

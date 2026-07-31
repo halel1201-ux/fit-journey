@@ -161,7 +161,7 @@
     /* RECORDS OVERLAY */
     .records-overlay { position: fixed; inset: 0; z-index: 400; background: var(--black); display: none; flex-direction: column; overflow: hidden; }
     .records-overlay.open { display: flex; }
-    .rec-hdr { flex-shrink: 0; height: 62px; padding: 0 18px; background: rgba(9,9,9,0.97); backdrop-filter: blur(14px); border-bottom: 1px solid rgba(255,215,0,0.2); display: flex; align-items: center; justify-content: space-between; }
+    .rec-hdr { flex-shrink: 0; height: calc(62px + var(--sat,0px)); padding: var(--sat,0px) 18px 0; box-sizing: border-box; background: rgba(9,9,9,0.97); backdrop-filter: blur(14px); border-bottom: 1px solid rgba(255,215,0,0.2); display: flex; align-items: center; justify-content: space-between; }
     .rec-hdr-title { font-size: 1.1rem; font-weight: 900; background: linear-gradient(135deg,#FFD700,#FF6B00); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
     .btn-close-rec { background: rgba(255,255,255,0.07); border: none; color: var(--muted); width: 34px; height: 34px; border-radius: 50%; cursor: pointer; font-size: 1rem; }
     .rec-body { flex: 1; overflow-y: auto; padding: 20px 16px 40px; max-width: 700px; margin: 0 auto; width: 100%; }
@@ -225,12 +225,12 @@
     .alt-pill:hover { background:rgba(255,107,0,0.12); border-color:rgba(255,107,0,0.4); color:#fff; }
 
     .btn-mob-menu { display:none; align-items:center; gap:5px; background:rgba(255,107,0,0.1); border:1px solid rgba(255,107,0,0.3); border-radius:6px; color:var(--orange); padding:7px 10px; font-family:'Heebo',sans-serif; font-size:0.78rem; font-weight:700; cursor:pointer; white-space:nowrap; }
-    .sidebar-bd { display:none; position:fixed; inset:0; top:58px; background:rgba(0,0,0,0.65); z-index:140; }
+    .sidebar-bd { display:none; position:fixed; inset:0; top:calc(58px + var(--sat,0px)); background:rgba(0,0,0,0.65); z-index:140; }
     .sidebar-bd.open { display:block; }
 
     @media (max-width: 768px) {
       .layout { display:block; }
-      .sidebar { position:fixed; right:0; top:58px; height:calc(100vh - 58px); width:280px; z-index:150; transform:translateX(110%); transition:transform 0.3s ease; box-shadow:-6px 0 24px rgba(0,0,0,0.6); }
+      .sidebar { position:fixed; right:0; top:calc(58px + var(--sat,0px)); height:calc(100dvh - 58px - var(--sat,0px)); width:280px; z-index:150; transform:translateX(110%); transition:transform 0.3s ease; box-shadow:-6px 0 24px rgba(0,0,0,0.6); }
       .sidebar.mob-open { transform:translateX(0); }
       .main { padding:16px 14px 60px; width:100%; }
       .btn-mob-menu { display:flex; }
@@ -311,6 +311,7 @@
     <button class="btn-sm btn-outline" id="btn-fi-view" onclick="toggleFoodView()" style="border-color:rgba(74,222,128,0.35);color:#4ade80;">🥦 מזון</button>
     <button class="btn-sm btn-outline" onclick="openCoachesView()" style="border-color:rgba(100,180,255,0.35);color:#64b4ff;">👥 מאמנים</button>
     <button class="btn-sm btn-outline" onclick="openPresentersView()" style="border-color:rgba(255,215,0,0.35);color:#FFD700;">🎤 פרזנטורים</button>
+    <button class="btn-sm btn-outline" onclick="openAcquisitionView()" style="border-color:rgba(74,222,128,0.35);color:#4ade80;">📊 דרכי הגעה</button>
     <button class="btn-sm btn-outline" onclick="openActivityView()" style="border-color:rgba(248,113,113,0.4);color:#f87171;">🛡️ פעילות</button>
     <button class="btn-sm btn-outline" onclick="openRecords()" style="border-color:rgba(255,215,0,0.35);color:#FFD700;">🏆 שיאים</button>
     <a href="coach.html" class="btn-sm btn-outline" style="text-decoration:none;border-color:rgba(255,107,0,0.4);color:var(--orange);">🎓 מאמן</a>
@@ -1185,7 +1186,7 @@
         </div>
         <div id="coaches-wrap"></div>
       </div>`;
-    await Promise.all([loadCoachTokens(), loadTokenRequests()]);
+    await Promise.all([loadCoachTokens(), loadTokenRequests(), loadPresReferralsOnce()]);
     renderTokenRequestsSection();
     renderCoachesTable();
     loadStudioDlcRequests();
@@ -1398,6 +1399,208 @@
   const ROLE_BG    = {regular:'rgba(255,255,255,0.07)',senior:'rgba(255,215,0,0.14)',admin:'rgba(255,107,0,0.16)',studio_owner:'rgba(255,215,0,0.14)'};
   const ROLE_CLR   = {regular:'#888',senior:'#FFD700',admin:'#FF6B00',studio_owner:'#FFD700'};
 
+  /* ══════════════════════════════════════════════════════
+     FEATURE 5 — ACQUISITION SOURCE ("איך הגיעו אלינו")
+     coaches: friend | sponsor | ads   ·   clients: friend | instagram | gym
+  ══════════════════════════════════════════════════════ */
+  const ACQ_COACH  = { friend:'🤝 חבר מביא חבר', sponsor:'🎤 דרך ספונסר', ads:'📢 פרסומת ממומנת' };
+  const ACQ_CLIENT = { friend:'🤝 חבר מביא חבר', instagram:'📸 פנייה באינסטגרם', gym:'🏋️ פנייה פיזית במכון' };
+  const ACQ_CLR    = { friend:'#4ade80', sponsor:'#FFD700', ads:'#60a5fa', instagram:'#f472b6', gym:'#a78bfa', none:'#555' };
+  let _acqExpand = {}, _acqClients = [];
+
+  async function loadPresReferralsOnce() {
+    if (_presReferrals.length) return;
+    const { data } = await sb.from('presenter_referrals').select('*');
+    _presReferrals = data || [];
+  }
+
+  /* An explicit acq_source always wins. When the admin never set one we can still
+     attribute from data already in the system: a referral code proves coach→coach,
+     a presenter_referrals row proves sponsor. */
+  function deriveCoachAcq(c) {
+    if (c.acq_source) return { source: c.acq_source, ref: c.acq_ref || null, derived: false };
+    if (c.referred_by_code) {
+      const referrer = coachesList.find(x => x.referral_code && x.referral_code === c.referred_by_code);
+      return { source: 'friend', ref: referrer ? referrer.email : null, derived: true };
+    }
+    const email = (c.email || '').toLowerCase();
+    const pr = _presReferrals.find(r => (r.referred_email || '').toLowerCase() === email);
+    if (pr) return { source: 'sponsor', ref: pr.presenter_email, derived: true };
+    return { source: null, ref: null, derived: false };
+  }
+
+  /* the "דרך הגעה" row inside an expanded coach card */
+  function coachAcqHtml(c) {
+    const a = deriveCoachAcq(c);
+    const opts = ['', ...Object.keys(ACQ_COACH)].map(k =>
+      `<option value="${k}" ${a.source === (k || null) || (!a.source && !k) ? 'selected' : ''}>${k ? ACQ_COACH[k] : '— לא צוין —'}</option>`
+    ).join('');
+
+    let refPicker = '';
+    if (a.source === 'sponsor') {
+      const sponsors = coachesList.filter(x => x.is_presenter);
+      refPicker = `<select onclick="event.stopPropagation()" onchange="saveCoachAcq('${c.id}','${esc(c.email)}','acq_ref',this.value)"
+        style="background:rgba(255,215,0,0.06);border:1px solid rgba(255,215,0,0.25);border-radius:6px;color:#fff;font-family:'Heebo',sans-serif;font-size:0.76rem;padding:4px 8px;outline:none;cursor:pointer;">
+        <option value="">— איזה ספונסר? —</option>
+        ${sponsors.map(s => `<option value="${esc(s.email)}" ${a.ref === s.email ? 'selected' : ''}>${esc(s.name || s.email)}</option>`).join('')}
+      </select>`;
+    } else if (a.source === 'friend') {
+      const others = coachesList.filter(x => x.email !== c.email && x.role && x.role !== 'pending');
+      refPicker = `<select onclick="event.stopPropagation()" onchange="saveCoachAcq('${c.id}','${esc(c.email)}','acq_ref',this.value)"
+        style="background:rgba(74,222,128,0.06);border:1px solid rgba(74,222,128,0.25);border-radius:6px;color:#fff;font-family:'Heebo',sans-serif;font-size:0.76rem;padding:4px 8px;outline:none;cursor:pointer;">
+        <option value="">— מי הזמין? —</option>
+        ${others.map(s => `<option value="${esc(s.email)}" ${a.ref === s.email ? 'selected' : ''}>${esc(s.name || s.email)}</option>`).join('')}
+      </select>`;
+    }
+
+    const derivedNote = a.derived
+      ? `<span style="font-size:0.65rem;color:#888;">(זוהה אוטומטית — בחר כדי לקבע)</span>` : '';
+
+    return `<div style="padding:8px 14px 10px;border-top:1px solid rgba(255,255,255,0.05);display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+      <div style="font-size:0.72rem;color:var(--muted);font-weight:700;">דרך הגעה:</div>
+      <select onclick="event.stopPropagation()" onchange="saveCoachAcq('${c.id}','${esc(c.email)}','acq_source',this.value)"
+        style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:6px;color:#fff;font-family:'Heebo',sans-serif;font-size:0.78rem;padding:4px 8px;outline:none;cursor:pointer;">
+        ${opts}
+      </select>
+      ${refPicker}
+      ${derivedNote}
+    </div>`;
+  }
+
+  async function saveCoachAcq(id, email, field, value) {
+    const patch = {};
+    patch[field] = value || null;
+    // committing a derived channel? persist the attribution alongside it
+    const c = coachesList.find(x => x.id == id);
+    if (field === 'acq_source' && c) {
+      const a = deriveCoachAcq(c);
+      if (a.derived && a.ref && value === a.source) patch.acq_ref = a.ref;
+      if (value !== 'sponsor' && value !== 'friend') patch.acq_ref = null;
+    }
+    const { error } = await sb.from('coaches').update(patch).eq('email', email);
+    if (error) { toast('שגיאה: ' + error.message, 'err'); return; }
+    if (c) Object.assign(c, patch);
+    toast('✓ דרך הגעה נשמרה', 'ok');
+    renderCoachesTable();
+  }
+
+  /* ── the stats view ── */
+  async function openAcquisitionView() {
+    activeEmail = null;
+    if (typeof exercisesMode !== 'undefined') exercisesMode = false;
+    if (typeof recipesMode !== 'undefined') recipesMode = false;
+    renderSidebar();
+    document.getElementById('main-area').innerHTML = '<div class="sec-card"><div style="color:#555;padding:20px;">טוען דרכי הגעה...</div></div>';
+    const [{ data: cs }, { data: cl }] = await Promise.all([
+      sb.from('coaches').select('*').order('name'),
+      sb.from('clients').select('email,name,coach_email,acq_source'),
+    ]);
+    coachesList = cs || [];
+    _acqClients = cl || [];   // kept separate — the global `clients` holds full rows
+    await loadPresReferralsOnce();
+    renderAcquisition();
+  }
+
+  function toggleAcq(key) { _acqExpand[key] = !_acqExpand[key]; renderAcquisition(); }
+
+  function acqBar(label, count, total, color, extra) {
+    const pct = total ? Math.round(count / total * 1000) / 10 : 0;
+    return `<div style="margin-bottom:10px;">
+      <div style="display:flex;align-items:center;gap:8px;font-size:0.82rem;margin-bottom:4px;">
+        <span style="font-weight:700;">${label}</span>
+        <span style="color:${color};font-weight:900;">${count}</span>
+        <span style="color:var(--muted);font-size:0.76rem;">(${pct}%)</span>
+        ${extra || ''}
+      </div>
+      <div style="height:8px;background:rgba(255,255,255,0.05);border-radius:4px;overflow:hidden;">
+        <div style="height:100%;width:${pct}%;background:${color};border-radius:4px;transition:width 0.3s;"></div>
+      </div>
+    </div>`;
+  }
+
+  function renderAcquisition() {
+    const main = document.getElementById('main-area'); if (!main) return;
+
+    // ── coaches: how each coach reached us ──
+    const realCoaches = coachesList.filter(c => c.role && c.role !== 'pending');
+    const coachTotal = realCoaches.length;
+    const byChannel = { friend: [], sponsor: [], ads: [], none: [] };
+    realCoaches.forEach(c => {
+      const a = deriveCoachAcq(c);
+      const k = a.source && byChannel[a.source] ? a.source : 'none';
+      byChannel[k].push({ c, ref: a.ref });
+    });
+
+    // sponsors table — how many each sponsor brought
+    const sponsorCounts = {};
+    byChannel.sponsor.forEach(x => {
+      const k = x.ref || '—';
+      (sponsorCounts[k] = sponsorCounts[k] || []).push(x.c);
+    });
+    const sponsorRows = Object.entries(sponsorCounts).sort((a, b) => b[1].length - a[1].length);
+
+    // friend table — top 10 inviting coaches
+    const inviterCounts = {};
+    byChannel.friend.forEach(x => {
+      const k = x.ref || '—';
+      (inviterCounts[k] = inviterCounts[k] || []).push(x.c);
+    });
+    const inviterRows = Object.entries(inviterCounts).sort((a, b) => b[1].length - a[1].length).slice(0, 10);
+
+    const nameOf = email => {
+      if (!email || email === '—') return '<span style="color:#666;">לא שויך</span>';
+      const c = coachesList.find(x => x.email === email);
+      return esc(c ? (c.name || email) : email);
+    };
+
+    const tableWrap = (rows, emptyMsg, headLabel) => rows.length ? `
+      <div style="margin:6px 0 14px;border:1px solid rgba(255,255,255,0.08);border-radius:10px;overflow:hidden;">
+        <div style="display:grid;grid-template-columns:32px 1fr 70px;gap:8px;padding:7px 12px;background:rgba(255,255,255,0.04);font-size:0.7rem;font-weight:700;color:var(--muted);">
+          <div>#</div><div>${headLabel}</div><div style="text-align:center;">כמות</div>
+        </div>
+        ${rows.map(([email, list], i) => `
+          <div style="display:grid;grid-template-columns:32px 1fr 70px;gap:8px;padding:8px 12px;border-top:1px solid rgba(255,255,255,0.05);font-size:0.82rem;align-items:center;">
+            <div style="color:${i === 0 ? '#FFD700' : '#666'};font-weight:900;">${i + 1}</div>
+            <div>${nameOf(email)}<div style="font-size:0.68rem;color:#666;margin-top:1px;">${list.map(c => esc(c.name || c.email)).join(' · ')}</div></div>
+            <div style="text-align:center;font-weight:900;color:var(--orange);">${list.length}</div>
+          </div>`).join('')}
+      </div>` : `<div style="font-size:0.78rem;color:#555;padding:6px 0 14px;">${emptyMsg}</div>`;
+
+    const arrow = k => `<button onclick="toggleAcq('${k}')" style="margin-right:auto;background:none;border:none;color:var(--orange);cursor:pointer;font-size:0.8rem;font-family:'Heebo',sans-serif;">${_acqExpand[k] ? '▲ סגור' : '▼ פירוט'}</button>`;
+
+    // ── clients: how each trainee reached their coach ──
+    const clientTotal = _acqClients.length;
+    const clientCounts = { friend: 0, instagram: 0, gym: 0, none: 0 };
+    _acqClients.forEach(cl => {
+      const k = cl.acq_source;
+      clientCounts[k in clientCounts ? k : 'none']++;
+    });
+
+    main.innerHTML = `
+      <div class="sec-card" style="margin-bottom:16px;">
+        <div class="sec-card-title">📊 דרכי הגעה — מאמנים
+          <span style="margin-right:auto;font-size:0.78rem;font-weight:400;color:var(--muted);">${coachTotal} מאמנים פעילים</span>
+        </div>
+        ${acqBar(ACQ_COACH.friend, byChannel.friend.length, coachTotal, ACQ_CLR.friend, arrow('friend'))}
+        ${_acqExpand.friend ? tableWrap(inviterRows, 'אין הפניות מאמנים עדיין', 'טופ 10 מאמנים שהזמינו') : ''}
+        ${acqBar(ACQ_COACH.sponsor, byChannel.sponsor.length, coachTotal, ACQ_CLR.sponsor, arrow('sponsor'))}
+        ${_acqExpand.sponsor ? tableWrap(sponsorRows, 'אין הגעות דרך ספונסרים עדיין', 'ספונסר') : ''}
+        ${acqBar(ACQ_COACH.ads, byChannel.ads.length, coachTotal, ACQ_CLR.ads)}
+        ${acqBar('❔ לא צוין', byChannel.none.length, coachTotal, ACQ_CLR.none, arrow('none'))}
+        ${_acqExpand.none ? `<div style="font-size:0.76rem;color:#888;padding:4px 0 14px;line-height:1.8;">${byChannel.none.length ? byChannel.none.map(x => esc(x.c.name || x.c.email)).join(' · ') : 'הכול משויך ✓'}</div>` : ''}
+      </div>
+
+      <div class="sec-card">
+        <div class="sec-card-title">📊 דרכי הגעה — מתאמנים
+          <span style="margin-right:auto;font-size:0.78rem;font-weight:400;color:var(--muted);">${clientTotal} מתאמנים · נקבע ע"י המאמן בכרטיס המתאמן</span>
+        </div>
+        ${acqBar(ACQ_CLIENT.friend, clientCounts.friend, clientTotal, ACQ_CLR.friend)}
+        ${acqBar(ACQ_CLIENT.instagram, clientCounts.instagram, clientTotal, ACQ_CLR.instagram)}
+        ${acqBar(ACQ_CLIENT.gym, clientCounts.gym, clientTotal, ACQ_CLR.gym)}
+        ${acqBar('❔ לא צוין', clientCounts.none, clientTotal, ACQ_CLR.none)}
+      </div>`;
+  }
+
   function renderCoachesTable() {
     renderPendingCoaches();
     const el = document.getElementById('coaches-wrap');
@@ -1602,6 +1805,7 @@
           ${roleSelect}
           <button class="btn-sm btn-orange" style="font-size:0.73rem;padding:4px 12px;" onclick="event.stopPropagation();openAddModal('${esc(c.email)}')">+ הוסף מתאמן</button>
         </div>
+        ${coachAcqHtml(c)}
         ${licenseHtml}
         ${tokenHtml}
         <div style="padding:0 14px 14px;display:grid;grid-template-columns:1fr 1fr;gap:16px;">
@@ -4235,6 +4439,20 @@ ALTER TABLE coaches ADD COLUMN IF NOT EXISTS logo_url  text;
 ALTER TABLE coaches ADD COLUMN IF NOT EXISTS cover_url text;
 ALTER TABLE coaches ADD COLUMN IF NOT EXISTS brand_color text;
 ALTER TABLE coaches ADD COLUMN IF NOT EXISTS tagline text;
+ALTER TABLE coaches ADD COLUMN IF NOT EXISTS app_name text;
+
+-- Feature 4b: per-coach app icon (splash + login screens)
+ALTER TABLE coaches ADD COLUMN IF NOT EXISTS app_icon_url text;
+ALTER TABLE coaches ADD COLUMN IF NOT EXISTS icon_frame_color text;
+ALTER TABLE coaches ADD COLUMN IF NOT EXISTS icon_full boolean DEFAULT false;
+
+-- Feature 5: acquisition source ("how did they reach us")
+-- clients: friend | instagram | gym     coaches: friend | sponsor | ads
+ALTER TABLE clients ADD COLUMN IF NOT EXISTS acq_source text;
+ALTER TABLE coaches ADD COLUMN IF NOT EXISTS acq_source text;
+ALTER TABLE coaches ADD COLUMN IF NOT EXISTS acq_ref text;
+CREATE INDEX IF NOT EXISTS idx_clients_acq_source ON clients(acq_source);
+CREATE INDEX IF NOT EXISTS idx_coaches_acq_source ON coaches(acq_source);
 
 -- Storage bucket for coach assets (run in Supabase Storage UI or via API)
 -- Bucket name: coach-assets | Public: true | Max size: 5MB
