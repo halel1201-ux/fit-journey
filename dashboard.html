@@ -24,6 +24,10 @@
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root { --orange:#FF6B00; --gold:#FFD700; --black:#090909; --graphite:#111; --white:#fff; --muted:#aaa; --card:rgba(255,255,255,0.04); --border:rgba(255,107,0,0.25); }
+
+    /* 🎨 תפריטי בחירה (select): רקע כהה + כיתוב לבן — אחרת האופציות לא נראות */
+    select { color-scheme: dark; }
+    select option, select optgroup { background-color:#1a1a1a; color:#ffffff; }
     html { scroll-behavior: smooth; }
     html, body { overflow-x: clip; } /* block sideways drag/reveal of off-screen fixed panels */
     body { font-family: 'Heebo', sans-serif; background-color: var(--black); background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 130 80'%3E%3Ctext x='65' y='65' text-anchor='middle' font-family='Arial Black%2Csans-serif' font-weight='900' font-size='68' fill='%23FF6B00' opacity='0.08'%3EFJ%3C/text%3E%3C/svg%3E"); background-attachment: fixed; background-position: center center; background-repeat: no-repeat; background-size: 140px; color: var(--white); min-height: 100vh; }
@@ -5962,7 +5966,7 @@ ${foodList || 'אין פריטים'}
     if (!coachEmail) return;
     try {
       const { data } = await sb.from('coaches')
-        .select('logo_url,cover_url,brand_color,tagline,name,app_name,app_icon_url,icon_frame_color,icon_full')
+        .select('logo_url,cover_url,brand_color,tagline,name,app_name,app_icon_url,icon_frame_color')
         .eq('email', coachEmail).single();
       if (data) applyBranding(data);
     } catch(e) { /* table columns may not exist yet — silent */ }
@@ -5972,10 +5976,15 @@ ${foodList || 'אין פריטים'}
      so stash the branding here and let those screens read it on the next launch. */
   function cacheBrandingForEarlyScreens(b) {
     try {
+      // app_icon_url is the COMPOSED icon the branding modal renders (frame colour
+      // already baked into the PNG) — so `full: true` tells splash/login to show it
+      // edge to edge instead of drawing a second frame around it. Only the plain
+      // logo fallback still needs a frame drawn behind it.
+      const composed = b.app_icon_url || null;
       localStorage.setItem('fj_brand_cache', JSON.stringify({
-        icon:  b.app_icon_url || b.logo_url || null,
+        icon:  composed || b.logo_url || null,
         frame: b.icon_frame_color || b.brand_color || null,
-        full:  !!b.icon_full,
+        full:  !!composed,
         color: b.brand_color || null,
         name:  (b.app_name || '').trim() || (b.name || '').trim() || null,
       }));
@@ -6033,6 +6042,7 @@ ${foodList || 'אין פריטים'}
       const color = (b.brand_color && b.brand_color !== '#FF6B00') ? b.brand_color : '#FF6B00';
       const appName = (b.app_name && b.app_name.trim()) || (b.tagline && b.tagline.trim()) || (b.name && b.name.trim()) || 'Fit Journey';
       const shortName = appName.length > 12 ? appName.slice(0, 12) : appName;
+      // אייקון מורכב (תמונה + מסגרת) קודם, אחריו הלוגו, ולבסוף אייקון ברירת המחדל
       const icon = b.app_icon_url || b.logo_url || 'icon-512.png';
       // theme-color + title + apple touch icon
       let themeMeta = document.querySelector('meta[name="theme-color"]');
@@ -6042,10 +6052,10 @@ ${foodList || 'אין פריטים'}
       let apple = document.querySelector('link[rel="apple-touch-icon"]');
       if (!apple) { apple = document.createElement('link'); apple.rel = 'apple-touch-icon'; document.head.appendChild(apple); }
       apple.href = icon;
-      // browser-tab favicon → coach logo too (fully branded)
-      if (b.logo_url) {
+      // browser-tab favicon → the coach's app icon (or logo) too (fully branded)
+      if (b.app_icon_url || b.logo_url) {
         document.querySelectorAll('link[rel="icon"], link[rel="shortcut icon"]').forEach(el => el.parentNode.removeChild(el));
-        const fav = document.createElement('link'); fav.rel = 'icon'; fav.href = b.logo_url; document.head.appendChild(fav);
+        const fav = document.createElement('link'); fav.rel = 'icon'; fav.href = icon; document.head.appendChild(fav);
       }
       let appleTitle = document.querySelector('meta[name="apple-mobile-web-app-title"]');
       if (!appleTitle) { appleTitle = document.createElement('meta'); appleTitle.name = 'apple-mobile-web-app-title'; document.head.appendChild(appleTitle); }

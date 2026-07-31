@@ -18,6 +18,10 @@
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root { --orange:#FF6B00; --gold:#FFD700; --black:#090909; --graphite:#111; --white:#fff; --muted:#888; --card:rgba(255,255,255,0.04); --border:rgba(255,107,0,0.25); }
+
+    /* 🎨 תפריטי בחירה (select): רקע כהה + כיתוב לבן — אחרת האופציות לא נראות */
+    select { color-scheme: dark; }
+    select option, select optgroup { background-color:#1a1a1a; color:#ffffff; }
     body { font-family: 'Heebo', sans-serif; background: var(--black); color: var(--white); min-height: 100vh; }
     ::-webkit-scrollbar { width: 5px; } ::-webkit-scrollbar-track { background: #0e0e0e; } ::-webkit-scrollbar-thumb { background: var(--orange); border-radius: 3px; }
 
@@ -4441,10 +4445,14 @@ ALTER TABLE coaches ADD COLUMN IF NOT EXISTS brand_color text;
 ALTER TABLE coaches ADD COLUMN IF NOT EXISTS tagline text;
 ALTER TABLE coaches ADD COLUMN IF NOT EXISTS app_name text;
 
--- Feature 4b: per-coach app icon (splash + login screens)
-ALTER TABLE coaches ADD COLUMN IF NOT EXISTS app_icon_url text;
+-- Feature 4b: per-coach app icon.
+-- app_icon_url  = the COMPOSED 512x512 png (frame colour baked in) used for the
+--                 favicon, the PWA manifest, and the splash/login screens.
+-- icon_src_url  = the raw uploaded image, kept so recolouring the frame never
+--                 re-frames an already-composed icon.
+ALTER TABLE coaches ADD COLUMN IF NOT EXISTS app_icon_url     text;
 ALTER TABLE coaches ADD COLUMN IF NOT EXISTS icon_frame_color text;
-ALTER TABLE coaches ADD COLUMN IF NOT EXISTS icon_full boolean DEFAULT false;
+ALTER TABLE coaches ADD COLUMN IF NOT EXISTS icon_src_url     text;
 
 -- Feature 5: acquisition source ("how did they reach us")
 -- clients: friend | instagram | gym     coaches: friend | sponsor | ads
