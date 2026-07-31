@@ -836,7 +836,12 @@
       <div style="font-size:0.72rem;color:#666;margin-bottom:8px;" id="acct-email">—</div>
       <a href="privacy.html" style="font-size:0.75rem;color:#777;text-decoration:underline;">מדיניות פרטיות</a>
       <span style="color:#444;margin:0 8px;">·</span>
-      <button onclick="openDeleteAccount()" style="background:none;border:none;padding:0;font-family:'Heebo',sans-serif;font-size:0.75rem;color:#a05252;text-decoration:underline;cursor:pointer;">מחיקת החשבון שלי</button>
+      <a href="terms.html" style="font-size:0.75rem;color:#777;text-decoration:underline;">תנאי שימוש</a>
+      <span style="color:#444;margin:0 8px;">·</span>
+      <button onclick="openBlockedList()" style="background:none;border:none;padding:0;font-family:'Heebo',sans-serif;font-size:0.75rem;color:#777;text-decoration:underline;cursor:pointer;">משתמשים חסומים</button>
+      <div style="margin-top:8px;">
+        <button onclick="openDeleteAccount()" style="background:none;border:none;padding:0;font-family:'Heebo',sans-serif;font-size:0.75rem;color:#a05252;text-decoration:underline;cursor:pointer;">מחיקת החשבון שלי</button>
+      </div>
     </div>
   </div>
 
@@ -2743,7 +2748,13 @@
     const card = document.getElementById('community-card'); if (!card || !clientData?.coach_email) return;
     const owner = clientData.coach_email;
     const { data: posts } = await sb.from('feed_posts').select('*').eq('coach_email', owner).order('created_at', { ascending: false }).limit(40);
-    const list = posts || [];
+    // 🛡 hide anything written by someone this user blocked (App Store 1.2)
+    let blocked = [];
+    try {
+      const { data: b } = await sb.from('user_blocks').select('blocked_email').eq('user_email', currentEmail);
+      blocked = (b || []).map(x => x.blocked_email);
+    } catch (e) { /* table not migrated yet — feed still works */ }
+    const list = (posts || []).filter(p => !blocked.includes(p.author_email));
     let likesByPost = {}, myLikes = {};
     if (list.length) {
       const ids = list.map(p => p.id);
@@ -2761,6 +2772,10 @@
           <div><input type="file" id="feed-photo-inp" accept="image/*" style="display:none;" onchange="attachFeedPhoto(this.files[0])"><button onclick="document.getElementById('feed-photo-inp').click()" id="feed-photo-btn" style="padding:7px 12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:10px;color:#aaa;font-family:'Heebo';font-size:0.78rem;cursor:pointer;">📷 תמונה</button></div>
           <button onclick="submitPost()" style="padding:8px 18px;background:linear-gradient(135deg,#8b5cf6,#a855f7);color:#fff;border:none;border-radius:10px;font-family:'Heebo';font-weight:800;font-size:0.82rem;cursor:pointer;">פרסם</button>
         </div>
+        <div style="font-size:0.66rem;color:#777;margin-bottom:12px;line-height:1.6;">
+          בפרסום בקהילה אתה מאשר את <a href="terms.html" style="color:#c4b5fd;">תנאי השימוש</a>.
+          תוכן פוגעני, מטריד או מסחרי אסור ויוסר. אפשר לדווח על פוסט (🚩) או לחסום משתמש (🚫).
+        </div>
         <div style="display:flex;flex-direction:column;gap:10px;">
           ${list.length ? list.map(p => {
             const mine = p.author_email === currentEmail;
@@ -2769,7 +2784,9 @@
             return `<div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:11px 13px;">
               <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">
                 <div style="font-weight:800;color:#c4b5fd;font-size:0.85rem;">${esc(p.author_name || p.author_email.split('@')[0])}${p.author_email === owner ? ' <span style="font-size:0.62rem;color:#FFD700;">מאמן</span>' : ''}</div>
-                <div style="font-size:0.66rem;color:#666;">${when}${mine ? ` · <span onclick="deletePost(${p.id})" style="color:#f87171;cursor:pointer;">מחק</span>` : ''}</div>
+                <div style="font-size:0.66rem;color:#666;">${when}${mine
+                  ? ` · <span onclick="deletePost(${p.id})" style="color:#f87171;cursor:pointer;">מחק</span>`
+                  : ` · <span onclick="reportPost(${p.id},'${esc(p.author_email)}')" title="דיווח על תוכן פוגעני" style="color:#888;cursor:pointer;">🚩 דווח</span> · <span onclick="blockUser('${esc(p.author_email)}','${esc(p.author_name || '')}')" title="חסימת המשתמש" style="color:#888;cursor:pointer;">🚫 חסום</span>`}</div>
               </div>
               ${p.content ? `<div style="font-size:0.86rem;color:#ddd;white-space:pre-wrap;line-height:1.5;">${esc(p.content)}</div>` : ''}
               ${p.image_url ? `<a href="${p.image_url}" target="_blank"><img src="${p.image_url}" style="margin-top:7px;max-width:100%;max-height:280px;border-radius:10px;display:block;"/></a>` : ''}
@@ -2805,6 +2822,52 @@
   async function deletePost(postId) {
     if (!confirm('למחוק את הפוסט?')) return;
     await sb.from('feed_posts').delete().eq('id', postId).eq('author_email', currentEmail);
+    renderCommunity();
+  }
+
+  /* 🛡 מודרציה (App Store 1.2): דיווח על תוכן פוגעני + חסימת משתמש.
+     דיווח מגיע למאמן שהקהילה שלו, וחסימה מסתירה מיידית את כל הפוסטים
+     של המשתמש החסום — בלי להמתין לטיפול. */
+  const REPORT_REASONS = ['תוכן פוגעני או מעליב', 'הטרדה או בריונות', 'תוכן מיני', 'ספאם או פרסומת', 'מידע מטעה / מסוכן', 'אחר'];
+
+  async function reportPost(postId, authorEmail) {
+    const menu = REPORT_REASONS.map((r, i) => `${i + 1}. ${r}`).join('\n');
+    const pick = prompt(`דיווח על פוסט — מה הבעיה?\n\n${menu}\n\nהקלד מספר (1-${REPORT_REASONS.length}):`);
+    if (pick === null) return;
+    const idx = parseInt(pick, 10) - 1;
+    if (!(idx >= 0 && idx < REPORT_REASONS.length)) { showDashToast('בחירה לא תקינה'); return; }
+    const { error } = await sb.from('feed_reports').insert({
+      post_id: postId, reporter_email: currentEmail, post_author: authorEmail,
+      coach_email: clientData?.coach_email || null, reason: REPORT_REASONS[idx],
+    });
+    if (error && error.code === '23505') { showDashToast('כבר דיווחת על הפוסט הזה'); return; }
+    if (error) { showDashToast('הדיווח נכשל — נסה שוב'); return; }
+    showDashToast('✓ הדיווח נשלח. נטפל בו תוך 24 שעות');
+    if (confirm('הדיווח נשלח.\n\nלחסום גם את המשתמש הזה, כך שלא תראה יותר תוכן ממנו?')) {
+      await blockUser(authorEmail, '', true);
+    }
+  }
+
+  async function blockUser(email, name, skipConfirm) {
+    const who = name || email.split('@')[0];
+    if (!skipConfirm && !confirm(`לחסום את ${who}?\n\nלא תראה יותר פוסטים ממנו בקהילה. אפשר לבטל בכל עת.`)) return;
+    const { error } = await sb.from('user_blocks').insert({ user_email: currentEmail, blocked_email: email });
+    if (error && error.code !== '23505') { showDashToast('החסימה נכשלה'); return; }
+    showDashToast(`${who} נחסם 🚫`);
+    renderCommunity();
+  }
+
+  async function openBlockedList() {
+    const { data } = await sb.from('user_blocks').select('blocked_email').eq('user_email', currentEmail);
+    const list = (data || []).map(b => b.blocked_email);
+    if (!list.length) { alert('לא חסמת אף אחד.'); return; }
+    const menu = list.map((e, i) => `${i + 1}. ${e}`).join('\n');
+    const pick = prompt(`משתמשים חסומים:\n\n${menu}\n\nהקלד מספר כדי לבטל חסימה, או בטל:`);
+    if (pick === null) return;
+    const idx = parseInt(pick, 10) - 1;
+    if (!(idx >= 0 && idx < list.length)) return;
+    await sb.from('user_blocks').delete().eq('user_email', currentEmail).eq('blocked_email', list[idx]);
+    showDashToast('החסימה בוטלה');
     renderCommunity();
   }
 
