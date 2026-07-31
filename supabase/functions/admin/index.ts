@@ -2,7 +2,7 @@
  * Admin auth operations — Fit Journey
  * Handles the privileged auth.admin operations that cannot be done with a user JWT.
  * Keeps the service key server-side. Authorizes each action by caller role.
- * Actions: set_password, rename_email.
+ * Actions: set_password, rename_email, delete_account.
  */
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
@@ -76,6 +76,33 @@ Deno.serve(async (req) => {
         if (error) return json({ error: error.message }, 400)
       }
       return json({ ok: true })
+    }
+
+    /* 🗑 Account deletion — App Store guideline 5.1.1(v) requires an in-app way
+       to delete the account. A trainee may delete ONLY their own account; an
+       admin or senior coach may delete a trainee's. Wipes every row keyed to
+       the address (delete_client_data walks the schema), then the auth user. */
+    if (action === 'delete_account') {
+      const email = String(body.email || '').trim().toLowerCase()
+      if (!email) return json({ error: 'bad input' }, 400)
+
+      const self = email === (user.email || '').toLowerCase()
+      if (!self && !canManage) return json({ error: 'forbidden' }, 403)
+
+      // Coaches own client data and billing history — deleting one this way would
+      // orphan their trainees, so that stays a manual, deliberate operation.
+      const { data: isCoach } = await admin.from('coaches').select('email').eq('email', email).maybeSingle()
+      if (isCoach) return json({ error: 'coach accounts must be removed by an admin' }, 400)
+
+      const { data: wiped, error: wipeErr } = await admin.rpc('delete_client_data', { p_email: email })
+      if (wipeErr) return json({ error: wipeErr.message }, 400)
+
+      const target = await findUser(email)
+      if (target) {
+        const { error } = await admin.auth.admin.deleteUser(target.id)
+        if (error) return json({ error: error.message }, 400)
+      }
+      return json({ ok: true, deleted: wiped })
     }
 
     return json({ error: 'unknown action' }, 400)

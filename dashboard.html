@@ -830,6 +830,35 @@
     </div>
     <div id="hl-debt" style="display:none;margin-top:14px;"></div>
     <div id="hl-extra" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px;"></div>
+
+    <!-- ⚙️ החשבון שלי — מחיקת חשבון נדרשת ע"י App Store 5.1.1(v) -->
+    <div style="margin-top:26px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.07);text-align:center;">
+      <div style="font-size:0.72rem;color:#666;margin-bottom:8px;" id="acct-email">—</div>
+      <a href="privacy.html" style="font-size:0.75rem;color:#777;text-decoration:underline;">מדיניות פרטיות</a>
+      <span style="color:#444;margin:0 8px;">·</span>
+      <button onclick="openDeleteAccount()" style="background:none;border:none;padding:0;font-family:'Heebo',sans-serif;font-size:0.75rem;color:#a05252;text-decoration:underline;cursor:pointer;">מחיקת החשבון שלי</button>
+    </div>
+  </div>
+
+  <!-- מודל מחיקת חשבון -->
+  <div id="del-acct-modal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.86);backdrop-filter:blur(6px);align-items:center;justify-content:center;padding:22px;">
+    <div style="background:#141414;border:1px solid rgba(248,113,113,0.35);border-radius:18px;padding:24px;max-width:380px;width:100%;">
+      <div style="font-size:1.05rem;font-weight:900;color:#f87171;margin-bottom:12px;">🗑 מחיקת החשבון שלך</div>
+      <div style="font-size:0.86rem;color:#bbb;line-height:1.75;margin-bottom:14px;">
+        הפעולה תמחק <strong style="color:#fff;">לצמיתות</strong> את החשבון שלך ואת כל מה שנשמר בו —
+        תוכניות אימון ותזונה, יומני אימון, מדידות, תמונות התקדמות, הודעות עם המאמן והיסטוריית התשלומים.
+        <br><strong style="color:#f87171;">לא ניתן לשחזר.</strong>
+      </div>
+      <div style="font-size:0.78rem;color:#888;margin-bottom:8px;">להמשך, הקלד <strong style="color:#fff;">מחק</strong> בשדה:</div>
+      <input id="del-acct-confirm" type="text" autocomplete="off" placeholder="מחק"
+        oninput="document.getElementById('del-acct-go').disabled = this.value.trim() !== 'מחק';"
+        style="width:100%;box-sizing:border-box;padding:10px 12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.14);border-radius:9px;color:#fff;font-family:'Heebo',sans-serif;font-size:0.95rem;outline:none;margin-bottom:16px;"/>
+      <div id="del-acct-err" style="display:none;font-size:0.8rem;color:#f87171;margin-bottom:12px;"></div>
+      <div style="display:flex;gap:9px;">
+        <button onclick="closeDeleteAccount()" style="flex:1;padding:11px;background:rgba(255,255,255,0.07);border:none;border-radius:10px;color:#ddd;font-family:'Heebo',sans-serif;font-size:0.88rem;font-weight:700;cursor:pointer;">ביטול</button>
+        <button id="del-acct-go" disabled onclick="confirmDeleteAccount()" style="flex:1;padding:11px;background:#b91c1c;border:none;border-radius:10px;color:#fff;font-family:'Heebo',sans-serif;font-size:0.88rem;font-weight:700;cursor:pointer;">מחק לצמיתות</button>
+      </div>
+    </div>
   </div>
 
   <div id="detail-view" style="display:none;">
@@ -1641,6 +1670,8 @@
 
     const email = session.user.email;
     currentEmail = email;
+    const acctEl = document.getElementById('acct-email');
+    if (acctEl) acctEl.textContent = email;
 
     if (email === 'halel1201@gmail.com') {
       document.getElementById('btn-admin-link').style.display = 'block';
@@ -2264,6 +2295,48 @@
   async function logout() {
     await sb.auth.signOut();
     window.location.href = 'login.html';
+  }
+
+  /* ── 🗑 מחיקת חשבון (App Store 5.1.1(v)) ──────────────────────────────
+     המחיקה עצמה רצה ב-Edge Function: היא מאמתת מול ה-JWT שהמוחק הוא בעל
+     החשבון, מוחקת כל שורה שקשורה למייל, ואז את משתמש ה-Auth. */
+  function openDeleteAccount() {
+    const inp = document.getElementById('del-acct-confirm');
+    inp.value = '';
+    document.getElementById('del-acct-go').disabled = true;
+    document.getElementById('del-acct-err').style.display = 'none';
+    document.getElementById('del-acct-modal').style.display = 'flex';
+  }
+  function closeDeleteAccount() {
+    document.getElementById('del-acct-modal').style.display = 'none';
+  }
+
+  async function confirmDeleteAccount() {
+    const btn = document.getElementById('del-acct-go');
+    const err = document.getElementById('del-acct-err');
+    if (document.getElementById('del-acct-confirm').value.trim() !== 'מחק') return;
+    btn.disabled = true; btn.textContent = 'מוחק...';
+    err.style.display = 'none';
+    try {
+      const { data: { session } } = await sb.auth.getSession();
+      if (!session) throw new Error('פג תוקף ההתחברות — התחבר מחדש ונסה שוב');
+      const res = await fetch(`${URL_}/functions/v1/admin`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', apikey: KEY, Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ action: 'delete_account', email: currentEmail }),
+      });
+      const out = await res.json().catch(() => ({ error: 'network' }));
+      if (!res.ok || out.error) throw new Error(out.error || 'שגיאת שרת');
+      // the account is gone — drop every local trace before leaving
+      try { localStorage.clear(); sessionStorage.clear(); } catch (e) {}
+      try { await sb.auth.signOut(); } catch (e) {}
+      alert('החשבון נמחק. תודה שהיית איתנו 🙏');
+      window.location.replace('login.html');
+    } catch (e) {
+      err.textContent = 'המחיקה נכשלה: ' + (e.message || e);
+      err.style.display = 'block';
+      btn.disabled = false; btn.textContent = 'מחק לצמיתות';
+    }
   }
 
   // עדכון מלא של ה-PWA: מנקה קאש ו-Service Worker ישנים וטוען מחדש מהשרת
