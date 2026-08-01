@@ -22,6 +22,7 @@
     /* 🎨 תפריטי בחירה (select): רקע כהה + כיתוב לבן — אחרת האופציות לא נראות */
     select { color-scheme: dark; }
     select option, select optgroup { background-color:#1a1a1a; color:#ffffff; }
+    html, body { overflow-x: clip; } /* block sideways drag/reveal of off-screen fixed panels */
     body { font-family: 'Heebo', sans-serif; background: var(--black); color: var(--white); min-height: 100vh; }
     ::-webkit-scrollbar { width: 5px; } ::-webkit-scrollbar-track { background: #0e0e0e; } ::-webkit-scrollbar-thumb { background: var(--orange); border-radius: 3px; }
 
