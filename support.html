@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>תמיכה — Fit Journey</title>
+<meta name="description" content="תמיכה ועזרה ב-Fit Journey — יצירת קשר, שאלות נפוצות, מחיקת חשבון ובעיות טכניות."/>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;700;900&display=swap" rel="stylesheet"/>
+<style>
+  :root { --orange:#FF6B00; --gold:#FFD700; --black:#090909; --white:#fff; --muted:#aaa; }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    background:var(--black); color:var(--white);
+    font-family:'Heebo',-apple-system,sans-serif; line-height:1.85;
+    padding:calc(38px + env(safe-area-inset-top)) 20px calc(60px + env(safe-area-inset-bottom));
+  }
+  .wrap { max-width:760px; margin:0 auto; }
+  header { text-align:center; margin-bottom:34px; }
+  .mark {
+    width:66px; height:66px; margin:0 auto 16px;
+    background:linear-gradient(145deg,#FF6B00 0%,#FF8C00 55%,#FFD700 100%);
+    border-radius:19px; display:flex; align-items:center; justify-content:center;
+    font-family:'Arial Black',sans-serif; font-size:1.7rem; font-weight:900; color:#fff;
+    box-shadow:0 8px 30px rgba(255,107,0,0.35);
+  }
+  h1 { font-size:1.6rem; font-weight:900; margin-bottom:6px; }
+  .updated { font-size:0.82rem; color:var(--muted); }
+  h2 {
+    font-size:1.06rem; font-weight:900; color:var(--orange);
+    margin:34px 0 10px; padding-bottom:7px;
+    border-bottom:1px solid rgba(255,107,0,0.22);
+  }
+  p, li { font-size:0.95rem; color:#ddd; }
+  p { margin-bottom:12px; }
+  ul { margin:0 20px 14px 0; }
+  li { margin-bottom:7px; }
+  strong { color:var(--white); font-weight:700; }
+  a { color:var(--orange); }
+
+  /* contact cards */
+  .contact { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin:18px 0 6px; }
+  @media (max-width:520px) { .contact { grid-template-columns:1fr; } }
+  .cbox {
+    display:block; text-decoration:none;
+    background:rgba(255,107,0,0.06); border:1px solid rgba(255,107,0,0.28);
+    border-radius:14px; padding:18px; text-align:center;
+    transition:background .2s, border-color .2s;
+  }
+  .cbox:hover { background:rgba(255,107,0,0.12); border-color:rgba(255,107,0,0.5); }
+  .cbox .ic { font-size:1.8rem; display:block; margin-bottom:6px; }
+  .cbox .lbl { font-size:0.95rem; font-weight:900; color:#fff; }
+  .cbox .val { font-size:0.82rem; color:var(--muted); direction:ltr; margin-top:3px; }
+
+  .sla {
+    background:rgba(74,222,128,0.07); border:1px solid rgba(74,222,128,0.3);
+    border-radius:12px; padding:14px 18px; margin:16px 0; font-size:0.9rem;
+  }
+  .note {
+    background:rgba(255,107,0,0.06); border:1px solid rgba(255,107,0,0.22);
+    border-radius:12px; padding:15px 18px; margin:16px 0;
+  }
+  .note p:last-child { margin-bottom:0; }
+
+  /* FAQ */
+  details {
+    border:1px solid rgba(255,255,255,0.1); border-radius:12px;
+    padding:13px 16px; margin-bottom:9px; background:rgba(255,255,255,0.02);
+  }
+  details[open] { border-color:rgba(255,107,0,0.3); background:rgba(255,107,0,0.03); }
+  summary {
+    cursor:pointer; font-weight:700; font-size:0.93rem; color:#fff;
+    list-style:none; display:flex; justify-content:space-between; align-items:center; gap:10px;
+  }
+  summary::-webkit-details-marker { display:none; }
+  summary::after { content:'+'; color:var(--orange); font-weight:900; font-size:1.2rem; flex-shrink:0; }
+  details[open] summary::after { content:'–'; }
+  details p, details ul { margin-top:10px; font-size:0.9rem; color:#ccc; }
+  details p:last-child, details ul:last-child { margin-bottom:0; }
+
+  footer {
+    margin-top:44px; padding-top:22px; border-top:1px solid rgba(255,255,255,0.08);
+    text-align:center; font-size:0.83rem; color:#777;
+  }
+  footer a { text-decoration:none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="mark">FJ</div>
+    <h1>תמיכה</h1>
+    <div class="updated">Fit Journey · כאן כדי לעזור</div>
+  </header>
+
+  <h2>יצירת קשר</h2>
+  <div class="contact">
+    <a class="cbox" href="mailto:halel1201@gmail.com?subject=תמיכה%20—%20Fit%20Journey">
+      <span class="ic">✉️</span>
+      <span class="lbl">אימייל</span>
+      <span class="val">halel1201@gmail.com</span>
+    </a>
+    <a class="cbox" href="https://wa.me/972586931163" target="_blank" rel="noopener">
+      <span class="ic">💬</span>
+      <span class="lbl">וואטסאפ</span>
+      <span class="val">058-693-1163</span>
+    </a>
+  </div>
+
+  <div class="sla">
+    <strong>זמן תגובה:</strong> אנו משיבים לכל פנייה תוך <strong>עד 48 שעות</strong> בימי עסקים.
+    דיווח על תוכן פוגעני בקהילה מטופל תוך <strong>24 שעות</strong>.
+  </div>
+
+  <p>
+    כשאתה פונה אלינו, זה עוזר מאוד אם תציין את <strong>כתובת האימייל שאיתה נרשמת</strong>,
+    את <strong>שם המאמן</strong> שלך, ואת <strong>דגם המכשיר</strong> — כך נוכל לאתר את
+    התקלה מהר יותר.
+  </p>
+
+  <div class="note">
+    <p>
+      <strong>שאלות על התוכנית, התזונה או ההתקדמות שלך?</strong> אלה בתחום האחריות של
+      <strong>המאמן האישי שלך</strong>, והדרך המהירה היא הצ'אט בתוך האפליקציה. אנחנו כאן
+      לתקלות טכניות, חשבון, פרטיות ודיווחים.
+    </p>
+  </div>
+
+  <h2>שאלות נפוצות</h2>
+
+  <details>
+    <summary>איך אני מתחיל? לא קיבלתי סיסמה</summary>
+    <p>
+      חשבונות ב-Fit Journey נפתחים על ידי המאמן — הוא יוצר לך משתמש וקובע לך סיסמה ראשונית.
+      אם נרשמת לליווי ולא קיבלת פרטי כניסה, פנה ישירות למאמן שלך.
+    </p>
+  </details>
+
+  <details>
+    <summary>שכחתי את הסיסמה</summary>
+    <p>
+      במסך ההתחברות יש לשונית <strong>"קישור למייל"</strong> — הזן את כתובת האימייל שלך
+      ותקבל קישור כניסה חד-פעמי, בלי צורך בסיסמה. אם המייל לא מגיע, בדוק בתיקיית הספאם,
+      וודא שאתה משתמש בכתובת שאיתה המאמן רשם אותך.
+    </p>
+  </details>
+
+  <details>
+    <summary>איך מוחקים את החשבון?</summary>
+    <p>
+      באפליקציה: <strong>מסך הבית → גלול לתחתית → "מחיקת החשבון שלי"</strong>.
+      תתבקש להקליד "מחק" לאישור. הפעולה מוחקת לצמיתות את החשבון ואת כל הנתונים —
+      תוכניות, יומני אימון, מדידות, תמונות והודעות — ואינה ניתנת לשחזור.
+    </p>
+    <p>
+      לחלופין ניתן לשלוח בקשה מכתובת האימייל הרשומה, ונטפל בה תוך עד 14 ימי עסקים.
+      פרטים מלאים ב<a href="privacy.html">מדיניות הפרטיות</a>.
+    </p>
+  </details>
+
+  <details>
+    <summary>הליווי שלי מוקפא — למה, ומה עושים?</summary>
+    <p>
+      הקפאה יכולה לנבוע משתי סיבות:
+    </p>
+    <ul>
+      <li><strong>הקפאה שביקשת</strong> — ניתן להסיר אותה בעצמך מכפתור "הפשר ליווי" במסך הבית.</li>
+      <li><strong>המנוי של המאמן שלך הסתיים</strong> — במקרה זה אינך יכול להסיר את ההקפאה,
+          והיא תוסר <strong>אוטומטית</strong> ברגע שהמאמן יחדש. הנתונים שלך נשמרים במלואם.
+          פנה למאמן לבירור.</li>
+    </ul>
+  </details>
+
+  <details>
+    <summary>האפליקציה לא נטענת או מציגה מידע ישן</summary>
+    <p>
+      בשורה העליונה יש כפתור <strong>🔄</strong> שמנקה את המטמון וטוען מחדש מהשרת —
+      זה פותר את רוב המקרים. אם זה לא עזר: סגור לגמרי את האפליקציה ופתח מחדש, ובדוק
+      שיש חיבור אינטרנט תקין. אם הבעיה נמשכת, כתוב לנו עם צילום מסך.
+    </p>
+  </details>
+
+  <details>
+    <summary>ספירת הצעדים לא מתעדכנת</summary>
+    <p>
+      האפליקציה קוראת את הצעדים מחיישן התנועה של המכשיר, ונדרשת לכך הרשאה מפורשת.
+      ב-iPhone: <strong>הגדרות → פרטיות ואבטחה → כושר ותנועה</strong> — ודא ש-Fit Journey
+      מאושרת. אפשר גם להזין צעדים ידנית מהכפתור "עדכן ידני".
+    </p>
+  </details>
+
+  <details>
+    <summary>תשלומים, חידוש מנוי והחזרים</summary>
+    <p>
+      רכישת הליווי מתבצעת <strong>באתר, מול המאמן שלך</strong> — לא דרך האפליקציה.
+      תנאי התשלום, משך הליווי ומדיניות הביטול נקבעים מולו, בהתאם לדין הישראלי.
+      לכל שאלה על חיוב, חידוש או החזר — פנה ישירות למאמן.
+    </p>
+  </details>
+
+  <details>
+    <summary>איך מדווחים על תוכן פוגעני בקהילה?</summary>
+    <p>
+      בכל פוסט שאינו שלך יש <strong>🚩 דווח</strong> (עם בחירת סיבה) ו-<strong>🚫 חסום</strong>.
+      חסימה מסתירה מיידית את כל התוכן של אותו משתמש מהפיד שלך. ניהול החסימות נמצא
+      במסך הבית בתחתית, תחת "משתמשים חסומים".
+    </p>
+    <p>
+      כל דיווח מטופל <strong>תוך 24 שעות</strong>. לדיווח דחוף:
+      <a href="mailto:halel1201@gmail.com?subject=דיווח%20דחוף%20—%20תוכן%20בקהילה">שלח לנו מייל</a>.
+    </p>
+  </details>
+
+  <details>
+    <summary>אני מאמן — איך מצטרפים לפלטפורמה?</summary>
+    <p>
+      מאמנים מצטרפים דרך האתר. פנה אלינו במייל או בוואטסאפ ונחזור אליך עם הפרטים,
+      המסלולים והאפשרויות למיתוג אישי של האפליקציה למתאמנים שלך.
+    </p>
+  </details>
+
+  <h2>פרטיות ואבטחה</h2>
+  <p>
+    כל התעבורה מוצפנת, והגישה לנתונים מוגבלת כך שכל משתמש רואה רק את המידע שלו ושל מי
+    שהוא מורשה עליו. הפירוט המלא — איזה מידע נאסף, מי נחשף אליו וכיצד למחוק אותו —
+    נמצא ב<a href="privacy.html">מדיניות הפרטיות</a> וב<a href="terms.html">תנאי השימוש</a>.
+  </p>
+
+  <footer>
+    <a href="privacy.html">מדיניות פרטיות</a> ·
+    <a href="terms.html">תנאי שימוש</a> ·
+    <a href="index.html">חזרה ל-Fit Journey</a>
+  </footer>
+
+</div>
+</body>
+</html>
