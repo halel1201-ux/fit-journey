@@ -4400,7 +4400,7 @@ ${exLines || 'אין'}
         <div id="client-notes-block" style="margin-bottom:14px;"></div>
         <div class="form-grid" style="margin-bottom:14px;">
           <div class="f-group"><label>שם</label><input id="e-name" value="${esc(client.name)}"/></div>
-          <div class="f-group"><label>טלפון</label><input id="e-phone" value="${esc(phone)}" placeholder="050-0000000" type="tel" style="direction:ltr;text-align:right;"/></div>
+          <div class="f-group"><label>טלפון (סיסמה)</label><input id="e-phone" value="${esc(phone)}" placeholder="050-0000000 או סיסמה חופשית" type="text" style="direction:ltr;text-align:right;"/></div>
           <div class="f-group" style="grid-column:1/-1;">
             <label style="display:flex;align-items:center;gap:6px;">
               מייל
@@ -5344,11 +5344,17 @@ ${exLines || 'אין'}
   async function setClientPassword() {
     if (!requireEdit()) return;
     if (coachRole !== 'senior' && coachRole !== 'admin' && !isStudioOwner) { toast('פעולה זו מוגבלת למאמן בכיר', 'err'); return; }
-    const phone = document.getElementById('e-phone').value.trim();
+    const raw = document.getElementById('e-phone').value.trim();
     const email = activeEmail;
-    if (!phone) { toast('יש להזין מספר טלפון קודם', 'err'); return; }
-    const password = phone.replace(/\D/g, '');
-    if (password.length < 6) { toast('מספר טלפון קצר מדי (מינימום 6 ספרות)', 'err'); return; }
+    if (!raw) { toast('יש להזין טלפון או סיסמה בשדה', 'err'); return; }
+    /* מספר טלפון → הספרות בלבד (050-123-4567 → 0501234567).
+       ערך שאינו טלפון (אותיות/סימנים) → נשמר כמו שהוא כסיסמה חופשית. */
+    const digitsOnly = /^[\d\s()+-]+$/.test(raw);
+    const password = digitsOnly ? raw.replace(/\D/g, '') : raw;
+    if (password.length < 6) {
+      toast(digitsOnly ? 'מספר טלפון קצר מדי (מינימום 6 ספרות)' : 'סיסמה קצרה מדי (מינימום 6 תווים)', 'err');
+      return;
+    }
 
     const _r = await adminCall({ action: 'set_password', email, password });
     if (_r?.error) { toast('שגיאה בהגדרת סיסמה: ' + _r.error, 'err'); return; }
