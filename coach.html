@@ -18,7 +18,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;700;900&display=swap" rel="stylesheet"/>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <!-- self-hosted: in the native app this loads from the bundle instead of
+       making a blocking round trip to jsdelivr on every page switch -->
+  <script src="vendor/supabase.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js" defer></script>
   <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
   <style>
@@ -2550,6 +2552,11 @@
   let exerciseLibrary = [];
   let allFoodItems = [];
 
+  /* The two reference libraries load in the background after the panel paints
+     (see init) — anything that must see them complete awaits this. */
+  let _libsReady = null;
+  function ensureLibs() { return _libsReady || Promise.resolve(); }
+
   function getFoodList() { return allFoodItems; }
 
   function findFood(name) {
@@ -2985,9 +2992,15 @@
       const cmp = document.getElementById('coach-mode-pill');
       if (cmp) cmp.style.display = 'inline-flex';
     }
-    await Promise.all([loadClients(), loadExerciseLibrary(), loadFoodItems()]);
-    loadChurnAlerts();
+    /* Only the client list is needed to paint the panel. The two reference
+       libraries are ~1.6MB of JSON (food_all 1.2MB + strength_exercises 435KB)
+       and are used by the nutrition/exercise editors, not by the first screen —
+       blocking on them was what made switching modes take seconds. Kick them
+       off in the background and let the panel appear immediately. */
+    await loadClients();
     document.getElementById('loader').style.display = 'none';
+    _libsReady = Promise.all([loadExerciseLibrary(), loadFoodItems()]);
+    loadChurnAlerts();
     loadNotifications();
 
     // בדיקה תקופתית של הודעות מתוזמנות/חזרה יומית כל עוד הדשבורד פתוח
@@ -3926,11 +3939,14 @@
     renderSidebar();
     closeMobileSidebar();
     const client = clients.find(c => c.email === email);
+    // the plan renderers match exercises against the library, so make sure the
+    // background load has finished — it runs concurrently with these queries
     const [{ data: tr }, { data: nu }, { data: pkg }, { data: debtTxns }] = await Promise.all([
       sb.from('training_plans').select('plan').eq('client_email', email).single(),
       sb.from('nutrition_plans').select('plan').eq('client_email', email).single(),
       sb.from('client_packages').select('*').eq('client_email', email).eq('coach_email', coachEmail).order('created_at', { ascending: false }).limit(1).maybeSingle(),
-      sb.from('client_debt_transactions').select('*').eq('client_email', email).eq('coach_email', coachEmail).order('txn_date', { ascending: false }).order('created_at', { ascending: false })
+      sb.from('client_debt_transactions').select('*').eq('client_email', email).eq('coach_email', coachEmail).order('txn_date', { ascending: false }).order('created_at', { ascending: false }),
+      ensureLibs(),
     ]);
     clientDebtTxns = debtTxns || [];
     const rawPlanData = tr?.plan;

@@ -18,7 +18,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;700;900&display=swap" rel="stylesheet"/>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <!-- self-hosted: in the native app this loads from the bundle instead of
+       making a blocking round trip to jsdelivr on every page switch -->
+  <script src="vendor/supabase.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js" defer></script>
   <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
   <style>
@@ -1685,14 +1687,20 @@
       document.getElementById('btn-admin-link').style.display = 'block';
     }
 
-    const { data: coachRow } = await sb.from('coaches').select('email').eq('email', email).single();
+    /* These two do not depend on each other — running them in sequence cost a
+       full extra round trip on every load, which is a lot when switching
+       between trainee and coach mode reloads the whole page. */
+    const [{ data: coachRow }, { data: client }] = await Promise.all([
+      sb.from('coaches').select('email').eq('email', email).single(),
+      sb.from('clients').select('*').eq('email', email).single(),
+    ]);
     if (coachRow) {
       document.getElementById('btn-coach-link').style.display = 'inline-flex';
     }
-
-    const { data: client } = await sb.from('clients').select('*').eq('email', email).single();
     clientData = client;
-    await checkCoachSubscription();
+    /* The coach's subscription check gates actions, not the first paint — let it
+       resolve in the background and repaint the launcher if it turns out frozen. */
+    checkCoachSubscription().then(() => { if (_coachSubFrozen) renderLauncher(); });
     sb.rpc('update_own_last_seen').then(() => {});
     checkHealthDecl();
     loadStepsToday();
@@ -2803,7 +2811,7 @@
   }
   function attachFeedPhoto(f) { _feedPhoto = f || null; const b = document.getElementById('feed-photo-btn'); if (b && f) { b.textContent = '📷 ' + (f.name.length > 14 ? f.name.slice(0, 12) + '…' : f.name); b.style.color = '#4ade80'; } }
   async function submitPost() {
-    if (coachFreezeBlocked()) return;
+    if (await coachFreezeBlockedAsync()) return;
     const text = (document.getElementById('feed-input')?.value || '').trim();
     if (!text && !_feedPhoto) { showDashToast('כתוב משהו או צרף תמונה'); return; }
     let imageUrl = null;
@@ -3975,8 +3983,14 @@
      ההחלטה שלו. */
   let _coachSubFrozen = false;
   let _coachSubReason  = '';
+  let _coachSubPromise = null;   // resolves once the check below has run
 
   async function checkCoachSubscription() {
+    _coachSubPromise = _checkCoachSubscription();
+    return _coachSubPromise;
+  }
+
+  async function _checkCoachSubscription() {
     _coachSubFrozen = false; _coachSubReason = '';
     const cEmail = clientData?.coach_email;
     if (!cEmail) return;
@@ -3998,6 +4012,13 @@
     if (!_coachSubFrozen) return false;
     showDashToast('❄️ הליווי מוקפא — ' + _coachSubReason);
     return true;
+  }
+
+  /* async callers use this instead, so an action fired in the first moments
+     after load still waits for the check rather than slipping past it */
+  async function coachFreezeBlockedAsync() {
+    try { await _coachSubPromise; } catch (e) {}
+    return coachFreezeBlocked();
   }
 
   async function clientUnfreeze() {
@@ -6127,7 +6148,7 @@ ${foodList || 'אין פריטים'}
   }
 
   async function submitCheckin() {
-    if (coachFreezeBlocked()) return;
+    if (await coachFreezeBlockedAsync()) return;
     const monday = getMonday(new Date()).toISOString().split('T')[0];
     const energy    = parseInt(document.getElementById('ci-energy_level').value);
     const sleep     = parseInt(document.getElementById('ci-sleep_quality').value);
