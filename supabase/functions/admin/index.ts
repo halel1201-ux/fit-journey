@@ -38,7 +38,18 @@ Deno.serve(async (req) => {
       const { data: coach } = await admin.from('coaches').select('role').eq('email', user.email).maybeSingle()
       role = coach?.role || 'regular'
     }
-    const canManage = isAdmin || role === 'senior'
+    // studio owners manage their own trainees too (they were rejected here while
+    // the panel let them try — "set password" failed only for them)
+    const canManage = isAdmin || role === 'senior' || role === 'studio_owner'
+
+    /* A non-admin may only act on a trainee that belongs to them. Without this,
+       any senior coach could set the password of ANY account (admin included). */
+    async function ownsTrainee(email: string) {
+      if (isAdmin) return true
+      const { data } = await admin.from('clients')
+        .select('coach_email,studio_owner_email').eq('email', email).maybeSingle()
+      return !!data && (data.coach_email === user.email || data.studio_owner_email === user.email)
+    }
 
     const body = await req.json()
     const action = body.action
@@ -53,6 +64,7 @@ Deno.serve(async (req) => {
       if (!canManage) return json({ error: 'forbidden' }, 403)
       const { email, password } = body
       if (!email || !password || String(password).length < 6) return json({ error: 'bad input' }, 400)
+      if (!(await ownsTrainee(email))) return json({ error: 'המתאמן אינו שייך אליך' }, 403)
       const target = await findUser(email)
       if (target) {
         const { error } = await admin.auth.admin.updateUserById(target.id, { password })

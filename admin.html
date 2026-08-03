@@ -2228,8 +2228,13 @@
         <div class="sec-card-title">פרטי לקוח <span>${esc(client.name)}</span></div>
         <div class="form-grid" style="margin-bottom:14px;">
           <div class="f-group"><label>שם</label><input id="e-name" value="${esc(client.name)}"/></div>
-          <div class="f-group"><label>אימייל</label><input id="e-email" value="${esc(client.email)}" style="direction:ltr;text-align:right;" readonly/></div>
-          <div class="f-group"><label>טלפון</label><input id="e-phone" value="${esc(client.phone||'')}" placeholder="050-0000000" type="tel" style="direction:ltr;text-align:right;"/></div>
+          <div class="f-group" style="grid-column:1/-1;">
+            <label style="display:flex;align-items:center;gap:6px;">אימייל
+              <span style="font-size:0.67rem;color:#f87171;font-weight:700;padding:2px 7px;background:rgba(248,113,113,0.1);border-radius:6px;border:1px solid rgba(248,113,113,0.25);">⚠ שינוי משפיע על התחברות</span>
+            </label>
+            <input id="e-email" type="email" value="${esc(client.email)}" style="direction:ltr;text-align:right;"/>
+          </div>
+          <div class="f-group"><label>טלפון (סיסמה)</label><input id="e-phone" value="${esc(client.phone||'')}" placeholder="050-0000000 או סיסמה חופשית" type="text" style="direction:ltr;text-align:right;"/></div>
           <div class="f-group"><label>מאמן אחראי</label>
             <select id="e-coach">
               <option value="">— ללא מאמן —</option>
@@ -3156,6 +3161,22 @@ ${hasFile ? '' : `4. התאם כמויות וערכים מדויקים למשק�
     const fat    = parseInt(document.getElementById('e-fat').value)    || null;
     const water  = parseFloat(document.getElementById('e-water').value)  || null;
     const weight = parseFloat(document.getElementById('e-weight').value) || null;
+
+    /* שינוי מייל: מעדכן את כל הטבלאות (RPC) ואת משתמש ההתחברות (Auth).
+       השדה היה readonly עד עכשיו — ולכן לאדמין לא הייתה דרך לשנות מייל של לקוח. */
+    const newEmail = document.getElementById('e-email')?.value.trim().toLowerCase() || activeEmail;
+    if (newEmail !== activeEmail) {
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail)) { toast('מייל לא תקין', 'err'); return; }
+      const { data: existing } = await sb.from('clients').select('email').eq('email', newEmail).maybeSingle();
+      if (existing) { toast('כבר קיים לקוח עם המייל הזה', 'err'); return; }
+      if (!confirm(`שינוי מייל מ-\n${activeEmail}\nל-\n${newEmail}\n\nהשינוי משפיע על ההתחברות. להמשיך?`)) return;
+      const { error: rpcErr } = await sb.rpc('rename_client_email', { p_old: activeEmail, p_new: newEmail });
+      if (rpcErr) { toast('שגיאה בשינוי מייל: ' + rpcErr.message, 'err'); return; }
+      const _r = await adminCall({ action: 'rename_email', old_email: activeEmail, new_email: newEmail });
+      if (_r?.error) { toast('שגיאה בעדכון מייל התחברות: ' + _r.error, 'err'); return; }
+      activeEmail = newEmail;
+    }
+
     const { error } = await sb.from('clients')
       .update({ name, phone, coach_email: coachEmail, coaching_start: start, coaching_end: end, plan_type: plan,
                 target_calories: cal, target_protein: prot, target_carbs: carb, target_fat: fat,
@@ -3167,11 +3188,16 @@ ${hasFile ? '' : `4. התאם כמויות וערכים מדויקים למשק�
   }
 
   async function setClientPassword() {
-    const phone = document.getElementById('e-phone').value.trim();
+    const raw = document.getElementById('e-phone').value.trim();
     const email = activeEmail;
-    if (!phone) { toast('יש להזין מספר טלפון קודם', 'err'); return; }
-    const password = phone.replace(/\D/g, '');
-    if (password.length < 6) { toast('מספר טלפון קצר מדי (מינימום 6 ספרות)', 'err'); return; }
+    if (!raw) { toast('יש להזין טלפון או סיסמה בשדה', 'err'); return; }
+    // טלפון → ספרות בלבד · ערך אחר (אותיות/סימנים) → סיסמה חופשית כמו שהיא
+    const digitsOnly = /^[\d\s()+-]+$/.test(raw);
+    const password = digitsOnly ? raw.replace(/\D/g, '') : raw;
+    if (password.length < 6) {
+      toast(digitsOnly ? 'מספר טלפון קצר מדי (מינימום 6 ספרות)' : 'סיסמה קצרה מדי (מינימום 6 תווים)', 'err');
+      return;
+    }
 
     const _r = await adminCall({ action: 'set_password', email, password });
     if (_r?.error) { toast('שגיאה בהגדרת סיסמה: ' + _r.error, 'err'); return; }

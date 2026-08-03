@@ -4416,7 +4416,7 @@ ${exLines || 'אין'}
         <div id="client-notes-block" style="margin-bottom:14px;"></div>
         <div class="form-grid" style="margin-bottom:14px;">
           <div class="f-group"><label>שם</label><input id="e-name" value="${esc(client.name)}"/></div>
-          <div class="f-group"><label>טלפון</label><input id="e-phone" value="${esc(phone)}" placeholder="050-0000000" type="tel" style="direction:ltr;text-align:right;"/></div>
+          <div class="f-group"><label>טלפון (סיסמה)</label><input id="e-phone" value="${esc(phone)}" placeholder="050-0000000 או סיסמה חופשית" type="text" style="direction:ltr;text-align:right;"/></div>
           <div class="f-group" style="grid-column:1/-1;">
             <label style="display:flex;align-items:center;gap:6px;">
               מייל
@@ -5360,11 +5360,17 @@ ${exLines || 'אין'}
   async function setClientPassword() {
     if (!requireEdit()) return;
     if (coachRole !== 'senior' && coachRole !== 'admin' && !isStudioOwner) { toast('פעולה זו מוגבלת למאמן בכיר', 'err'); return; }
-    const phone = document.getElementById('e-phone').value.trim();
+    const raw = document.getElementById('e-phone').value.trim();
     const email = activeEmail;
-    if (!phone) { toast('יש להזין מספר טלפון קודם', 'err'); return; }
-    const password = phone.replace(/\D/g, '');
-    if (password.length < 6) { toast('מספר טלפון קצר מדי (מינימום 6 ספרות)', 'err'); return; }
+    if (!raw) { toast('יש להזין טלפון או סיסמה בשדה', 'err'); return; }
+    /* מספר טלפון → הספרות בלבד (050-123-4567 → 0501234567).
+       ערך שאינו טלפון (אותיות/סימנים) → נשמר כמו שהוא כסיסמה חופשית. */
+    const digitsOnly = /^[\d\s()+-]+$/.test(raw);
+    const password = digitsOnly ? raw.replace(/\D/g, '') : raw;
+    if (password.length < 6) {
+      toast(digitsOnly ? 'מספר טלפון קצר מדי (מינימום 6 ספרות)' : 'סיסמה קצרה מדי (מינימום 6 תווים)', 'err');
+      return;
+    }
 
     const _r = await adminCall({ action: 'set_password', email, password });
     if (_r?.error) { toast('שגיאה בהגדרת סיסמה: ' + _r.error, 'err'); return; }
@@ -6668,7 +6674,7 @@ ${hasFile ? `
 ### 19. חלופת תרגיל בטוחה
 בהחלפת תרגיל עקב פציעה — בחר תרגיל מאותה קבוצת שריר עם עומס מפרקי נמוך יותר.
 
-${buildExerciseListForPrompt()}
+${buildExerciseListForPrompt(prompt)}
 
 ## ═══ חוקי חלוקה לפי ימים ═══
 PUSH: 3 חזה (מורכב ראשון + מכונה + מבודד) + 2 כתפיים (לחיצה + צידית) + 2 יד אחורית (מורכב + מבודד)
@@ -7659,22 +7665,46 @@ ${NUTRITION_DB}
     error ? toast('שגיאה בשמירה','err') : toast('תפריט נשמר ✓','ok');
   }
 
-  function buildExerciseListForPrompt() {
+  /* בונה את רשימת התרגילים לפרומפט של ה-AI.
+     המאגר גדל ל-1,100+, ושליחת כולו מנפחת את הפרומפט (~9K טוקנים) ומפזרת את
+     ה-AI על שרירים לא רלוונטיים. לכן: (1) אם המאמן ציין קבוצות שריר בבקשה —
+     שולחים אותן במלואן ואת השאר מקוצצות; (2) בכל מקרה מגבילים לכל קבוצה,
+     ומעדיפים תרגילים עם הדגמה + שם עברי (האיכותיים) בראש הרשימה. */
+  const PROMPT_GROUP_HINTS = {
+    'חזה':    /חזה|push|דחיפה/i,
+    'גב':     /גב|pull|משיכה|מתח/i,
+    'כתפיים': /כתפ|shoulder|push|דחיפה/i,
+    'ידיים':  /יד |ידיים|ביceps|טרייספס|יד קדמית|יד אחורית|arms|push|pull/i,
+    'רגליים': /רגל|רגליים|legs|סקוואט|squat|ישבן|גלוט|leg/i,
+    'בטן':    /בטן|core|ליבה|abs/i,
+    'צוואר':  /צוואר|neck/i,
+  };
+  function buildExerciseListForPrompt(userPrompt) {
     if (!exerciseLibrary.length) return '## מאגר תרגילים\n(טוען...)';
+    const req = String(userPrompt || '');
+
     const groups = {};
     exerciseLibrary.forEach(ex => {
       const g = ex.muscle_group || 'אחר';
-      if (!groups[g]) groups[g] = [];
-      groups[g].push(ex.name);
+      (groups[g] = groups[g] || []).push(ex);
     });
+
+    // אילו קבוצות המאמן ביקש במפורש
+    const asked = Object.keys(groups).filter(g => PROMPT_GROUP_HINTS[g] && PROMPT_GROUP_HINTS[g].test(req));
+    const FULL = 60, SLIM = 18;   // מכסה לקבוצה מבוקשת / שאר הקבוצות
+
     const lines = [
       '## ═══ מאגר תרגילים מורשה (שמות מדויקים בלבד) ═══',
       '⚠️ השתמש אך ורק בשמות הבאים — בדיוק כפי שכתובים. אל תמציא שמות.',
       '',
     ];
-    for (const [g, names] of Object.entries(groups)) {
+    for (const [g, list] of Object.entries(groups)) {
+      // עדיפות: יש הדגמה (וידאו/תמונה) → שם בעברית → השאר
+      const score = ex => (ex.video || ex.thumb ? 2 : 0) + (/[֐-׿]/.test(ex.name) ? 1 : 0);
+      const sorted = list.slice().sort((a, b) => score(b) - score(a));
+      const cap = (!asked.length || asked.includes(g)) ? FULL : SLIM;
       lines.push(`### ${g}`);
-      lines.push(names.join(', '));
+      lines.push(sorted.slice(0, cap).map(e => e.name).join(', '));
       lines.push('');
     }
     return lines.join('\n');
@@ -7695,6 +7725,7 @@ ${NUTRITION_DB}
           video:            ex.video || '',
           thumb:            ex.thumb || '',
           cues:             ex.cues || '',
+          images:           ex.images || [],
         };
       });
       // 🎬 merge admin-added exercises

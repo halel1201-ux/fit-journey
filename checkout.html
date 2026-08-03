@@ -281,15 +281,15 @@
         <div class="plan-price">400 <span class="plan-currency">₪</span></div>
         <div class="plan-note">ללא התחייבות</div>
       </div>
-      <div class="plan-card" id="plan-3months" onclick="selectPlan('3months')">
+      <div class="plan-card" id="plan-4months" onclick="selectPlan('4months')">
         <div class="plan-badge">הכי פופולרי</div>
-        <div class="plan-name">3 חודשים</div>
-        <div class="plan-price">1,100 <span class="plan-currency">₪</span></div>
+        <div class="plan-name">4 חודשים</div>
+        <div class="plan-price">1,500 <span class="plan-currency">₪</span></div>
         <div class="plan-note">חיסכון של 100 ₪</div>
       </div>
-      <div class="plan-card" id="plan-6months" onclick="selectPlan('6months')">
-        <div class="plan-name">חצי שנה</div>
-        <div class="plan-price">2,000 <span class="plan-currency">₪</span></div>
+      <div class="plan-card" id="plan-yearly" onclick="selectPlan('yearly')">
+        <div class="plan-name">שנתי</div>
+        <div class="plan-price">4,000 <span class="plan-currency">₪</span></div>
         <div class="plan-note">הכי משתלם</div>
       </div>
     </div>
@@ -450,8 +450,8 @@
 
   const PLANS = {
     'monthly':  { name: 'ליווי חודשי',    price: 400,  display: '400 ₪' },
-    '3months':  { name: 'ליווי 3 חודשים', price: 1100, display: '1,100 ₪' },
-    '6months':  { name: 'ליווי חצי שנה',  price: 2000, display: '2,000 ₪' }
+    '4months':  { name: 'ליווי 4 חודשים', price: 1500, display: '1,500 ₪' },
+    'yearly':   { name: 'ליווי שנתי',     price: 4000, display: '4,000 ₪' }
   };
 
   let chosenPlan      = null;
