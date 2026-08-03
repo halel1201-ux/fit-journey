@@ -6652,7 +6652,7 @@ ${hasFile ? `
 ### 19. חלופת תרגיל בטוחה
 בהחלפת תרגיל עקב פציעה — בחר תרגיל מאותה קבוצת שריר עם עומס מפרקי נמוך יותר.
 
-${buildExerciseListForPrompt()}
+${buildExerciseListForPrompt(prompt)}
 
 ## ═══ חוקי חלוקה לפי ימים ═══
 PUSH: 3 חזה (מורכב ראשון + מכונה + מבודד) + 2 כתפיים (לחיצה + צידית) + 2 יד אחורית (מורכב + מבודד)
@@ -7643,22 +7643,46 @@ ${NUTRITION_DB}
     error ? toast('שגיאה בשמירה','err') : toast('תפריט נשמר ✓','ok');
   }
 
-  function buildExerciseListForPrompt() {
+  /* בונה את רשימת התרגילים לפרומפט של ה-AI.
+     המאגר גדל ל-1,100+, ושליחת כולו מנפחת את הפרומפט (~9K טוקנים) ומפזרת את
+     ה-AI על שרירים לא רלוונטיים. לכן: (1) אם המאמן ציין קבוצות שריר בבקשה —
+     שולחים אותן במלואן ואת השאר מקוצצות; (2) בכל מקרה מגבילים לכל קבוצה,
+     ומעדיפים תרגילים עם הדגמה + שם עברי (האיכותיים) בראש הרשימה. */
+  const PROMPT_GROUP_HINTS = {
+    'חזה':    /חזה|push|דחיפה/i,
+    'גב':     /גב|pull|משיכה|מתח/i,
+    'כתפיים': /כתפ|shoulder|push|דחיפה/i,
+    'ידיים':  /יד |ידיים|ביceps|טרייספס|יד קדמית|יד אחורית|arms|push|pull/i,
+    'רגליים': /רגל|רגליים|legs|סקוואט|squat|ישבן|גלוט|leg/i,
+    'בטן':    /בטן|core|ליבה|abs/i,
+    'צוואר':  /צוואר|neck/i,
+  };
+  function buildExerciseListForPrompt(userPrompt) {
     if (!exerciseLibrary.length) return '## מאגר תרגילים\n(טוען...)';
+    const req = String(userPrompt || '');
+
     const groups = {};
     exerciseLibrary.forEach(ex => {
       const g = ex.muscle_group || 'אחר';
-      if (!groups[g]) groups[g] = [];
-      groups[g].push(ex.name);
+      (groups[g] = groups[g] || []).push(ex);
     });
+
+    // אילו קבוצות המאמן ביקש במפורש
+    const asked = Object.keys(groups).filter(g => PROMPT_GROUP_HINTS[g] && PROMPT_GROUP_HINTS[g].test(req));
+    const FULL = 60, SLIM = 18;   // מכסה לקבוצה מבוקשת / שאר הקבוצות
+
     const lines = [
       '## ═══ מאגר תרגילים מורשה (שמות מדויקים בלבד) ═══',
       '⚠️ השתמש אך ורק בשמות הבאים — בדיוק כפי שכתובים. אל תמציא שמות.',
       '',
     ];
-    for (const [g, names] of Object.entries(groups)) {
+    for (const [g, list] of Object.entries(groups)) {
+      // עדיפות: יש הדגמה (וידאו/תמונה) → שם בעברית → השאר
+      const score = ex => (ex.video || ex.thumb ? 2 : 0) + (/[֐-׿]/.test(ex.name) ? 1 : 0);
+      const sorted = list.slice().sort((a, b) => score(b) - score(a));
+      const cap = (!asked.length || asked.includes(g)) ? FULL : SLIM;
       lines.push(`### ${g}`);
-      lines.push(names.join(', '));
+      lines.push(sorted.slice(0, cap).map(e => e.name).join(', '));
       lines.push('');
     }
     return lines.join('\n');
