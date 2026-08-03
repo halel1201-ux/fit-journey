@@ -6024,6 +6024,13 @@ ${exLines || 'אין'}
         <div class="exp-icon">🔒</div>
         <div class="exp-title">הרישיון שלך פג</div>
         <div class="exp-sub">הגישה לפאנל המאמן אינה זמינה.<br/>כדי להמשיך לעבוד עם המתאמנים שלך — חדש את המנוי.</div>
+        <div style="background:rgba(56,189,248,0.08);border:1px solid rgba(56,189,248,0.35);border-radius:12px;padding:14px 16px;margin-bottom:24px;text-align:right;">
+          <div style="font-size:0.85rem;font-weight:800;color:#7dd3fc;margin-bottom:6px;">❄️ המתאמנים שלך מוקפאים</div>
+          <div style="font-size:0.78rem;color:#9cd8f0;line-height:1.7;">
+            כל עוד המנוי לא מחודש, המתאמנים שלך לא יכולים להתחיל אימון, לשלוח צ'ק-אין או לפרסם בקהילה.
+            <b>הנתונים שלהם נשמרים במלואם</b>, וההקפאה תוסר אוטומטית ברגע שתחדש.
+          </div>
+        </div>
         ${licEnd ? `<div class="exp-ended">תוקף הרישיון: ${licEnd}</div>` : ''}
         <a href="coach-signup.html" class="btn-renew">חדש מנוי עכשיו</a>
         <button class="btn-logout" onclick="(async()=>{await supabase.createClient('https://luwknflmhvcxgifzxgrk.supabase.co','sb_publishable_k3M7SfBeiBGs3rTKewBzWQ_7RHRskB9').auth.signOut();window.location.href='login.html';})()">יציאה מהמערכת</button>
