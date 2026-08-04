@@ -4094,8 +4094,8 @@
       const now = new Date();
       const monthStart = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-01`;
       const [{ data: recMonth }, { data: recAll }, { data: pkgs }] = await Promise.all([
-        sb.from('receipts').select('amount').eq('coach_email', coachEmail).gte('receipt_date', monthStart),
-        sb.from('receipts').select('amount').eq('coach_email', coachEmail),
+        sb.from('receipts').select('amount').eq('coach_email', coachEmail).is('cancelled_at', null).gte('receipt_date', monthStart),
+        sb.from('receipts').select('amount').eq('coach_email', coachEmail).is('cancelled_at', null),
         sb.from('client_packages').select('amount_total,amount_paid,status').eq('coach_email', coachEmail),
       ]);
       const sum = a => (a||[]).reduce((s,r)=>s+(+r.amount||0),0);
@@ -5459,16 +5459,20 @@ ${exLines || 'אין'}
     el.innerHTML = clientReceiptsList.map(r => {
       const dateStr = new Date(r.receipt_date).toLocaleDateString('he-IL');
       const amt     = Number(r.amount).toLocaleString('he-IL', { minimumFractionDigits: 2 });
-      return `<div style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:8px;margin-bottom:6px;flex-wrap:wrap;gap:6px;">
+      const cx      = !!r.cancelled_at;   // קבלה מבוטלת — נשמרת לתיעוד, לא נספרת בהכנסות
+      return `<div style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;background:${cx ? 'rgba(248,113,113,0.06)' : 'rgba(255,255,255,0.03)'};border:1px solid ${cx ? 'rgba(248,113,113,0.3)' : 'rgba(255,255,255,0.07)'};border-radius:8px;margin-bottom:6px;flex-wrap:wrap;gap:6px;${cx ? 'opacity:0.75;' : ''}">
         <div>
-          <div style="font-size:0.82rem;font-weight:700;color:#4ade80;">${esc(r.receipt_number)}</div>
+          <div style="font-size:0.82rem;font-weight:700;color:${cx ? '#f87171' : '#4ade80'};">${esc(r.receipt_number)}${cx ? ' · מבוטלת' : ''}</div>
           <div style="font-size:0.75rem;color:var(--muted);margin-top:2px;">${dateStr}${r.payment_method ? ' · ' + esc(r.payment_method) : ''}</div>
-          <div style="font-size:0.78rem;color:var(--white);margin-top:2px;">${esc(r.description || '')}</div>
+          <div style="font-size:0.78rem;color:var(--white);margin-top:2px;${cx ? 'text-decoration:line-through;' : ''}">${esc(r.description || '')}</div>
+          ${cx && r.cancelled_reason ? `<div style="font-size:0.72rem;color:#fca5a5;margin-top:2px;">סיבה: ${esc(r.cancelled_reason)}</div>` : ''}
         </div>
         <div style="display:flex;align-items:center;gap:10px;">
-          <div style="font-size:1rem;font-weight:900;color:#4ade80;">${amt} ₪</div>
+          <div style="font-size:1rem;font-weight:900;color:${cx ? '#f87171' : '#4ade80'};${cx ? 'text-decoration:line-through;' : ''}">${amt} ₪</div>
           <button class="btn-sm btn-outline" style="font-size:0.72rem;padding:4px 10px;border-color:rgba(255,255,255,0.2);color:#ccc;"
             onclick="reprintReceipt(${r.id})">🖨 הדפס</button>
+          ${cx ? '' : `<button class="btn-sm btn-outline" style="font-size:0.72rem;padding:4px 10px;border-color:rgba(248,113,113,0.4);color:#f87171;"
+            onclick="cancelReceipt(${r.id})">✕ בטל</button>`}
         </div>
       </div>`;
     }).join('');
@@ -5477,6 +5481,39 @@ ${exLines || 'אין'}
   function reprintReceipt(id) {
     const r = clientReceiptsList.find(x => x.id === id);
     if (r) printReceipt(r);
+  }
+
+  /* ✕ ביטול קבלה — מסמנים כמבוטלת (לא מוחקים, לתיעוד/מס), היא יורדת
+     מההכנסות ומהמאזן, והתשלום שקוזז מהחוב מוחזר כחיוב נגדי. */
+  async function cancelReceipt(id) {
+    if (!requireEdit()) return;
+    const r = clientReceiptsList.find(x => x.id === id);
+    if (!r || r.cancelled_at) return;
+    const amt = Number(r.amount) || 0;
+    if (!confirm(`לבטל את קבלה ${r.receipt_number} על ${amt.toLocaleString('he-IL')} ₪?\n\n• הסכום יירד מההכנסות ומהמאזן\n• החוב שקוזז יוחזר ללקוח\n• הקבלה תישמר מסומנת כמבוטלת (לתיעוד)`)) return;
+    const reason = (prompt('סיבת הביטול (אופציונלי):', '') || '').trim();
+
+    const { error } = await sb.from('receipts')
+      .update({ cancelled_at: new Date().toISOString(), cancelled_reason: reason || null })
+      .eq('id', id).eq('coach_email', coachEmail);
+    if (error) { toast('שגיאה בביטול: ' + error.message, 'err'); return; }
+
+    // החזרת החוב — חיוב נגדי בגובה התשלום שקוזז בעת ההנפקה
+    let debtMsg = '';
+    try {
+      await sb.from('client_debt_transactions').insert({
+        client_email: r.client_email, coach_email: coachEmail, type: 'charge', status: 'approved',
+        category: 'ביטול קבלה', amount: amt, note: `ביטול קבלה ${r.receipt_number}`,
+        txn_date: todayStr(), created_by: coachName || coachEmail,
+      });
+      await refreshDebtUI();
+      debtMsg = ' · החוב הוחזר';
+    } catch (e) { /* debt reversal is best-effort */ }
+
+    r.cancelled_at = new Date().toISOString();
+    r.cancelled_reason = reason || null;
+    renderReceiptsList();
+    toast(`קבלה ${r.receipt_number} בוטלה ✓${debtMsg}`, 'ok');
   }
 
   /* ══════════════════════════════════════════════════════
@@ -5534,7 +5571,7 @@ ${exLines || 'אין'}
     const startStr = acctIso(acctPeriodStart(acctPeriod));
     const [{ data: rec }, { data: exp }] = await Promise.all([
       sb.from('receipts').select('receipt_number,client_name,amount,receipt_date,description,payment_method')
-        .eq('coach_email', coachEmail).gte('receipt_date', startStr).order('receipt_date', { ascending: false }),
+        .eq('coach_email', coachEmail).is('cancelled_at', null).gte('receipt_date', startStr).order('receipt_date', { ascending: false }),
       sb.from('coach_expenses').select('*')
         .eq('coach_email', coachEmail).gte('expense_date', startStr).order('expense_date', { ascending: false }),
     ]);
@@ -5930,8 +5967,9 @@ ${exLines || 'אין'}
   <div class="header">
     <div class="header-right">${logoHtml}<div class="sub-title">${r.coach_email}</div></div>
     <div class="header-left">
-      <div class="receipt-title">קבלה</div>
+      <div class="receipt-title">קבלה${r.cancelled_at ? ' — מבוטלת' : ''}</div>
       <div class="receipt-num">${r.receipt_number}</div>
+      ${r.cancelled_at ? `<div style="margin-top:10px;padding:8px 14px;border:2px solid #c0392b;color:#c0392b;font-weight:900;font-size:1.05rem;letter-spacing:2px;border-radius:6px;display:inline-block;">✕ קבלה מבוטלת</div>${r.cancelled_reason ? `<div style="margin-top:6px;font-size:0.85rem;color:#c0392b;">סיבה: ${r.cancelled_reason}</div>` : ''}` : ''}
     </div>
   </div>
   <div class="divider"></div>
