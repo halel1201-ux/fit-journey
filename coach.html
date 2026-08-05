@@ -308,6 +308,9 @@
     .sidebar-bd.open { display:block; }
 
     .bottom-nav { display:none; }
+    /* גיליונות הבר התחתון — קיימים רק במובייל. בלי הכלל הזה הם נשפכו
+       כ-div רגילים לתחתית הדף בדסקטופ (רצועת קישורים כפולה). */
+    .bn-more-menu { display:none; }
     @media (max-width: 768px) {
       .layout { display:block; }
       .sidebar { position:fixed; right:0; top:var(--topnav-h,58px); height:calc(100dvh - var(--topnav-h,58px)); width:280px; z-index:150; transform:translateX(110%); transition:transform 0.3s ease; box-shadow:-6px 0 24px rgba(0,0,0,0.6); overflow:hidden; }
@@ -471,6 +474,7 @@
     </div>
     <div style="display:flex;gap:8px;align-items:center;">
       <button id="studio-mode-btn" onclick="openStudioView()" style="display:none;align-items:center;gap:5px;padding:4px 11px;border-radius:8px;font-size:0.74rem;font-weight:800;border:1px solid rgba(255,215,0,0.45);background:rgba(255,215,0,0.1);color:#FFD700;cursor:pointer;font-family:'Heebo',sans-serif;">🏢 מצב סטודיו</button>
+      <button onclick="logout()" title="התנתק" style="display:flex;align-items:center;gap:5px;padding:6px 11px;border-radius:8px;font-size:0.76rem;font-weight:700;border:1px solid rgba(248,113,113,0.4);background:rgba(248,113,113,0.08);color:#f87171;cursor:pointer;font-family:'Heebo',sans-serif;white-space:nowrap;">🚪 התנתק</button>
       <div class="notif-bell" onclick="openNotifPanel()" id="notif-bell-wrap">
         <button class="btn-sm btn-outline" style="border-color:rgba(255,107,0,0.3);color:var(--orange);">🔔</button>
         <span class="notif-badge" id="notif-badge" style="display:none;">0</span>
@@ -487,7 +491,6 @@
       <a href="coach-guide.html" class="btn-sm btn-outline" style="text-decoration:none;border-color:rgba(255,255,255,0.15);color:#666;">📖 מדריך</a>
       <a id="btn-trainee-link" href="dashboard.html" style="display:none;" class="btn-sm btn-outline">החלף מצב — מתאמן</a>
       <button class="btn-sm btn-outline" onclick="goHomeCoach()" title="חזרה לפאנל">🏠 בית</button>
-      <button class="btn-sm btn-outline" onclick="logout()">יציאה</button>
       </div>
     </div>
   </div>
