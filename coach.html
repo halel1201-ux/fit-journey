@@ -612,6 +612,38 @@
     </div>
     <div style="font-size:0.76rem;color:var(--muted);margin-bottom:14px;">מאזן רווח והפסד — הקבלות שהנפקת מול הוצאות העסק</div>
 
+    <!-- 🏢 פרטי העסק — מודפסים על כל קבלה -->
+    <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:13px;margin-bottom:16px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;" onclick="const b=document.getElementById('biz-body');b.style.display=b.style.display==='none'?'block':'none';">
+        <div style="font-size:0.85rem;font-weight:800;color:#eee;">🏢 פרטי העסק (מודפסים על הקבלה)</div>
+        <span style="color:var(--muted);font-size:0.8rem;">▼</span>
+      </div>
+      <div id="biz-body" style="display:none;margin-top:12px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+          <div class="f-group"><label>סוג עוסק</label>
+            <select id="biz-type" onchange="onBizTypeChange()">
+              <option value="exempt">עוסק פטור</option>
+              <option value="licensed">עוסק מורשה</option>
+            </select></div>
+          <div class="f-group"><label>מספר עוסק / ח.פ. / ת.ז.</label>
+            <input id="biz-number" placeholder="123456789" style="direction:ltr;text-align:right;"/></div>
+        </div>
+        <div style="display:grid;grid-template-columns:2fr 1fr;gap:8px;margin-bottom:8px;">
+          <div class="f-group"><label>כתובת העסק</label><input id="biz-address" placeholder="רחוב, עיר"/></div>
+          <div class="f-group"><label>טלפון העסק</label><input id="biz-phone" placeholder="050-0000000" style="direction:ltr;text-align:right;"/></div>
+        </div>
+        <div class="f-group" id="biz-vat-wrap" style="display:none;margin-bottom:10px;max-width:170px;">
+          <label>שיעור מע״מ (%)</label><input id="biz-vat" type="number" min="0" max="100" step="0.5" value="18"/>
+        </div>
+        <button class="btn-sm btn-orange" style="width:100%;" onclick="saveBusinessDetails()">💾 שמור פרטי עסק</button>
+        <div id="biz-status" style="font-size:0.76rem;margin-top:7px;min-height:1em;"></div>
+        <div style="font-size:0.7rem;color:#777;margin-top:8px;line-height:1.6;">
+          ℹ️ עוסק פטור אינו גובה מע״מ ואינו רשאי להנפיק חשבונית מס — רק קבלה.
+          עוסק מורשה: הקבלה תציג פירוט מע״מ.
+        </div>
+      </div>
+    </div>
+
     <div id="acct-periods" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;"></div>
 
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;">
@@ -5541,7 +5573,45 @@ ${exLines || 'אין'}
   }
   function acctPeriodLabel() { return (ACCT_PERIODS.find(x => x.k === acctPeriod) || ACCT_PERIODS[0]).label; }
 
+  /* 🏢 פרטי העסק — נשמרים על המאמן ומודפסים על כל קבלה (הוראות ניהול ספרים) */
+  let _bizDetails = null;
+  function onBizTypeChange() {
+    const w = document.getElementById('biz-vat-wrap');
+    if (w) w.style.display = document.getElementById('biz-type')?.value === 'licensed' ? 'block' : 'none';
+  }
+  async function loadBusinessDetails() {
+    const { data } = await sb.from('coaches')
+      .select('biz_number,biz_type,biz_address,biz_phone,vat_rate,name,phone')
+      .eq('email', coachEmail).maybeSingle();
+    _bizDetails = data || {};
+    const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v ?? ''; };
+    set('biz-type', _bizDetails.biz_type || 'exempt');
+    set('biz-number', _bizDetails.biz_number);
+    set('biz-address', _bizDetails.biz_address);
+    set('biz-phone', _bizDetails.biz_phone || _bizDetails.phone);
+    set('biz-vat', _bizDetails.vat_rate ?? 18);
+    onBizTypeChange();
+  }
+  async function saveBusinessDetails() {
+    if (!requireEdit()) return;
+    const st = document.getElementById('biz-status');
+    const patch = {
+      biz_type:    document.getElementById('biz-type')?.value || 'exempt',
+      biz_number:  document.getElementById('biz-number')?.value.trim() || null,
+      biz_address: document.getElementById('biz-address')?.value.trim() || null,
+      biz_phone:   document.getElementById('biz-phone')?.value.trim() || null,
+      vat_rate:    parseFloat(document.getElementById('biz-vat')?.value) || 18,
+    };
+    if (!patch.biz_number) { st.style.color = '#ff7070'; st.textContent = 'מספר עוסק הוא שדה חובה על הקבלה'; return; }
+    const { error } = await sb.from('coaches').update(patch).eq('email', coachEmail);
+    if (error) { st.style.color = '#ff7070'; st.textContent = 'שגיאה: ' + error.message; return; }
+    _bizDetails = { ..._bizDetails, ...patch };
+    st.style.color = '#4ade80'; st.textContent = '✓ נשמר — יופיע על הקבלות הבאות';
+    setTimeout(() => { st.textContent = ''; }, 2200);
+  }
+
   async function openAccounting() {
+    loadBusinessDetails();
     document.getElementById('acct-overlay').style.display = 'block';
     document.getElementById('acct-periods').innerHTML = ACCT_PERIODS.map(p =>
       `<button onclick="setAcctPeriod('${p.k}')" class="asst-chip" id="acctp-${p.k}">${p.label}</button>`).join('');
@@ -5863,7 +5933,7 @@ ${exLines || 'אין'}
       const client = clients.find(c => c.email === activeEmail);
       const clientName = client?.name || activeEmail.split('@')[0];
 
-      const { data: brandData } = await sb.from('coaches').select('logo_url,tagline').eq('email', coachEmail).single();
+      const { data: brandData } = await sb.from('coaches').select('logo_url,tagline,biz_number,biz_type,biz_address,biz_phone,vat_rate').eq('email', coachEmail).single();
 
       const receiptRow = {
         receipt_number: receiptNumber,
@@ -5878,6 +5948,12 @@ ${exLines || 'אין'}
         coach_name:     coachName || coachEmail,
         coach_logo_url: brandData?.logo_url || null,
         business_name:  coachName || coachEmail,
+        // צילום מצב של פרטי העסק — הקבלה שומרת את מה שהודפס עליה
+        biz_number:  brandData?.biz_number  || null,
+        biz_type:    brandData?.biz_type    || 'exempt',
+        biz_address: brandData?.biz_address || null,
+        biz_phone:   brandData?.biz_phone   || null,
+        vat_rate:    brandData?.biz_type === 'licensed' ? (brandData?.vat_rate ?? 18) : null,
       };
 
       const { error } = await sb.from('receipts').insert(receiptRow);
@@ -5965,7 +6041,12 @@ ${exLines || 'אין'}
   style="position:fixed;top:16px;left:16px;z-index:10;width:42px;height:42px;border-radius:50%;background:#1a1a1a;color:#fff;border:none;font-size:1.3rem;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,0.25);display:flex;align-items:center;justify-content:center;">✕</button>
 <div class="page">
   <div class="header">
-    <div class="header-right">${logoHtml}<div class="sub-title">${r.coach_email}</div></div>
+    <div class="header-right">${logoHtml}
+      <div style="font-weight:900;font-size:1rem;color:#fff;margin-top:4px;">${r.business_name || r.coach_name || ''}</div>
+      ${r.biz_number ? `<div style="font-size:0.86rem;color:rgba(255,255,255,0.9);margin-top:2px;">${r.biz_type === 'licensed' ? 'עוסק מורשה' : 'עוסק פטור'} · <span style="direction:ltr;display:inline-block;">${r.biz_number}</span></div>` : ''}
+      ${r.biz_address ? `<div style="font-size:0.8rem;color:rgba(255,255,255,0.65);margin-top:2px;">${r.biz_address}</div>` : ''}
+      ${r.biz_phone ? `<div style="font-size:0.8rem;color:rgba(255,255,255,0.65);margin-top:1px;direction:ltr;">${r.biz_phone}</div>` : ''}
+      <div class="sub-title">${r.coach_email}</div></div>
     <div class="header-left">
       <div class="receipt-title">קבלה${r.cancelled_at ? ' — מבוטלת' : ''}</div>
       <div class="receipt-num">${r.receipt_number}</div>
@@ -5992,8 +6073,23 @@ ${exLines || 'אין'}
     </div>
 
     <div class="amount-box">
+      ${(() => {
+        // עוסק מורשה — פירוט מע"מ (הסכום שנגבה כולל מע"מ)
+        const rate = Number(r.vat_rate) || 0;
+        if (r.biz_type === 'licensed' && rate > 0) {
+          const total  = Number(r.amount) || 0;
+          const before = total / (1 + rate / 100);
+          const vat    = total - before;
+          return `<div style="font-size:0.85rem;color:#555;line-height:1.9;margin-bottom:8px;">
+              <div>סכום לפני מע״מ: <b>${fmt(before)} ₪</b></div>
+              <div>מע״מ ${rate}%: <b>${fmt(vat)} ₪</b></div>
+            </div>`;
+        }
+        return '';
+      })()}
       <div class="amount-big">${fmt(r.amount)} ₪</div>
-      <div class="amount-label">סה"כ לתשלום${r.payment_method ? ' — ' + r.payment_method : ''}</div>
+      <div class="amount-label">סה"כ ששולם${r.payment_method ? ' — ' + r.payment_method : ''}</div>
+      ${r.biz_type !== 'licensed' ? '<div style="font-size:0.76rem;color:#777;margin-top:6px;">עוסק פטור — המחיר אינו כולל מע״מ</div>' : ''}
     </div>
 
     ${r.notes ? `<div class="notes-box" style="margin-bottom:20px;">📝 ${r.notes}</div>` : ''}
