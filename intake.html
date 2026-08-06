@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8"/>
+<script>/* opened as a local file:// copy — jump to the live site */if(location.protocol==='file:')location.replace('https://halel1201-ux.github.io/fit-journey/'+location.pathname.split('/').pop()+location.search);</script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<link rel="icon" type="image/png" href="favicon.png"/>
+<link rel="apple-touch-icon" href="apple-touch-icon.png"/>
+<title>שאלון קליטה — Fit Journey</title>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;700;800;900&display=swap" rel="stylesheet"/>
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+  :root{--orange:#FF6B00;--orange2:#FF8C00;--gold:#FFD700;--black:#0a0a0a;--muted:#9a9a9a;}
+  select{color-scheme:dark;} select option{background:#1a1a1a;color:#fff;}
+  body{font-family:'Heebo',sans-serif;background:var(--black);color:#fff;min-height:100vh;padding:0 0 60px;}
+  ::-webkit-scrollbar{width:6px;}::-webkit-scrollbar-track{background:#0e0e0e;}::-webkit-scrollbar-thumb{background:var(--orange);border-radius:3px;}
+  .wrap{max-width:720px;margin:0 auto;padding:0 18px;}
+
+  .hero{text-align:center;padding:44px 0 30px;background:radial-gradient(ellipse 90% 60% at 50% 0%,rgba(255,107,0,0.18),transparent 65%);}
+  .hero img{width:64px;height:64px;border-radius:16px;margin-bottom:14px;}
+  .hero h1{font-size:clamp(1.6rem,4.5vw,2.2rem);font-weight:900;line-height:1.2;}
+  .hero h1 b{background:linear-gradient(135deg,var(--orange),var(--gold));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;}
+  .hero p{color:var(--muted);margin-top:10px;font-size:0.96rem;line-height:1.7;}
+
+  .prog{position:sticky;top:0;z-index:20;background:rgba(10,10,10,0.94);backdrop-filter:blur(10px);padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.06);}
+  .prog-bar{height:6px;background:rgba(255,255,255,0.08);border-radius:4px;overflow:hidden;}
+  .prog-fill{height:100%;width:0;background:linear-gradient(90deg,var(--orange),var(--gold));border-radius:4px;transition:width .3s;}
+  .prog-txt{font-size:0.72rem;color:var(--muted);text-align:center;margin-top:5px;}
+
+  .q{background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:16px 18px;margin-bottom:14px;transition:border-color .2s;}
+  .q:focus-within{border-color:rgba(255,107,0,0.45);}
+  .q.err{border-color:rgba(248,113,113,0.6);}
+  .q-num{font-size:0.68rem;font-weight:800;color:var(--orange);letter-spacing:1px;}
+  .q-t{font-size:1rem;font-weight:800;margin:5px 0 12px;line-height:1.45;}
+  .req{color:#f87171;}
+  input[type=text],input[type=tel],input[type=email],input[type=number],textarea,select{
+    width:100%;padding:11px 13px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);
+    border-radius:10px;color:#fff;font-family:'Heebo',sans-serif;font-size:0.92rem;outline:none;}
+  input:focus,textarea:focus,select:focus{border-color:var(--orange);}
+  textarea{resize:vertical;min-height:76px;line-height:1.6;}
+  .opts{display:flex;flex-direction:column;gap:8px;}
+  .opt{display:flex;align-items:flex-start;gap:10px;padding:11px 13px;background:rgba(255,255,255,0.03);
+       border:1px solid rgba(255,255,255,0.1);border-radius:10px;cursor:pointer;transition:all .15s;font-size:0.92rem;line-height:1.5;}
+  .opt:hover{border-color:rgba(255,107,0,0.4);background:rgba(255,107,0,0.05);}
+  .opt input{width:18px;height:18px;accent-color:var(--orange);flex-shrink:0;margin-top:2px;cursor:pointer;}
+  .opt.on{border-color:var(--orange);background:rgba(255,107,0,0.09);}
+
+  .submit{width:100%;padding:16px;background:linear-gradient(135deg,var(--orange),var(--orange2));color:#fff;border:none;
+          border-radius:14px;font-family:'Heebo',sans-serif;font-weight:900;font-size:1.05rem;cursor:pointer;
+          box-shadow:0 8px 26px rgba(255,107,0,0.35);margin-top:8px;}
+  .submit:disabled{opacity:.6;cursor:not-allowed;}
+  .note{font-size:0.78rem;color:#666;text-align:center;margin-top:12px;line-height:1.6;}
+  .msg{display:none;padding:13px 16px;border-radius:12px;font-size:0.9rem;margin-bottom:14px;line-height:1.6;}
+  .msg.err{display:block;background:rgba(248,113,113,0.1);border:1px solid rgba(248,113,113,0.35);color:#fca5a5;}
+
+  .done{display:none;text-align:center;padding:60px 20px;}
+  .done .v{font-size:4rem;}
+  .done h2{font-size:1.6rem;font-weight:900;margin:14px 0 10px;}
+  .done p{color:var(--muted);line-height:1.8;}
+  .done a{display:inline-block;margin-top:22px;padding:13px 28px;background:linear-gradient(135deg,var(--orange),var(--orange2));
+          color:#fff;text-decoration:none;border-radius:12px;font-weight:800;}
+  footer{text-align:center;color:#555;font-size:0.78rem;padding:30px 0 0;}
+  footer a{color:var(--orange);text-decoration:none;}
+</style>
+</head>
+<body>
+
+<div id="form-view">
+  <div class="hero"><div class="wrap">
+    <img src="favicon.png" alt="Fit Journey"/>
+    <h1>שאלון קליטה — <b>ליווי אישי</b></h1>
+    <p>כמה שאלות קצרות שיעזרו לי לבנות לך תוכנית מדויקת.<br/>לוקח כ-3 דקות ✍️</p>
+  </div></div>
+
+  <div class="prog"><div class="wrap">
+    <div class="prog-bar"><div class="prog-fill" id="pf"></div></div>
+    <div class="prog-txt" id="pt">0 מתוך 22</div>
+  </div></div>
+
+  <div class="wrap" style="padding-top:20px;">
+    <div class="msg err" id="err" style="display:none;"></div>
+    <form id="intake" autocomplete="on"></form>
+    <button class="submit" id="send" onclick="submitIntake()">📤 שלח את השאלון</button>
+    <div class="note">הפרטים נשלחים ישירות למאמן ואינם מועברים לצד שלישי.<br/>
+      <a href="index.html" style="color:#666;">← חזרה לאתר</a></div>
+  </div>
+</div>
+
+<div class="done" id="done">
+  <div class="wrap">
+    <div class="v">✅</div>
+    <h2>השאלון נשלח!</h2>
+    <p>תודה <b id="done-name"></b> — קיבלתי את הפרטים.<br/>אחזור אליך בהקדם בוואטסאפ 💪</p>
+    <a href="index.html">חזרה לאתר</a>
+  </div>
+</div>
+
+<footer>Fit Journey · ליווי אונליין · <a href="index.html">האתר</a></footer>
+
+<script>
+/* ── 22 השאלות ── */
+const Q = [
+  { k:'full_name', t:'שם מלא', type:'text', req:true },
+  { k:'phone',     t:'מספר טלפון (וואטסאפ)', type:'tel', req:true },
+  { k:'age',       t:'גיל', type:'number', req:true },
+  { k:'email',     t:'כתובת אימייל', type:'email', req:true },
+  { k:'height',    t:'גובה (ס״מ)', type:'number', req:true },
+  { k:'weight',    t:'משקל גוף נוכחי (ק״ג)', type:'number', req:true },
+  { k:'goal', t:'מהי המטרה העיקרית שלך בתהליך?', type:'radio', req:true,
+    o:['חיטוב / הורדת אחוזי שומן תוך שמירה על מסת שריר','עלייה במסת שריר','שינוי הרכב גוף כללי','הכנה לתחרות / רמה מתקדמת'] },
+  { k:'past',      t:'האם ניסית לעשות שינוי בעבר? מה עבד ומה לא?', type:'textarea', req:false },
+  { k:'target',    t:'מהו יעד המשקל או המראה הויזואלי שאליו אתה שואף?', type:'text', req:true },
+  { k:'where', t:'איפה בכוונתך להתאמן?', type:'check', req:true,
+    o:['חדר כושר','משקל גוף / בית','גם וגם'] },
+  { k:'freq', t:'כמה פעמים בשבוע אתה יכול להתחייב להתאמן?', type:'radio', req:true,
+    o:['3 פעמים','4 פעמים','5 פעמים'] },
+  { k:'exp', t:'מהו הניסיון הקודם שלך באימונים?', type:'radio', req:true,
+    o:['מתחיל','כמה חודשים','מנוסה (1-2 שנים)','מתקדם (3+ שנים)'] },
+  { k:'injuries',  t:'האם יש פציעות, מגבלות רפואיות, כאבים או רגישויות?', type:'textarea', req:true },
+  { k:'lifestyle', t:'מהו סגנון העבודה / אורח החיים שלך?', type:'radio', req:true,
+    o:['יושבני (4,000-6,000 צעדים)','פעיל (8,000-10,000 צעדים)','פעיל מאוד (10,000-15,000+ צעדים)'] },
+  { k:'diet_limits', t:'האם יש לך מגבלות תזונתיות?', type:'check', req:true,
+    o:['אין','צמחוני','טבעוני','אלרגיות (פרט בשאלה הבאה)'] },
+  { k:'no_foods',  t:'פרט מאכלים שאתה לא מסוגל לאכול / שונא (או אלרגיות)', type:'textarea', req:false },
+  { k:'yes_foods', t:'פרט מאכלים שאתה חייב או אוהב', type:'textarea', req:false },
+  { k:'meals', t:'כמה ארוחות ביום הכי נוח לך?', type:'radio', req:true,
+    o:['2-3 ארוחות גדולות','4 ארוחות','5 ארוחות קטנות מפוזרות'] },
+  { k:'supps', t:'האם אתה לוקח כרגע תוספי תזונה?', type:'radio', req:true, o:['כן','לא'] },
+  { k:'sleep', t:'כמה שעות אתה ישן בממוצע בלילה?', type:'radio', req:true,
+    o:['6 שעות','7-8 שעות','8-10 שעות'] },
+  { k:'photos', t:'תמונות מצב נוכחיות — האם תוכל לשלוח בוואטסאפ לאחר השליחה?', type:'radio', req:true,
+    o:['כן, אשלח','אשלח בהמשך'] },
+  { k:'terms', t:'אישור תקנון והצהרת בריאות', type:'terms', req:true,
+    o:['קראתי, הבנתי ואני מאשר/ת את התקנון ואת הצהרת הבריאות'] },
+];
+
+const el = document.getElementById('intake');
+el.innerHTML = Q.map((q,i)=>{
+  const n = `<div class="q-num">שאלה ${i+1}</div><div class="q-t">${q.t}${q.req?' <span class="req">*</span>':''}</div>`;
+  let f = '';
+  if (q.type==='textarea') f = `<textarea id="f_${q.k}" oninput="upd()"></textarea>`;
+  else if (q.type==='radio' || q.type==='terms')
+    f = `<div class="opts">${q.o.map((o,j)=>`<label class="opt" id="l_${q.k}_${j}">
+          <input type="radio" name="${q.k}" value="${o}" onchange="pick('${q.k}',${q.o.length});upd()"/><span>${o}</span></label>`).join('')}</div>`;
+  else if (q.type==='check')
+    f = `<div class="opts">${q.o.map((o,j)=>`<label class="opt" id="l_${q.k}_${j}">
+          <input type="checkbox" name="${q.k}" value="${o}" onchange="this.closest('.opt').classList.toggle('on',this.checked);upd()"/><span>${o}</span></label>`).join('')}</div>`;
+  else f = `<input type="${q.type}" id="f_${q.k}" oninput="upd()"/>`;
+  return `<div class="q" id="q_${q.k}">${n}${f}</div>`;
+}).join('');
+
+function pick(k, n){ for(let j=0;j<n;j++){ const l=document.getElementById(`l_${k}_${j}`); if(l) l.classList.toggle('on', l.querySelector('input').checked); } }
+
+function val(q){
+  if (q.type==='radio'||q.type==='terms'){ const c=document.querySelector(`input[name="${q.k}"]:checked`); return c?c.value:''; }
+  if (q.type==='check') return [...document.querySelectorAll(`input[name="${q.k}"]:checked`)].map(x=>x.value).join(', ');
+  return (document.getElementById('f_'+q.k)?.value||'').trim();
+}
+function upd(){
+  const done = Q.filter(q=>val(q)).length;
+  document.getElementById('pf').style.width = Math.round(done/Q.length*100)+'%';
+  document.getElementById('pt').textContent = `${done} מתוך ${Q.length}`;
+}
+upd();
+
+/* ── שליחה: יוצר PDF בדפדפן (עברית מרונדרת נכון) ושולח לשרת ── */
+const FN = 'https://luwknflmhvcxgifzxgrk.supabase.co/functions/v1/intake-form';
+const KEY = 'sb_publishable_k3M7SfBeiBGs3rTKewBzWQ_7RHRskB9';
+
+function buildPdfHtml(answers, name){
+  const rows = Q.map((q,i)=>`<tr>
+      <td style="padding:7px 10px;border-bottom:1px solid #eee;color:#666;font-size:11px;width:42%;vertical-align:top;">${i+1}. ${q.t}</td>
+      <td style="padding:7px 10px;border-bottom:1px solid #eee;font-size:12px;font-weight:600;color:#111;">${(answers[q.t]||'—').replace(/</g,'&lt;')}</td></tr>`).join('');
+  return `<div dir="rtl" style="font-family:Heebo,Arial,sans-serif;width:760px;padding:26px;background:#fff;color:#111;">
+    <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #FF6B00;padding-bottom:12px;margin-bottom:16px;">
+      <div><div style="font-size:22px;font-weight:900;">שאלון קליטה — ליווי אישי</div>
+        <div style="font-size:12px;color:#777;margin-top:3px;">${name} · ${new Date().toLocaleDateString('he-IL')}</div></div>
+      <div style="font-size:26px;font-weight:900;color:#FF6B00;">FIT JOURNEY</div>
+    </div>
+    <table style="width:100%;border-collapse:collapse;">${rows}</table>
+    <div style="margin-top:16px;font-size:10px;color:#999;text-align:center;">הופק אוטומטית ממערכת Fit Journey</div>
+  </div>`;
+}
+
+async function submitIntake(){
+  const errEl = document.getElementById('err');
+  errEl.style.display='none';
+  document.querySelectorAll('.q').forEach(q=>q.classList.remove('err'));
+
+  const missing = Q.filter(q=>q.req && !val(q));
+  if (missing.length){
+    missing.forEach(q=>document.getElementById('q_'+q.k).classList.add('err'));
+    errEl.textContent = `נותרו ${missing.length} שאלות חובה — סומנו באדום.`;
+    errEl.style.display='block';
+    document.getElementById('q_'+missing[0].k).scrollIntoView({behavior:'smooth',block:'center'});
+    return;
+  }
+
+  const btn = document.getElementById('send');
+  btn.disabled = true; btn.textContent = '⏳ שולח...';
+
+  const answers = {}; Q.forEach(q=>answers[q.t] = val(q));
+  const name = val(Q[0]);
+
+  // PDF — נוצר בדפדפן כדי שהעברית תרונדר נכון
+  let pdf64 = '';
+  try {
+    if (!window.html2pdf) await new Promise((ok,no)=>{ const s=document.createElement('script');
+      s.src='https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js'; s.onload=ok; s.onerror=no; document.head.appendChild(s); });
+    const holder = document.createElement('div');
+    holder.style.cssText='position:fixed;left:-9999px;top:0;';
+    holder.innerHTML = buildPdfHtml(answers, name);
+    document.body.appendChild(holder);
+    pdf64 = await html2pdf().set({ margin:8, image:{type:'jpeg',quality:0.95},
+      html2canvas:{scale:2,useCORS:true,backgroundColor:'#ffffff'},
+      jsPDF:{unit:'mm',format:'a4',orientation:'portrait'} }).from(holder.firstElementChild).outputPdf('datauristring');
+    holder.remove();
+  } catch(e){ /* בלי PDF — התשובות עדיין נשלחות במייל */ }
+
+  try {
+    const res = await fetch(FN, { method:'POST',
+      headers:{ 'Content-Type':'application/json','apikey':KEY,'Authorization':'Bearer '+KEY },
+      body: JSON.stringify({ full_name:name, phone:val(Q[1]), email:val(Q[3]), answers, pdf_base64:pdf64 }) });
+    const j = await res.json();
+    if (!res.ok || j.error) throw new Error(j.error||'שגיאת שרת');
+    document.getElementById('done-name').textContent = name;
+    document.getElementById('form-view').style.display='none';
+    document.getElementById('done').style.display='block';
+    window.scrollTo({top:0});
+  } catch(e){
+    btn.disabled=false; btn.textContent='📤 שלח את השאלון';
+    errEl.textContent = 'השליחה נכשלה: ' + (e.message||e) + ' — נסה שוב, או שלח לנו בוואטסאפ.';
+    errEl.style.display='block';
+  }
+}
+</script>
+</body>
+</html>
