@@ -1199,6 +1199,7 @@
   async function openStudioView() {
     if (!isStudioOwner) return;
     activeEmail = null;
+    rememberOpenClient(null);
     await loadStudioCoaches();
     document.getElementById('main-area').innerHTML = `
       <div class="sec-card" style="margin-bottom:14px;">
@@ -1241,6 +1242,7 @@
 
   async function openCoachStudioSchedule() {
     activeEmail = null;
+    rememberOpenClient(null);
     document.getElementById('main-area').innerHTML = `<div class="sec-card">
       <div class="sec-card-title">📅 שיבוץ עצמי ליומן הסטודיו
         <button class="btn-sm btn-outline" onclick="location.reload()" style="font-size:0.72rem;">→ חזרה</button></div>
@@ -3038,6 +3040,13 @@
     await loadClients();
     document.getElementById('loader').style.display = 'none';
     _libsReady = Promise.all([loadExerciseLibrary(), loadFoodItems()]);
+
+    // רענון דף בזמן שמתאמן פתוח — חוזרים אליו במקום ללובי
+    try {
+      const last = localStorage.getItem(OPEN_CLIENT_KEY);
+      if (last && clients.some(c => c.email === last)) selectClient(last);
+      else if (last) rememberOpenClient(null);   // המתאמן כבר לא ברשימה
+    } catch (e) {}
     loadChurnAlerts();
     loadNotifications();
 
@@ -3970,8 +3979,13 @@
     }).join('');
   }
 
+  /* זוכר איזה מתאמן פתוח, כדי שרענון דף לא יזרוק חזרה ללובי */
+  const OPEN_CLIENT_KEY = 'fj_open_client';
+  function rememberOpenClient(email) { try { email ? localStorage.setItem(OPEN_CLIENT_KEY, email) : localStorage.removeItem(OPEN_CLIENT_KEY); } catch (e) {} }
+
   async function selectClient(email) {
     activeEmail = email;
+    rememberOpenClient(email);
     currentPackage = null;
     caTrack('view_client', { client: email }); caRapidCheck(); // activity guard
     markChatSeen(email); // פתיחת המתאמן = ההודעות נקראו
@@ -5316,6 +5330,7 @@ ${exLines || 'אין'}
       closeClientCard();
       if (activeEmail === email) {
         activeEmail = null;
+        rememberOpenClient(null);
         document.getElementById('main-area').innerHTML = '<div style="padding:40px;color:#555;text-align:center;">← בחר לקוח מהרשימה</div>';
       }
       await loadClients();
@@ -5468,6 +5483,7 @@ ${exLines || 'אין'}
   function goHomeCoach() {
     // return to the coach main panel — reload is the safe, always-correct reset
     // (studio/client views replace #main-area, so a soft reset can't reliably rebuild the lobby)
+    rememberOpenClient(null);   // חזרה ללובי מבטלת את השחזור אחרי הרענון
     if (activeEmail || !document.getElementById('lobby-view')) { location.reload(); return; }
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
