@@ -2919,11 +2919,11 @@
   function setItemUnit(mi, ii, unitName) {
     const item = nutritionPlan[mi].items[ii];
     item._unit = unitName; item._qty = unitName === 'גרם' ? 100 : 1;
-    recalcItemMacros(mi, ii); renderNutritionEditor();
+    recalcItemMacros(mi, ii); renderNutritionEditor(); nutriTouched();
   }
   function setItemQty(mi, ii, qty) {
     nutritionPlan[mi].items[ii]._qty = qty;
-    recalcItemMacros(mi, ii); renderNutritionEditor();
+    recalcItemMacros(mi, ii); renderNutritionEditor(); nutriTouched();
   }
   function onQuantityInput(mi, ii, val) {
     const item = nutritionPlan[mi].items[ii];
@@ -2943,6 +2943,7 @@
       else if (inp.placeholder === 'C')   inp.value = item.carbs    || '';
       else if (inp.placeholder === 'F')   inp.value = item.fat      || '';
     });
+    nutriTouched();
   }
   function recalcItemMacros(mi, ii) {
     const item = nutritionPlan[mi].items[ii];
@@ -7685,19 +7686,21 @@ ${NUTRITION_DB}
     const tgCarb  = parseInt(document.getElementById('e-carb')?.value) || 0;
     const tgFat   = parseInt(document.getElementById('e-fat')?.value)  || 0;
     const pct = (v,t) => t ? Math.min(100, Math.round(v/t*100)) : (v>0?100:0);
+    const KEYOF = { 'קלוריות':'calories', 'חלבון':'protein', 'פחמימה':'carbs', 'שומן':'fat' };
     const bar = (label, val, tg, color) => `
-      <div style="margin-bottom:9px;">
+      <div style="margin-bottom:9px;" data-macro="${KEYOF[label]}">
         <div style="display:flex;justify-content:space-between;font-size:0.75rem;margin-bottom:4px;">
           <span style="font-weight:700;color:${color};">${label}</span>
-          <span style="color:#ccc;">${val}${label==='קלוריות'?'':' ג׳'}${tg ? ` <span style="color:#555;">/ ${tg}</span>` : ''}</span>
+          <span class="macro-val" style="color:#ccc;">${val}${label==='קלוריות'?'':' ג׳'}${tg ? ` <span style="color:#555;">/ ${tg}</span>` : ''}</span>
         </div>
         <div style="height:6px;background:rgba(255,255,255,0.07);border-radius:3px;overflow:hidden;">
-          <div style="height:100%;width:${pct(val,tg)}%;background:${color};border-radius:3px;transition:width 0.3s;"></div>
+          <div class="macro-fill" style="height:100%;width:${pct(val,tg)}%;background:${color};border-radius:3px;transition:width 0.3s;"></div>
         </div>
       </div>`;
 
     const macroBar = `
-      <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:14px 16px;margin-bottom:16px;">
+      <div id="nutri-macro-bar" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:14px 16px;margin-bottom:16px;position:relative;">
+        <div id="nutri-save-chip" style="position:absolute;top:10px;left:14px;font-size:0.7rem;font-weight:800;color:#4ade80;opacity:0;transition:opacity .3s;">✓ נשמר</div>
         ${bar('קלוריות', totCal, tgCal, 'var(--orange)')}
         ${bar('חלבון',   totProt, tgProt, '#4ade80')}
         ${bar('פחמימה',  totCarb, tgCarb, '#60a5fa')}
@@ -7708,8 +7711,8 @@ ${NUTRITION_DB}
       <div class="meal-block${collapsedMeals.has(mi)?' meal-collapsed':''}">
         <div class="meal-block-head">
           <button class="block-toggle" onclick="toggleMealCollapse(${mi})" title="הצג/הסתר ארוחה">▼</button>
-          <input value="${esc(meal.meal)}" oninput="nutritionPlan[${mi}].meal=this.value" placeholder="שם ארוחה"/>
-          <select onchange="nutritionPlan[${mi}].day_type=this.value" title="סוג יום — נקבע איזה יום הארוחה מוצגת למתאמן" style="padding:4px 6px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.14);border-radius:6px;color:#fff;font-family:'Heebo',sans-serif;font-size:0.72rem;cursor:pointer;flex-shrink:0;">
+          <input value="${esc(meal.meal)}" oninput="nutritionPlan[${mi}].meal=this.value;nutriTouched()" placeholder="שם ארוחה"/>
+          <select onchange="nutritionPlan[${mi}].day_type=this.value;nutriTouched()" title="סוג יום — נקבע איזה יום הארוחה מוצגת למתאמן" style="padding:4px 6px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.14);border-radius:6px;color:#fff;font-family:'Heebo',sans-serif;font-size:0.72rem;cursor:pointer;flex-shrink:0;">
             ${[['any','כל יום'],['training','🏋️ יום אימון'],['rest','😴 יום מנוחה'],['target','🎯 שריר מטרה']].map(([v,l])=>`<option value="${v}" ${(meal.day_type||'any')===v?'selected':''}>${l}</option>`).join('')}
           </select>
           <div style="display:flex;gap:5px;">
@@ -7777,14 +7780,14 @@ ${NUTRITION_DB}
     return `<div style="margin-bottom:6px;">
       <div class="item-row" id="item-${mi}-${ii}">
         <div style="display:flex;align-items:center;gap:3px;min-width:0;">
-          <input value="${esc(item.food)}" oninput="nutritionPlan[${mi}].items[${ii}].food=this.value;showFoodSuggCoach(this,${mi},${ii})" onblur="setTimeout(hideFoodSuggCoach,160)" autocomplete="off" placeholder="מזון" style="flex:1;min-width:0;padding:6px 8px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:6px;color:#fff;font-family:'Heebo',sans-serif;font-size:0.8rem;outline:none;"/>
+          <input value="${esc(item.food)}" oninput="nutritionPlan[${mi}].items[${ii}].food=this.value;showFoodSuggCoach(this,${mi},${ii});nutriTouched()" onblur="setTimeout(hideFoodSuggCoach,160)" autocomplete="off" placeholder="מזון" style="flex:1;min-width:0;padding:6px 8px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:6px;color:#fff;font-family:'Heebo',sans-serif;font-size:0.8rem;outline:none;"/>
           <button onclick="toggleItemExpand(${mi},${ii})" style="padding:3px 7px;background:${exp?'rgba(255,107,0,0.2)':'rgba(255,255,255,0.04)'};border:1px solid ${exp?'rgba(255,107,0,0.45)':'rgba(255,255,255,0.1)'};border-radius:5px;color:${exp?'var(--orange)':'#666'};cursor:pointer;font-size:0.65rem;flex-shrink:0;">${exp?'▲':'▼'}</button>
         </div>
         <div class="mi-cell"><label>כמות</label><input value="${esc(item.quantity)}" oninput="onQuantityInput(${mi},${ii},this.value)" placeholder="כמות"/></div>
-        <div class="mi-cell"><label>קלוריות</label><input value="${item.calories||''}" oninput="nutritionPlan[${mi}].items[${ii}].calories=+this.value" placeholder="קל׳" type="number"/></div>
-        <div class="mi-cell"><label>חלבון</label><input value="${item.protein||''}"  oninput="nutritionPlan[${mi}].items[${ii}].protein=+this.value"  placeholder="P"   type="number"/></div>
-        <div class="mi-cell"><label>פחמימה</label><input value="${item.carbs||''}"    oninput="nutritionPlan[${mi}].items[${ii}].carbs=+this.value"    placeholder="C"   type="number"/></div>
-        <div class="mi-cell"><label>שומן</label><input value="${item.fat||''}"      oninput="nutritionPlan[${mi}].items[${ii}].fat=+this.value"      placeholder="F"   type="number"/></div>
+        <div class="mi-cell"><label>קלוריות</label><input value="${item.calories||''}" oninput="nutritionPlan[${mi}].items[${ii}].calories=+this.value;nutriTouched()" placeholder="קל׳" type="number"/></div>
+        <div class="mi-cell"><label>חלבון</label><input value="${item.protein||''}"  oninput="nutritionPlan[${mi}].items[${ii}].protein=+this.value;nutriTouched()"  placeholder="P"   type="number"/></div>
+        <div class="mi-cell"><label>פחמימה</label><input value="${item.carbs||''}"    oninput="nutritionPlan[${mi}].items[${ii}].carbs=+this.value;nutriTouched()"    placeholder="C"   type="number"/></div>
+        <div class="mi-cell"><label>שומן</label><input value="${item.fat||''}"      oninput="nutritionPlan[${mi}].items[${ii}].fat=+this.value;nutriTouched()"      placeholder="F"   type="number"/></div>
         <button onclick="toggleItemAlt(${mi},${ii})" style="padding:3px 7px;background:${altOpen||alts.length?'rgba(96,180,255,0.12)':'rgba(255,255,255,0.04)'};border:1px solid ${altOpen||alts.length?'rgba(96,180,255,0.4)':'rgba(255,255,255,0.1)'};border-radius:5px;color:${altOpen||alts.length?'#60b4ff':'#555'};cursor:pointer;font-size:0.65rem;flex-shrink:0;" title="הוסף חלופות">🔄${alts.length?' '+alts.length:''}</button>
         <button class="btn-sm btn-red" onclick="removeItem(${mi},${ii})">✕</button>
       </div>
@@ -7792,14 +7795,44 @@ ${NUTRITION_DB}
     </div>`;
   }
   function toggleMealCollapse(mi) { collapsedMeals.has(mi)?collapsedMeals.delete(mi):collapsedMeals.add(mi); renderNutritionEditor(); }
-  function addMeal()       { nutritionPlan.push({meal:'',items:[]}); renderNutritionEditor(); }
-  function removeMeal(i)   { nutritionPlan.splice(i,1); renderNutritionEditor(); }
-  function addItem(mi)     { nutritionPlan[mi].items.push({food:'',quantity:'',calories:0,protein:0,carbs:0,fat:0}); renderNutritionEditor(); }
-  function removeItem(mi,ii) { nutritionPlan[mi].items.splice(ii,1); renderNutritionEditor(); }
-  async function saveNutrition() {
-    if (!requireEdit()) return;
+  function addMeal()       { nutritionPlan.push({meal:'',items:[]}); renderNutritionEditor(); nutriTouched(); }
+  function removeMeal(i)   { nutritionPlan.splice(i,1); renderNutritionEditor(); nutriTouched(); }
+  function addItem(mi)     { nutritionPlan[mi].items.push({food:'',quantity:'',calories:0,protein:0,carbs:0,fat:0}); renderNutritionEditor(); nutriTouched(); }
+  function removeItem(mi,ii) { nutritionPlan[mi].items.splice(ii,1); renderNutritionEditor(); nutriTouched(); }
+  /* ── עריכת תפריט: עדכון חי + שמירה אוטומטית ──
+     קודם העריכה עדכנה רק את האובייקט בזיכרון: סרגל המאקרו לא זז, ושום דבר
+     לא נשמר עד לחיצה על "שמור תפריט" — ולכן שינויים "לא נקלטו".
+     nutriTouched() מרענן את הסרגל בלי לרנדר מחדש (לא מאבד פוקוס) ומתזמן שמירה. */
+  let _nutriSaveTimer = null;
+  function refreshNutriTotals() {
+    const box = document.getElementById('nutri-macro-bar'); if (!box) return;
+    const sum = f => Math.round(nutritionPlan.reduce((s,m)=>s+(m.items||[]).reduce((a,i)=>a+(+i[f]||0),0),0));
+    const TARGET = { calories:'e-cal', protein:'e-prot', carbs:'e-carb', fat:'e-fat' };
+    const UNIT   = { calories:'', protein:' ג׳', carbs:' ג׳', fat:' ג׳' };
+    box.querySelectorAll('[data-macro]').forEach(row => {
+      const k = row.getAttribute('data-macro');
+      const val = sum(k), tg = parseInt(document.getElementById(TARGET[k])?.value) || 0;
+      const txt = row.querySelector('.macro-val'), fill = row.querySelector('.macro-fill');
+      if (txt)  txt.innerHTML = `${val}${UNIT[k]}${tg ? ` <span style="color:#555;">/ ${tg}</span>` : ''}`;
+      if (fill) fill.style.width = (tg ? Math.min(100, Math.round(val / tg * 100)) : (val > 0 ? 100 : 0)) + '%';
+    });
+  }
+  function nutriTouched() {
+    refreshNutriTotals();
+    if (!activeEmail || !canEdit) return;
+    clearTimeout(_nutriSaveTimer);
+    _nutriSaveTimer = setTimeout(async () => {
+      const ok = await saveNutrition(true);   // silent
+      const chip = document.getElementById('nutri-save-chip');
+      if (chip && ok !== false) { chip.style.opacity = '1'; setTimeout(() => { chip.style.opacity = '0'; }, 1600); }
+    }, 1200);
+  }
+
+  async function saveNutrition(silent) {
+    if (silent ? !canEdit : !requireEdit()) return false;
     const { error } = await sb.from('nutrition_plans').upsert({client_email:activeEmail,plan:nutritionPlan,updated_at:new Date().toISOString()},{onConflict:'client_email'});
-    error ? toast('שגיאה בשמירה','err') : toast('תפריט נשמר ✓','ok');
+    if (!silent) error ? toast('שגיאה בשמירה','err') : toast('תפריט נשמר ✓','ok');
+    return !error;
   }
 
   /* בונה את רשימת התרגילים לפרומפט של ה-AI.
