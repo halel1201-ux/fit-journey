@@ -37,11 +37,37 @@ Deno.serve(async (req) => {
 
     const admin = createClient(SUPABASE_URL, SERVICE_KEY)
 
-    // 1. שמירת השאלון
+    // 1. שמירת השאלון — תמיד 'ממתין לאימות'; המאמן מאמת ידנית בפאנל
+    const planLabel = String(body.plan_label || '').trim()
+    const payRef    = String(body.payment_ref || '').trim()
+    const amount    = (planLabel.match(/([\d,]+)\s*₪/) || [])[1]?.replace(/,/g, '')
     const { data: row, error: insErr } = await admin.from('intake_forms')
-      .insert({ full_name: name, phone: phone || null, email: email || null, answers })
+      .insert({
+        full_name: name, phone: phone || null, email: email || null, answers,
+        plan_label: planLabel || null, payment_ref: payRef || null,
+        payment_amount: amount ? Number(amount) : null,
+        payment_status: 'pending',
+      })
       .select('id').single()
     if (insErr) return json({ error: insErr.message }, 400)
+
+    // 1b. צילום אישור התשלום
+    let proofUrl = ''
+    if (typeof body.proof_base64 === 'string' && body.proof_base64.length > 100) {
+      try {
+        const m = body.proof_base64.match(/^data:(image\/[a-z+]+);base64,(.*)$/)
+        if (m) {
+          const ext = m[1].split('/')[1].replace('jpeg', 'jpg')
+          const bin = Uint8Array.from(atob(m[2].replace(/\s/g, '')), (c) => c.charCodeAt(0))
+          const p = `intake/proof_${row.id}_${Date.now()}.${ext}`
+          const { error: pErr } = await admin.storage.from(BUCKET).upload(p, bin, { contentType: m[1], upsert: true })
+          if (!pErr) {
+            proofUrl = admin.storage.from(BUCKET).getPublicUrl(p).data.publicUrl
+            await admin.from('intake_forms').update({ payment_proof_url: proofUrl }).eq('id', row.id)
+          }
+        }
+      } catch (_e) { /* האסמכתא היא תוספת — אין להפיל את השליחה */ }
+    }
 
     // 2. העלאת ה-PDF (base64 מהדפדפן) ל-Storage
     let pdfUrl = ''
@@ -67,6 +93,12 @@ Deno.serve(async (req) => {
     if (WEB3FORMS_KEY) {
       const lines = [
         `שאלון קליטה חדש — ${name}`,
+        '⏳ ממתין לאימות תשלום — לאשר בפאנל לפני תחילת העבודה',
+        '',
+        planLabel ? `מסלול: ${planLabel}` : '',
+        payRef ? `אסמכתא: ${payRef}` : '',
+        proofUrl ? `🧾 אישור התשלום: ${proofUrl}` : '(לא צורף אישור)',
+        '',
         phone ? `טלפון: ${phone}` : '',
         email ? `אימייל: ${email}` : '',
         '',
@@ -80,7 +112,7 @@ Deno.serve(async (req) => {
           headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
           body: JSON.stringify({
             access_key: WEB3FORMS_KEY,
-            subject: `📋 שאלון קליטה — ${name}`,
+            subject: `📋 שאלון קליטה (ממתין לאימות תשלום) — ${name}`,
             from_name: 'Fit Journey — שאלון קליטה',
             email: NOTIFY_EMAIL,
             message: lines.join('\n'),

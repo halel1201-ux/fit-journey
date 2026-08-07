@@ -581,6 +581,8 @@
       <div id="lobby-referrals"></div>
       <!-- Win-Back — לקוחות שנטשו וכדאי להחזיר -->
       <div id="lobby-winback"></div>
+      <!-- 📋 שאלוני קליטה שממתינים לאימות תשלום -->
+      <div id="lobby-intake"></div>
       <!-- 🩹 התראות כאב/פציעה מהיומן האישי -->
       <div id="lobby-pain"></div>
       <!-- מתאמנים שדורשים תשומת לב -->
@@ -3172,6 +3174,7 @@
     renderCoachReferral();
     renderReferralSettings();
     renderPainAlerts();
+    renderIntakeForms();
 
     const alertsEl = document.getElementById('lobby-alerts');
     if (!alertsEl) return;
@@ -6351,6 +6354,67 @@ ${exLines || 'אין'}
     } catch (e) {
       st.style.color = '#ff7070'; st.textContent = 'שגיאה: ' + (e.message || e); _ppRunning = false;
     }
+  }
+
+  /* 📋 INTAKE FORMS — שאלוני קליטה מדף הנחיתה.
+     התשלום בביט אינו מאומת אוטומטית, לכן כל שאלון נכנס כ"ממתין לאימות":
+     המאמן בודק את האסמכתא, מאמת, ואז מסמן "התחלתי לעבוד" — ומאותו רגע
+     חלון ההחזר נסגר (בהתאם למדיניות שהוצגה ללקוח). */
+  let _intakeAll = false;
+  async function renderIntakeForms() {
+    const box = document.getElementById('lobby-intake'); if (!box) return;
+    let q = sb.from('intake_forms').select('*').order('created_at', { ascending: false });
+    if (!_intakeAll) q = q.neq('payment_status', 'refunded');
+    const { data } = await q.limit(30);
+    const rows = (data || []).filter(r => _intakeAll || !r.work_started_at || r.payment_status === 'pending');
+    if (!rows.length) { box.innerHTML = ''; return; }
+    const pend = rows.filter(r => r.payment_status === 'pending').length;
+    box.innerHTML = `<div style="background:radial-gradient(120% 80% at 50% 0%,rgba(255,215,0,0.08),transparent 60%),linear-gradient(160deg,#181613,#0e0d0b);border:1px solid rgba(255,215,0,0.3);border-radius:16px;padding:14px 16px;margin-bottom:20px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap;">
+        <div style="font-weight:900;font-size:0.98rem;color:#FFD700;">📋 שאלוני קליטה${pend ? ` · ${pend} ממתינים לאימות` : ''}</div>
+        <button onclick="_intakeAll=!_intakeAll;renderIntakeForms()" style="background:none;border:1px solid rgba(255,255,255,0.18);color:#aaa;border-radius:7px;padding:4px 10px;font-size:0.72rem;cursor:pointer;font-family:'Heebo',sans-serif;">${_intakeAll ? 'הצג פעילים' : 'הצג הכל'}</button>
+      </div>
+      ${rows.map(r => {
+        const d = new Date(r.created_at).toLocaleDateString('he-IL');
+        const st = r.payment_status === 'refunded' ? ['🔁 הוחזר', '#f87171']
+                 : r.work_started_at ? ['🔒 בעבודה — אין החזר', '#60a5fa']
+                 : r.payment_status === 'verified' ? ['✓ תשלום אומת — ניתן להחזר', '#4ade80']
+                 : ['⏳ ממתין לאימות תשלום', '#facc15'];
+        return `<div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.09);border-radius:11px;padding:11px 13px;margin-bottom:8px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+            <div style="min-width:0;">
+              <div style="font-size:0.88rem;font-weight:800;color:#eee;">${esc(r.full_name)} <span style="color:#777;font-weight:400;font-size:0.74rem;">${d}</span></div>
+              <div style="font-size:0.74rem;color:var(--muted);margin-top:2px;">${esc(r.plan_label || '—')}${r.payment_ref ? ' · אסמכתא ' + esc(r.payment_ref) : ''}${r.phone ? ' · ' + esc(r.phone) : ''}</div>
+            </div>
+            <div style="font-size:0.72rem;font-weight:800;color:${st[1]};white-space:nowrap;">${st[0]}</div>
+          </div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:9px;">
+            ${r.payment_proof_url ? `<a href="${r.payment_proof_url}" target="_blank" rel="noopener" style="text-decoration:none;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);color:#ccc;border-radius:7px;padding:4px 10px;font-size:0.72rem;font-weight:700;">🧾 אישור תשלום</a>` : ''}
+            ${r.pdf_url ? `<a href="${r.pdf_url}" target="_blank" rel="noopener" style="text-decoration:none;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);color:#ccc;border-radius:7px;padding:4px 10px;font-size:0.72rem;font-weight:700;">📄 השאלון</a>` : ''}
+            ${r.payment_status === 'pending' ? `<button onclick="intakeSet(${r.id},'verify')" style="background:rgba(74,222,128,0.15);border:1px solid rgba(74,222,128,0.45);color:#4ade80;border-radius:7px;padding:4px 10px;font-size:0.72rem;font-weight:800;cursor:pointer;font-family:'Heebo',sans-serif;">✓ אמת תשלום</button>` : ''}
+            ${r.payment_status === 'verified' && !r.work_started_at ? `<button onclick="intakeSet(${r.id},'start')" style="background:rgba(96,165,250,0.15);border:1px solid rgba(96,165,250,0.45);color:#60a5fa;border-radius:7px;padding:4px 10px;font-size:0.72rem;font-weight:800;cursor:pointer;font-family:'Heebo',sans-serif;">▶ התחלתי לעבוד</button>` : ''}
+            ${r.payment_status !== 'refunded' && !r.work_started_at ? `<button onclick="intakeSet(${r.id},'refund')" style="background:none;border:1px solid rgba(248,113,113,0.4);color:#f87171;border-radius:7px;padding:4px 10px;font-size:0.72rem;font-weight:700;cursor:pointer;font-family:'Heebo',sans-serif;">🔁 החזר</button>` : ''}
+          </div>
+        </div>`; }).join('')}
+    </div>`;
+  }
+  async function intakeSet(id, action) {
+    if (!requireEdit()) return;
+    let patch = {}, msg = '';
+    if (action === 'verify') { patch = { payment_status: 'verified', verified_at: new Date().toISOString() }; msg = 'התשלום אומת ✓'; }
+    else if (action === 'start') {
+      if (!confirm('לסמן שהתחלת לעבוד על התוכנית?\n\nמרגע זה הלקוח כבר לא זכאי להחזר כספי, בהתאם למדיניות שהוצגה לו.')) return;
+      patch = { work_started_at: new Date().toISOString() }; msg = 'סומן כבעבודה — חלון ההחזר נסגר';
+    } else {
+      const note = prompt('סיבת ההחזר (אופציונלי):', '');
+      if (note === null) return;
+      patch = { payment_status: 'refunded', refunded_at: new Date().toISOString(), refund_note: note || null };
+      msg = 'סומן כהוחזר';
+    }
+    const { error } = await sb.from('intake_forms').update(patch).eq('id', id);
+    if (error) { toast('שגיאה: ' + error.message, 'err'); return; }
+    toast(msg, 'ok');
+    renderIntakeForms();
   }
 
   /* 🩹 PAIN ALERTS — clients who logged pain/injury in their exercise journal */

@@ -80,8 +80,58 @@
   <div class="wrap" style="padding-top:20px;">
     <div class="msg err" id="err" style="display:none;"></div>
     <form id="intake" autocomplete="on"></form>
-    <button class="submit" id="send" onclick="submitIntake()">📤 שלח את השאלון</button>
-    <div class="note">הפרטים נשלחים ישירות למאמן ואינם מועברים לצד שלישי.<br/>
+
+    <!-- 💳 שלב התשלום -->
+    <div style="background:radial-gradient(120% 90% at 50% 0%,rgba(255,215,0,0.09),transparent 65%),rgba(255,255,255,0.035);border:1px solid rgba(255,215,0,0.35);border-radius:16px;padding:20px;margin:22px 0 14px;">
+      <div style="font-size:1.05rem;font-weight:900;margin-bottom:6px;">💳 תשלום ושליחה</div>
+      <p style="color:#aaa;font-size:0.88rem;line-height:1.7;margin-bottom:14px;">
+        כדי שאתחיל לבנות את התוכנית — יש להעביר את התשלום בביט ולצרף אישור.
+      </p>
+
+      <div style="background:rgba(0,0,0,0.35);border:1px solid rgba(255,215,0,0.25);border-radius:12px;padding:14px;text-align:center;margin-bottom:14px;">
+        <div style="font-size:0.74rem;color:#888;letter-spacing:.5px;">העברה בביט למספר</div>
+        <div style="font-size:1.5rem;font-weight:900;color:var(--gold);direction:ltr;margin-top:4px;">058-693-1163</div>
+      </div>
+
+      <div class="q" style="margin-bottom:12px;">
+        <div class="q-t" style="margin-top:0;">המסלול שבחרת <span class="req">*</span></div>
+        <select id="p_plan" onchange="upd()">
+          <option value="">— בחר מסלול —</option>
+          <option value="ליווי חודשי — 400 ₪">ליווי חודשי — 400 ₪</option>
+          <option value="ליווי 4 חודשים — 1,500 ₪">ליווי 4 חודשים — 1,500 ₪</option>
+          <option value="ליווי שנתי — 4,000 ₪">ליווי שנתי — 4,000 ₪</option>
+        </select>
+      </div>
+
+      <div class="q" style="margin-bottom:12px;">
+        <div class="q-t" style="margin-top:0;">אסמכתא / 4 ספרות אחרונות של הטלפון ששילם <span class="req">*</span></div>
+        <input type="text" id="p_ref" placeholder="למשל 1163" oninput="upd()"/>
+      </div>
+
+      <div class="q" style="margin-bottom:0;">
+        <div class="q-t" style="margin-top:0;">צילום מסך של אישור התשלום <span class="req">*</span></div>
+        <input type="file" id="p_proof" accept="image/*" onchange="onProof()" style="padding:9px;"/>
+        <div id="proof-ok" style="font-size:0.8rem;color:#4ade80;margin-top:7px;display:none;"></div>
+      </div>
+    </div>
+
+    <!-- מדיניות החזר -->
+    <div style="background:rgba(74,222,128,0.06);border:1px solid rgba(74,222,128,0.3);border-radius:12px;padding:14px 16px;margin-bottom:16px;">
+      <div style="font-size:0.88rem;font-weight:800;color:#4ade80;margin-bottom:6px;">🛡️ מדיניות החזר כספי</div>
+      <p style="font-size:0.84rem;color:#bbb;line-height:1.75;">
+        ניתן לקבל <b style="color:#fff;">החזר כספי מלא</b> בכל שלב — <b style="color:#fff;">עד לרגע שבו מתחילה העבודה</b>
+        על תוכנית האימונים והתפריט האישי שלך. מרגע תחילת העבודה לא יינתן החזר.
+        לבקשת החזר יש לפנות בוואטסאפ.
+      </p>
+      <label class="opt" id="l_refund" style="margin-top:10px;">
+        <input type="checkbox" id="p_terms" onchange="this.closest('.opt').classList.toggle('on',this.checked);upd()"/>
+        <span>קראתי ואני מאשר/ת את מדיניות ההחזר <span class="req">*</span></span>
+      </label>
+    </div>
+
+    <button class="submit" id="send" onclick="submitIntake()">📤 שלח שאלון + אישור תשלום</button>
+    <div class="note">השאלון יגיע למאמן מסומן <b>"ממתין לאימות תשלום"</b>. לאחר האימות מתחילה העבודה.<br/>
+      הפרטים נשלחים ישירות למאמן ואינם מועברים לצד שלישי.<br/>
       <a href="index.html" style="color:#666;">← חזרה לאתר</a></div>
   </div>
 </div>
@@ -90,7 +140,11 @@
   <div class="wrap">
     <div class="v">✅</div>
     <h2>השאלון נשלח!</h2>
-    <p>תודה <b id="done-name"></b> — קיבלתי את הפרטים.<br/>אחזור אליך בהקדם בוואטסאפ 💪</p>
+    <p>תודה <b id="done-name"></b> — קיבלתי את הפרטים ואת אישור התשלום.<br/>
+      אאמת את התשלום ואחזור אליך בוואטסאפ 💪</p>
+    <p style="font-size:0.86rem;color:#777;margin-top:14px;line-height:1.7;">
+      🛡️ ניתן לבטל ולקבל החזר מלא עד לתחילת העבודה על התוכנית והתפריט.
+    </p>
     <a href="index.html">חזרה לאתר</a>
   </div>
 </div>
@@ -156,10 +210,29 @@ function val(q){
   if (q.type==='check') return [...document.querySelectorAll(`input[name="${q.k}"]:checked`)].map(x=>x.value).join(', ');
   return (document.getElementById('f_'+q.k)?.value||'').trim();
 }
+/* שלב התשלום נספר יחד עם השאלות בסרגל ההתקדמות */
+let proofData = '';
+function payDone(){
+  return [ document.getElementById('p_plan')?.value,
+           document.getElementById('p_ref')?.value.trim(),
+           proofData,
+           document.getElementById('p_terms')?.checked ? '1' : '' ].filter(Boolean).length;
+}
+function onProof(){
+  const f = document.getElementById('p_proof').files[0];
+  const ok = document.getElementById('proof-ok');
+  if (!f) { proofData=''; ok.style.display='none'; upd(); return; }
+  if (f.size > 5*1024*1024) { ok.style.display='block'; ok.style.color='#f87171'; ok.textContent='הקובץ גדול מדי (עד 5MB)'; proofData=''; upd(); return; }
+  const r = new FileReader();
+  r.onload = () => { proofData = r.result; ok.style.display='block'; ok.style.color='#4ade80';
+                     ok.textContent = '✓ האישור צורף (' + Math.round(f.size/1024) + 'KB)'; upd(); };
+  r.readAsDataURL(f);
+}
 function upd(){
-  const done = Q.filter(q=>val(q)).length;
-  document.getElementById('pf').style.width = Math.round(done/Q.length*100)+'%';
-  document.getElementById('pt').textContent = `${done} מתוך ${Q.length}`;
+  const done = Q.filter(q=>val(q)).length + payDone();
+  const total = Q.length + 4;
+  document.getElementById('pf').style.width = Math.round(done/total*100)+'%';
+  document.getElementById('pt').textContent = `${done} מתוך ${total}`;
 }
 upd();
 
@@ -195,6 +268,15 @@ async function submitIntake(){
     document.getElementById('q_'+missing[0].k).scrollIntoView({behavior:'smooth',block:'center'});
     return;
   }
+  // שלב התשלום
+  const plan = document.getElementById('p_plan').value;
+  const ref  = document.getElementById('p_ref').value.trim();
+  if (!plan || !ref || !proofData || !document.getElementById('p_terms').checked){
+    errEl.textContent = 'כדי לשלוח יש לבחור מסלול, להזין אסמכתא, לצרף צילום של אישור התשלום ולאשר את מדיניות ההחזר.';
+    errEl.style.display='block';
+    document.getElementById('p_plan').scrollIntoView({behavior:'smooth',block:'center'});
+    return;
+  }
 
   const btn = document.getElementById('send');
   btn.disabled = true; btn.textContent = '⏳ שולח...';
@@ -220,7 +302,8 @@ async function submitIntake(){
   try {
     const res = await fetch(FN, { method:'POST',
       headers:{ 'Content-Type':'application/json','apikey':KEY,'Authorization':'Bearer '+KEY },
-      body: JSON.stringify({ full_name:name, phone:val(Q[1]), email:val(Q[3]), answers, pdf_base64:pdf64 }) });
+      body: JSON.stringify({ full_name:name, phone:val(Q[1]), email:val(Q[3]), answers, pdf_base64:pdf64,
+                             plan_label:plan, payment_ref:ref, proof_base64:proofData }) });
     const j = await res.json();
     if (!res.ok || j.error) throw new Error(j.error||'שגיאת שרת');
     document.getElementById('done-name').textContent = name;
