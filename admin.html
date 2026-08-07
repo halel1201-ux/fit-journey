@@ -2346,7 +2346,10 @@
             <span class="ai-status" id="nutri-ai-status"></span>
           </div>
         </div>
-        <button class="btn-sm btn-orange" style="margin-top:14px;" onclick="saveNutrition()">שמור תפריט</button>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;">
+          <button class="btn-sm btn-orange" onclick="saveNutrition()">שמור תפריט</button>
+          <button class="btn-sm btn-outline" style="border-color:rgba(96,165,250,0.45);color:#60a5fa;" onclick="syncMenuToClientTargets()">⇊ עדכן יעדים לפי התפריט</button>
+        </div>
       </div>
 
       <!-- Workout Logs -->
@@ -2956,6 +2959,7 @@ ${hasFile ? '' : `4. התאם כמויות וערכים מדויקים למשק�
       renderNutritionEditor();
       statusEl.style.color = '#70dd70';
       statusEl.textContent = `✓ ${plan.length} ארוחות נבנו — בדוק ושמור`;
+      await syncMenuToClientTargets(true);
     } catch(e) {
       statusEl.style.color = '#ff7070';
       statusEl.textContent = 'שגיאה: ' + e.message;
@@ -3118,6 +3122,22 @@ ${hasFile ? '' : `4. התאם כמויות וערכים מדויקים למשק�
   function removeItem(mi, ii) {
     nutritionPlan[mi].items.splice(ii, 1);
     renderNutritionEditor();
+  }
+
+  /* ⇊ סכומי התפריט → יעדי המאקרו בכרטיס הלקוח (כשהתפריט נבנה, הערכים שלו הם היעד) */
+  async function syncMenuToClientTargets(silent) {
+    if (!activeEmail) return false;
+    const sum = f => Math.round(nutritionPlan.reduce((a,m)=>a+(m.items||[]).reduce((b,i)=>b+(+i[f]||0),0),0));
+    const t = { target_calories: sum('calories'), target_protein: sum('protein'),
+                target_carbs: sum('carbs'), target_fat: sum('fat') };
+    if (!t.target_calories && !t.target_protein) return false;
+    const set = (id,v) => { const el=document.getElementById(id); if (el) el.value = v || ''; };
+    set('e-cal',t.target_calories); set('e-prot',t.target_protein);
+    set('e-carb',t.target_carbs);   set('e-fat',t.target_fat);
+    const { error } = await sb.from('clients').update(t).eq('email', activeEmail);
+    if (error) { if (!silent) toast('שגיאה בעדכון היעדים: '+error.message,'err'); return false; }
+    if (!silent) toast('יעדי הכרטיס עודכנו לפי התפריט ✓','ok');
+    return true;
   }
 
   async function saveNutrition() {

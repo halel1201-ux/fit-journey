@@ -3528,6 +3528,7 @@
     } else {
       if (nutritionPlan.length && !confirm('להחליף את התפריט הנוכחי בתבנית? (עדיין לא נשמר)')) return;
       nutritionPlan = plan; renderNutritionEditor();
+      syncMenuToClientTargets(true);
       document.querySelector('#nutrition-editor')?.scrollIntoView({ behavior: 'smooth' });
     }
     document.getElementById('tpl-overlay').style.display = 'none';
@@ -4652,7 +4653,12 @@ ${exLines || 'אין'}
             <span class="ai-status" id="nutri-ai-status"></span>
           </div>
         </div>
-        <button class="btn-sm btn-orange" style="margin-top:14px;" onclick="saveNutrition()">שמור תפריט</button>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;">
+          <button class="btn-sm btn-orange" onclick="saveNutrition()">שמור תפריט</button>
+          <button class="btn-sm btn-outline" style="border-color:rgba(96,165,250,0.45);color:#60a5fa;"
+            title="מעתיק את סכומי התפריט ליעדי המאקרו בכרטיס הלקוח"
+            onclick="syncMenuToClientTargets()">⇊ עדכן יעדים לפי התפריט</button>
+        </div>
       </div>
 
       <div class="sec-card">
@@ -7744,6 +7750,10 @@ ${NUTRITION_DB}
       renderNutritionEditor();
       statusEl.style.color = '#70dd70';
       statusEl.textContent = `✓ ${plan.length} ארוחות נבנו — בדוק ושמור`;
+      // הערכים שנבנו הופכים ליעדי המאקרו של הלקוח
+      await saveNutrition(true);
+      await syncMenuToClientTargets(true);
+      toast(`התפריט והיעדים נשמרו ✓`, 'ok');
     } catch(e) {
       statusEl.style.color = '#ff7070';
       statusEl.textContent = 'שגיאה: ' + e.message;
@@ -7879,6 +7889,27 @@ ${NUTRITION_DB}
   function removeMeal(i)   { nutritionPlan.splice(i,1); renderNutritionEditor(); nutriTouched(); }
   function addItem(mi)     { nutritionPlan[mi].items.push({food:'',quantity:'',calories:0,protein:0,carbs:0,fat:0}); renderNutritionEditor(); nutriTouched(); }
   function removeItem(mi,ii) { nutritionPlan[mi].items.splice(ii,1); renderNutritionEditor(); nutriTouched(); }
+  /* ⇊ מסנכרן את סכומי התפריט ליעדי המאקרו בכרטיס הלקוח.
+     כשהתפריט נבנה — הערכים שלו הם היעד היומי בפועל, ולכן הם נכתבים
+     גם לשדות הכרטיס וגם לבסיס הנתונים (בלי להמתין ל"שמור פרטים"). */
+  async function syncMenuToClientTargets(silent) {
+    if (!activeEmail || !canEdit) return false;
+    const sum = f => Math.round(nutritionPlan.reduce((s,m)=>s+(m.items||[]).reduce((a,i)=>a+(+i[f]||0),0),0));
+    const t = { target_calories: sum('calories'), target_protein: sum('protein'),
+                target_carbs: sum('carbs'),      target_fat: sum('fat') };
+    if (!t.target_calories && !t.target_protein) return false;   // תפריט ריק — לא לאפס יעדים קיימים
+    const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v || ''; };
+    set('e-cal', t.target_calories); set('e-prot', t.target_protein);
+    set('e-carb', t.target_carbs);   set('e-fat', t.target_fat);
+    const { error } = await sb.from('clients').update(t).eq('email', activeEmail);
+    if (error) { if (!silent) toast('שגיאה בעדכון היעדים: ' + error.message, 'err'); return false; }
+    const c = clients.find(x => x.email === activeEmail);
+    if (c) Object.assign(c, t);
+    refreshNutriTotals();
+    if (!silent) toast(`יעדי הכרטיס עודכנו לפי התפריט ✓ (${t.target_calories} קל׳)`, 'ok');
+    return true;
+  }
+
   /* ── עריכת תפריט: עדכון חי + שמירה אוטומטית ──
      קודם העריכה עדכנה רק את האובייקט בזיכרון: סרגל המאקרו לא זז, ושום דבר
      לא נשמר עד לחיצה על "שמור תפריט" — ולכן שינויים "לא נקלטו".
