@@ -3341,9 +3341,17 @@
         const exName = workoutSession?.exercises?.[ei]?.name || `תרגיל ${+ei + 1}`;
         const safe = exName.replace(/[^\w֐-׿-]/g, '-').slice(0, 40);
         const ext = (file.name.split('.').pop() || 'mp4').slice(0, 5);
-        const path = `set-videos/${currentEmail}/${Date.now()}_${safe}.${ext}`;
+        /* מפתחות ב-Storage חייבים להיות ASCII — מייל בעברית הפיל את ההעלאה
+           בשקט והסרטון נעלם. לכן הנתיב נבנה ממזהה בלבד; שם התרגיל והמתאמן
+           מופיעים בהודעה עצמה. */
+        let who = (currentEmail || '').replace(/[^A-Za-z0-9._@-]/g, '');
+        if (who.replace(/[^A-Za-z0-9]/g, '').length < 3) {          // מייל לא-לטיני → מזהה יציב
+          let hsh = 0; for (const ch of (currentEmail || '')) hsh = ((hsh << 5) - hsh + ch.charCodeAt(0)) | 0;
+          who = 'c' + Math.abs(hsh).toString(36);
+        }
+        const path = `set-videos/${who}/${Date.now()}_${+ei}.${ext.replace(/[^\w]/g, '') || 'mp4'}`;
         const { error: upErr } = await sb.storage.from('client-files').upload(path, file, { upsert: false });
-        if (upErr) continue;
+        if (upErr) { showDashToast('העלאת הסרטון נכשלה: ' + upErr.message); continue; }
         const { data: pub } = sb.storage.from('client-files').getPublicUrl(path);
         await sb.from('messages').insert({
           coach_email: clientData.coach_email, client_email: currentEmail, sender_email: currentEmail,
@@ -5954,8 +5962,11 @@ ${foodList || 'אין פריטים'}
       if (m.file_url) {
         const isImg = /\.(jpg|jpeg|png|gif|webp)(\?.*)?$/i.test(m.file_url);
         const isAudio = /\.(webm|m4a|mp3|ogg|wav|mp4)(\?.*)?$/i.test(m.file_url) && /voice|הקלטה|audio/i.test(m.file_name||'');
+        const isVideo = !isAudio && /\.(mp4|mov|m4v|webm|avi|3gp|mkv|quicktime)(\?.*)?$/i.test(m.file_url);
         content = isAudio
           ? `<audio controls preload="none" src="${m.file_url}" style="max-width:230px;height:38px;"></audio>`
+          : isVideo
+          ? `<video controls playsinline preload="metadata" src="${m.file_url}" style="max-width:230px;max-height:300px;border-radius:10px;display:block;background:#000;"></video>`
           : isImg
           ? `<a href="${m.file_url}" target="_blank"><img src="${m.file_url}" style="max-width:220px;max-height:160px;border-radius:8px;display:block;"/></a>`
           : `<a href="${m.file_url}" target="_blank" style="color:${isMe?'#fff':'var(--orange)'};text-decoration:none;">📎 ${esc(m.file_name||'קובץ')}</a>`;
