@@ -2598,11 +2598,20 @@
 
   function getFoodList() { return allFoodItems; }
 
+  /* גרש עברי (׳ U+05F3) מול אפוסטרוף רגיל (') הם תווים שונים, והמאגר
+     מכיל את שתי הצורות ("קוטג' 5%" לצד "קוטג׳ 1%"). בלי נרמול, שם
+     שהסוכן מחזיר בצורה אחת פשוט לא נמצא — והחלופה נעלמת בשקט. */
+  const _normFood = s => (s || '')
+    .replace(/[׳'’`´]/g, "'")
+    .replace(/[״"“”]/g, '"')
+    .replace(/\s+/g, ' ')
+    .trim();
   function findFood(name) {
     if (!name || !allFoodItems.length) return null;
-    const key = name.trim();
-    return allFoodItems.find(fd => fd.name === key) ||
-           allFoodItems.find(fd => fd.name.includes(key) || key.includes(fd.name)) || null;
+    const key = _normFood(name);
+    if (!key) return null;
+    return allFoodItems.find(fd => _normFood(fd.name) === key) ||
+           allFoodItems.find(fd => { const n = _normFood(fd.name); return n.includes(key) || key.includes(n); }) || null;
   }
 
   function getMergedFoodList() { return allFoodItems; }
@@ -2615,7 +2624,12 @@
     'פרמזן','מוצרלה','גבינת עמק','גבינת פטה','חלבון מי גבינה','ויי'];
   function foodKosherType(name) {
     if (!name) return null;
-    if (KOSHER_DAIRY_KW.some(k => name.includes(k))) return 'dairy';
+    /* 'חלב' מוכל בתוך 'חלבון', ולכן "חלבון ביצה" סווג בטעות כחלבי
+       ונחסם כחלופה לצד בשר. מנוטרל בבדיקה נפרדת עם lookahead;
+       'חלבון מי גבינה' ו'אבקת חלבון וויי' עדיין נתפסים דרך
+       מילות המפתח 'גבינה'/'ויי'. */
+    const dairy = KOSHER_DAIRY_KW.some(k => k === 'חלב' ? /חלב(?!ון)/.test(name) : name.includes(k));
+    if (dairy) return 'dairy';
     if (KOSHER_MEAT_KW.some(k => name.includes(k))) return 'meat';
     return null;
   }
@@ -7679,6 +7693,108 @@ BCAA אבקה|40|4|6|0
 תבשיל שעועית לבנה|120|7|18|2
 `;
 
+  /* ── חלופות מהסוכן → חלופות בפריט ──
+     הסוכן מחזיר protein_options/carbs_options/fat_options ברמת הארוחה,
+     אבל ממשק ההחלפה קורא item.alternatives ברמת הפריט. עד כה לא היה
+     שום קוד שמגשר בין השניים, ולכן כל החלופות שהסוכן בנה פשוט נזרקו
+     והמאמן ראה רק את מה שהוסיף ידנית. כאן הן מחוברות לפריט לפי המאקרו
+     הדומיננטי שלו, עם סינון כשרות ובדיקה שהמזון קיים במאגר. */
+  /* סיווג לפי אחוז קלוריות בלבד מסווג שגוי מזונות חלבון דלי-שומן:
+     גבינה לבנה 5% נותנת 36 קל׳ שומן מול 28.8 חלבון ומסווגת כ"שומן",
+     ואז מקבלת חלופות שקדים ואבוקדו. לכן חלבון נבחן בסף נפרד, ורק
+     ההכרעה בין פחמימה לשומן נעשית לפי גרמים. */
+  function dominantMacro(item) {
+    const p = +item.protein||0, c = +item.carbs||0, f = +item.fat||0;
+    const kcal = p*4 + c*4 + f*9;
+    if (kcal && (p*4)/kcal >= 0.30) return 'protein';
+    return c >= f ? 'carbs' : 'fat';
+  }
+  function applyAgentAlternatives(plan) {
+    let added = 0, dropped = 0;
+    for (const meal of plan) {
+      const pools = { protein: meal.protein_options || [], carbs: meal.carbs_options || [], fat: meal.fat_options || [] };
+      const items = meal.items || [];
+      for (const item of items) {
+        const pool = pools[dominantMacro(item)] || [];
+        if (!pool.length) continue;
+        /* שני מסננים נפרדים:
+           א. משפחה — בשר/דג מוחלף בבשר/דג, חלבי בחלבי. בלי זה מוצע
+              קוטג׳ במקום חזה עוף בצהריים, וזה "החלפה לא הגיונית".
+           ב. כשרות — שאר הארוחה קובעת: ליד בשר לא מציעים חלבי ולהפך. */
+        const ownType = foodKosherType(item.food);
+        const others  = items.filter(x => x !== item).map(x => foodKosherType(x.food)).filter(Boolean);
+        const blocked = others.includes('meat') ? 'dairy' : others.includes('dairy') ? 'meat' : null;
+        item.alternatives = item.alternatives || [];
+        for (const nm of pool) {
+          if (!nm || nm === item.food) continue;
+          if (item.alternatives.some(a => a.name === nm)) continue;
+          const fd = findFood(nm);
+          /* בלי התאמה במאגר אין food_id ואין קלוריות — הצ׳יפ לא ידע לחשב
+             כמות שקולה, ולכן עדיף לא להציע מאשר להציע חלופה שבורה. */
+          if (!fd || !fd.calories) { dropped++; continue; }
+          const altType = foodKosherType(fd.name);
+          if (ownType && altType !== ownType)          { dropped++; continue; }   // חציית משפחה
+          if (blocked && altType === blocked)          { dropped++; continue; }   // כשרות בארוחה
+          item.alternatives.push({ food_id: fd.id, name: fd.name });
+          added++;
+        }
+      }
+    }
+    return { added, dropped };
+  }
+
+  /* ── אימות מאקרו מול היעד ──
+     חשוב: הבדיקה חייבת לרוץ לפני syncMenuToClientTargets, כי הוא דורס
+     את יעדי הכרטיס בסכומי התפריט — ואז כל תפריט "תואם" את עצמו. */
+  function planMacroTotals(plan) {
+    const sum = f => Math.round(plan.reduce((s,m)=>s+(m.items||[]).reduce((a,i)=>a+(+i[f]||0),0),0));
+    return { calories: sum('calories'), protein: sum('protein'), carbs: sum('carbs'), fat: sum('fat') };
+  }
+  function macroDeviations(plan, tg) {
+    const got = planMacroTotals(plan), bad = [];
+    const LBL = { calories:'קלוריות', protein:'חלבון', carbs:'פחמימה', fat:'שומן' };
+    for (const k of ['calories','protein','carbs','fat']) {
+      if (!tg[k]) continue;                       // אין יעד בכרטיס — אין מול מה לאמת
+      const pct = Math.round((got[k]-tg[k]) / tg[k] * 100);
+      if (Math.abs(pct) > 10) bad.push({ key:k, label:LBL[k], target:tg[k], got:got[k], pct });
+    }
+    return { got, bad };
+  }
+  /* סבב תיקון אחד בלבד — לא לולאה, כדי לא לשרוף טוקנים ולא לתקוע את המאמן.
+     נכשל? מחזיר null והתפריט המקורי נשאר כמו שהוא. */
+  async function requestMacroFix(plan, bad, tg) {
+    const devLines = bad.map(b => `${b.label}: בתפריט ${b.got}, היעד ${b.target} (סטייה ${b.pct>0?'+':''}${b.pct}%)`).join('\n');
+    try {
+      const res = await aiFetch('', {
+        method: 'POST',
+        headers: { 'Content-Type':'application/json','x-api-key':CLAUDE_KEY,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-6',
+          max_tokens: 4096,
+          messages: [{ role:'user', content:
+`התפריט הבא חורג מיעדי המאקרו:
+${devLines}
+
+יעדים: ${tg.calories||'—'} קל׳ | חלבון ${tg.protein||'—'}ג׳ | פחמימה ${tg.carbs||'—'}ג׳ | שומן ${tg.fat||'—'}ג׳
+
+תקן על ידי שינוי כמויות בלבד. אל תוסיף ואל תסיר ארוחות או פריטים,
+אל תחליף מזונות, ואל תשנה את שדות protein_options/carbs_options/fat_options.
+עדכן quantity יחד עם calories/protein/carbs/fat של כל פריט ששינית,
+כך שהסכום היומי יתאים ליעדים בסטייה של עד 5%.
+
+החזר JSON בלבד באותו מבנה, ללא markdown וללא הסברים:
+${JSON.stringify(plan)}` }]
+        })
+      });
+      if (!res.ok) return null;
+      const data = await res.json();
+      const m = (data.content?.[0]?.text || '').trim().match(/\[[\s\S]*\]/);
+      if (!m) return null;
+      const p = JSON.parse(m[0]);
+      return (Array.isArray(p) && p.length) ? p : null;
+    } catch(_) { return null; }
+  }
+
   async function generateNutritionWithAI() {
     if (!requireEdit()) return;
     const prompt   = document.getElementById('nutri-ai-prompt').value.trim();
@@ -7765,12 +7881,35 @@ ${buildFoodListForPrompt()}
       const text = data.content[0].text.trim();
       const match = text.match(/\[[\s\S]*\]/);
       if (!match) throw new Error('תשובה לא תקינה מה-AI');
-      const plan = JSON.parse(match[0]);
+      let plan = JSON.parse(match[0]);
       if (!Array.isArray(plan) || !plan.length) throw new Error('תפריט ריק');
+
+      /* 1. אימות מאקרו — מול היעדים שנלכדו לפני הבנייה, ולפני שהסנכרון
+            ידרוס אותם בסכומי התפריט. */
+      const tg  = { calories:targetCal, protein:targetProt, carbs:targetCarb, fat:targetFat };
+      let chk   = macroDeviations(plan, tg);
+      let fixNote = '';
+      if (chk.bad.length) {
+        statusEl.style.color = 'var(--muted)';
+        statusEl.textContent = `מתקן סטייה: ${chk.bad.map(b=>b.label+' '+(b.pct>0?'+':'')+b.pct+'%').join(', ')}...`;
+        const fixed = await requestMacroFix(plan, chk.bad, tg);
+        if (fixed) {
+          const after = macroDeviations(fixed, tg);
+          /* מקבלים את התיקון רק אם באמת שיפר — סבב כושל לא יחליף תפריט תקין */
+          if (after.bad.length < chk.bad.length) { plan = fixed; chk = after; fixNote = ' · מאקרו תוקן'; }
+          else fixNote = ' · סטיית מאקרו נותרה';
+        } else fixNote = ' · תיקון המאקרו נכשל';
+      }
+
+      /* 2. חלופות: המרת ה-options של הסוכן לחלופות אמיתיות בפריטים */
+      await ensureLibs();
+      const alt = applyAgentAlternatives(plan);
+
       nutritionPlan = plan;
       renderNutritionEditor();
-      statusEl.style.color = '#70dd70';
-      statusEl.textContent = `✓ ${plan.length} ארוחות נבנו — בדוק ושמור`;
+      statusEl.style.color = chk.bad.length ? '#e0b040' : '#70dd70';
+      statusEl.textContent = `✓ ${plan.length} ארוחות · ${alt.added} חלופות${fixNote}` +
+        (chk.bad.length ? ` — שים לב: ${chk.bad.map(b=>`${b.label} ${b.got}/${b.target}`).join(', ')}` : '');
       // הערכים שנבנו הופכים ליעדי המאקרו של הלקוח
       await saveNutrition(true);
       await syncMenuToClientTargets(true);
