@@ -2976,6 +2976,10 @@
       });
     }
     if (!session) { window.location.href = 'login.html'; return; }
+    /* The coach row and the "is this coach also a trainee?" lookup are
+       independent, and used to cost two round trips in a row. Fire both now;
+       the second is read further down. */
+    const _selfClientQ = sb.from('clients').select('email').eq('email', session.user.email).single();
     const { data: coach } = await sb.from('coaches').select('*').eq('email', session.user.email).single();
     if (!coach) { window.location.href = 'login.html'; return; }
     coachEmail = session.user.email;
@@ -3024,7 +3028,7 @@
     if (coachRole === 'senior' || coachRole === 'admin' || isStudioOwner) {
       document.getElementById('btn-add-client').style.display = 'block';
     }
-    const { data: clientRow } = await sb.from('clients').select('email').eq('email', coachEmail).single();
+    const { data: clientRow } = await _selfClientQ;   // already in flight since init started
     if (clientRow) {
       document.getElementById('btn-trainee-link').style.display = 'block';
       const bl2 = document.getElementById('bn-trainee-link2');
@@ -3063,29 +3067,47 @@
   async function loadClients() {
     const { data } = await sb.from('clients').select('*').eq('coach_email', coachEmail).order('created_at');
     clients = data || [];
-    if (clients.length) {
-      const emails = clients.map(c => c.email);
-      const { data: pkgs } = await sb.from('client_packages')
-        .select('*')
-        .eq('coach_email', coachEmail)
-        .in('client_email', emails);
-      clientPackageMap = {};
-      (pkgs || []).forEach(p => { clientPackageMap[p.client_email] = p; });
-      const { data: debts } = await sb.from('client_debt_transactions')
-        .select('client_email,type,amount')
-        .eq('coach_email', coachEmail)
-        .eq('status', 'approved')
-        .in('client_email', emails);
-      clientDebtMap = {};
-      (debts || []).forEach(t => {
-        const sign = t.type === 'charge' ? 1 : -1;
-        clientDebtMap[t.client_email] = Math.round(((clientDebtMap[t.client_email] || 0) + sign * (+t.amount || 0)) * 100) / 100;
-      });
-    }
+
+    /* Packages and debts only decorate the sidebar rows (badge + balance) —
+       the panel used to sit on the loader through all three queries in a row.
+       Paint the client list now, then fill the decorations in when they land.
+       The two extra queries do not depend on each other, so they go together. */
     renderSidebar();
     renderLobby();
     loadUnreadCounts();
     setupGlobalMsgRealtime();
+
+    if (!clients.length) return;
+    loadClientDecorations();   // deliberately not awaited — see above
+  }
+
+  /* packages + debt balances for the sidebar badges */
+  async function loadClientDecorations() {
+    const emails = clients.map(c => c.email);
+    const [{ data: pkgs }, { data: debts }] = await Promise.all([
+      sb.from('client_packages')
+        .select('*')
+        .eq('coach_email', coachEmail)
+        .in('client_email', emails),
+      sb.from('client_debt_transactions')
+        .select('client_email,type,amount')
+        .eq('coach_email', coachEmail)
+        .eq('status', 'approved')
+        .in('client_email', emails),
+    ]);
+
+    clientPackageMap = {};
+    (pkgs || []).forEach(p => { clientPackageMap[p.client_email] = p; });
+
+    clientDebtMap = {};
+    (debts || []).forEach(t => {
+      const sign = t.type === 'charge' ? 1 : -1;
+      clientDebtMap[t.client_email] = Math.round(((clientDebtMap[t.client_email] || 0) + sign * (+t.amount || 0)) * 100) / 100;
+    });
+
+    // repaint with the badges now that the numbers are in
+    renderSidebar();
+    renderLobby();
   }
 
   // ─── UNREAD MESSAGES per client (red badge in sidebar) ───────────────
