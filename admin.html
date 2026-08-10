@@ -3251,24 +3251,49 @@ ${hasFile ? '' : `4. התאם כמויות וערכים מדויקים למשק�
     addClientForCoach = null;
   }
 
+  /* מתרגם שגיאת מסד נתונים להודעה שאפשר לפעול לפיה */
+  function dbErrHe(error) {
+    const c = error?.code || '', m = error?.message || '';
+    if (c === '23505' || /duplicate key/i.test(m)) return 'המייל הזה כבר רשום במערכת.';
+    if (c === '42501' || /row-level security|permission denied/i.test(m))
+      return 'אין הרשאה להוסיף לקוח. התנתק והתחבר מחדש ונסה שוב.';
+    if (c === '23514') return 'אחד הערכים שנבחרו אינו נתמך במערכת.';
+    if (c === '23503') return 'המאמן המשויך לא נמצא במערכת.';
+    if (/Failed to fetch|NetworkError/i.test(m)) return 'אין חיבור לשרת. בדוק את החיבור לאינטרנט ונסה שוב.';
+    return 'שגיאה בשמירה: ' + m;
+  }
+
   async function addClient() {
+    const errEl = document.getElementById('add-err');
+    const btn   = document.getElementById('add-btn');
+    if (btn.disabled) return;                       // הגנה מלחיצה כפולה
+    const done = () => { btn.disabled = false; btn.textContent = 'הוסף לקוח'; };
+    const fail = msg => { errEl.textContent = msg; errEl.style.display = 'block'; done(); };
+
     const name  = document.getElementById('new-name').value.trim();
-    const email = document.getElementById('new-email').value.trim();
+    // Supabase Auth ממיר מיילים לאותיות קטנות — בלי נרמול נוצר לקוח שלא עובר בדיקות הרשאה
+    const email = document.getElementById('new-email').value.trim().toLowerCase();
     const start = document.getElementById('new-start').value;
     const end   = document.getElementById('new-end').value;
     const plan  = document.getElementById('new-plan').value;
-    const errEl = document.getElementById('add-err');
-    const btn   = document.getElementById('add-btn');
     errEl.style.display = 'none';
-    if (!name || !email || !start || !end) { errEl.textContent = 'יש למלא את כל השדות'; errEl.style.display = 'block'; return; }
+
+    if (!name || !email || !start || !end)            return fail('יש למלא את כל השדות');
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) return fail('כתובת המייל אינה תקינה');
+    if (end < start)                                   return fail('תאריך סיום המנוי מוקדם מתאריך ההתחלה');
     btn.disabled = true; btn.textContent = 'מוסיף...';
+
+    const { data: dup } = await sb.from('clients').select('email,name').eq('email', email).maybeSingle();
+    if (dup) return fail(`${dup.name || email} כבר קיים במערכת.`);
 
     // Insert client record — הלקוח מתחבר דרך Magic Link בלבד
     const insertData = { email, name, coaching_start: start, coaching_end: end, plan_type: plan };
     if (addClientForCoach) insertData.coach_email = addClientForCoach;
-    const { error: insErr } = await sb.from('clients').insert(insertData);
-    btn.disabled = false; btn.textContent = 'הוסף לקוח';
-    if (insErr) { errEl.textContent = insErr.message; errEl.style.display = 'block'; return; }
+    const { data: created, error: insErr } = await sb.from('clients')
+      .insert(insertData).select('email').maybeSingle();
+    if (insErr)   return fail(dbErrHe(insErr));
+    if (!created) return fail('הלקוח לא נשמר. נסה שוב, ואם זה חוזר — התנתק והתחבר מחדש.');
+    done();
 
     const wasForCoach = !!addClientForCoach;
     closeAddModal();

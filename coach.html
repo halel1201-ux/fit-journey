@@ -3593,23 +3593,60 @@
     document.getElementById('add-modal').classList.remove('open');
     document.getElementById('add-err').style.display = 'none';
   }
+  /* מתרגם שגיאת מסד נתונים להודעה שאפשר לפעול לפיה. בלי זה המאמן
+     קיבל טקסט Postgres באנגלית ("duplicate key value violates...") ולא
+     ידע מה לעשות איתו. */
+  function dbErrHe(error) {
+    const c = error?.code || '', m = error?.message || '';
+    if (c === '23505' || /duplicate key/i.test(m)) return 'המייל הזה כבר רשום במערכת (ייתכן אצל מאמן אחר).';
+    if (c === '42501' || /row-level security|permission denied/i.test(m))
+      return 'אין הרשאה להוסיף מתאמן. אם שינית לאחרונה את מייל הכניסה — התנתק והתחבר מחדש.';
+    if (c === '23514') return 'אחד הערכים שנבחרו אינו נתמך במערכת.';
+    if (c === '23503') return 'המאמן המשויך לא נמצא במערכת.';
+    if (/Failed to fetch|NetworkError/i.test(m)) return 'אין חיבור לשרת. בדוק את החיבור לאינטרנט ונסה שוב.';
+    return 'שגיאה בשמירה: ' + m;
+  }
+
   async function addClient() {
     if (!requireEdit()) return;
+    const errEl  = document.getElementById('add-err');
+    const btn    = document.getElementById('add-btn');
+    if (btn.disabled) return;                       // הגנה מלחיצה כפולה שיצרה רשומה כפולה
+    const done = () => { btn.disabled = false; btn.textContent = 'הוסף מתאמן'; };
+    const fail = msg => { errEl.textContent = msg; errEl.style.display = 'block'; done(); };
+
     const name   = document.getElementById('new-name').value.trim();
-    const email  = document.getElementById('new-email').value.trim();
+    /* המייל הוא המפתח של המתאמן בכל המערכת, ו-Supabase Auth ממיר
+       מיילים לאותיות קטנות בעצמו. בלי הנרמול כאן נוצר מתאמן עם
+       "Israel@Gmail.com" שמצליח להתחבר אבל לא עובר את בדיקות ההרשאה
+       ולכן רואה פאנל ריק. */
+    const email  = document.getElementById('new-email').value.trim().toLowerCase();
     const start  = document.getElementById('new-start').value;
     const end    = document.getElementById('new-end').value;
     const plan   = document.getElementById('new-plan').value;
     const gender = document.getElementById('new-gender').value;
-    const errEl  = document.getElementById('add-err');
-    const btn    = document.getElementById('add-btn');
     errEl.style.display = 'none';
-    if (!name || !email || !start || !end) { errEl.textContent = 'יש למלא את כל השדות'; errEl.style.display = 'block'; return; }
+
+    if (!name || !email || !start || !end)                 return fail('יש למלא את כל השדות');
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email))      return fail('כתובת המייל אינה תקינה');
+    if (end < start)                                        return fail('תאריך סיום המנוי מוקדם מתאריך ההתחלה');
+
     const refCode = (document.getElementById('new-refcode')?.value || '').trim().toUpperCase();
     btn.disabled = true; btn.textContent = 'מוסיף...';
-    const { error } = await sb.from('clients').insert({ email, name, coaching_start: start, coaching_end: end, plan_type: plan, gender, coach_email: coachEmail, referred_by_code: refCode || null });
-    btn.disabled = false; btn.textContent = 'הוסף מתאמן';
-    if (error) { errEl.textContent = error.message; errEl.style.display = 'block'; return; }
+
+    // כבר קיים אצלי? בדיקה מקדימה נותנת הודעה ברורה במקום שגיאת מפתח כפול
+    const { data: dup } = await sb.from('clients').select('email,name').eq('email', email).maybeSingle();
+    if (dup) return fail(`${dup.name || email} כבר קיים ברשימת המתאמנים.`);
+
+    /* .select() מחזיר את השורה שנוצרה — כך מזוהה גם מצב שבו ההוספה
+       "הצליחה" בלי שגיאה אך שום שורה לא נכתבה בפועל. */
+    const { data: created, error } = await sb.from('clients')
+      .insert({ email, name, coaching_start: start, coaching_end: end, plan_type: plan, gender, coach_email: coachEmail, referred_by_code: refCode || null })
+      .select('email').maybeSingle();
+
+    if (error)    return fail(dbErrHe(error));
+    if (!created) return fail('המתאמן לא נשמר. נסה שוב, ואם זה חוזר — התנתק והתחבר מחדש.');
+    done();
     // 🎁 attribute the referral to whoever owns that code (a client of this coach)
     if (refCode) {
       const { data: referrer } = await sb.from('clients').select('email').eq('coach_email', coachEmail).eq('referral_code', refCode).maybeSingle();
@@ -3619,6 +3656,12 @@
     }
     closeAddModal();
     await loadClients();
+    /* השורה נכתבה, אבל אם היא לא חוזרת ברשימה המאמן רואה "נוסף בהצלחה"
+       ולא מוצא אותה — ואז זה נראה כאילו ההוספה לא עבדה. */
+    if (!clients.some(c => c.email === email)) {
+      toast(`${name} נשמר אך אינו מופיע ברשימה — רענן את הדף`, 'err');
+      return;
+    }
     toast(`${name} נוסף בהצלחה ✓${refCode ? ' · הפניה נרשמה 🎁' : ''}`, 'ok');
   }
 
