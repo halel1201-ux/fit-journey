@@ -444,9 +444,10 @@
   const SB_KEY = 'sb_publishable_k3M7SfBeiBGs3rTKewBzWQ_7RHRskB9';
   const sb = supabase.createClient(SB_URL, SB_KEY);
 
-  const DISCOUNT_CODES = {
-    'LIEM0812': 100
-  };
+  /* קודי הנחה פעילים. ריק = אין קודים, וכל קוד שיוקלד יקבל
+     "קוד הנחה לא תקין". להפעלת קוד חדש: 'CODE': אחוז_הנחה.
+     LIEM0812 (100%) בוטל ב-10/08/2026. */
+  const DISCOUNT_CODES = {};
 
   const PLANS = {
     'monthly':  { name: 'ליווי חודשי',    price: 400,  display: '400 ₪' },
