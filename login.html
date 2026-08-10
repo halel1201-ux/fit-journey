@@ -97,7 +97,7 @@
     .btn-go {
       width: 100%; padding: 13px; margin-top: 4px;
       background: linear-gradient(135deg, var(--orange), var(--orange2, #FF8C00));
-      color: var(--white); font-family: 'Heebo', sans-serif;
+      color: var(--btn-fg, var(--white)); font-family: 'Heebo', sans-serif;
       font-size: 1rem; font-weight: 700; border: none; border-radius: 8px;
       cursor: pointer; transition: opacity 0.2s, transform 0.15s;
     }
@@ -158,6 +158,16 @@
     if (b.color) {
       document.documentElement.style.setProperty('--orange', b.color);
       document.documentElement.style.setProperty('--orange2', b.color);
+      /* White is one of the offered brand swatches, and white button text on a
+         near-white button is invisible. Pick the label colour from the
+         background's luminance instead of assuming a dark brand. */
+      var hex = String(b.color).replace('#', '');
+      if (hex.length === 3) hex = hex[0]+hex[0]+hex[1]+hex[1]+hex[2]+hex[2];
+      if (/^[0-9a-fA-F]{6}$/.test(hex)) {
+        var r = parseInt(hex.slice(0,2),16), g = parseInt(hex.slice(2,4),16), bl = parseInt(hex.slice(4,6),16);
+        var lum = (0.299*r + 0.587*g + 0.114*bl) / 255;   // perceived brightness
+        if (lum > 0.6) document.documentElement.style.setProperty('--btn-fg', '#111');
+      }
     }
   })();
   </script>
