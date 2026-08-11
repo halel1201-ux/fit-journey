@@ -1,2 +1,11 @@
 thumbs-cache/
 strength_exercises.backup-*.json
+
+# ruflo / claude-flow runtime artifacts (regenerated on every invocation)
+.claude-flow/
+.swarm/
+.hive-mind/
+.claude/proven-config.json
+.claude/.proven-config-version
+.claude/security-scans/
+food_all.backup.json
