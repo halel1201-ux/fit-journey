@@ -1250,11 +1250,20 @@
       <div id="coach-sched-list"><div style="color:#666;padding:14px;">טוען...</div></div></div>`;
     const from = new Date(); from.setHours(0, 0, 0, 0);
     const to = new Date(from.getTime() + 7 * 864e5);
-    const [{ data: slots }, { data: mine }] = await Promise.all([
+    /* השיבוצים של המתאמנים נשלפים גם הם: מאמן סטודיו פעיל רשאי לקרוא
+       אותם לפי המדיניות, ובלעדיהם הוא רואה שעות ריקות ולא יודע מי
+       אמור להגיע אליו — בדיוק מה שהיה חסר. */
+    const [{ data: slots }, { data: mine }, { data: bks }] = await Promise.all([
       sb.from('studio_slots').select('*').eq('owner_email', myStudioOwner).gte('slot_start', from.toISOString()).lte('slot_start', to.toISOString()).order('slot_start'),
       sb.from('studio_coach_bookings').select('*').eq('owner_email', myStudioOwner).eq('coach_email', coachEmail),
+      sb.from('studio_bookings').select('*').eq('owner_email', myStudioOwner).neq('status', 'cancelled'),
     ]);
     const mineBy = {}; (mine || []).forEach(m => mineBy[m.slot_id] = m);
+    /* מאכלס את studioSlots באותו מבנה שהבעלים משתמש בו, כדי
+       ש-openStudioContact יעבוד כאן בלי שכפול לוגיקה. */
+    const slotIds = new Set((slots || []).map(s => s.id));
+    studioSlots = (slots || []).map(s => ({ ...s, _bookings: (bks || []).filter(b => b.slot_id === s.id) }));
+    await loadStudioPeople((bks || []).filter(b => slotIds.has(b.slot_id)).map(b => b.client_email));
     const el = document.getElementById('coach-sched-list');
     if (!slots?.length) { el.innerHTML = '<div style="color:#666;padding:14px;text-align:center;">אין שעות פעילות פתוחות.</div>'; return; }
     el.innerHTML = slots.map(s => {
@@ -1264,8 +1273,28 @@
       const btn = b
         ? `<button class="btn-sm btn-outline" onclick="coachUnbookSlot(${b.id})" style="font-size:0.7rem;border-color:rgba(248,113,113,0.35);color:#f87171;">בטל שיבוץ</button>`
         : (started ? `<span style="font-size:0.7rem;color:#888;">התחיל/הסתיים</span>` : `<button class="btn-sm btn-orange" onclick="coachBookSlot(${s.id},'${s.slot_start}')" style="font-size:0.7rem;">שבץ אותי</button>`);
-      return `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid rgba(255,255,255,0.05);${started&&!b?'opacity:0.5;':''}">
-        <div style="font-weight:700;color:#fff;">${fmtSlotTime(s.slot_start)} ${state}</div>${btn}</div>`;
+      /* המשובצים בשעה. שמו של כל מתאמן פותח את כרטיס הקשר המהיר —
+         מי שמשויך למאמן הזה מודגש, כדי שיזהה מיד את שלו בתוך השיעור. */
+      const bk = (s._bookings || []);
+      const people = bk.length ? `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;">${
+        bk.map(x => {
+          const isMine = x.coach_email === coachEmail;
+          const p = studioPeople[x.client_email] || {};
+          const noPhone = !waNumber(p.phone);
+          return `<button onclick="openStudioContact('${escJs(x.client_email)}',${x.id})"
+            title="${isMine ? 'המתאמן שלך' : 'מתאמן של מאמן אחר בסטודיו'}"
+            style="padding:5px 10px;border-radius:999px;cursor:pointer;font-family:'Heebo';font-size:0.72rem;font-weight:700;
+                   border:1px solid ${isMine ? 'rgba(255,107,0,0.5)' : 'rgba(255,255,255,0.14)'};
+                   background:${isMine ? 'rgba(255,107,0,0.12)' : 'rgba(255,255,255,0.04)'};
+                   color:${isMine ? 'var(--orange)' : '#bbb'};">
+            ${esc(studioPersonName(x.client_email))}${noPhone ? ' <span style="color:#f59e0b;">•</span>' : ''}</button>`;
+        }).join('')}</div>`
+        : `<div style="font-size:0.72rem;color:#666;margin-top:8px;">אין מתאמנים משובצים</div>`;
+      return `<div style="padding:10px 12px;border-bottom:1px solid rgba(255,255,255,0.05);${started&&!b?'opacity:0.5;':''}">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+          <div style="font-weight:700;color:#fff;">${fmtSlotTime(s.slot_start)} ${state}
+            <span style="font-size:0.72rem;color:#888;font-weight:400;">· ${bk.length} משובצים</span></div>${btn}</div>
+        ${people}</div>`;
     }).join('');
   }
   async function coachBookSlot(slotId, slotStart) {
@@ -1830,6 +1859,10 @@
     const when = s ? new Date(s.slot_start).toLocaleString('he-IL',{weekday:'long',hour:'2-digit',minute:'2-digit'}) : '';
     const msg = encodeURIComponent(`היי ${p.name || ''}, רואה שאתה משובץ לשיעור ${when}. הכל בסדר? מגיע?`.replace(/\s+/g,' '));
     const att = b && b.attended;
+    /* מדיניות העדכון על studio_bookings מתירה סימון נוכחות רק לבעל
+       השעה (או ללקוח עצמו). למאמן סטודיו הכפתורים היו נכשלים בשקט,
+       ולכן אצלו מוצג הסטטוס בלבד. */
+    const canMark = !!s && s.owner_email === coachEmail;
     const btn = (on, color) => `padding:7px 12px;border-radius:9px;cursor:pointer;font-family:'Heebo';font-size:0.78rem;font-weight:800;border:1px solid ${on?color:'rgba(255,255,255,0.15)'};background:${on?color+'2e':'transparent'};color:${on?color:'#888'};`;
     const act = (href, label, bg) => href
       ? `<a href="${href}" target="_blank" rel="noopener" style="flex:1;text-align:center;padding:11px;border-radius:11px;background:${bg};color:#fff;text-decoration:none;font-weight:800;font-size:0.85rem;">${label}</a>`
@@ -1846,11 +1879,18 @@
         ${act(p.phone ? 'tel:' + String(p.phone).replace(/\s/g,'') : '', '📞 חיוג', 'linear-gradient(135deg,#3b82f6,#2563eb)')}
         ${act(wa ? `https://wa.me/${wa}?text=${msg}` : '', '💬 וואטסאפ', 'linear-gradient(135deg,#25D366,#128C7E)')}
       </div>
+      ${canMark ? `
       <div style="font-size:0.74rem;color:#888;margin:14px 0 6px;">נוכחות בשיעור</div>
       <div style="display:flex;gap:8px;margin-bottom:12px;">
         <button onclick="markAttendance(${bookingId},true);closeStudioContact();"  style="flex:1;${btn(att===true ,'#4ade80')}">✅ הגיע</button>
         <button onclick="markAttendance(${bookingId},false);closeStudioContact();" style="flex:1;${btn(att===false,'#f87171')}">🚫 לא הגיע</button>
-      </div>
+      </div>` : `
+      <div style="font-size:0.74rem;color:#888;margin:14px 0 10px;">
+        נוכחות: ${att === true ? '<span style="color:#4ade80;font-weight:700;">✅ הגיע</span>'
+                 : att === false ? '<span style="color:#f87171;font-weight:700;">🚫 לא הגיע</span>'
+                 : '<span style="color:#666;">טרם סומן</span>'}
+        <span style="color:#555;"> · הסימון נעשה ע״י בעל הסטודיו</span>
+      </div>`}
       <button onclick="closeStudioContact();closeStudioModal();selectClient('${escJs(email)}')"
         style="width:100%;padding:10px;border-radius:11px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.14);color:#ddd;font-family:'Heebo';font-size:0.8rem;font-weight:700;cursor:pointer;">
         👤 פתח כרטיס לקוח מלא</button>`;
