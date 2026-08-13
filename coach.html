@@ -1277,7 +1277,7 @@
          מי שמשויך למאמן הזה מודגש, כדי שיזהה מיד את שלו בתוך השיעור. */
       const bk = (s._bookings || []);
       const people = bk.length ? `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;">${
-        bk.map(x => personButton(x.client_email, x.id, 'chip', x.coach_email === coachEmail)).join('')}</div>`
+        bk.map(x => personButton(x.client_email, x.id, 'chip', x.coach_email === coachEmail, x.attended === false)).join('')}</div>`
         : `<div style="font-size:0.72rem;color:#666;margin-top:8px;">אין מתאמנים משובצים</div>`;
       return `<div style="padding:10px 12px;border-bottom:1px solid rgba(255,255,255,0.05);${started&&!b?'opacity:0.5;':''}">
         <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
@@ -1504,27 +1504,52 @@
      מייל עם גרש היה שובר את הכפתור — נדיר, אבל זול למנוע. */
   function escJs(s) { return esc(s).replace(/'/g, '&#39;'); }
 
+  /* ── נוכחות: ברירת מחדל "הגיע" ──
+     סימון אחד-אחרי-השני של כל הנוכחים הוא בזבוז זמן; מי שלא ביטל
+     אמור להגיע. מרגע תחילת יום האימון כל שיבוץ פעיל נחשב "הגיע",
+     והמאמן מסמן נעדרים בלבד.
+     המימוש הוא ברמת התצוגה בכוונה: attended נשאר null במסד, ומונה
+     ההיעדרויות (fn_no_show_count) מגיב רק ל-false — כך שאין השפעה
+     על הספירה, אין צורך במשימה מתוזמנת, וכל סימון הפיך.
+     true נשמר לתאימות לאחור עבור שיבוצים שסומנו ידנית בעבר. */
+  function attendanceState(slotStart, attended) {
+    if (attended === false) return 'absent';
+    const day = new Date(slotStart); day.setHours(0, 0, 0, 0);
+    return Date.now() < day.getTime() ? 'future' : 'present';
+  }
+  const ATT_LABEL = {
+    absent:  { txt: '🚫 נעדר',  color: '#f87171' },
+    present: { txt: '✅ הגיע',  color: '#4ade80' },
+    future:  { txt: 'טרם התקיים', color: '#888' },
+  };
+
   /* כפתור השם של משובץ — משותף למסך הבעלים ולמסך המאמן.
      שני המסכים מציגים אותו דבר בעיצוב שונה, ולפני החילוץ השם,
      סימון היעדר הטלפון וההפעלה היו כתובים פעמיים.
      variant: 'row' (שורה אצל הבעלים) | 'chip' (צ'יפ אצל המאמן)
      data-* מאפשרים לבדיקות לכוון לפי מזהה ולא לפי ניסוח HTML. */
-  function personButton(email, bookingId, variant, isMine) {
+  function personButton(email, bookingId, variant, isMine, absent) {
     const p = studioPeople[email] || {};
     const noPhone = !waNumber(p.phone);
     const dot = noPhone ? ' <span style="color:#f59e0b;" title="אין טלפון שמור">•</span>' : '';
+    /* נעדר מסומן בקו חוצה ובאדום — הרשימה נקראת במבט אחד, כי כל
+       השאר נחשבים נוכחים ממילא. */
+    const mark = absent ? '🚫 ' : '';
     const base = `data-person="${esc(email)}" data-booking="${bookingId}" data-nophone="${noPhone ? '1' : '0'}"
-      onclick="openStudioContact('${escJs(email)}',${bookingId})" style="cursor:pointer;font-family:'Heebo';font-weight:700;`;
+      data-absent="${absent ? '1' : '0'}"
+      onclick="openStudioContact('${escJs(email)}',${bookingId})" style="cursor:pointer;font-family:'Heebo';font-weight:700;
+      ${absent ? 'text-decoration:line-through;opacity:0.75;' : ''}`;
     if (variant === 'chip') {
+      const bd = absent ? 'rgba(248,113,113,0.5)' : isMine ? 'rgba(255,107,0,0.5)' : 'rgba(255,255,255,0.14)';
+      const bg = absent ? 'rgba(248,113,113,0.10)' : isMine ? 'rgba(255,107,0,0.12)' : 'rgba(255,255,255,0.04)';
+      const fg = absent ? '#f87171' : isMine ? 'var(--orange)' : '#bbb';
       return `<button ${base}padding:5px 10px;border-radius:999px;font-size:0.72rem;
-        border:1px solid ${isMine ? 'rgba(255,107,0,0.5)' : 'rgba(255,255,255,0.14)'};
-        background:${isMine ? 'rgba(255,107,0,0.12)' : 'rgba(255,255,255,0.04)'};
-        color:${isMine ? 'var(--orange)' : '#bbb'};"
-        title="${isMine ? 'המתאמן שלך' : 'מתאמן של מאמן אחר בסטודיו'}">${esc(studioPersonName(email))}${dot}</button>`;
+        border:1px solid ${bd};background:${bg};color:${fg};"
+        title="${absent ? 'נעדר' : isMine ? 'המתאמן שלך' : 'מתאמן של מאמן אחר בסטודיו'}">${mark}${esc(studioPersonName(email))}${dot}</button>`;
     }
     return `<button ${base}min-width:70px;text-align:right;background:none;border:none;padding:0;
-      font-size:0.76rem;color:#7ec8ff;text-decoration:underline;text-underline-offset:2px;"
-      title="פרטי קשר ונוכחות">${esc(studioPersonName(email))}${dot}</button>`;
+      font-size:0.76rem;color:${absent ? '#f87171' : '#7ec8ff'};text-underline-offset:2px;${absent ? '' : 'text-decoration:underline;'}"
+      title="${absent ? 'נעדר · פרטי קשר' : 'פרטי קשר ונוכחות'}">${mark}${esc(studioPersonName(email))}${dot}</button>`;
   }
   /* ממיר מספר ישראלי לפורמט בינלאומי ל-wa.me; מחזיר null כשאין מספר תקין */
   function waNumber(phone) {
@@ -1799,7 +1824,7 @@
     const bookedRows = (s._bookings||[]).map(b => {
       /* השם הוא הכפתור: פותח כרטיס קשר מהיר לבדיקת הגעה/עיכוב */
       return `<div style="display:flex;align-items:center;gap:6px;padding:5px 0;font-size:0.76rem;border-bottom:1px solid rgba(255,255,255,0.04);flex-wrap:wrap;">
-        ${personButton(b.client_email, b.id, 'row')}
+        ${personButton(b.client_email, b.id, 'row', true, b.attended === false)}
         ${editable ? `<input id="bwk-${b.id}" value="${esc(b.workout||'')}" placeholder="סוג אימון..." style="flex:1;min-width:0;padding:3px 8px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:6px;color:#fff;font-family:'Heebo';font-size:0.72rem;"/>
           <button class="btn-sm btn-orange" style="font-size:0.62rem;padding:3px 8px;" onclick="setBookingWorkout(${b.id})">✓</button>`
           : `<span style="flex:1;color:#888;">🏋️ ${esc(b.workout||'—')}</span>`}
@@ -1866,9 +1891,11 @@
     const when = s ? new Date(s.slot_start).toLocaleString('he-IL',{weekday:'long',hour:'2-digit',minute:'2-digit'}) : '';
     const msg = encodeURIComponent(`היי ${p.name || ''}, רואה שאתה משובץ לשיעור ${when}. הכל בסדר? מגיע?`.replace(/\s+/g,' '));
     const att = b && b.attended;
-    /* מדיניות העדכון על studio_bookings מתירה סימון נוכחות רק לבעל
-       השעה (או ללקוח עצמו). למאמן סטודיו הכפתורים היו נכשלים בשקט,
-       ולכן אצלו מוצג הסטטוס בלבד. */
+    const state = s ? attendanceState(s.slot_start, att) : 'future';
+    const lab = ATT_LABEL[state];
+    /* מדיניות העדכון על studio_bookings מתירה סימון רק לבעל השעה
+       (או ללקוח עצמו). למאמן סטודיו הכפתור היה נכשל בשקט, ולכן
+       אצלו מוצג הסטטוס בלבד עד להרחבת ההרשאה. */
     const canMark = !!s && s.owner_email === coachEmail;
     const btn = (on, color) => `padding:7px 12px;border-radius:9px;cursor:pointer;font-family:'Heebo';font-size:0.78rem;font-weight:800;border:1px solid ${on?color:'rgba(255,255,255,0.15)'};background:${on?color+'2e':'transparent'};color:${on?color:'#888'};`;
     const act = (href, label, bg) => href
@@ -1886,18 +1913,19 @@
         ${act(p.phone ? 'tel:' + String(p.phone).replace(/\s/g,'') : '', '📞 חיוג', 'linear-gradient(135deg,#3b82f6,#2563eb)')}
         ${act(wa ? `https://wa.me/${wa}?text=${msg}` : '', '💬 וואטסאפ', 'linear-gradient(135deg,#25D366,#128C7E)')}
       </div>
-      ${canMark ? `
-      <div style="font-size:0.74rem;color:#888;margin:14px 0 6px;">נוכחות בשיעור</div>
-      <div style="display:flex;gap:8px;margin-bottom:12px;">
-        <button data-att="yes" onclick="markAttendance(${bookingId},true);closeStudioContact();"  style="flex:1;${btn(att===true ,'#4ade80')}">✅ הגיע</button>
-        <button data-att="no" onclick="markAttendance(${bookingId},false);closeStudioContact();" style="flex:1;${btn(att===false,'#f87171')}">🚫 לא הגיע</button>
+      <div data-att-state="${state}" style="font-size:0.74rem;color:#888;margin:14px 0 6px;">
+        נוכחות: <span style="color:${lab.color};font-weight:700;">${lab.txt}</span>
+        ${state === 'present' ? '<span style="color:#555;"> · אוטומטי</span>' : ''}
+      </div>
+      ${state === 'future' ? '' : canMark ? `
+      <div style="margin-bottom:12px;">
+        ${state === 'absent'
+          ? `<button data-att="undo" onclick="markAttendance(${bookingId},null);closeStudioContact();"
+               style="width:100%;${btn(false,'#4ade80')}">↩ בעצם הגיע</button>`
+          : `<button data-att="absent" onclick="markAttendance(${bookingId},false);closeStudioContact();"
+               style="width:100%;${btn(false,'#f87171')}">🚫 סמן שנעדר</button>`}
       </div>` : `
-      <div style="font-size:0.74rem;color:#888;margin:14px 0 10px;">
-        נוכחות: ${att === true ? '<span style="color:#4ade80;font-weight:700;">✅ הגיע</span>'
-                 : att === false ? '<span style="color:#f87171;font-weight:700;">🚫 לא הגיע</span>'
-                 : '<span style="color:#666;">טרם סומן</span>'}
-        <span style="color:#555;"> · הסימון נעשה ע״י בעל הסטודיו</span>
-      </div>`}
+      <div style="font-size:0.72rem;color:#555;margin-bottom:12px;">הסימון נעשה ע״י בעל הסטודיו</div>`}
       <button onclick="closeStudioContact();closeStudioModal();selectClient('${escJs(email)}')"
         style="width:100%;padding:10px;border-radius:11px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.14);color:#ddd;font-family:'Heebo';font-size:0.8rem;font-weight:700;cursor:pointer;">
         👤 פתח כרטיס לקוח מלא</button>`;
@@ -1909,16 +1937,25 @@
     if (!requireEdit()) return;
     const s = studioSlots.find(x => (x._bookings || []).some(b => b.id === bookingId));
     const b = s && s._bookings.find(x => x.id === bookingId); if (!b) return;
-    const next = (b.attended === attended) ? null : attended;   // click same → clear
-    const { error } = await sb.from('studio_bookings').update({ attended: next }).eq('id', bookingId).eq('owner_email', coachEmail);
+    /* attended מגיע כעת מפורשות: false = נעדר, null = חזרה לברירת
+       המחדל "הגיע". הלחיצה־החוזרת הישנה בוטלה — עם שני מצבים בלבד
+       היא רק בלבלה. */
+    const next = (attended === null || attended === undefined) ? null : attended;
+    if (b.attended === next) return;
+    /* בלי .eq('owner_email') — ההרשאה נקבעת במדיניות המסד, כך שכאשר
+       תורחב למאמן שאימן, הקוד כאן כבר יתמוך בכך. */
+    const { error } = await sb.from('studio_bookings').update({ attended: next }).eq('id', bookingId);
     if (error) { toast('שגיאה: ' + error.message, 'err'); return; }
     b.attended = next;
     if (next === false) {   // gentle no-show nudge to the client
       await sb.from('messages').insert({ coach_email: coachEmail, client_email: b.client_email, sender_email: coachEmail,
         content: '📩 רשמנו שלא הגעת לאימון שנקבע. הכל בסדר? אם צריך לתאם מחדש — אני כאן. נשמור על הרצף 🙏' });
     }
-    openSlotEditor(s.id);
-    toast(next === true ? 'סומן: הגיע ✅' : next === false ? 'סומן: לא הגיע 🚫' : 'הנוכחות אופסה', 'ok');
+    /* חלון עריכת השיעור קיים רק אצל בעל הסטודיו; במסך המאמן צריך
+       לרענן את רשימת השעות שלו במקום. */
+    if (s.owner_email === coachEmail) openSlotEditor(s.id);
+    else if (typeof openCoachStudioSchedule === 'function') openCoachStudioSchedule();
+    toast(next === false ? 'סומן כנעדר 🚫' : 'חזר לנוכח ✅', 'ok');
   }
 
   /* ── COACHES tab (owner creates coaches with name + password, capped by package) ── */
