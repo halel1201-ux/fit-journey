@@ -1277,18 +1277,7 @@
          מי שמשויך למאמן הזה מודגש, כדי שיזהה מיד את שלו בתוך השיעור. */
       const bk = (s._bookings || []);
       const people = bk.length ? `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;">${
-        bk.map(x => {
-          const isMine = x.coach_email === coachEmail;
-          const p = studioPeople[x.client_email] || {};
-          const noPhone = !waNumber(p.phone);
-          return `<button onclick="openStudioContact('${escJs(x.client_email)}',${x.id})"
-            title="${isMine ? 'המתאמן שלך' : 'מתאמן של מאמן אחר בסטודיו'}"
-            style="padding:5px 10px;border-radius:999px;cursor:pointer;font-family:'Heebo';font-size:0.72rem;font-weight:700;
-                   border:1px solid ${isMine ? 'rgba(255,107,0,0.5)' : 'rgba(255,255,255,0.14)'};
-                   background:${isMine ? 'rgba(255,107,0,0.12)' : 'rgba(255,255,255,0.04)'};
-                   color:${isMine ? 'var(--orange)' : '#bbb'};">
-            ${esc(studioPersonName(x.client_email))}${noPhone ? ' <span style="color:#f59e0b;">•</span>' : ''}</button>`;
-        }).join('')}</div>`
+        bk.map(x => personButton(x.client_email, x.id, 'chip', x.coach_email === coachEmail)).join('')}</div>`
         : `<div style="font-size:0.72rem;color:#666;margin-top:8px;">אין מתאמנים משובצים</div>`;
       return `<div style="padding:10px 12px;border-bottom:1px solid rgba(255,255,255,0.05);${started&&!b?'opacity:0.5;':''}">
         <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
@@ -1514,6 +1503,29 @@
   /* esc מנטרל " ו-< אבל לא גרש בודד, והמייל נכנס ל-onclick בתוך '...'.
      מייל עם גרש היה שובר את הכפתור — נדיר, אבל זול למנוע. */
   function escJs(s) { return esc(s).replace(/'/g, '&#39;'); }
+
+  /* כפתור השם של משובץ — משותף למסך הבעלים ולמסך המאמן.
+     שני המסכים מציגים אותו דבר בעיצוב שונה, ולפני החילוץ השם,
+     סימון היעדר הטלפון וההפעלה היו כתובים פעמיים.
+     variant: 'row' (שורה אצל הבעלים) | 'chip' (צ'יפ אצל המאמן)
+     data-* מאפשרים לבדיקות לכוון לפי מזהה ולא לפי ניסוח HTML. */
+  function personButton(email, bookingId, variant, isMine) {
+    const p = studioPeople[email] || {};
+    const noPhone = !waNumber(p.phone);
+    const dot = noPhone ? ' <span style="color:#f59e0b;" title="אין טלפון שמור">•</span>' : '';
+    const base = `data-person="${esc(email)}" data-booking="${bookingId}" data-nophone="${noPhone ? '1' : '0'}"
+      onclick="openStudioContact('${escJs(email)}',${bookingId})" style="cursor:pointer;font-family:'Heebo';font-weight:700;`;
+    if (variant === 'chip') {
+      return `<button ${base}padding:5px 10px;border-radius:999px;font-size:0.72rem;
+        border:1px solid ${isMine ? 'rgba(255,107,0,0.5)' : 'rgba(255,255,255,0.14)'};
+        background:${isMine ? 'rgba(255,107,0,0.12)' : 'rgba(255,255,255,0.04)'};
+        color:${isMine ? 'var(--orange)' : '#bbb'};"
+        title="${isMine ? 'המתאמן שלך' : 'מתאמן של מאמן אחר בסטודיו'}">${esc(studioPersonName(email))}${dot}</button>`;
+    }
+    return `<button ${base}min-width:70px;text-align:right;background:none;border:none;padding:0;
+      font-size:0.76rem;color:#7ec8ff;text-decoration:underline;text-underline-offset:2px;"
+      title="פרטי קשר ונוכחות">${esc(studioPersonName(email))}${dot}</button>`;
+  }
   /* ממיר מספר ישראלי לפורמט בינלאומי ל-wa.me; מחזיר null כשאין מספר תקין */
   function waNumber(phone) {
     const d = String(phone || '').replace(/\D/g, '');
@@ -1785,14 +1797,9 @@
       </span>`;
     };
     const bookedRows = (s._bookings||[]).map(b => {
-      const nm = esc(studioPersonName(b.client_email));
-      const hasPhone = !!waNumber((studioPeople[b.client_email]||{}).phone);
-      /* השם הוא הכפתור: פותח כרטיס קשר מהיר לבדיקת הגעה/עיכוב.
-         נקודה כתומה = אין טלפון שמור, כדי שיהיה ברור לפני שלוחצים. */
+      /* השם הוא הכפתור: פותח כרטיס קשר מהיר לבדיקת הגעה/עיכוב */
       return `<div style="display:flex;align-items:center;gap:6px;padding:5px 0;font-size:0.76rem;border-bottom:1px solid rgba(255,255,255,0.04);flex-wrap:wrap;">
-        <button onclick="openStudioContact('${escJs(b.client_email)}',${b.id})" title="פרטי קשר ונוכחות"
-          style="min-width:70px;text-align:right;background:none;border:none;padding:0;cursor:pointer;font-family:'Heebo';font-size:0.76rem;font-weight:700;color:#7ec8ff;text-decoration:underline;text-underline-offset:2px;">
-          ${nm}${hasPhone ? '' : ' <span style="color:#f59e0b;" title="אין טלפון שמור">•</span>'}</button>
+        ${personButton(b.client_email, b.id, 'row')}
         ${editable ? `<input id="bwk-${b.id}" value="${esc(b.workout||'')}" placeholder="סוג אימון..." style="flex:1;min-width:0;padding:3px 8px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:6px;color:#fff;font-family:'Heebo';font-size:0.72rem;"/>
           <button class="btn-sm btn-orange" style="font-size:0.62rem;padding:3px 8px;" onclick="setBookingWorkout(${b.id})">✓</button>`
           : `<span style="flex:1;color:#888;">🏋️ ${esc(b.workout||'—')}</span>`}
@@ -1875,15 +1882,15 @@
         ${esc(p.plan || '—')}${p.end ? ' · עד ' + new Date(p.end+'T12:00:00').toLocaleDateString('he-IL') : ''}
         ${p.mine === false ? `<br><span style="color:#c4a5ff;">מתאמן של ${esc((p.coach||'').split('@')[0] || 'מאמן אחר')}</span>` : ''}
       </div>
-      <div style="display:flex;gap:8px;margin-bottom:10px;">
+      <div data-contact-actions style="display:flex;gap:8px;margin-bottom:10px;">
         ${act(p.phone ? 'tel:' + String(p.phone).replace(/\s/g,'') : '', '📞 חיוג', 'linear-gradient(135deg,#3b82f6,#2563eb)')}
         ${act(wa ? `https://wa.me/${wa}?text=${msg}` : '', '💬 וואטסאפ', 'linear-gradient(135deg,#25D366,#128C7E)')}
       </div>
       ${canMark ? `
       <div style="font-size:0.74rem;color:#888;margin:14px 0 6px;">נוכחות בשיעור</div>
       <div style="display:flex;gap:8px;margin-bottom:12px;">
-        <button onclick="markAttendance(${bookingId},true);closeStudioContact();"  style="flex:1;${btn(att===true ,'#4ade80')}">✅ הגיע</button>
-        <button onclick="markAttendance(${bookingId},false);closeStudioContact();" style="flex:1;${btn(att===false,'#f87171')}">🚫 לא הגיע</button>
+        <button data-att="yes" onclick="markAttendance(${bookingId},true);closeStudioContact();"  style="flex:1;${btn(att===true ,'#4ade80')}">✅ הגיע</button>
+        <button data-att="no" onclick="markAttendance(${bookingId},false);closeStudioContact();" style="flex:1;${btn(att===false,'#f87171')}">🚫 לא הגיע</button>
       </div>` : `
       <div style="font-size:0.74rem;color:#888;margin:14px 0 10px;">
         נוכחות: ${att === true ? '<span style="color:#4ade80;font-weight:700;">✅ הגיע</span>'
@@ -3207,6 +3214,13 @@
   async function loadClients() {
     const { data } = await sb.from('clients').select('*').eq('coach_email', coachEmail).order('created_at');
     clients = data || [];
+    /* studioPeople הוא מטמון שנטען פעם אחת, ולכן טלפון או שם שהשתנו
+       המשיכו להופיע ישנים בכרטיס הקשר עד רענון דף. כל שינוי בלקוח
+       עובר דרך loadClients, אז הרענון כאן מכסה את כולם במקום אחד. */
+    clients.forEach(c => {
+      if (studioPeople[c.email]) studioPeople[c.email] =
+        { name: c.name, phone: c.phone, plan: c.plan_type, end: c.coaching_end, mine: true };
+    });
 
     /* Packages and debts only decorate the sidebar rows (badge + balance) —
        the panel used to sit on the loader through all three queries in a row.
