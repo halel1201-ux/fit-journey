@@ -1100,6 +1100,7 @@
   const CA_SEV = { alert: { c: '#f87171', bg: 'rgba(248,113,113,0.12)', l: '🚨 חמור' }, warn: { c: '#fbbf24', bg: 'rgba(251,191,36,0.1)', l: '⚠️ אזהרה' }, info: { c: '#8aa', bg: 'rgba(255,255,255,0.03)', l: 'מידע' } };
   const CA_EVENT_HE = { tracker_start: 'התחברות לפאנל', heartbeat: 'פעיל', view_client: 'צפייה בלקוח', open_plan: 'פתיחת תוכנית', copy: 'העתקת טקסט', print: 'הדפסה / שמירת PDF', context_menu: 'קליק ימני', devtools: 'פתיחת DevTools', rapid_access: 'גישה מהירה להרבה לקוחות (חשד לגרידה)', export: 'ייצוא מידע' };
 
+  /* FJ-SHOP-START — נחתך מחבילת האפליקציה ע"י sync-web */
   /* ═══ 🧪 ניהול קטלוג החנות הפנימית ═══
      המוצרים יושבים ב-shop_products ונטענים משם גם בדף החנות, כך
      שהוספה כאן מופיעה שם מיד בלי לגעת בקוד. */
@@ -1263,6 +1264,8 @@
     await loadShopProducts();
     toast('המוצר נמחק', 'ok');
   }
+
+  /* FJ-SHOP-END */
 
   async function openActivityView() {
     activeEmail = null;
@@ -4794,6 +4797,7 @@ CREATE POLICY IF NOT EXISTS "service_manage_progress" ON progress_entries FOR AL
       navigator.serviceWorker.register('sw.js').catch(e => console.warn('SW:', e));
     }
   </script>
+<!-- FJ-SHOP-START -->
 <!-- עורך מוצר בחנות -->
 <div id="shop-modal" style="display:none;position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,0.9);align-items:center;justify-content:center;padding:16px;" onclick="if(event.target===this)closeShopModal()">
   <div style="background:linear-gradient(160deg,#17181c,#0d0e11);border:1px solid rgba(63,211,232,0.35);border-radius:20px;max-width:520px;width:100%;max-height:88vh;overflow-y:auto;padding:22px 20px;position:relative;">
@@ -4801,5 +4805,6 @@ CREATE POLICY IF NOT EXISTS "service_manage_progress" ON progress_entries FOR AL
     <div id="shop-modal-body"></div>
   </div>
 </div>
+<!-- FJ-SHOP-END -->
 </body>
 </html>
