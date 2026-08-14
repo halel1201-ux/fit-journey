@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <script>/* נפתח כקובץ מקומי — fetch חסום שם; מקפיץ לאתר החי */if(location.protocol==='file:')location.replace('https://halel1201-ux.github.io/fit-journey/'+location.pathname.split('/').pop()+location.search);</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- דף פנימי: לא מקושר מהניווט ולא נכנס למנועי חיפוש -->
+  <meta name="robots" content="noindex, nofollow, noarchive" />
+  <link rel="icon" type="image/png" href="favicon.png"/>
+  <meta name="theme-color" content="#0d1418">
+  <title>FJ Peptides — קטלוג</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;700;900&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    /* ── הפלטה: אותו מבנה כמו דף הבית, אבל הכתום מוחלף בתכלת של הלוגו ──
+       כל צבע מוגדר כאן בלבד, כך שהחלפת גוון עתידית היא שינוי במקום אחד. */
+    :root {
+      --black:    #070b0d;
+      --graphite: #0d1418;
+      --card-bg:  rgba(255,255,255,0.04);
+      --cyan:     #3FD3E8;
+      --cyan-lt:  #8BEDF9;
+      --cyan-dk:  #14A6C2;
+      --white:    #FFFFFF;
+      --muted:    #93A6AD;
+      --border:   rgba(63,211,232,0.32);
+      --glow:     0 0 18px rgba(63,211,232,0.5);
+      --glow-lg:  0 0 40px rgba(63,211,232,0.4), 0 0 80px rgba(63,211,232,0.12);
+    }
+
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Heebo', sans-serif; background: var(--black); color: var(--white);
+      min-height: 100vh; overflow-x: hidden; line-height: 1.6;
+      padding-top: calc(var(--sat, 0px));
+    }
+
+    /* זוהר רקע עדין — אותו אפקט של דף הבית בגוון החדש */
+    body::before {
+      content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+      background:
+        radial-gradient(ellipse 80% 50% at 50% -10%, rgba(63,211,232,0.13), transparent 60%),
+        radial-gradient(ellipse 60% 40% at 50% 110%, rgba(20,166,194,0.10), transparent 60%);
+    }
+    .wrap { position: relative; z-index: 1; max-width: 1180px; margin: 0 auto; padding: 0 20px; }
+
+    /* ── כותרת ── */
+    header {
+      position: sticky; top: 0; z-index: 50; backdrop-filter: blur(14px);
+      background: rgba(7,11,13,0.82); border-bottom: 1px solid rgba(63,211,232,0.16);
+      padding: calc(12px + var(--sat, 0px)) 0 12px;
+    }
+    .hd { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
+    .brand { display: flex; align-items: center; gap: 11px; text-decoration: none; }
+    .brand-mark {
+      width: 42px; height: 42px; border-radius: 11px; flex-shrink: 0;
+      display: grid; place-items: center; font-weight: 900; font-size: 1.15rem; letter-spacing: -1px;
+      color: var(--cyan-lt); background: linear-gradient(150deg, #12242b, #0a1418);
+      border: 1px solid var(--border); box-shadow: var(--glow), inset 0 0 14px rgba(63,211,232,0.12);
+      text-shadow: 0 0 12px rgba(139,237,249,0.8);
+    }
+    .brand-txt b { display: block; font-size: 1.02rem; font-weight: 900; letter-spacing: 0.3px; }
+    .brand-txt span { display: block; font-size: 0.72rem; color: var(--muted); font-weight: 500; }
+    .hd-back {
+      font-size: 0.8rem; color: var(--muted); text-decoration: none; padding: 8px 14px;
+      border: 1px solid rgba(255,255,255,0.12); border-radius: 10px; transition: 0.2s;
+      white-space: nowrap;
+    }
+    .hd-back:hover { color: var(--cyan); border-color: var(--border); }
+
+    /* ── פתיח ── */
+    .hero { padding: 54px 0 30px; text-align: center; }
+    .hero h1 {
+      font-size: clamp(1.9rem, 5.5vw, 3rem); font-weight: 900; line-height: 1.18; margin-bottom: 14px;
+    }
+    .hero h1 em {
+      font-style: normal;
+      background: linear-gradient(135deg, var(--cyan-lt), var(--cyan-dk));
+      -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .hero p { color: var(--muted); font-size: clamp(0.92rem, 2.4vw, 1.05rem); max-width: 560px; margin: 0 auto; }
+
+    /* ── סרגל סינון ── */
+    .filters { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin: 26px 0 6px; }
+    .fbtn {
+      padding: 8px 17px; border-radius: 999px; cursor: pointer; font-family: inherit;
+      font-size: 0.82rem; font-weight: 700; transition: 0.18s;
+      background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.11); color: var(--muted);
+    }
+    .fbtn:hover { border-color: var(--border); color: var(--cyan-lt); }
+    .fbtn[aria-pressed="true"] {
+      background: rgba(63,211,232,0.14); border-color: var(--cyan); color: var(--cyan-lt);
+      box-shadow: 0 0 14px rgba(63,211,232,0.25);
+    }
+
+    /* ── קטלוג ── */
+    .grid {
+      display: grid; gap: 16px; padding: 26px 0 60px;
+      grid-template-columns: repeat(auto-fill, minmax(258px, 1fr));
+    }
+    .card {
+      background: var(--card-bg); border: 1px solid rgba(255,255,255,0.08); border-radius: 17px;
+      padding: 20px; display: flex; flex-direction: column; gap: 10px; transition: 0.22s;
+    }
+    .card:hover { border-color: var(--border); box-shadow: var(--glow); transform: translateY(-3px); }
+    .card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+    .card h3 { font-size: 1.04rem; font-weight: 800; line-height: 1.3; }
+    .tag {
+      font-size: 0.66rem; font-weight: 800; padding: 4px 10px; border-radius: 999px; white-space: nowrap;
+      background: rgba(63,211,232,0.12); border: 1px solid var(--border); color: var(--cyan-lt);
+    }
+    .card .desc { font-size: 0.83rem; color: var(--muted); flex: 1; }
+    .spec { font-size: 0.76rem; color: #6f8189; }
+    .price-row { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-top: 4px; }
+    /* המחיר והמחיר-הקודם הם שניהם "מספר + ₪". בלי בידוד דו-כיווני
+       הסמלים נצמדים זה לזה ב-RTL והצירוף נקרא כמחיר אחד מבולבל. */
+    .price { font-size: 1.42rem; font-weight: 900; color: var(--cyan);
+             display: inline-flex; align-items: baseline; gap: 10px; }
+    .price > span { unicode-bidi: isolate; }
+    .price s { font-size: 0.85rem; color: #5d6b72; font-weight: 500; unicode-bidi: isolate; }
+    .stock-out { font-size: 0.74rem; color: #f0a24b; font-weight: 700; }
+    .buy {
+      display: block; text-align: center; padding: 11px; border-radius: 11px; text-decoration: none;
+      font-weight: 800; font-size: 0.87rem; transition: 0.2s;
+      background: linear-gradient(135deg, var(--cyan), var(--cyan-dk)); color: #04181d;
+      box-shadow: 0 4px 16px rgba(63,211,232,0.24);
+    }
+    .buy:hover { filter: brightness(1.1); box-shadow: 0 6px 22px rgba(63,211,232,0.38); }
+    .buy.off { background: rgba(255,255,255,0.05); color: #62717a; box-shadow: none; cursor: not-allowed; }
+
+    /* ── מצב ריק ── */
+    .empty {
+      grid-column: 1 / -1; text-align: center; padding: 56px 22px;
+      border: 1px dashed rgba(63,211,232,0.28); border-radius: 18px; background: rgba(63,211,232,0.03);
+    }
+    .empty .ico { font-size: 2.6rem; margin-bottom: 12px; }
+    .empty h3 { font-size: 1.06rem; font-weight: 800; margin-bottom: 8px; }
+    .empty p { font-size: 0.86rem; color: var(--muted); max-width: 430px; margin: 0 auto; }
+    .empty code {
+      display: inline-block; margin-top: 12px; padding: 6px 12px; border-radius: 8px;
+      background: rgba(0,0,0,0.45); border: 1px solid rgba(63,211,232,0.2);
+      color: var(--cyan-lt); font-size: 0.78rem; direction: ltr;
+    }
+
+    footer {
+      border-top: 1px solid rgba(255,255,255,0.07); padding: 26px 0 calc(30px + var(--sab, 0px));
+      text-align: center; font-size: 0.76rem; color: #5d6b72;
+    }
+    footer .note {
+      max-width: 620px; margin: 0 auto 12px; font-size: 0.74rem; color: #6b7a81; line-height: 1.75;
+    }
+    @media (max-width: 560px) {
+      .hero { padding: 34px 0 20px; }
+      .grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="wrap hd">
+    <a class="brand" href="#">
+      <span class="brand-mark">FJ</span>
+      <span class="brand-txt"><b>FJ Peptides</b><span>קטלוג מוצרים</span></span>
+    </a>
+    <a class="hd-back" href="index.html">→ חזרה לאתר</a>
+  </div>
+</header>
+
+<div class="wrap">
+  <section class="hero">
+    <h1>קטלוג <em>FJ Peptides</em></h1>
+    <p>המוצרים מתעדכנים באופן שוטף. להזמנה או לשאלה — יצירת קשר ישירה.</p>
+  </section>
+
+  <div class="filters" id="filters"></div>
+  <div class="grid" id="grid"></div>
+</div>
+
+<footer>
+  <div class="wrap">
+    <div class="note" id="legal-note"></div>
+    <div>FJ Peptides · <span id="yr"></span></div>
+  </div>
+</footer>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   הקטלוג — זה החלק היחיד שצריך לערוך כדי להוסיף מוצר.
+   מוסיפים אובייקט לרשימה, שומרים, והדף מתעדכן. אין צורך לגעת
+   בשום מקום אחר בקובץ.
+
+   שדות:
+     name   — שם המוצר (חובה)
+     cat    — קטגוריה; מייצרת את כפתורי הסינון אוטומטית (חובה)
+     desc   — תיאור קצר
+     spec   — מינון/כמות/ריכוז
+     price  — מחיר בשקלים (מספר)
+     was    — מחיר קודם, יוצג כמחיר מחוק. השאר null אם אין
+     stock  — true = במלאי, false = אזל
+     tag    — תווית קטנה בפינה, למשל 'חדש' או 'מבצע'
+
+   דוגמה:
+     { name:'קולגן פפטידים', cat:'קולגן', desc:'אבקה נטולת טעם',
+       spec:'300 גרם · 10 גרם למנה', price:149, was:179, stock:true, tag:'חדש' }
+   ═══════════════════════════════════════════════════════════════ */
+const PRODUCTS = [
+  // הקטלוג ריק בכוונה — הוסף כאן את המוצרים שלך.
+];
+
+/* מספר הווטסאפ לפניות. שנה כאן אם צריך. */
+const CONTACT_WA = '972586931163';
+
+/* הערת המסגרת שמופיעה בתחתית. ריק = לא מוצגת. */
+const LEGAL_NOTE = 'המידע בעמוד זה אינו מהווה ייעוץ רפואי. השימוש בכל מוצר הוא באחריות המשתמש ובכפוף להוראות היצרן ולדין החל.';
+
+/* ── מכאן והלאה: תצוגה בלבד ── */
+const esc = s => String(s == null ? '' : s)
+  .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+const ils = n => Number(n).toLocaleString('he-IL');
+
+let activeCat = 'הכל';
+
+function categories() {
+  return ['הכל', ...[...new Set(PRODUCTS.map(p => p.cat).filter(Boolean))]];
+}
+
+function renderFilters() {
+  const cats = categories();
+  /* כפתור סינון בודד ("הכל" בלבד) לא מוסיף מידע — מוסתר עד שיש קטגוריות */
+  const box = document.getElementById('filters');
+  if (cats.length < 3) { box.innerHTML = ''; return; }
+  box.innerHTML = cats.map(c =>
+    `<button class="fbtn" aria-pressed="${c === activeCat}" onclick="setCat('${esc(c)}')">${esc(c)}</button>`
+  ).join('');
+}
+
+function setCat(c) { activeCat = c; renderFilters(); renderGrid(); }
+
+function card(p) {
+  const out = p.stock === false;
+  const wa = `https://wa.me/${CONTACT_WA}?text=${encodeURIComponent('היי, אשמח לפרטים על ' + (p.name || ''))}`;
+  return `<article class="card">
+    <div class="card-top">
+      <h3>${esc(p.name)}</h3>
+      ${p.tag ? `<span class="tag">${esc(p.tag)}</span>` : ''}
+    </div>
+    ${p.desc ? `<div class="desc">${esc(p.desc)}</div>` : '<div class="desc"></div>'}
+    ${p.spec ? `<div class="spec">${esc(p.spec)}</div>` : ''}
+    <div class="price-row">
+      ${p.price != null
+        ? `<span class="price"><span>${ils(p.price)} ₪</span>${p.was ? `<s>${ils(p.was)} ₪</s>` : ''}</span>`
+        : `<span class="price" style="font-size:1rem;color:var(--muted);"><span>לפרטים</span></span>`}
+      ${out ? '<span class="stock-out">אזל מהמלאי</span>' : ''}
+    </div>
+    ${out
+      ? `<span class="buy off">אזל מהמלאי</span>`
+      : `<a class="buy" href="${wa}" target="_blank" rel="noopener">להזמנה</a>`}
+  </article>`;
+}
+
+function renderGrid() {
+  const grid = document.getElementById('grid');
+  const list = activeCat === 'הכל' ? PRODUCTS : PRODUCTS.filter(p => p.cat === activeCat);
+  if (!list.length) {
+    grid.innerHTML = `<div class="empty">
+      <div class="ico">🧪</div>
+      <h3>${PRODUCTS.length ? 'אין מוצרים בקטגוריה הזו' : 'הקטלוג עדיין ריק'}</h3>
+      <p>${PRODUCTS.length
+        ? 'בחר קטגוריה אחרת כדי לראות את שאר המוצרים.'
+        : 'כדי להוסיף מוצר — פתח את הקובץ וערוך את הרשימה בראש הסקריפט. כל מוצר שתוסיף יופיע כאן מיד, והקטגוריות ייבנו לבד.'}</p>
+      ${PRODUCTS.length ? '' : '<code>const PRODUCTS = [ ... ]</code>'}
+    </div>`;
+    return;
+  }
+  grid.innerHTML = list.map(card).join('');
+}
+
+document.getElementById('legal-note').textContent = LEGAL_NOTE || '';
+document.getElementById('yr').textContent = new Date().getFullYear();
+renderFilters();
+renderGrid();
+</script>
+</body>
+</html>
