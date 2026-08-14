@@ -4679,6 +4679,94 @@ difficulty: מתחיל | ביניים | מתקדם | כל הרמות
   /* ══════════════════════════════════════════════════════
      DATABASE SETUP — צור טבלאות חדשות
   ══════════════════════════════════════════════════════ */
+  /* המקור לשתי אלה הוא קבצי המיגרציה שב-supabase/migrations —
+     מועתקים לכאן מילה במילה כדי שלא ייווצרו שתי גרסאות שנפרדות. */
+  const SHOP_PRODUCTS_SQL = `
+-- ═══ 🧪 קטלוג החנות הפנימית — 2026-08-14 ═══
+-- הקטלוג היה רשימה קשיחה בתוך peptides.html, כך שכל הוספת מוצר חייבה
+-- עריכת קוד. כאן הוא עובר למסד, והאדמין מנהל אותו מהפאנל.
+
+CREATE TABLE IF NOT EXISTS shop_products (
+  id          bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  name        text NOT NULL,
+  category    text,
+  description text,
+  spec        text,                      -- מינון / כמות / ריכוז
+  price       numeric(10,2),             -- null = "לפרטים"
+  was_price   numeric(10,2),             -- מחיר קודם; יוצג מחוק
+  image_url   text,
+  tag         text,                      -- 'חדש' / 'מבצע'
+  in_stock    boolean NOT NULL DEFAULT true,
+  visible     boolean NOT NULL DEFAULT true,   -- טיוטה שלא מוצגת בחנות
+  sort_order  int NOT NULL DEFAULT 0,
+  created_at  timestamptz DEFAULT now(),
+  updated_at  timestamptz DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_shop_visible ON shop_products(visible, sort_order);
+
+ALTER TABLE shop_products ENABLE ROW LEVEL SECURITY;
+
+-- קריאה: הקטלוג הוא דף ציבורי (מוסתר, לא מוגן), ולכן גם anon קורא —
+-- אבל אך ורק מוצרים שסומנו כגלויים. טיוטות נשארות פנימיות.
+DROP POLICY IF EXISTS shop_pub_sel ON shop_products;
+CREATE POLICY shop_pub_sel ON shop_products FOR SELECT TO anon, authenticated
+  USING (visible = true);
+
+-- כתיבה: אדמין בלבד.
+DROP POLICY IF EXISTS shop_admin_all ON shop_products;
+CREATE POLICY shop_admin_all ON shop_products FOR ALL TO authenticated
+  USING (auth.email() = 'halel1201@gmail.com')
+  WITH CHECK (auth.email() = 'halel1201@gmail.com');
+
+-- האדמין רואה גם טיוטות
+DROP POLICY IF EXISTS shop_admin_sel ON shop_products;
+CREATE POLICY shop_admin_sel ON shop_products FOR SELECT TO authenticated
+  USING (auth.email() = 'halel1201@gmail.com');
+
+CREATE OR REPLACE FUNCTION fn_shop_touch() RETURNS trigger
+LANGUAGE plpgsql AS $$ BEGIN NEW.updated_at = now(); RETURN NEW; END $$;
+DROP TRIGGER IF EXISTS trg_shop_touch ON shop_products;
+CREATE TRIGGER trg_shop_touch BEFORE UPDATE ON shop_products
+  FOR EACH ROW EXECUTE FUNCTION fn_shop_touch();
+
+SELECT 'shop_products ready' AS r;
+`;
+
+  const STUDIO_ATT_SQL = `
+-- ═══ 🚫 סימון היעדרות ע"י המאמן שאימן — 2026-08-13 ═══
+-- עד כה sbook_upd התירה עדכון רק ללקוח עצמו, לבעל הסטודיו או לאדמין,
+-- ולכן מאמן שעבד בשיעור לא יכול היה לסמן שמתאמן נעדר — הכפתור נכשל
+-- בשקט. הנוכחות היא ברירת מחדל ("מי שלא ביטל — הגיע"), והמאמן מסמן
+-- נעדרים בלבד, ולכן ההרשאה הזו נדרשת לו כדי לעשות את עבודתו.
+--
+-- ההרחבה מכוונת בכוונה: רק מאמן פעיל באותו סטודיו, ורק על שיבוץ
+-- שמשויך אליו (coach_email). מאמן לא יכול לגעת בשיבוצים של עמיתיו.
+
+DROP POLICY IF EXISTS sbook_upd ON studio_bookings;
+CREATE POLICY sbook_upd ON studio_bookings FOR UPDATE TO authenticated
+  USING (
+    client_email = (auth.jwt()->>'email')
+    OR owner_email = (auth.jwt()->>'email')
+    -- המאמן שאותו שיבוץ משויך אליו, בתנאי שהוא מאמן פעיל בסטודיו
+    OR (coach_email = (auth.jwt()->>'email') AND EXISTS (
+          SELECT 1 FROM studio_coaches sc
+          WHERE sc.studio_owner_email = studio_bookings.owner_email
+            AND sc.coach_email = (auth.jwt()->>'email')
+            AND sc.status = 'active'))
+    OR auth.email() = 'halel1201@gmail.com')
+  WITH CHECK (
+    client_email = (auth.jwt()->>'email')
+    OR owner_email = (auth.jwt()->>'email')
+    OR (coach_email = (auth.jwt()->>'email') AND EXISTS (
+          SELECT 1 FROM studio_coaches sc
+          WHERE sc.studio_owner_email = studio_bookings.owner_email
+            AND sc.coach_email = (auth.jwt()->>'email')
+            AND sc.status = 'active'))
+    OR auth.email() = 'halel1201@gmail.com');
+
+SELECT 'studio coach attendance ready' AS r;
+`;
+
   const DB_SETUP_SQL = `
 -- Feature 4: White Label Branding (add columns to coaches)
 ALTER TABLE coaches ADD COLUMN IF NOT EXISTS logo_url  text;
@@ -4760,6 +4848,19 @@ CREATE POLICY IF NOT EXISTS "auth_update_own_progress" ON progress_entries FOR U
 CREATE POLICY IF NOT EXISTS "service_manage_progress" ON progress_entries FOR ALL USING (true);
 `;
 
+  /* מיגרציות שממתינות להרצה. הראשונה נבחרת כברירת מחדל, ולכן החדשה
+     ביותר צריכה לשבת בראש הרשימה. */
+  const DB_MIGRATIONS = [
+    { name: '🧪 קטלוג החנות (2026-08-14) — נדרש', sql: SHOP_PRODUCTS_SQL },
+    { name: '🚫 סימון היעדרות ע״י מאמן סטודיו (2026-08-13)', sql: STUDIO_ATT_SQL },
+    { name: '🏷️ מיתוג ואייקון (ישן — כנראה כבר הורץ)', sql: DB_SETUP_SQL },
+  ];
+
+  function dbPick(i) {
+    const m = DB_MIGRATIONS[i]; if (!m) return;
+    document.querySelector('#db-setup-modal textarea').value = m.sql.trim();
+  }
+
   function showDbSetupModal() {
     const existing = document.getElementById('db-setup-modal');
     if (existing) { existing.remove(); return; }
@@ -4768,11 +4869,17 @@ CREATE POLICY IF NOT EXISTS "service_manage_progress" ON progress_entries FOR AL
     modal.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.9);display:flex;align-items:center;justify-content:center;padding:20px;';
     modal.innerHTML = `<div style="background:#161616;border:1px solid rgba(255,107,0,0.3);border-radius:16px;padding:24px;max-width:700px;width:100%;max-height:80vh;overflow-y:auto;">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
-        <div style="font-size:1rem;font-weight:900;color:var(--orange);">🗄️ הגדרת מסד נתונים — Features 1+2</div>
+        <div style="font-size:1rem;font-weight:900;color:var(--orange);">🗄️ הרצת עדכון במסד הנתונים</div>
         <button onclick="this.closest('#db-setup-modal').remove()" style="background:rgba(255,255,255,0.07);border:none;color:#888;width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:1rem;">✕</button>
       </div>
-      <div style="font-size:0.82rem;color:var(--muted);margin-bottom:12px;line-height:1.6;">הרץ את ה-SQL הבא בדשבורד של Supabase → SQL Editor</div>
-      <textarea onclick="this.select()" style="width:100%;height:300px;background:#0e0e0e;border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:#4ade80;font-family:monospace;font-size:0.78rem;padding:14px;resize:vertical;outline:none;direction:ltr;">${DB_SETUP_SQL.trim()}</textarea>
+      <div style="font-size:0.82rem;color:var(--muted);margin-bottom:10px;line-height:1.75;">
+        1. בחר עדכון · 2. לחץ "העתק SQL" · 3. פתח Supabase → <b style="color:#ddd;">SQL Editor</b> → הדבק → <b style="color:#4ade80;">Run</b><br>
+        <span style="color:#777;">בטוח להרצה חוזרת — אם כבר הורץ, שום דבר לא יישבר.</span>
+      </div>
+      <select onchange="dbPick(this.value)" style="width:100%;padding:9px;margin-bottom:10px;background:#1a1a1a;border:1px solid rgba(255,255,255,0.14);border-radius:8px;color:#fff;font-family:Heebo,sans-serif;font-size:0.85rem;cursor:pointer;">
+        ${DB_MIGRATIONS.map((m, i) => `<option value="${i}">${m.name}</option>`).join('')}
+      </select>
+      <textarea onclick="this.select()" style="width:100%;height:300px;background:#0e0e0e;border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:#4ade80;font-family:monospace;font-size:0.78rem;padding:14px;resize:vertical;outline:none;direction:ltr;">${DB_MIGRATIONS[0].sql.trim()}</textarea>
       <div style="margin-top:12px;display:flex;gap:8px;">
         <button onclick="navigator.clipboard.writeText(document.querySelector('#db-setup-modal textarea').value).then(()=>{this.textContent='✓ הועתק!';setTimeout(()=>this.textContent='📋 העתק SQL',2000)})" style="padding:9px 18px;background:var(--orange);border:none;border-radius:8px;color:#fff;font-family:Heebo,sans-serif;font-size:0.88rem;font-weight:700;cursor:pointer;">📋 העתק SQL</button>
         <a href="https://app.supabase.com" target="_blank" style="padding:9px 18px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:#fff;font-family:Heebo,sans-serif;font-size:0.88rem;font-weight:700;text-decoration:none;">פתח Supabase ↗</a>
