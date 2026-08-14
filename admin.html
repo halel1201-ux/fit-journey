@@ -4681,6 +4681,7 @@ difficulty: מתחיל | ביניים | מתקדם | כל הרמות
   ══════════════════════════════════════════════════════ */
   /* המקור לשתי אלה הוא קבצי המיגרציה שב-supabase/migrations —
      מועתקים לכאן מילה במילה כדי שלא ייווצרו שתי גרסאות שנפרדות. */
+  /* FJ-SHOP-START */
   const SHOP_PRODUCTS_SQL = `
 -- ═══ 🧪 קטלוג החנות הפנימית — 2026-08-14 ═══
 -- הקטלוג היה רשימה קשיחה בתוך peptides.html, כך שכל הוספת מוצר חייבה
@@ -4732,6 +4733,7 @@ CREATE TRIGGER trg_shop_touch BEFORE UPDATE ON shop_products
 SELECT 'shop_products ready' AS r;
 `;
 
+  /* FJ-SHOP-END */
   const STUDIO_ATT_SQL = `
 -- ═══ 🚫 סימון היעדרות ע"י המאמן שאימן — 2026-08-13 ═══
 -- עד כה sbook_upd התירה עדכון רק ללקוח עצמו, לבעל הסטודיו או לאדמין,
@@ -4851,7 +4853,10 @@ CREATE POLICY IF NOT EXISTS "service_manage_progress" ON progress_entries FOR AL
   /* מיגרציות שממתינות להרצה. הראשונה נבחרת כברירת מחדל, ולכן החדשה
      ביותר צריכה לשבת בראש הרשימה. */
   const DB_MIGRATIONS = [
-    { name: '🧪 קטלוג החנות (2026-08-14) — נדרש', sql: SHOP_PRODUCTS_SQL },
+    /* מיגרציית החנות נחתכת מחבילת האפליקציה יחד עם שאר הגוש, ולכן
+       הקבוע עשוי לא להיות מוגדר שם — typeof על שם שלא הוצהר בטוח. */
+    ...(typeof SHOP_PRODUCTS_SQL !== 'undefined'
+        ? [{ name: '🧪 קטלוג החנות (2026-08-14) — נדרש', sql: SHOP_PRODUCTS_SQL }] : []),
     { name: '🚫 סימון היעדרות ע״י מאמן סטודיו (2026-08-13)', sql: STUDIO_ATT_SQL },
     { name: '🏷️ מיתוג ואייקון (ישן — כנראה כבר הורץ)', sql: DB_SETUP_SQL },
   ];
