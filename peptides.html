@@ -12,6 +12,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;700;900&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -106,6 +107,10 @@
       padding: 20px; display: flex; flex-direction: column; gap: 10px; transition: 0.22s;
     }
     .card:hover { border-color: var(--border); box-shadow: var(--glow); transform: translateY(-3px); }
+    .thumb {
+      width: 100%; aspect-ratio: 4/3; object-fit: cover; border-radius: 12px;
+      background: rgba(0,0,0,0.35); border: 1px solid rgba(255,255,255,0.06);
+    }
     .card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
     .card h3 { font-size: 1.04rem; font-weight: 800; line-height: 1.3; }
     .tag {
@@ -183,33 +188,20 @@
 <footer>
   <div class="wrap">
     <div class="note" id="legal-note"></div>
+    <div style="margin-bottom:12px;"><a href="peptides-terms.html" style="color:var(--cyan);text-decoration:none;font-weight:700;">תקנון ותנאי שימוש</a></div>
     <div>FJ Peptides · <span id="yr"></span></div>
   </div>
 </footer>
 
 <script>
 /* ═══════════════════════════════════════════════════════════════
-   הקטלוג — זה החלק היחיד שצריך לערוך כדי להוסיף מוצר.
-   מוסיפים אובייקט לרשימה, שומרים, והדף מתעדכן. אין צורך לגעת
-   בשום מקום אחר בקובץ.
-
-   שדות:
-     name   — שם המוצר (חובה)
-     cat    — קטגוריה; מייצרת את כפתורי הסינון אוטומטית (חובה)
-     desc   — תיאור קצר
-     spec   — מינון/כמות/ריכוז
-     price  — מחיר בשקלים (מספר)
-     was    — מחיר קודם, יוצג כמחיר מחוק. השאר null אם אין
-     stock  — true = במלאי, false = אזל
-     tag    — תווית קטנה בפינה, למשל 'חדש' או 'מבצע'
-
-   דוגמה:
-     { name:'קולגן פפטידים', cat:'קולגן', desc:'אבקה נטולת טעם',
-       spec:'300 גרם · 10 גרם למנה', price:149, was:179, stock:true, tag:'חדש' }
+   הקטלוג נטען מהמסד (shop_products) ומנוהל מפאנל האדמין —
+   אין צורך לערוך את הקובץ הזה כדי להוסיף מוצר.
+   מוצגים רק מוצרים שסומנו כגלויים; טיוטות נשארות פנימיות.
    ═══════════════════════════════════════════════════════════════ */
-const PRODUCTS = [
-  // הקטלוג ריק בכוונה — הוסף כאן את המוצרים שלך.
-];
+const SB_URL = 'https://luwknflmhvcxgifzxgrk.supabase.co';
+const SB_KEY = 'sb_publishable_k3M7SfBeiBGs3rTKewBzWQ_7RHRskB9';
+let PRODUCTS = [];
 
 /* מספר הווטסאפ לפניות. שנה כאן אם צריך. */
 const CONTACT_WA = '972586931163';
@@ -244,6 +236,8 @@ function card(p) {
   const out = p.stock === false;
   const wa = `https://wa.me/${CONTACT_WA}?text=${encodeURIComponent('היי, אשמח לפרטים על ' + (p.name || ''))}`;
   return `<article class="card">
+    ${p.img ? `<img class="thumb" src="${esc(p.img)}" alt="${esc(p.name)}" loading="lazy"
+       onerror="this.remove()"/>` : ''}
     <div class="card-top">
       <h3>${esc(p.name)}</h3>
       ${p.tag ? `<span class="tag">${esc(p.tag)}</span>` : ''}
@@ -281,8 +275,29 @@ function renderGrid() {
 
 document.getElementById('legal-note').textContent = LEGAL_NOTE || '';
 document.getElementById('yr').textContent = new Date().getFullYear();
-renderFilters();
-renderGrid();
+
+/* טעינת הקטלוג. כשל בטעינה מציג הודעה במקום רשת ריקה שנראית
+   כאילו אין מוצרים — ההבדל חשוב כדי לא לחשוב שהקטלוג נמחק. */
+(async () => {
+  renderGrid();   // מצב ביניים בזמן הטעינה
+  try {
+    const sb = supabase.createClient(SB_URL, SB_KEY);
+    const { data, error } = await sb.from('shop_products')
+      .select('*').eq('visible', true).order('sort_order').order('created_at');
+    if (error) throw error;
+    PRODUCTS = (data || []).map(r => ({
+      name: r.name, cat: r.category, desc: r.description, spec: r.spec,
+      price: r.price != null ? Number(r.price) : null,
+      was: r.was_price != null ? Number(r.was_price) : null,
+      stock: r.in_stock !== false, tag: r.tag, img: r.image_url,
+    }));
+    renderFilters(); renderGrid();
+  } catch (e) {
+    document.getElementById('grid').innerHTML = `<div class="empty">
+      <div class="ico">⚠️</div><h3>לא הצלחנו לטעון את הקטלוג</h3>
+      <p>בדוק את החיבור לאינטרנט ונסה לרענן. אם זה חוזר — ייתכן שטבלת המוצרים עדיין לא הוגדרה.</p></div>`;
+  }
+})();
 </script>
 </body>
 </html>

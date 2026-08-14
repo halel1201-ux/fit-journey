@@ -321,6 +321,7 @@
     <button class="btn-sm btn-outline" onclick="openAcquisitionView()" style="border-color:rgba(74,222,128,0.35);color:#4ade80;">📊 דרכי הגעה</button>
     <button class="btn-sm btn-outline" onclick="openActivityView()" style="border-color:rgba(248,113,113,0.4);color:#f87171;">🛡️ פעילות</button>
     <button class="btn-sm btn-outline" onclick="openRecords()" style="border-color:rgba(255,215,0,0.35);color:#FFD700;">🏆 שיאים</button>
+    <button class="btn-sm btn-outline" onclick="openShopView()" style="border-color:rgba(63,211,232,0.45);color:#3FD3E8;">🧪 חנות</button>
     <a href="coach.html" class="btn-sm btn-outline" style="text-decoration:none;border-color:rgba(255,107,0,0.4);color:var(--orange);">🎓 מאמן</a>
     <a href="dashboard.html" class="btn-sm btn-outline" style="text-decoration:none;border-color:rgba(255,255,255,0.2);color:var(--white);">👤 מתאמן</a>
     <button class="btn-sm btn-outline" onclick="showDbSetupModal()" style="border-color:rgba(74,222,128,0.3);color:#4ade80;" title="הגדרת טבלאות DB חדשות">🗄️ DB</button>
@@ -1098,6 +1099,170 @@
   /* ══ COACH ACTIVITY GUARD — admin view (🛡️ פעילות מאמנים) ══ */
   const CA_SEV = { alert: { c: '#f87171', bg: 'rgba(248,113,113,0.12)', l: '🚨 חמור' }, warn: { c: '#fbbf24', bg: 'rgba(251,191,36,0.1)', l: '⚠️ אזהרה' }, info: { c: '#8aa', bg: 'rgba(255,255,255,0.03)', l: 'מידע' } };
   const CA_EVENT_HE = { tracker_start: 'התחברות לפאנל', heartbeat: 'פעיל', view_client: 'צפייה בלקוח', open_plan: 'פתיחת תוכנית', copy: 'העתקת טקסט', print: 'הדפסה / שמירת PDF', context_menu: 'קליק ימני', devtools: 'פתיחת DevTools', rapid_access: 'גישה מהירה להרבה לקוחות (חשד לגרידה)', export: 'ייצוא מידע' };
+
+  /* ═══ 🧪 ניהול קטלוג החנות הפנימית ═══
+     המוצרים יושבים ב-shop_products ונטענים משם גם בדף החנות, כך
+     שהוספה כאן מופיעה שם מיד בלי לגעת בקוד. */
+  let shopProducts = [], _shopEdit = null;
+
+  async function openShopView() {
+    activeEmail = null;
+    renderSidebar();
+    document.getElementById('main-area').innerHTML = `
+      <div class="sec-card" style="margin-bottom:16px;border-color:rgba(63,211,232,0.3);">
+        <div class="sec-card-title" style="color:#3FD3E8;">🧪 קטלוג החנות
+          <span style="display:flex;gap:6px;">
+            <a href="peptides.html" target="_blank" rel="noopener" class="btn-sm btn-outline" style="font-size:0.72rem;text-decoration:none;border-color:rgba(63,211,232,0.4);color:#3FD3E8;">↗ צפה בחנות</a>
+            <button class="btn-sm btn-orange" style="font-size:0.72rem;" onclick="shopEdit(null)">+ הוסף מוצר</button>
+          </span>
+        </div>
+        <div id="shop-list" style="margin-top:10px;"><div style="color:#666;padding:14px;">טוען...</div></div>
+      </div>`;
+    await loadShopProducts();
+  }
+
+  async function loadShopProducts() {
+    const box = document.getElementById('shop-list'); if (!box) return;
+    const { data, error } = await sb.from('shop_products').select('*').order('sort_order').order('created_at');
+    if (error) {
+      box.innerHTML = `<div style="color:#ff7070;padding:14px;font-size:0.82rem;">
+        שגיאה בטעינה: ${esc(error.message)}<br>
+        <span style="color:#888;">אם הטבלה עדיין לא קיימת — הרץ את המיגרציה 2026-08-14_shop_products.sql</span></div>`;
+      return;
+    }
+    shopProducts = data || [];
+    if (!shopProducts.length) {
+      box.innerHTML = `<div style="color:#666;padding:22px;text-align:center;font-size:0.85rem;">
+        אין מוצרים עדיין. לחץ על "הוסף מוצר" כדי להתחיל.</div>`;
+      return;
+    }
+    box.innerHTML = shopProducts.map(p => `
+      <div style="display:flex;align-items:center;gap:10px;padding:10px;border-bottom:1px solid rgba(255,255,255,0.05);flex-wrap:wrap;${p.visible ? '' : 'opacity:0.5;'}">
+        ${p.image_url
+          ? `<img src="${esc(p.image_url)}" alt="" style="width:46px;height:46px;object-fit:cover;border-radius:8px;flex-shrink:0;" onerror="this.style.display='none'"/>`
+          : `<div style="width:46px;height:46px;border-radius:8px;background:rgba(255,255,255,0.05);display:grid;place-items:center;flex-shrink:0;">🧪</div>`}
+        <div style="flex:1;min-width:140px;">
+          <div style="font-weight:800;color:#fff;font-size:0.88rem;">${esc(p.name)}
+            ${p.tag ? `<span style="font-size:0.66rem;color:#3FD3E8;">· ${esc(p.tag)}</span>` : ''}
+            ${p.visible ? '' : '<span style="font-size:0.66rem;color:#888;">· טיוטה</span>'}
+            ${p.in_stock === false ? '<span style="font-size:0.66rem;color:#f0a24b;">· אזל</span>' : ''}</div>
+          <div style="font-size:0.74rem;color:#888;">${esc(p.category || '—')}${p.spec ? ' · ' + esc(p.spec) : ''}</div>
+        </div>
+        <div style="font-weight:900;color:#3FD3E8;font-size:0.95rem;">${p.price != null ? Number(p.price).toLocaleString('he-IL') + ' ₪' : 'לפרטים'}</div>
+        <div style="display:flex;gap:5px;">
+          <button class="btn-sm btn-outline" style="font-size:0.68rem;" onclick="shopEdit(${p.id})">✎</button>
+          <button class="btn-sm btn-outline" style="font-size:0.68rem;" onclick="shopToggleVisible(${p.id})" title="${p.visible ? 'הסתר מהחנות' : 'הצג בחנות'}">${p.visible ? '👁' : '🙈'}</button>
+          <button class="btn-sm btn-red" style="font-size:0.68rem;" onclick="shopDelete(${p.id})">🗑</button>
+        </div>
+      </div>`).join('');
+  }
+
+  function shopEdit(id) {
+    const p = id ? shopProducts.find(x => x.id === id) || {} : {};
+    _shopEdit = id;
+    const f = (lbl, el) => `<div class="f-group"><label>${lbl}</label>${el}</div>`;
+    const inp = (id2, v, ph = '', type = 'text') =>
+      `<input id="${id2}" type="${type}" value="${esc(v == null ? '' : String(v))}" placeholder="${esc(ph)}"/>`;
+    document.getElementById('shop-modal-body').innerHTML = `
+      <div style="font-weight:900;font-size:1.05rem;color:#3FD3E8;margin-bottom:14px;">${id ? 'עריכת מוצר' : 'מוצר חדש'}</div>
+      ${f('שם המוצר *', inp('sp-name', p.name, 'לדוגמה: קולגן פפטידים'))}
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        ${f('קטגוריה', inp('sp-cat', p.category, 'קולגן / תוספים'))}
+        ${f('תווית', inp('sp-tag', p.tag, 'חדש / מבצע'))}
+      </div>
+      ${f('תיאור', `<textarea id="sp-desc" rows="3" placeholder="תיאור קצר של המוצר">${esc(p.description || '')}</textarea>`)}
+      ${f('מפרט', inp('sp-spec', p.spec, '300 גרם · 10 גרם למנה'))}
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        ${f('מחיר (₪)', inp('sp-price', p.price, 'ריק = לפרטים', 'number'))}
+        ${f('מחיר קודם', inp('sp-was', p.was_price, 'יוצג מחוק', 'number'))}
+      </div>
+      ${f('תמונה', `
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+          <input id="sp-img" value="${esc(p.image_url || '')}" placeholder="קישור לתמונה, או העלה קובץ" style="flex:1;min-width:150px;"/>
+          <input type="file" id="sp-file" accept="image/*" style="display:none;" onchange="uploadShopImage(this.files[0])"/>
+          <button class="btn-sm btn-outline" style="font-size:0.7rem;" onclick="document.getElementById('sp-file').click()">📷 העלה</button>
+        </div>
+        <img id="sp-preview" src="${esc(p.image_url || '')}" style="${p.image_url ? '' : 'display:none;'}margin-top:8px;width:110px;height:82px;object-fit:cover;border-radius:9px;" onerror="this.style.display='none'"/>`)}
+      <div style="display:flex;gap:16px;margin:12px 0;flex-wrap:wrap;">
+        <label style="display:flex;align-items:center;gap:6px;font-size:0.82rem;cursor:pointer;">
+          <input type="checkbox" id="sp-stock" ${p.in_stock === false ? '' : 'checked'}/> במלאי</label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:0.82rem;cursor:pointer;">
+          <input type="checkbox" id="sp-vis" ${p.visible === false ? '' : 'checked'}/> מוצג בחנות</label>
+        <div style="display:flex;align-items:center;gap:6px;font-size:0.82rem;">
+          סדר: <input id="sp-sort" type="number" value="${p.sort_order || 0}" style="width:64px;"/></div>
+      </div>
+      <div id="sp-status" style="font-size:0.8rem;margin-bottom:10px;"></div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn-sm btn-orange" id="sp-save" style="flex:1;" onclick="shopSave()">💾 שמור</button>
+        <button class="btn-sm btn-outline" onclick="closeShopModal()">ביטול</button>
+      </div>`;
+    document.getElementById('shop-modal').style.display = 'flex';
+  }
+  function closeShopModal() { document.getElementById('shop-modal').style.display = 'none'; }
+
+  async function uploadShopImage(file) {
+    if (!file) return;
+    const st = document.getElementById('sp-status');
+    st.textContent = '⏳ מעלה תמונה...'; st.style.color = 'var(--muted)';
+    try {
+      /* שם הקובץ נבנה ממזהה ולא משם המוצר: Storage דוחה מפתחות
+         שאינם ASCII, ושמות המוצרים בעברית. */
+      const ext = (file.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
+      const path = `shop/${Date.now()}_${Math.random().toString(36).slice(2, 7)}.${ext}`;
+      const { error } = await sb.storage.from('coach-assets').upload(path, file, { upsert: true, contentType: file.type || 'image/jpeg' });
+      if (error) throw error;
+      const { data } = sb.storage.from('coach-assets').getPublicUrl(path);
+      document.getElementById('sp-img').value = data.publicUrl;
+      const pv = document.getElementById('sp-preview');
+      pv.src = data.publicUrl; pv.style.display = 'block';
+      st.textContent = '✓ התמונה הועלתה'; st.style.color = '#4ade80';
+    } catch (e) {
+      st.textContent = 'שגיאה בהעלאה: ' + (e.message || e) + ' — אפשר להדביק קישור במקום';
+      st.style.color = '#ff7070';
+    }
+  }
+
+  async function shopSave() {
+    const v = id => document.getElementById(id).value.trim();
+    const num = id => { const x = v(id); return x === '' ? null : Number(x); };
+    const st = document.getElementById('sp-status');
+    const name = v('sp-name');
+    if (!name) { st.textContent = 'יש להזין שם מוצר'; st.style.color = '#ff7070'; return; }
+    const row = {
+      name, category: v('sp-cat') || null, description: v('sp-desc') || null,
+      spec: v('sp-spec') || null, price: num('sp-price'), was_price: num('sp-was'),
+      image_url: v('sp-img') || null, tag: v('sp-tag') || null,
+      in_stock: document.getElementById('sp-stock').checked,
+      visible: document.getElementById('sp-vis').checked,
+      sort_order: num('sp-sort') || 0,
+    };
+    const btn = document.getElementById('sp-save'); btn.disabled = true; btn.textContent = 'שומר...';
+    const { error } = _shopEdit
+      ? await sb.from('shop_products').update(row).eq('id', _shopEdit)
+      : await sb.from('shop_products').insert(row);
+    btn.disabled = false; btn.textContent = '💾 שמור';
+    if (error) { st.textContent = 'שגיאה: ' + error.message; st.style.color = '#ff7070'; return; }
+    closeShopModal();
+    await loadShopProducts();
+    toast(_shopEdit ? 'המוצר עודכן ✓' : 'המוצר נוסף לקטלוג ✓', 'ok');
+  }
+
+  async function shopToggleVisible(id) {
+    const p = shopProducts.find(x => x.id === id); if (!p) return;
+    const { error } = await sb.from('shop_products').update({ visible: !p.visible }).eq('id', id);
+    if (error) { toast('שגיאה: ' + error.message, 'err'); return; }
+    await loadShopProducts();
+    toast(p.visible ? 'המוצר הוסתר מהחנות' : 'המוצר מוצג בחנות ✓', 'ok');
+  }
+
+  async function shopDelete(id) {
+    const p = shopProducts.find(x => x.id === id); if (!p) return;
+    if (!confirm(`למחוק את "${p.name}" מהקטלוג?\nהפעולה אינה הפיכה.`)) return;
+    const { error } = await sb.from('shop_products').delete().eq('id', id);
+    if (error) { toast('שגיאה: ' + error.message, 'err'); return; }
+    await loadShopProducts();
+    toast('המוצר נמחק', 'ok');
+  }
 
   async function openActivityView() {
     activeEmail = null;
@@ -4628,5 +4793,13 @@ CREATE POLICY IF NOT EXISTS "service_manage_progress" ON progress_entries FOR AL
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('sw.js').catch(e => console.warn('SW:', e));
     }
-  </script></body>
+  </script>
+<!-- עורך מוצר בחנות -->
+<div id="shop-modal" style="display:none;position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,0.9);align-items:center;justify-content:center;padding:16px;" onclick="if(event.target===this)closeShopModal()">
+  <div style="background:linear-gradient(160deg,#17181c,#0d0e11);border:1px solid rgba(63,211,232,0.35);border-radius:20px;max-width:520px;width:100%;max-height:88vh;overflow-y:auto;padding:22px 20px;position:relative;">
+    <button onclick="closeShopModal()" style="position:absolute;top:12px;left:14px;background:none;border:none;color:#666;font-size:1.3rem;cursor:pointer;z-index:1;">✕</button>
+    <div id="shop-modal-body"></div>
+  </div>
+</div>
+</body>
 </html>
