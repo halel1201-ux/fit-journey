@@ -206,10 +206,14 @@ const SB_KEY = 'sb_publishable_k3M7SfBeiBGs3rTKewBzWQ_7RHRskB9';
 let PRODUCTS = [];
 
 /* ── יצירת קשר להזמנה ──
-   CONTACT_TG — שם המשתמש בטלגרם, בלי @ (למשל 'halelfit').
-   כל עוד הוא ריק, הכפתור נופל חזרה לוואטסאפ כדי שלא יהיה קישור מת.
-   הערה: טלגרם לא תומך בהודעה מוכנה מראש בצ'אט עם משתמש (רק עם בוט),
-   ולכן שם המוצר לא ייכנס להודעה כמו בוואטסאפ. */
+   סדר העדיפות: בוט → שיחה ישירה → וואטסאפ. כל אחד נופל לבא אחריו
+   אם אינו מוגדר, כך שלעולם אין כפתור מת.
+
+   ORDER_BOT — שם הבוט בלי @ (למשל 'FJShopBot'). רק הבוט יכול לקבל
+   את שם המוצר, כי טלגרם מעביר מטען בקישור לבוט בלבד — בשיחה בין
+   שני אנשים אי אפשר להכניס טקסט מראש.
+   CONTACT_TG — שם המשתמש שלך, לשיחה ישירה ולשאלות.               */
+const ORDER_BOT  = '';
 const CONTACT_TG = 'HFitjourney';
 const CONTACT_WA = '972586931163';
 
@@ -242,8 +246,13 @@ function setCat(c) { activeCat = c; renderFilters(); renderGrid(); }
 function card(p) {
   const out = p.stock === false;
   const msg = encodeURIComponent('היי, אשמח לפרטים על ' + (p.name || ''));
-  const tg  = CONTACT_TG ? `https://t.me/${CONTACT_TG.replace(/^@/, '')}` : '';
-  const wa  = tg || `https://wa.me/${CONTACT_WA}?text=${msg}`;
+  const clean = s => String(s || '').replace(/^@/, '');
+  /* המטען לבוט הוא מזהה המוצר בלבד: טלגרם מגביל אותו ל-64 תווים
+     ולתווי base64url, ושמות המוצרים בעברית. בלי מזהה אין מה להעביר,
+     ולכן נופלים לשיחה ישירה. */
+  const wa = (ORDER_BOT && p.id ? `https://t.me/${clean(ORDER_BOT)}?start=p${p.id}` : '')
+          || (CONTACT_TG ? `https://t.me/${clean(CONTACT_TG)}` : '')
+          || `https://wa.me/${CONTACT_WA}?text=${msg}`;
   return `<article class="card">
     ${p.img ? `<img class="thumb" src="${esc(p.img)}" alt="${esc(p.name)}" loading="lazy"
        onerror="this.remove()"/>` : ''}
@@ -295,6 +304,7 @@ document.getElementById('yr').textContent = new Date().getFullYear();
       .select('*').eq('visible', true).order('sort_order').order('created_at');
     if (error) throw error;
     PRODUCTS = (data || []).map(r => ({
+      id: r.id,                       // נדרש למטען הקישור לבוט
       name: r.name, cat: r.category, desc: r.description, spec: r.spec,
       price: r.price != null ? Number(r.price) : null,
       was: r.was_price != null ? Number(r.was_price) : null,
