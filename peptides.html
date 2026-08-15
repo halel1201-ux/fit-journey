@@ -107,8 +107,10 @@
       padding: 20px; display: flex; flex-direction: column; gap: 10px; transition: 0.22s;
     }
     .card:hover { border-color: var(--border); box-shadow: var(--glow); transform: translateY(-3px); }
+    /* יחס ריבועי במקום 4:3 — תמונות מוצר הן לרוב אנכיות (בקבוקון,
+       אריזה), ובמסגרת רחבה מדי הן נחתכות מלמעלה ומלמטה. */
     .thumb {
-      width: 100%; aspect-ratio: 4/3; object-fit: cover; border-radius: 12px;
+      width: 100%; aspect-ratio: 1/1; object-fit: cover; border-radius: 12px;
       background: rgba(0,0,0,0.35); border: 1px solid rgba(255,255,255,0.06);
     }
     .card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
@@ -203,7 +205,12 @@ const SB_URL = 'https://luwknflmhvcxgifzxgrk.supabase.co';
 const SB_KEY = 'sb_publishable_k3M7SfBeiBGs3rTKewBzWQ_7RHRskB9';
 let PRODUCTS = [];
 
-/* מספר הווטסאפ לפניות. שנה כאן אם צריך. */
+/* ── יצירת קשר להזמנה ──
+   CONTACT_TG — שם המשתמש בטלגרם, בלי @ (למשל 'halelfit').
+   כל עוד הוא ריק, הכפתור נופל חזרה לוואטסאפ כדי שלא יהיה קישור מת.
+   הערה: טלגרם לא תומך בהודעה מוכנה מראש בצ'אט עם משתמש (רק עם בוט),
+   ולכן שם המוצר לא ייכנס להודעה כמו בוואטסאפ. */
+const CONTACT_TG = '';
 const CONTACT_WA = '972586931163';
 
 /* הערת המסגרת שמופיעה בתחתית. ריק = לא מוצגת. */
@@ -234,7 +241,9 @@ function setCat(c) { activeCat = c; renderFilters(); renderGrid(); }
 
 function card(p) {
   const out = p.stock === false;
-  const wa = `https://wa.me/${CONTACT_WA}?text=${encodeURIComponent('היי, אשמח לפרטים על ' + (p.name || ''))}`;
+  const msg = encodeURIComponent('היי, אשמח לפרטים על ' + (p.name || ''));
+  const tg  = CONTACT_TG ? `https://t.me/${CONTACT_TG.replace(/^@/, '')}` : '';
+  const wa  = tg || `https://wa.me/${CONTACT_WA}?text=${msg}`;
   return `<article class="card">
     ${p.img ? `<img class="thumb" src="${esc(p.img)}" alt="${esc(p.name)}" loading="lazy"
        onerror="this.remove()"/>` : ''}
