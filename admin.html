@@ -322,6 +322,7 @@
     <button class="btn-sm btn-outline" onclick="openActivityView()" style="border-color:rgba(248,113,113,0.4);color:#f87171;">🛡️ פעילות</button>
     <button class="btn-sm btn-outline" onclick="openRecords()" style="border-color:rgba(255,215,0,0.35);color:#FFD700;">🏆 שיאים</button>
     <button class="btn-sm btn-outline" onclick="openShopView()" style="border-color:rgba(63,211,232,0.45);color:#3FD3E8;">🧪 חנות</button>
+    <button class="btn-sm btn-outline" onclick="openOrdersView()" style="border-color:rgba(63,211,232,0.45);color:#3FD3E8;">🛒 הזמנות</button>
     <button class="btn-sm btn-outline" onclick="openPresentersMgr()" style="border-color:rgba(196,165,255,0.45);color:#c4a5ff;" title="פרזנטורים עצמאיים ועמלות מהחנות">🎤 פרזנטורים ועמלות</button>
     <a href="coach.html" class="btn-sm btn-outline" style="text-decoration:none;border-color:rgba(255,107,0,0.4);color:var(--orange);">🎓 מאמן</a>
     <a href="dashboard.html" class="btn-sm btn-outline" style="text-decoration:none;border-color:rgba(255,255,255,0.2);color:var(--white);">👤 מתאמן</a>
@@ -1121,6 +1122,139 @@
         <div id="shop-list" style="margin-top:10px;"><div style="color:#666;padding:14px;">טוען...</div></div>
       </div>`;
     await loadShopProducts();
+  }
+
+  /* ── הזמנות שנקלטו מהבוט ──
+     draft = לקוח שהתחיל ולא סיים. מוצג בכוונה ולא מוסתר: זו הזדמנות
+     מכירה שאפשר להשלים בטלפון, ולא רק רעש. */
+  let shopOrders = [], _ordFilter = 'open';
+  const ORD_STATUS = {
+    draft:     { txt: 'טיוטה',   color: '#f0a24b' },
+    submitted: { txt: 'חדשה',    color: '#3FD3E8' },
+    paid:      { txt: 'שולמה',   color: '#4ade80' },
+    shipped:   { txt: 'נשלחה',   color: '#a78bfa' },
+    cancelled: { txt: 'בוטלה',   color: '#f87171' },
+  };
+  const ORD_TABS = [
+    ['open',      'פעילות'],
+    ['submitted', 'חדשות'],
+    ['paid',      'שולמו'],
+    ['shipped',   'נשלחו'],
+    ['draft',     'נטושות'],
+    ['cancelled', 'בוטלו'],
+    ['all',       'הכל'],
+  ];
+
+  async function openOrdersView() {
+    activeEmail = null;
+    renderSidebar();
+    document.getElementById('main-area').innerHTML = `
+      <div class="sec-card" style="border-color:rgba(63,211,232,0.3);">
+        <div class="sec-card-title" style="color:#3FD3E8;">🛒 הזמנות
+          <button class="btn-sm btn-outline" style="font-size:0.72rem;" onclick="loadOrders()">רענן</button></div>
+        <div id="ord-sum" style="margin:10px 0;"></div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;" id="ord-tabs"></div>
+        <div id="ord-list"><div style="color:#666;padding:14px;">טוען...</div></div>
+      </div>`;
+    await loadOrders();
+  }
+
+  function ordTabs() {
+    document.getElementById('ord-tabs').innerHTML = ORD_TABS.map(([k, label]) => {
+      const n = k === 'all' ? shopOrders.length
+              : k === 'open' ? shopOrders.filter(o => ['submitted', 'paid'].includes(o.status)).length
+              : shopOrders.filter(o => o.status === k).length;
+      const on = _ordFilter === k;
+      return `<button onclick="ordFilter('${k}')" style="padding:6px 13px;border-radius:999px;cursor:pointer;font-family:'Heebo';font-size:0.76rem;font-weight:700;
+        border:1px solid ${on ? '#3FD3E8' : 'rgba(255,255,255,0.12)'};
+        background:${on ? 'rgba(63,211,232,0.14)' : 'rgba(255,255,255,0.03)'};
+        color:${on ? '#3FD3E8' : '#888'};">${label}${n ? ` (${n})` : ''}</button>`;
+    }).join('');
+  }
+  function ordFilter(k) { _ordFilter = k; ordTabs(); renderOrders(); }
+
+  async function loadOrders() {
+    const box = document.getElementById('ord-list'); if (!box) return;
+    const { data, error } = await sb.from('shop_orders').select('*').order('created_at', { ascending: false });
+    if (error) {
+      box.innerHTML = `<div style="color:#ff7070;padding:14px;font-size:0.82rem;">שגיאה: ${esc(error.message)}</div>`;
+      return;
+    }
+    shopOrders = data || [];
+    ordTabs(); renderOrders(); renderOrdSummary();
+  }
+
+  function renderOrdSummary() {
+    const box = document.getElementById('ord-sum'); if (!box) return;
+    const live = shopOrders.filter(o => o.status !== 'cancelled' && o.status !== 'draft');
+    const rev = live.reduce((s, o) => s + Number(o.product_price || 0) * (o.qty || 1), 0);
+    const prof = live.reduce((s, o) => s + (Number(o.product_price || 0) - Number(o.product_cost || 0)) * (o.qty || 1), 0);
+    const comm = live.reduce((s, o) => s + Number(o.commission_amount || 0), 0);
+    const cell = (label, val, color) => `<div style="flex:1;min-width:110px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:11px 13px;">
+      <div style="font-size:0.7rem;color:#888;">${label}</div>
+      <div style="font-size:1.1rem;font-weight:900;color:${color};">${val}</div></div>`;
+    box.innerHTML = `<div style="display:flex;gap:8px;flex-wrap:wrap;">
+      ${cell('הזמנות', live.length, '#fff')}
+      ${cell('מחזור', rev.toLocaleString('he-IL') + ' ₪', '#3FD3E8')}
+      ${cell('רווח גולמי', prof.toLocaleString('he-IL') + ' ₪', '#4ade80')}
+      ${cell('עמלות לתשלום', comm.toLocaleString('he-IL') + ' ₪', '#f0a24b')}
+      ${cell('נטו', (prof - comm).toLocaleString('he-IL') + ' ₪', '#FFD700')}
+    </div>`;
+  }
+
+  function renderOrders() {
+    const box = document.getElementById('ord-list'); if (!box) return;
+    const list = _ordFilter === 'all' ? shopOrders
+               : _ordFilter === 'open' ? shopOrders.filter(o => ['submitted', 'paid'].includes(o.status))
+               : shopOrders.filter(o => o.status === _ordFilter);
+    if (!list.length) {
+      box.innerHTML = '<div style="color:#666;padding:24px;text-align:center;font-size:0.85rem;">אין הזמנות בקטגוריה הזו.</div>';
+      return;
+    }
+    box.innerHTML = list.map(o => {
+      const st = ORD_STATUS[o.status] || { txt: o.status, color: '#888' };
+      const total = Number(o.product_price || 0) * (o.qty || 1);
+      const when = new Date(o.submitted_at || o.created_at).toLocaleString('he-IL',
+        { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+      const tgLink = o.tg_username ? `https://t.me/${esc(o.tg_username)}` : null;
+      /* טיוטה עדיין לא נשאלה על תשלום וכתובת, ולכן מוצגת מקוצרת —
+         מה שיש בה הוא מה שהלקוח הספיק למסור. */
+      const isDraft = o.status === 'draft';
+      return `<div style="border:1px solid ${o.status === 'submitted' ? 'rgba(63,211,232,0.3)' : 'rgba(255,255,255,0.08)'};border-radius:14px;padding:14px;margin-bottom:10px;background:rgba(255,255,255,0.02);">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
+          <span style="font-weight:900;color:#fff;">#${o.id}</span>
+          <span style="font-size:0.68rem;font-weight:800;padding:3px 10px;border-radius:999px;background:${st.color}22;color:${st.color};border:1px solid ${st.color}55;">${st.txt}</span>
+          <span style="font-size:0.72rem;color:#666;">${when}</span>
+          <span style="margin-inline-start:auto;font-weight:900;color:#3FD3E8;font-size:1rem;">${total.toLocaleString('he-IL')} ₪</span>
+        </div>
+        <div style="font-size:0.86rem;color:#fff;font-weight:700;margin-bottom:6px;">🧪 ${esc(o.product_name || '—')}${o.qty > 1 ? ` × ${o.qty}` : ''}</div>
+        <div style="font-size:0.79rem;color:#aaa;line-height:1.9;">
+          👤 ${esc(o.customer_name || o.tg_name || '—')}
+          ${o.customer_phone ? ` · <a href="tel:${esc(o.customer_phone)}" style="color:#7ec8ff;">${esc(o.customer_phone)}</a>` : ''}
+          ${tgLink ? ` · <a href="${tgLink}" target="_blank" rel="noopener" style="color:#7ec8ff;">@${esc(o.tg_username)}</a>` : ''}
+          ${isDraft ? '' : `<br>📍 ${esc(o.address || '—')}<br>💳 ${esc(o.payment_method || '—')}`}
+          ${o.presenter_name ? `<br>🎤 ${esc(o.presenter_name)} · עמלה ${Number(o.commission_amount || 0).toLocaleString('he-IL')} ₪ (${o.commission_pct}%)` : ''}
+          ${o.product_cost == null && !isDraft ? '<br><span style="color:#f0a24b;">⚠ לא הוגדרה עלות למוצר — העמלה חושבה מהמחיר המלא</span>' : ''}
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;">
+          ${o.status === 'submitted' ? `<button class="btn-sm btn-outline" style="font-size:0.7rem;border-color:rgba(74,222,128,0.4);color:#4ade80;" onclick="ordSet(${o.id},'paid')">💰 סמן שולמה</button>` : ''}
+          ${o.status === 'paid' ? `<button class="btn-sm btn-outline" style="font-size:0.7rem;border-color:rgba(167,139,250,0.4);color:#a78bfa;" onclick="ordSet(${o.id},'shipped')">📦 סמן נשלחה</button>` : ''}
+          ${['submitted','paid'].includes(o.status) ? `<button class="btn-sm btn-outline" style="font-size:0.7rem;border-color:rgba(248,113,113,0.35);color:#f87171;" onclick="ordSet(${o.id},'cancelled')">✕ בטל</button>` : ''}
+          ${o.status === 'cancelled' ? `<button class="btn-sm btn-outline" style="font-size:0.7rem;" onclick="ordSet(${o.id},'submitted')">↩ שחזר</button>` : ''}
+          ${isDraft ? `<button class="btn-sm btn-red" style="font-size:0.7rem;" onclick="ordSet(${o.id},'cancelled')">🗑 סגור טיוטה</button>` : ''}
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  async function ordSet(id, status) {
+    const patch = { status };
+    if (status === 'submitted' && !shopOrders.find(o => o.id === id)?.submitted_at)
+      patch.submitted_at = new Date().toISOString();
+    const { error } = await sb.from('shop_orders').update(patch).eq('id', id);
+    if (error) { toast('שגיאה: ' + error.message, 'err'); return; }
+    await loadOrders();
+    toast('ההזמנה עודכנה ✓', 'ok');
   }
 
   async function loadShopProducts() {
