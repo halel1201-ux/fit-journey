@@ -53,11 +53,12 @@ const ils = (n: unknown) => Number(n ?? 0).toLocaleString('he-IL')
 /* ── שאלות השלבים ── */
 
 async function askReferrer(chatId: number, order: any) {
-  /* רשימת הפרזנטורים נבנית מהמסד ולא קשיחה בקוד — הוספת פרזנטור
-     בפאנל משנה את הכפתורים בלי לגעת בפונקציה. */
-  const { data } = await sb.from('coaches')
-    .select('email,name,presenter_first_pct').eq('is_presenter', true).order('name')
-  const rows = (data || []).map((p: any) => [{ text: p.name || p.email, data: `ref:${p.email}` }])
+  /* רשימת הפרזנטורים נבנית מהמסד ולא קשיחה בקוד — הוספה או כיבוי
+     בפאנל משנים את הכפתורים בלי לגעת בפונקציה. מוצגים רק פעילים
+     שמשווקים את החנות. */
+  const { data } = await sb.from('presenters')
+    .select('id,name,pct').eq('active', true).in('markets', ['shop', 'both']).order('name')
+  const rows = (data || []).map((p: any) => [{ text: p.name, data: `ref:${p.id}` }])
   rows.push([{ text: 'אף אחד / הגעתי לבד', data: 'ref:none' }])
   await send(chatId,
     `<b>${esc(order.product_name)}</b> · ${ils(order.product_price)} ₪\n` +
@@ -180,15 +181,17 @@ async function onCallback(cq: any) {
 
   if (data.startsWith('ref:')) {
     const val = data.slice(4)
-    let patch: Record<string, unknown> = { step: 'details', presenter_email: null, presenter_name: null,
+    let patch: Record<string, unknown> = { step: 'details', presenter_id: null, presenter_name: null,
                                            commission_pct: null, commission_amount: null }
     if (val !== 'none') {
-      const { data: p } = await sb.from('coaches')
-        .select('email,name,presenter_first_pct').eq('email', val).eq('is_presenter', true).maybeSingle()
+      const { data: p } = await sb.from('presenters')
+        .select('id,name,pct').eq('id', Number(val)).eq('active', true).maybeSingle()
       if (p) {
-        const pct = Number(p.presenter_first_pct || 0)
+        /* השם והאחוז נשמרים בשורת ההזמנה ולא רק כהפניה: שינוי החוזה
+           או שינוי שם בעתיד אסור שישנה עסקאות שכבר בוצעו. */
+        const pct = Number(p.pct || 0)
         patch = {
-          step: 'details', presenter_email: p.email, presenter_name: p.name || p.email,
+          step: 'details', presenter_id: p.id, presenter_name: p.name,
           commission_pct: pct,
           commission_amount: Math.round(Number(order.product_price || 0) * (order.qty || 1) * pct) / 100,
         }
