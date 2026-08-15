@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- אייקון החנות: אותו סימן FJ של המותג, בתכלת במקום בכתום.
+       בלשונית דפדפן הסימן מוצג ב-16px, ולכן כתובית "COACHING"
+       והקו התחתון שבאייקון הראשי הושמטו — הם נמרחים לכתם ולא
+       מוסיפים שום מידע בגודל הזה. -->
+  <rect width="512" height="512" rx="80" fill="#070b0d"/>
+
+  <!-- טבעת חיצונית -->
+  <rect x="8" y="8" width="496" height="496" rx="74" fill="none"
+        stroke="#3FD3E8" stroke-width="7" opacity="0.65"/>
+  <rect x="22" y="22" width="468" height="468" rx="62" fill="none"
+        stroke="#8BEDF9" stroke-width="2" opacity="0.28"/>
+
+  <!-- זוהר תכלת מלמטה -->
+  <radialGradient id="g" cx="50%" cy="88%" r="62%">
+    <stop offset="0%"   stop-color="#3FD3E8" stop-opacity="0.34"/>
+    <stop offset="100%" stop-color="#3FD3E8" stop-opacity="0"/>
+  </radialGradient>
+  <rect x="22" y="22" width="468" height="468" rx="62" fill="url(#g)"/>
+
+  <!-- FJ — ממורכז אנכית, כי אין כתובית שמאזנת אותו מלמטה -->
+  <text x="256" y="368" font-family="Arial Black, Impact, sans-serif"
+        font-size="300" font-weight="900" fill="#5FE3F5"
+        text-anchor="middle" style="letter-spacing:-10px">FJ</text>
+</svg>
