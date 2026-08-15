@@ -1148,7 +1148,10 @@
             ${p.tag ? `<span style="font-size:0.66rem;color:#3FD3E8;">· ${esc(p.tag)}</span>` : ''}
             ${p.visible ? '' : '<span style="font-size:0.66rem;color:#888;">· טיוטה</span>'}
             ${p.in_stock === false ? '<span style="font-size:0.66rem;color:#f0a24b;">· אזל</span>' : ''}</div>
-          <div style="font-size:0.74rem;color:#888;">${esc(p.category || '—')}${p.spec ? ' · ' + esc(p.spec) : ''}</div>
+          <div style="font-size:0.74rem;color:#888;">${esc(p.category || '—')}${p.spec ? ' · ' + esc(p.spec) : ''}${
+            p.price != null && p.cost != null
+              ? ` · <span style="color:#4ade80;">רווח ${(Number(p.price) - Number(p.cost)).toLocaleString('he-IL')} ₪</span>`
+              : p.price != null ? ' · <span style="color:#f0a24b;" title="בלי עלות, העמלה תחושב מהמחיר המלא">⚠ אין עלות</span>' : ''}</div>
         </div>
         <div style="font-weight:900;color:#3FD3E8;font-size:0.95rem;">${p.price != null ? Number(p.price).toLocaleString('he-IL') + ' ₪' : 'לפרטים'}</div>
         <div style="display:flex;gap:5px;">
@@ -1178,6 +1181,14 @@
         ${f('מחיר (₪)', inp('sp-price', p.price, 'ריק = לפרטים', 'number'))}
         ${f('מחיר קודם', inp('sp-was', p.was_price, 'יוצג מחוק', 'number'))}
       </div>
+      <!-- העלות אינה מוצגת ללקוח. היא הבסיס לרווח, וממנו נגזרת
+           עמלת הפרזנטור — בלעדיה העמלה מחושבת מהמחיר המלא. -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:end;">
+        ${f('העלות שלי (₪)', inp('sp-cost', p.cost, 'כמה המוצר עולה לך', 'number'))}
+        <div class="f-group"><label>רווח למכירה</label>
+          <div id="sp-profit" style="padding:9px 12px;background:rgba(74,222,128,0.08);border:1px solid rgba(74,222,128,0.25);border-radius:8px;color:#4ade80;font-weight:800;">—</div></div>
+      </div>
+      <div id="sp-comm-hint" style="font-size:0.74rem;color:#888;margin:-4px 0 10px;"></div>
       ${f('תמונה', `
         <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
           <input id="sp-img" value="${esc(p.image_url || '')}" placeholder="קישור לתמונה, או העלה קובץ" style="flex:1;min-width:150px;"/>
@@ -1199,6 +1210,33 @@
         <button class="btn-sm btn-outline" onclick="closeShopModal()">ביטול</button>
       </div>`;
     document.getElementById('shop-modal').style.display = 'flex';
+    ['sp-price', 'sp-cost'].forEach(id =>
+      document.getElementById(id)?.addEventListener('input', shopProfitPreview));
+    shopProfitPreview();
+  }
+  /* מציג את הרווח בזמן ההקלדה, ולצדו כמה תעלה עמלת הפרזנטור הגבוה
+     ביותר — כדי שהמחיר ייקבע מתוך ידיעה ולא בדיעבד. */
+  function shopProfitPreview() {
+    const num = id => { const v = document.getElementById(id)?.value.trim(); return v === '' || v == null ? null : Number(v); };
+    const price = num('sp-price'), cost = num('sp-cost');
+    const box = document.getElementById('sp-profit'), hint = document.getElementById('sp-comm-hint');
+    if (!box) return;
+    if (price == null) { box.textContent = '—'; if (hint) hint.textContent = ''; return; }
+    if (cost == null) {
+      box.textContent = 'לא ידוע';
+      box.style.color = '#f0a24b';
+      if (hint) hint.textContent = '⚠ בלי עלות, עמלת הפרזנטור תחושב מהמחיר המלא.';
+      return;
+    }
+    const profit = price - cost;
+    box.style.color = profit >= 0 ? '#4ade80' : '#f87171';
+    box.textContent = profit.toLocaleString('he-IL') + ' ₪' +
+      (price > 0 ? `  (${Math.round(profit / price * 100)}%)` : '');
+    const top = Math.max(0, ...presentersList.filter(x => x.active).map(x => Number(x.pct || 0)));
+    if (hint) hint.textContent = profit < 0
+      ? '⚠ העלות גבוהה מהמחיר — כל מכירה תפסיד.'
+      : top > 0 ? `עמלה בשיעור ${top}% (הגבוה ביותר): ${(Math.round(profit * top) / 100).toLocaleString('he-IL')} ₪ · נשאר לך ${(profit - Math.round(profit * top) / 100).toLocaleString('he-IL')} ₪`
+                : '';
   }
   function closeShopModal() { document.getElementById('shop-modal').style.display = 'none'; }
 
@@ -1233,6 +1271,7 @@
     const row = {
       name, category: v('sp-cat') || null, description: v('sp-desc') || null,
       spec: v('sp-spec') || null, price: num('sp-price'), was_price: num('sp-was'),
+      cost: num('sp-cost'),
       image_url: v('sp-img') || null, tag: v('sp-tag') || null,
       in_stock: document.getElementById('sp-stock').checked,
       visible: document.getElementById('sp-vis').checked,

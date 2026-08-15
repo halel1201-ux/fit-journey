@@ -112,7 +112,7 @@ async function onText(chatId: number, text: string, from: any) {
       return
     }
     const { data: prod } = await sb.from('shop_products')
-      .select('id,name,price,in_stock,visible').eq('id', Number(m[1])).maybeSingle()
+      .select('id,name,price,cost,in_stock,visible').eq('id', Number(m[1])).maybeSingle()
     if (!prod || prod.visible === false) {
       await send(chatId, 'המוצר לא נמצא בקטלוג. ייתכן שהוסר.\nלשאלות: @' + CONTACT)
       return
@@ -130,6 +130,7 @@ async function onText(chatId: number, text: string, from: any) {
       tg_chat_id: chatId, tg_username: from?.username ?? null,
       tg_name: [from?.first_name, from?.last_name].filter(Boolean).join(' ') || null,
       product_id: prod.id, product_name: prod.name, product_price: prod.price,
+      product_cost: prod.cost ?? null,
       step: 'referrer',
     }).select('*').single()
     await askReferrer(chatId, order)
@@ -188,12 +189,16 @@ async function onCallback(cq: any) {
         .select('id,name,pct').eq('id', Number(val)).eq('active', true).maybeSingle()
       if (p) {
         /* השם והאחוז נשמרים בשורת ההזמנה ולא רק כהפניה: שינוי החוזה
-           או שינוי שם בעתיד אסור שישנה עסקאות שכבר בוצעו. */
+           או שינוי שם בעתיד אסור שישנה עסקאות שכבר בוצעו.
+           העמלה נגזרת מהרווח (מחיר פחות עלות) ולא מהמחיר. מוצר בלי
+           עלות מוגדרת נופל למחיר המלא — התנהגות שמרנית שלא מסתירה
+           את הבעיה, וכל עוד היא קיימת הפאנל מסמן את המוצר. */
         const pct = Number(p.pct || 0)
+        const unit = Number(order.product_price || 0) - Number(order.product_cost || 0)
         patch = {
           step: 'details', presenter_id: p.id, presenter_name: p.name,
           commission_pct: pct,
-          commission_amount: Math.round(Number(order.product_price || 0) * (order.qty || 1) * pct) / 100,
+          commission_amount: Math.round(Math.max(0, unit) * (order.qty || 1) * pct) / 100,
         }
       }
     }
