@@ -48,7 +48,13 @@ Deno.serve(async (req) => {
       if (isAdmin) return true
       const { data } = await admin.from('clients')
         .select('coach_email,studio_owner_email').eq('email', email).maybeSingle()
-      return !!data && (data.coach_email === user.email || data.studio_owner_email === user.email)
+      if (data && (data.coach_email === user.email || data.studio_owner_email === user.email)) return true
+      /* בכיר רשאי גם לקבוע סיסמה לסגן שהוא עצמו מינה. השיוך נבדק מול
+         coach_deputies, ולכן אי אפשר לקבוע סיסמה למאמן אקראי — רק
+         למי שמופיע כסגן פעיל תחת המבקש. */
+      const { data: dep } = await admin.from('coach_deputies')
+        .select('id').eq('senior_email', user.email).eq('deputy_email', email).eq('active', true).maybeSingle()
+      return !!dep
     }
 
     const body = await req.json()

@@ -4244,6 +4244,7 @@
 
   async function selectClient(email) {
     activeEmail = email;
+    setTimeout(applyDeputyView, 0);   // אחרי שהכרטיס נבנה
     rememberOpenClient(email);
     currentPackage = null;
     caTrack('view_client', { client: email }); caRapidCheck(); // activity guard
@@ -8894,6 +8895,42 @@ ${buildFoodListForPrompt()}
     return !!c && iAmDeputyOf.includes(c.coach_email) && c.coach_email !== coachEmail;
   }
 
+  /* ── מה סגן רואה ──
+     סגן מלווה מקצועית: תוכנית, תפריט, כרטיס לקוח והתקדמות. הצד
+     הכספי — חובות, חבילות, קבלות והכנסות — מוסתר ממנו.
+
+     ההסתרה כאן היא חוויית משתמש בלבד. ההגנה האמיתית היא שלא ניתנה
+     לו הרשאת קריאה על client_debt_transactions, client_packages,
+     receipts ו-coach_sales, ולכן גם עקיפה של הממשק תחזיר רשימה
+     ריקה ולא נתונים.
+
+     המזהים כאן הם של אזורים בכרטיס הלקוח; לא נוגעים בסרגל הכללי,
+     שמכיל גם פריטים שאינם כספיים. */
+  const DEPUTY_HIDDEN = ['debt-card-wrap', 'debt-card', 'pkg-card'];
+
+  function applyDeputyView() {
+    const hide = isDeputyFor(activeEmail);
+    DEPUTY_HIDDEN.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.style.display = hide ? 'none' : '';
+    });
+    /* כפתורים כספיים בסרגל — מוסתרים כשצופים בלקוח של הבכיר,
+       וחוזרים כשחוזרים ללקוח שלי. */
+    document.querySelectorAll('[onclick*="openReceiptModal"],[onclick*="openIncomeModal"],[onclick*="openDebtCharge"]')
+      .forEach(b => { b.style.display = hide ? 'none' : ''; });
+    let banner = document.getElementById('deputy-banner');
+    if (!hide) { banner?.remove(); return; }
+    if (!banner) {
+      banner = document.createElement('div');
+      banner.id = 'deputy-banner';
+      banner.style.cssText = 'margin-bottom:12px;padding:9px 14px;border-radius:10px;font-size:0.8rem;font-weight:700;' +
+        'background:rgba(196,165,255,0.1);border:1px solid rgba(196,165,255,0.35);color:#c4a5ff;';
+      const main = document.getElementById('main-area');
+      main?.prepend(banner);
+    }
+    banner.textContent = '👥 מצב סגן — שינויים שתשמור יישלחו לאישור המאמן הבכיר. הנתונים הכספיים אינם זמינים.';
+  }
+
   async function loadDeputyState() {
     try {
       const [{ data: mine }, { data: asDep }, { data: pend }] = await Promise.all([
@@ -8948,6 +8985,7 @@ ${buildFoodListForPrompt()}
           ${d.note ? `<div style="font-size:0.72rem;color:#888;">${esc(d.note)}</div>` : ''}
         </div>
         <span style="font-size:0.68rem;color:${d.active ? '#4ade80' : '#888'};">${d.active ? 'פעיל' : 'מושהה'}</span>
+        <button class="btn-sm btn-outline" style="font-size:0.68rem;" onclick="setDeputyPassword('${escJs(d.deputy_email)}')" title="קבע סיסמה">🔑</button>
         <button class="btn-sm btn-outline" style="font-size:0.68rem;" onclick="toggleDeputy(${d.id})">${d.active ? '⏸' : '▶'}</button>
         <button class="btn-sm btn-red" style="font-size:0.68rem;" onclick="removeDeputy(${d.id})">🗑</button>
       </div>`).join('') || '<div style="color:#666;padding:18px;text-align:center;font-size:0.85rem;">עדיין לא הוגדרו סגנים.</div>';
@@ -8983,6 +9021,17 @@ ${buildFoodListForPrompt()}
     toast('הסגן נוסף ✓', 'ok');
     openDeputies();
   }
+  /* קביעת סיסמה לסגן. השרת בודק שהוא באמת סגן פעיל שלי — כאן זו
+     נוחות בלבד, ולכן אין הסתמכות על הבדיקה בדפדפן. */
+  async function setDeputyPassword(email) {
+    const pw = prompt(`סיסמה חדשה עבור ${email}\n\nלפחות 6 תווים. אותיות, מספרים או שילוב.`);
+    if (pw === null) return;
+    if (String(pw).length < 6) { toast('הסיסמה חייבת להיות באורך 6 תווים לפחות', 'err'); return; }
+    const r = await adminCall({ action: 'set_password', email, password: pw });
+    if (r?.error) { toast('שגיאה: ' + r.error, 'err'); return; }
+    toast(`הסיסמה נקבעה ✓ מסור אותה ל-${email}`, 'ok');
+  }
+
   async function toggleDeputy(id) {
     const d = myDeputies.find(x => x.id === id); if (!d) return;
     await sb.from('coach_deputies').update({ active: !d.active }).eq('id', id);
