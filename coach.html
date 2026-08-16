@@ -3173,6 +3173,7 @@
     isStudioOwner = (coachRole === 'studio_owner');       // studio owner = senior-level access + studio management
     isPremium  = (coachRole === 'admin') || (!!coach.premium_until && coach.premium_until >= todayStr());  // premium = instant generator ("second coach") unlocked
     canEdit    = (coachRole === 'senior' || coachRole === 'admin' || isStudioOwner);
+    loadDeputyState();   // לא ממתינים — הבאדג' מופיע כשהנתונים חוזרים
     coachPlans = coach.plans || {};
     if (!canEdit && coachRole !== 'pending') showViewOnlyBanner();
     document.getElementById('coach-brand').textContent = `FJ — ${coachName}`;
@@ -7250,6 +7251,11 @@ Bro Split: 6-8 תרגילים לשריר, דגש על מבודדים, ניתן 2
   async function saveTraining(silent) {
     if (!requireEdit()) return;
     const planData = { active: enrichPlanForSave(trainingPlan), archive: trainingArchive };
+    /* סגן אינו כותב לתוכנית אלא מגיש הצעה. הבדיקה כאן היא נוחות
+       בלבד — ההרשאה עצמה נאכפת במסד, שאינו מתיר לו UPDATE כלל. */
+    if (isDeputyFor(activeEmail))
+      return proposeChange('training_plan', planData,
+        `${(planData.active || []).length} ימי אימון`, silent);
     const { error } = await sb.from('training_plans').upsert({client_email:activeEmail,plan:planData,updated_at:new Date().toISOString()},{onConflict:'client_email'});
     if (silent) return !error;
     error ? toast('שגיאה בשמירה','err') : toast('תוכנית נשמרה ✓','ok');
@@ -8321,6 +8327,13 @@ ${buildFoodListForPrompt()}
 
   async function saveNutrition(silent) {
     if (silent ? !canEdit : !requireEdit()) return false;
+    /* אצל סגן זו הצעה, לא שמירה. השמירה האוטומטית (silent) מדוכאת
+       בכוונה — אחרת כל הקלדה הייתה מייצרת הצעה חדשה ומציפה את הבכיר. */
+    if (isDeputyFor(activeEmail)) {
+      if (silent) return true;
+      return proposeChange('nutrition_plan', nutritionPlan,
+        `${(nutritionPlan || []).length} ארוחות`, false);
+    }
     const { error } = await sb.from('nutrition_plans').upsert({client_email:activeEmail,plan:nutritionPlan,updated_at:new Date().toISOString()},{onConflict:'client_email'});
     if (!silent) error ? toast('שגיאה בשמירה','err') : toast('תפריט נשמר ✓','ok');
     return !error;
@@ -8863,6 +8876,184 @@ ${buildFoodListForPrompt()}
         <button onclick="openProgress(activeEmail)" style="margin-top:10px;padding:7px 14px;border-radius:9px;cursor:pointer;font-family:'Heebo';font-size:0.78rem;font-weight:800;border:1px solid rgba(255,107,0,0.4);background:rgba(255,107,0,0.1);color:var(--orange);">📈 גרף התקדמות לפי תרגיל</button>
       </div>`;
   }
+  /* ═══ 👥 סגן למאמן בכיר ═══
+     סגן רואה את לקוחות הבכיר ויכול להציע להם שינויים, אבל שום שינוי
+     אינו נכנס לתוקף עד שהבכיר מאשר.
+
+     האכיפה היא במסד ולא כאן: לסגן אין הרשאת UPDATE על clients,
+     training_plans או nutrition_plans, ולכן גם עקיפה של הממשק לא
+     תשנה דבר. הבדיקות בקוד הן חוויית משתמש — כדי שיראה "נשלח
+     לאישור" ולא שגיאת הרשאה. */
+  let myDeputies = [], iAmDeputyOf = [], pendingForMe = [];
+
+  /* האם הלקוח הפתוח שייך לבכיר שאני סגן שלו */
+  function isDeputyFor(clientEmail) {
+    if (!clientEmail || !iAmDeputyOf.length) return false;
+    const c = clients.find(x => x.email === clientEmail);
+    return !!c && iAmDeputyOf.includes(c.coach_email) && c.coach_email !== coachEmail;
+  }
+
+  async function loadDeputyState() {
+    try {
+      const [{ data: mine }, { data: asDep }, { data: pend }] = await Promise.all([
+        sb.from('coach_deputies').select('*').eq('senior_email', coachEmail).order('created_at'),
+        sb.from('coach_deputies').select('senior_email').eq('deputy_email', coachEmail).eq('active', true),
+        sb.from('pending_changes').select('*').eq('senior_email', coachEmail).eq('status', 'pending').order('created_at', { ascending: false }),
+      ]);
+      myDeputies = mine || [];
+      iAmDeputyOf = (asDep || []).map(r => r.senior_email);
+      pendingForMe = pend || [];
+      renderDeputyBadge();
+    } catch (e) { /* הטבלאות אולי טרם הוגדרו — לא מפילים את הפאנל */ }
+  }
+
+  function renderDeputyBadge() {
+    let el = document.getElementById('deputy-badge');
+    if (!pendingForMe.length) { el?.remove(); return; }
+    if (!el) {
+      el = document.createElement('button');
+      el.id = 'deputy-badge';
+      el.onclick = openApprovals;
+      el.style.cssText = 'position:fixed;bottom:calc(78px + var(--sab,0px));inset-inline-start:16px;z-index:900;' +
+        'padding:10px 16px;border-radius:999px;cursor:pointer;font-family:Heebo,sans-serif;font-size:0.8rem;font-weight:800;' +
+        'border:1px solid rgba(255,107,0,0.5);background:linear-gradient(135deg,#FF6B00,#FF8C00);color:#fff;' +
+        'box-shadow:0 4px 18px rgba(255,107,0,0.35);';
+      document.body.appendChild(el);
+    }
+    el.textContent = `📝 ${pendingForMe.length} שינויים ממתינים לאישורך`;
+  }
+
+  /* ── הגשת הצעה (סגן) ── */
+  async function proposeChange(kind, payload, summary, silent) {
+    const c = clients.find(x => x.email === activeEmail);
+    if (!c) return false;
+    const { error } = await sb.from('pending_changes').insert({
+      senior_email: c.coach_email, deputy_email: coachEmail, client_email: activeEmail,
+      kind, payload, summary: `${summary} · ${c.name || activeEmail}`, status: 'pending',
+    });
+    if (error) { if (!silent) toast('שגיאה בשליחה: ' + error.message, 'err'); return false; }
+    if (!silent) toast('ההצעה נשלחה לאישור המאמן הבכיר ✓', 'ok');
+    return true;
+  }
+
+  /* ── ניהול סגנים (בכיר) ── */
+  async function openDeputies() {
+    if (!requireEdit()) return;
+    await loadDeputyState();
+    const rows = myDeputies.map(d => `
+      <div style="display:flex;align-items:center;gap:10px;padding:10px;border-bottom:1px solid rgba(255,255,255,0.05);${d.active ? '' : 'opacity:0.45;'}">
+        <div style="flex:1;min-width:120px;">
+          <div style="font-weight:800;color:#fff;font-size:0.86rem;">${esc(d.deputy_email)}</div>
+          ${d.note ? `<div style="font-size:0.72rem;color:#888;">${esc(d.note)}</div>` : ''}
+        </div>
+        <span style="font-size:0.68rem;color:${d.active ? '#4ade80' : '#888'};">${d.active ? 'פעיל' : 'מושהה'}</span>
+        <button class="btn-sm btn-outline" style="font-size:0.68rem;" onclick="toggleDeputy(${d.id})">${d.active ? '⏸' : '▶'}</button>
+        <button class="btn-sm btn-red" style="font-size:0.68rem;" onclick="removeDeputy(${d.id})">🗑</button>
+      </div>`).join('') || '<div style="color:#666;padding:18px;text-align:center;font-size:0.85rem;">עדיין לא הוגדרו סגנים.</div>';
+
+    document.getElementById('dep-modal-body').innerHTML = `
+      <div style="font-weight:900;font-size:1.05rem;color:var(--orange);margin-bottom:4px;">👥 סגנים</div>
+      <div style="font-size:0.76rem;color:#888;margin-bottom:14px;line-height:1.7;">
+        סגן רואה את המתאמנים שלך ויכול להציע שינויים בתוכנית ובתפריט.
+        <b style="color:#aaa;">שום שינוי לא נכנס לתוקף עד שתאשר אותו.</b>
+      </div>
+      ${rows}
+      <div class="f-group" style="margin-top:14px;"><label>מייל הסגן</label>
+        <input id="dep-email" placeholder="coach@example.com" style="direction:ltr;text-align:left;"/></div>
+      <div class="f-group"><label>הערה</label><input id="dep-note" placeholder="לא חובה"/></div>
+      <div id="dep-status" style="font-size:0.8rem;margin-bottom:10px;"></div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn-sm btn-orange" style="flex:1;" onclick="addDeputy()">+ הוסף סגן</button>
+        <button class="btn-sm btn-outline" onclick="closeDepModal()">סגור</button>
+      </div>`;
+    document.getElementById('dep-modal').style.display = 'flex';
+  }
+  function closeDepModal() { document.getElementById('dep-modal').style.display = 'none'; }
+
+  async function addDeputy() {
+    const email = document.getElementById('dep-email').value.trim().toLowerCase();
+    const st = document.getElementById('dep-status');
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) { st.textContent = 'כתובת מייל לא תקינה'; st.style.color = '#ff7070'; return; }
+    if (email === coachEmail) { st.textContent = 'אי אפשר להגדיר את עצמך כסגן'; st.style.color = '#ff7070'; return; }
+    const { error } = await sb.from('coach_deputies').insert({
+      senior_email: coachEmail, deputy_email: email,
+      note: document.getElementById('dep-note').value.trim() || null });
+    if (error) { st.textContent = /duplicate/i.test(error.message) ? 'הסגן כבר מוגדר' : 'שגיאה: ' + error.message; st.style.color = '#ff7070'; return; }
+    toast('הסגן נוסף ✓', 'ok');
+    openDeputies();
+  }
+  async function toggleDeputy(id) {
+    const d = myDeputies.find(x => x.id === id); if (!d) return;
+    await sb.from('coach_deputies').update({ active: !d.active }).eq('id', id);
+    openDeputies();
+  }
+  async function removeDeputy(id) {
+    const d = myDeputies.find(x => x.id === id); if (!d) return;
+    if (!confirm(`להסיר את ${d.deputy_email} מרשימת הסגנים?\nהוא יאבד גישה למתאמנים שלך מיד.`)) return;
+    await sb.from('coach_deputies').delete().eq('id', id);
+    toast('הוסר', 'ok');
+    openDeputies();
+  }
+
+  /* ── אישור שינויים (בכיר) ── */
+  async function openApprovals() {
+    await loadDeputyState();
+    const nameOf = e => clients.find(c => c.email === e)?.name || (e || '').split('@')[0];
+    const KIND = { training_plan: '🏋️ תוכנית אימון', nutrition_plan: '🥗 תפריט תזונה' };
+    document.getElementById('dep-modal-body').innerHTML = `
+      <div style="font-weight:900;font-size:1.05rem;color:var(--orange);margin-bottom:14px;">📝 שינויים ממתינים לאישור</div>
+      ${!pendingForMe.length
+        ? '<div style="padding:26px;text-align:center;color:#4ade80;font-weight:700;">✅ אין שינויים ממתינים</div>'
+        : pendingForMe.map(p => `
+        <div style="border:1px solid rgba(255,107,0,0.25);border-radius:12px;padding:12px;margin-bottom:9px;">
+          <div style="font-size:0.86rem;font-weight:800;color:#fff;">${KIND[p.kind] || p.kind}</div>
+          <div style="font-size:0.78rem;color:#aaa;margin:4px 0;">${esc(p.summary || '')}</div>
+          <div style="font-size:0.7rem;color:#666;">מאת ${esc(p.deputy_email)} · ${new Date(p.created_at).toLocaleString('he-IL', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</div>
+          <div style="display:flex;gap:6px;margin-top:9px;flex-wrap:wrap;">
+            <button class="btn-sm btn-outline" style="font-size:0.7rem;border-color:rgba(96,180,255,0.4);color:#60b4ff;" onclick="previewChange(${p.id})">👁 הצג</button>
+            <button class="btn-sm btn-outline" style="font-size:0.7rem;border-color:rgba(74,222,128,0.4);color:#4ade80;" onclick="decideChange(${p.id},true)">✓ אשר והחל</button>
+            <button class="btn-sm btn-outline" style="font-size:0.7rem;border-color:rgba(248,113,113,0.35);color:#f87171;" onclick="decideChange(${p.id},false)">✕ דחה</button>
+          </div>
+        </div>`).join('')}
+      <button class="btn-sm btn-outline" style="width:100%;margin-top:10px;" onclick="closeDepModal()">סגור</button>`;
+    document.getElementById('dep-modal').style.display = 'flex';
+  }
+
+  function previewChange(id) {
+    const p = pendingForMe.find(x => x.id === id); if (!p) return;
+    const body = p.kind === 'training_plan'
+      ? (p.payload?.active || []).map(d => `<b style="color:var(--gold);">${esc(d.day || '')}</b><br>${(d.exercises || []).map(e => '· ' + esc(e.name) + (e.sets ? ' — ' + esc(String(e.sets)) : '')).join('<br>')}`).join('<hr style="border:0;border-top:1px solid rgba(255,255,255,0.07);margin:8px 0;">')
+      : (p.payload || []).map(m => `<b style="color:var(--gold);">${esc(m.meal || '')}</b><br>${(m.items || []).map(i => '· ' + esc(i.food) + ' — ' + esc(i.quantity || '')).join('<br>')}`).join('<hr style="border:0;border-top:1px solid rgba(255,255,255,0.07);margin:8px 0;">');
+    document.getElementById('dep-modal-body').innerHTML = `
+      <div style="font-weight:900;font-size:1rem;color:var(--orange);margin-bottom:10px;">👁 תצוגה מקדימה</div>
+      <div style="font-size:0.8rem;color:#ccc;line-height:1.8;max-height:52vh;overflow-y:auto;background:rgba(255,255,255,0.03);border-radius:10px;padding:12px;">${body || '<span style="color:#666;">ריק</span>'}</div>
+      <div style="display:flex;gap:6px;margin-top:12px;">
+        <button class="btn-sm btn-outline" style="flex:1;border-color:rgba(74,222,128,0.4);color:#4ade80;" onclick="decideChange(${p.id},true)">✓ אשר והחל</button>
+        <button class="btn-sm btn-outline" style="border-color:rgba(248,113,113,0.35);color:#f87171;" onclick="decideChange(${p.id},false)">✕ דחה</button>
+        <button class="btn-sm btn-outline" onclick="openApprovals()">← חזרה</button>
+      </div>`;
+  }
+
+  async function decideChange(id, approve) {
+    const p = pendingForMe.find(x => x.id === id); if (!p) return;
+    if (approve) {
+      /* ההחלה נעשית ע"י הבכיר, שמורשה לכתוב — ולכן היא עוברת את
+         אותה מדיניות שמגנה על הלקוחות שלו ממילא. */
+      const tbl = p.kind === 'training_plan' ? 'training_plans' : 'nutrition_plans';
+      const { error } = await sb.from(tbl).upsert(
+        { client_email: p.client_email, plan: p.payload, updated_at: new Date().toISOString() },
+        { onConflict: 'client_email' });
+      if (error) { toast('שגיאה בהחלה: ' + error.message, 'err'); return; }
+    }
+    await sb.from('pending_changes')
+      .update({ status: approve ? 'approved' : 'rejected', decided_at: new Date().toISOString() })
+      .eq('id', id);
+    toast(approve ? 'השינוי אושר והוחל ✓' : 'ההצעה נדחתה', 'ok');
+    await loadDeputyState();
+    openApprovals();
+    if (activeEmail === p.client_email) selectClient(activeEmail);
+  }
+
   /* ═══ 🔧 תיקון הפניות לסרטונים שהוסרו ═══
      המאגר צומצם מ-1,168 ל-347, ותוכניות קיימות עדיין מצביעות על
      תרגילים שאינם קיימים — ולכן מציגות סרטון ישן או כלום.
@@ -11395,6 +11586,7 @@ ${buildFoodListForPrompt()}
   <button class="bn-more-item" onclick="openPushOverlay()">📣 הודעות ו-Push</button>
   <button class="bn-more-item" onclick="openPlans()">💰 מסלולים לחידוש</button>
   <button class="bn-more-item" onclick="openBranding()">🎨 מיתוג</button>
+      <button class="bn-more-item" onclick="openDeputies()">👥 סגנים</button>
   <a href="coach-guide.html" class="bn-more-item">📖 מדריך</a>
   <button class="bn-more-item" onclick="logout()">🚪 התנתק</button>
 </div>
@@ -11961,6 +12153,14 @@ ${buildFoodListForPrompt()}
   <div style="background:linear-gradient(160deg,#17181c,#0d0e11);border:1px solid rgba(255,107,0,0.35);border-radius:20px;max-width:560px;width:100%;max-height:88vh;overflow-y:auto;padding:22px 20px;position:relative;">
     <button onclick="closeVideoFix()" style="position:absolute;top:12px;left:14px;background:none;border:none;color:#666;font-size:1.3rem;cursor:pointer;z-index:1;">✕</button>
     <div id="fix-modal-body"></div>
+  </div>
+</div>
+
+<!-- סגנים ואישור שינויים -->
+<div id="dep-modal" style="display:none;position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,0.9);align-items:center;justify-content:center;padding:16px;" onclick="if(event.target===this)closeDepModal()">
+  <div style="background:linear-gradient(160deg,#17181c,#0d0e11);border:1px solid rgba(255,107,0,0.35);border-radius:20px;max-width:520px;width:100%;max-height:88vh;overflow-y:auto;padding:22px 20px;position:relative;">
+    <button onclick="closeDepModal()" style="position:absolute;top:12px;left:14px;background:none;border:none;color:#666;font-size:1.3rem;cursor:pointer;z-index:1;">✕</button>
+    <div id="dep-modal-body"></div>
   </div>
 </div>
 </body>
