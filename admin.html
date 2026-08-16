@@ -1087,6 +1087,32 @@
     document.getElementById('loader').style.display = 'none';
   }
 
+  /* ── מחיקת התראות (אדמין) ──
+     מאמן אינו מקבל הרשאת מחיקה בכוונה: חלק מההתראות הן תיעוד
+     עסקי (נטישה, לידים, חידושים), ומחיקה בטעות מאבדת אותו. */
+  async function delNotif(id, email) {
+    const { error } = await sb.from('coach_notifications').delete().eq('id', id);
+    if (error) { toast('שגיאה: ' + error.message, 'err'); return; }
+    /* המטמון מתעדכן מקומית ולא נטען מחדש — הרשימה מוצגת בתוך שורה
+       פתוחה, וטעינה מחדש הייתה סוגרת אותה. */
+    if (coachNotifsCache[email])
+      coachNotifsCache[email] = coachNotifsCache[email].filter(n => n.id !== id);
+    renderCoachesTable();
+    toast('ההתראה נמחקה', 'ok');
+  }
+
+  async function clearNotifs(email) {
+    const n = (coachNotifsCache[email] || []).length;
+    if (!confirm(`למחוק את כל ההתראות של ${email}?
+
+הפעולה אינה הפיכה.`)) return;
+    const { error } = await sb.from('coach_notifications').delete().eq('coach_email', email);
+    if (error) { toast('שגיאה: ' + error.message, 'err'); return; }
+    coachNotifsCache[email] = [];
+    renderCoachesTable();
+    toast('ההתראות נמחקו', 'ok');
+  }
+
   /* ── COACHES ── */
   async function loadCoaches() {
     const { data } = await sb.from('coaches').select('*').order('name');
@@ -2156,12 +2182,20 @@
             const d = n.data || {};
             const prsText = d.prs && d.prs.length ? `<span style="color:var(--gold);"> · 🏆 ${d.prs.map(p => esc(p.exercise)).join(', ')}</span>` : '';
             const dateStr = new Date(n.created_at).toLocaleString('he-IL', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
-            return `<div style="padding:7px 10px;border-radius:8px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,107,0,${n.read?'0.1':'0.3'});margin-bottom:5px;${n.read?'':'background:rgba(255,107,0,0.04);'}">
-              <div style="font-size:0.8rem;font-weight:700;">${esc(n.client_name||n.client_email.split('@')[0])}</div>
-              <div style="font-size:0.73rem;color:var(--muted);">🏋️ ${esc(d.day_name||'אימון')} · ${d.duration_min||0} דק׳${prsText}</div>
-              <div style="font-size:0.68rem;color:#555;margin-top:2px;">${dateStr}</div>
+            return `<div style="display:flex;align-items:flex-start;gap:8px;padding:7px 10px;border-radius:8px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,107,0,${n.read?'0.1':'0.3'});margin-bottom:5px;${n.read?'':'background:rgba(255,107,0,0.04);'}">
+              <div style="flex:1;min-width:0;">
+                <div style="font-size:0.8rem;font-weight:700;">${esc(n.client_name||n.client_email.split('@')[0])}</div>
+                <div style="font-size:0.73rem;color:var(--muted);">🏋️ ${esc(d.day_name||'אימון')} · ${d.duration_min||0} דק׳${prsText}</div>
+                <div style="font-size:0.68rem;color:#555;margin-top:2px;">${dateStr}</div>
+              </div>
+              <button onclick="event.stopPropagation();delNotif(${n.id},'${esc(c.email)}')" title="מחק התראה זו"
+                style="flex-shrink:0;background:none;border:none;color:#666;cursor:pointer;font-size:0.9rem;padding:2px 4px;">🗑</button>
             </div>`;
-          }).join('');
+          }).join('') +
+          /* ניקוי גורף למאמן הזה — נדרש כשמצטברות עשרות התראות
+             ומחיקה אחת-אחת אינה מעשית. */
+          `<button onclick="event.stopPropagation();clearNotifs('${esc(c.email)}')"
+            style="margin-top:4px;background:none;border:1px solid rgba(248,113,113,0.3);border-radius:7px;color:#f87171;cursor:pointer;font-family:'Heebo',sans-serif;font-size:0.7rem;font-weight:700;padding:4px 10px;">🗑 נקה את כל ההתראות של המאמן</button>`;
         }
 
         // License section (senior only)
