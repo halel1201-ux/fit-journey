@@ -16,7 +16,13 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;700;900&display=swap" rel="stylesheet" />
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <!-- הקטלוג נשלף בקריאת fetch אחת ל-REST, בלי ספריית Supabase:
+       היא שוקלת 212KB ומעכבת את הרינדור, בשביל שאילתה בודדת.
+       preconnect פותח את החיבור כבר בזמן פענוח ה-HTML. -->
+  <link rel="preconnect" href="https://luwknflmhvcxgifzxgrk.supabase.co" crossorigin>
+  <!-- החיבור ל-t.me נפתח מראש, כדי שלחיצה על "להזמנה" לא תשלם את
+       זמן ה-DNS וה-TLS. את המעבר לאפליקציית טלגרם עצמה טלגרם מנהל. -->
+  <link rel="preconnect" href="https://t.me">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -142,6 +148,17 @@
     .buy:hover { filter: brightness(1.1); box-shadow: 0 6px 22px rgba(63,211,232,0.38); }
     .buy.off { background: rgba(255,255,255,0.05); color: #62717a; box-shadow: none; cursor: not-allowed; }
 
+    /* ── שלד טעינה ── */
+    .card.sk { pointer-events: none; }
+    .card.sk:hover { transform: none; box-shadow: none; border-color: rgba(255,255,255,0.08); }
+    .sk-box {
+      background: linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(63,211,232,0.09) 50%, rgba(255,255,255,0.04) 75%);
+      background-size: 200% 100%; border-radius: 7px; animation: sk 1.3s ease-in-out infinite;
+    }
+    @keyframes sk { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+    /* מכבדים העדפת תנועה מופחתת — הבהוב מתמשך מפריע לחלק מהמשתמשים */
+    @media (prefers-reduced-motion: reduce) { .sk-box { animation: none; } }
+
     /* ── מצב ריק ── */
     .empty {
       grid-column: 1 / -1; text-align: center; padding: 56px 22px;
@@ -208,6 +225,7 @@
 const SB_URL = 'https://luwknflmhvcxgifzxgrk.supabase.co';
 const SB_KEY = 'sb_publishable_k3M7SfBeiBGs3rTKewBzWQ_7RHRskB9';
 let PRODUCTS = [];
+let loaded = false;   // מבדיל בין "עדיין טוען" לבין "אין מוצרים"
 
 /* ── יצירת קשר להזמנה ──
    סדר העדיפות: בוט → שיחה ישירה → וואטסאפ. כל אחד נופל לבא אחריו
@@ -278,8 +296,23 @@ function card(p) {
   </article>`;
 }
 
+/* שלד טעינה: שומר על מבנה הכרטיסים כדי שהדף לא "יקפוץ" כשהמוצרים
+   נכנסים, ומראה שמשהו קורה במקום להצהיר שאין קטלוג. */
+function renderSkeleton() {
+  document.getElementById('grid').innerHTML = Array.from({ length: 3 }, () => `
+    <article class="card sk">
+      <div class="sk-box" style="aspect-ratio:1/1;border-radius:12px;"></div>
+      <div class="sk-box" style="height:19px;width:65%;"></div>
+      <div class="sk-box" style="height:13px;width:90%;"></div>
+      <div class="sk-box" style="height:13px;width:45%;"></div>
+      <div class="sk-box" style="height:30px;width:40%;margin-top:4px;"></div>
+      <div class="sk-box" style="height:41px;border-radius:11px;"></div>
+    </article>`).join('');
+}
+
 function renderGrid() {
   const grid = document.getElementById('grid');
+  if (!loaded) { renderSkeleton(); return; }
   const list = activeCat === 'הכל' ? PRODUCTS : PRODUCTS.filter(p => p.cat === activeCat);
   if (!list.length) {
     grid.innerHTML = `<div class="empty">
@@ -298,15 +331,17 @@ function renderGrid() {
 document.getElementById('legal-note').textContent = LEGAL_NOTE || '';
 document.getElementById('yr').textContent = new Date().getFullYear();
 
-/* טעינת הקטלוג. כשל בטעינה מציג הודעה במקום רשת ריקה שנראית
-   כאילו אין מוצרים — ההבדל חשוב כדי לא לחשוב שהקטלוג נמחק. */
+/* טעינת הקטלוג בקריאה אחת ל-REST.
+   שלושה מצבים נפרדים ולא שניים: טוען, ריק, ושגיאה. קודם הוצג "הקטלוג
+   עדיין ריק" כבר בזמן הטעינה — הודעה שקרית שנעלמת אחרי רגע. */
 (async () => {
-  renderGrid();   // מצב ביניים בזמן הטעינה
+  renderSkeleton();
   try {
-    const sb = supabase.createClient(SB_URL, SB_KEY);
-    const { data, error } = await sb.from('shop_products')
-      .select('*').eq('visible', true).order('sort_order').order('created_at');
-    if (error) throw error;
+    const res = await fetch(
+      `${SB_URL}/rest/v1/shop_products?select=*&visible=eq.true&order=sort_order.asc,created_at.asc`,
+      { headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` } });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
     PRODUCTS = (data || []).map(r => ({
       id: r.id,                       // נדרש למטען הקישור לבוט
       name: r.name, cat: r.category, desc: r.description, spec: r.spec,
@@ -314,11 +349,16 @@ document.getElementById('yr').textContent = new Date().getFullYear();
       was: r.was_price != null ? Number(r.was_price) : null,
       stock: r.in_stock !== false, tag: r.tag, img: r.image_url,
     }));
+    loaded = true;
     renderFilters(); renderGrid();
   } catch (e) {
+    loaded = true;
     document.getElementById('grid').innerHTML = `<div class="empty">
       <div class="ico">⚠️</div><h3>לא הצלחנו לטעון את הקטלוג</h3>
-      <p>בדוק את החיבור לאינטרנט ונסה לרענן. אם זה חוזר — ייתכן שטבלת המוצרים עדיין לא הוגדרה.</p></div>`;
+      <p>בדוק את החיבור לאינטרנט ונסה לרענן.</p>
+      <button onclick="location.reload()" style="margin-top:14px;padding:9px 20px;border-radius:10px;cursor:pointer;
+        background:rgba(63,211,232,0.12);border:1px solid var(--cyan);color:var(--cyan-lt);
+        font-family:'Heebo';font-size:0.85rem;font-weight:700;">נסה שוב</button></div>`;
   }
 })();
 </script>
