@@ -8408,8 +8408,13 @@ ${buildFoodListForPrompt()}
     const base = macroSum(m.items), cur = macroSum(v.items);
     const gap = base.calories - cur.calories;
     if (Math.abs(gap) < 5) { toast('האופציה כבר מאוזנת', 'ok'); return; }
-    const idx = v.items.findIndex(i => itemRole(i) === 'carbs');
-    if (idx < 0) { toast('אין מקור פחמימה לאיזון באופציה הזו', 'err'); return; }
+    /* סדר עדיפות לאיזון: פחמימה, ואם אין — שומן. חלבון אחרון, כי
+       הוא היעד שהכי חשוב לשמר. ארוחה בלי פחמימה היא תקינה לגמרי
+       (ערב, לפני שינה), ולכן אין להיתקע בלעדיה. */
+    const idx = ['carbs', 'fat', 'protein']
+      .map(r => v.items.findIndex(i => itemRole(i) === r))
+      .find(i => i >= 0);
+    if (idx === undefined) { toast('אין פריט שניתן לאזן דרכו', 'err'); return; }
     const it = v.items[idx];
     const fd = findFood(it.food);
     if (!fd || !fd.calories) { toast('המזון לא נמצא במאגר', 'err'); return; }
