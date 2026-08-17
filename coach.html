@@ -8459,6 +8459,8 @@ ${buildFoodListForPrompt()}
           ${Math.abs(gap) >= 5 ? `<span style="font-size:0.7rem;color:#f0a24b;font-weight:700;">${gap > 0 ? '+' : ''}${gap} קל׳</span>
             <button class="btn-sm btn-outline" style="font-size:0.64rem;padding:2px 8px;" onclick="balanceVariant(${mi},${vi})">אזן</button>` : ''}
           ${Math.abs(pGap) >= 2 ? `<span style="font-size:0.7rem;color:#f87171;font-weight:700;">${pGap > 0 ? '+' : ''}${pGap}ח</span>` : ''}
+          ${fatExcess(meal, v) > 0.5 ? `<span style="font-size:0.7rem;color:#f0a24b;font-weight:700;">+${fatExcess(meal, v)}ש</span>
+            <button class="btn-sm btn-outline" style="font-size:0.64rem;padding:2px 8px;border-color:rgba(240,162,75,0.4);color:#f0a24b;" onclick="trimFat(${mi},${vi})" title="קזז את עודף השומן ממקור השומן בארוחה">🔻 הורד שומן</button>` : ''}
           <button class="btn-sm btn-red" style="font-size:0.64rem;padding:2px 8px;" onclick="removeVariant(${mi},${vi})">✕</button>
         </div>
         ${(v.items || []).map((it, ii) => {
@@ -8493,6 +8495,47 @@ ${buildFoodListForPrompt()}
         ? `<button class="add-link" style="color:#7ec8ff;" onclick="addVariant(${mi})">+ הוסף אופציה</button>`
         : ''}
     </div>`;
+  }
+
+  /* עודף השומן של הגרסה מול הבסיס. מקור חלבון שמן יותר — פרגית
+     במקום חזה עוף — מכניס שומן שלא היה, ואת זה מקזזים ממקור השומן
+     הנפרד שבארוחה. */
+  function fatExcess(m, v) {
+    return Math.round((macroSum(v.items).fat - macroSum(m.items).fat) * 10) / 10;
+  }
+
+  function trimFat(mi, vi) {
+    const m = nutritionPlan[mi], v = m.variants[vi];
+    const excess = fatExcess(m, v);
+    if (excess <= 0.5) { toast('אין עודף שומן באופציה הזו', 'ok'); return; }
+
+    /* מקזזים ממקור השומן — לא מהחלבון שהוא היעד, ולא מהפחמימה
+       שאינה מקור השומן. מדלגים על הפריט שהוחלף עצמו. */
+    const idx = v.items.findIndex((i, k) => itemRole(i) === 'fat' && itemRole((m.items || [])[k] || i) === 'fat');
+    if (idx < 0) { toast('אין מקור שומן נפרד לקיזוז — הפחת ידנית', 'err'); return; }
+
+    const it = v.items[idx];
+    const fd = findFood(it.food);
+    if (!fd || !fd.fat) { toast('המזון לא נמצא במאגר', 'err'); return; }
+
+    const curG = parseFloat(String(it.quantity).replace(/[^\d.]/g, '')) || 0;
+    const removeG = excess / fd.fat * 100;
+    const newG = Math.round(curG - removeG);
+
+    if (newG <= 4) {
+      /* הקיזוז גדול ממקור השומן כולו — מסירים אותו לגמרי, וזה
+         בדיוק מה שמאמן היה עושה: אין שמן בארוחה עם פרגית. */
+      v.items.splice(idx, 1);
+      renderNutritionEditor(); nutriTouched();
+      toast(`"${it.food}" הוסר — השומן מגיע ממקור החלבון`, 'ok');
+      return;
+    }
+    const f = newG / 100;
+    v.items[idx] = { ...it, quantity: `${newG} גרם`,
+      calories: Math.round(fd.calories * f), protein: Math.round(fd.protein * f * 10) / 10,
+      carbs: Math.round(fd.carbs * f * 10) / 10, fat: Math.round(fd.fat * f * 10) / 10 };
+    renderNutritionEditor(); nutriTouched();
+    toast(`השומן הופחת ל-${newG} גרם ✓`, 'ok');
   }
 
   function addMeal()       { nutritionPlan.push({meal:'',items:[]}); renderNutritionEditor(); nutriTouched(); }
