@@ -8190,6 +8190,7 @@ ${buildFoodListForPrompt()}
       <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:0.8rem;font-weight:700;color:#7ec8ff;">
         <input type="checkbox" ${variableMenu?'checked':''} onchange="toggleVariableMenu()"/> 🔀 תפריט משתנה</label>
       <span style="font-size:0.72rem;color:#777;">כמה אופציות לארוחה — המתאמן בוחר אחת ביום</span>
+      <button class="btn-sm btn-outline" style="margin-inline-start:auto;font-size:0.72rem;border-color:rgba(255,215,0,0.4);color:var(--gold);" onclick="openFoodAdd('')">➕ מוצר למאגר שלי</button>
     </div>`;
     el.innerHTML = macroBar + vmSwitch + nutritionPlan.map((meal,mi)=>`
       <div class="meal-block${collapsedMeals.has(mi)?' meal-collapsed':''}">
@@ -8369,8 +8370,17 @@ ${buildFoodListForPrompt()}
        יהיה להשתמש גם במזון שאינו במאגר. */
     v.items[ii] = { ...it, food: name, role, quantity: '', calories: 0, protein: 0, carbs: 0, fat: 0, manual: true };
     renderNutritionEditor(); nutriTouched();
+    /* מזון שאינו במאגר — מציעים להוסיף אותו פעם אחת, ואז הוא זמין
+       בכל תפריט עתידי במקום למלא אותו ידנית שוב ושוב. */
+    if (!fd && confirm(`"${name}" אינו במאגר.
+
+להוסיף אותו למאגר שלך עם ערכים תזונתיים?
+כך הוא יהיה זמין בכל תפריט.`)) {
+      openFoodAdd(name);
+      return;
+    }
     toast(fd ? `ל"${fd.name}" אין ${ROLE_LABEL[role]} — מלא כמות ידנית`
-             : 'המזון אינו במאגר — מלא כמות ומאקרו ידנית', 'err');
+             : 'מלא כמות ומאקרו ידנית', 'err');
   }
 
   /* רשימת מקורות לפי מאקרו, להשלמה אוטומטית בשדה הגרסה.
@@ -8726,6 +8736,111 @@ ${buildFoodListForPrompt()}
     return lines.join('\n');
   }
 
+  /* ═══ 🥗 מזון מותאם למאמן ═══
+     מוצר שאינו במאגר הכללי נשמר ב-coach_foods ומתמזג לתוך
+     allFoodItems. זו הנקודה: כל המנגנונים הקיימים — חיפוש, חלופות,
+     המרת גרמים, ההשלמה בתפריט המשתנה, והפרומפט של הסוכן — עובדים
+     איתו מיד, בלי שנגעתי באף אחד מהם.
+
+     המזהה שלילי כדי שלא יתנגש עם product_id של המאגר הכללי. */
+  let coachFoods = [];
+  async function loadCoachFoods() {
+    try {
+      const { data } = await sb.from('coach_foods').select('*').eq('coach_email', coachEmail).order('name');
+      coachFoods = data || [];
+      /* מסירים גרסה קודמת לפני מיזוג, כדי שטעינה חוזרת לא תכפיל */
+      allFoodItems = allFoodItems.filter(f => !(f.id < 0));
+      allFoodItems = allFoodItems.concat(coachFoods.map(f => ({
+        id: -f.id, name: f.name, calories: +f.calories || 0, protein: +f.protein || 0,
+        carbs: +f.carbs || 0, fat: +f.fat || 0, fiber: +f.fiber || 0,
+        unit_g: f.unit_g ? +f.unit_g : null, tbsp_g: null, tsp_g: null, cup_g: null, portion_g: null,
+        _mine: true,
+      })));
+      _roleListCache.protein = _roleListCache.carbs = _roleListCache.fat = null;  // ההשלמה תיבנה מחדש
+    } catch (e) { coachFoods = []; }
+  }
+
+  function openFoodAdd(prefill) {
+    if (!requireEdit()) return;
+    document.getElementById('food-modal-body').innerHTML = `
+      <div style="font-weight:900;font-size:1.05rem;color:var(--gold);margin-bottom:4px;">➕ מוצר חדש למאגר שלי</div>
+      <div style="font-size:0.76rem;color:#888;margin-bottom:14px;line-height:1.7;">
+        הערכים הם <b style="color:#aaa;">ל-100 גרם</b>, כמו שרשום על האריזה.
+        המוצר יהיה זמין רק לך, בכל התפריטים והחלופות.
+      </div>
+      <div class="f-group"><label>שם המוצר *</label><input id="cf-name" value="${esc(prefill || '')}" placeholder="לדוגמה: סטייק אנטריקוט מהקצב"/></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div class="f-group"><label>קלוריות ל-100ג</label><input id="cf-cal" type="number" step="1" placeholder="0"/></div>
+        <div class="f-group"><label>חלבון ל-100ג</label><input id="cf-prot" type="number" step="0.1" placeholder="0"/></div>
+        <div class="f-group"><label>פחמימה ל-100ג</label><input id="cf-carb" type="number" step="0.1" placeholder="0"/></div>
+        <div class="f-group"><label>שומן ל-100ג</label><input id="cf-fat" type="number" step="0.1" placeholder="0"/></div>
+      </div>
+      <div class="f-group"><label>משקל יחידה בגרמים (לא חובה)</label><input id="cf-unit" type="number" step="1" placeholder="לדוגמה: ביצה = 55"/></div>
+      <div id="cf-check" style="font-size:0.76rem;margin-bottom:10px;"></div>
+      <div id="cf-status" style="font-size:0.8rem;margin-bottom:10px;"></div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn-sm btn-orange" id="cf-save" style="flex:1;" onclick="saveCoachFood()">💾 הוסף למאגר</button>
+        <button class="btn-sm btn-outline" onclick="closeFoodModal()">ביטול</button>
+      </div>
+      ${coachFoods.length ? `<div style="margin-top:16px;border-top:1px solid rgba(255,255,255,0.07);padding-top:12px;">
+        <div style="font-size:0.78rem;color:#888;margin-bottom:7px;">המוצרים שלי (${coachFoods.length})</div>
+        ${coachFoods.map(f => `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;font-size:0.78rem;border-bottom:1px solid rgba(255,255,255,0.04);">
+          <span style="flex:1;color:#fff;">${esc(f.name)}</span>
+          <span style="color:#888;font-size:0.72rem;">${Math.round(f.calories)}קל׳ · ${f.protein}ח</span>
+          <button class="btn-sm btn-red" style="font-size:0.64rem;padding:2px 7px;" onclick="delCoachFood(${f.id})">🗑</button>
+        </div>`).join('')}
+      </div>` : ''}`;
+    ['cf-cal','cf-prot','cf-carb','cf-fat'].forEach(id =>
+      document.getElementById(id)?.addEventListener('input', checkFoodMacros));
+    document.getElementById('food-modal').style.display = 'flex';
+  }
+  function closeFoodModal() { document.getElementById('food-modal').style.display = 'none'; }
+
+  /* בדיקת שפיות: הקלוריות חייבות להתיישב עם המאקרו (4/4/9).
+     טעות הקלדה במאקרו מרעילה כל תפריט שיכיל את המוצר, ולכן עדיף
+     לתפוס אותה כאן ולא אחרי שהיא כבר בעשרה תפריטים. */
+  function checkFoodMacros() {
+    const v = id => +document.getElementById(id).value || 0;
+    const box = document.getElementById('cf-check'); if (!box) return;
+    const cal = v('cf-cal'), calc = v('cf-prot') * 4 + v('cf-carb') * 4 + v('cf-fat') * 9;
+    if (!cal && !calc) { box.textContent = ''; return; }
+    const diff = Math.abs(cal - calc);
+    if (!cal) { box.innerHTML = `<span style="color:#888;">לפי המאקרו: ~${Math.round(calc)} קל׳</span>`; return; }
+    box.innerHTML = diff <= Math.max(15, cal * 0.12)
+      ? `<span style="color:#4ade80;">✓ הערכים מתיישבים (${Math.round(calc)} קל׳ מהמאקרו)</span>`
+      : `<span style="color:#f0a24b;">⚠ המאקרו נותן ${Math.round(calc)} קל׳ אבל רשום ${cal} — בדוק את האריזה</span>`;
+  }
+
+  async function saveCoachFood() {
+    const v = id => document.getElementById(id).value.trim();
+    const num = id => +document.getElementById(id).value || 0;
+    const st = document.getElementById('cf-status');
+    const name = v('cf-name');
+    if (!name) { st.textContent = 'יש להזין שם'; st.style.color = '#ff7070'; return; }
+    if (!num('cf-cal') && !num('cf-prot') && !num('cf-carb') && !num('cf-fat')) {
+      st.textContent = 'יש להזין לפחות ערך תזונתי אחד'; st.style.color = '#ff7070'; return;
+    }
+    const btn = document.getElementById('cf-save'); btn.disabled = true; btn.textContent = 'שומר...';
+    const { error } = await sb.from('coach_foods').upsert({
+      coach_email: coachEmail, name, calories: num('cf-cal'), protein: num('cf-prot'),
+      carbs: num('cf-carb'), fat: num('cf-fat'), unit_g: num('cf-unit') || null,
+    }, { onConflict: 'coach_email,name' });
+    btn.disabled = false; btn.textContent = '💾 הוסף למאגר';
+    if (error) { st.textContent = 'שגיאה: ' + error.message; st.style.color = '#ff7070'; return; }
+    await loadCoachFoods();
+    toast(`"${name}" נוסף למאגר שלך ✓`, 'ok');
+    openFoodAdd('');
+  }
+
+  async function delCoachFood(id) {
+    const f = coachFoods.find(x => x.id === id); if (!f) return;
+    if (!confirm(`למחוק את "${f.name}" מהמאגר שלך?\n\nתפריטים שכבר מכילים אותו ישמרו את הערכים שנשמרו בהם.`)) return;
+    await sb.from('coach_foods').delete().eq('id', id);
+    await loadCoachFoods();
+    toast('נמחק', 'ok');
+    openFoodAdd('');
+  }
+
   async function loadFoodItems() {
     try {
       const res = await fetch('food_all.json');
@@ -8746,6 +8861,7 @@ ${buildFoodListForPrompt()}
         portion_g: n(f.grams_per_portion)    || null,
       })).filter(f => f.name && (f.calories > 0 || f.protein > 0));
     } catch(e) { allFoodItems = []; selfHealSW(); }
+    await loadCoachFoods();
   }
   /* ── QUICK PREVIEW (current resolved video) ── */
   function previewExerciseMedia(di, ei) {
@@ -12429,6 +12545,14 @@ ${buildFoodListForPrompt()}
   <div style="background:linear-gradient(160deg,#17181c,#0d0e11);border:1px solid rgba(255,107,0,0.35);border-radius:20px;max-width:520px;width:100%;max-height:88vh;overflow-y:auto;padding:22px 20px;position:relative;">
     <button onclick="closeDepModal()" style="position:absolute;top:12px;left:14px;background:none;border:none;color:#666;font-size:1.3rem;cursor:pointer;z-index:1;">✕</button>
     <div id="dep-modal-body"></div>
+  </div>
+</div>
+
+<!-- הוספת מוצר למאגר של המאמן -->
+<div id="food-modal" style="display:none;position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,0.9);align-items:center;justify-content:center;padding:16px;" onclick="if(event.target===this)closeFoodModal()">
+  <div style="background:linear-gradient(160deg,#17181c,#0d0e11);border:1px solid rgba(255,215,0,0.35);border-radius:20px;max-width:480px;width:100%;max-height:88vh;overflow-y:auto;padding:22px 20px;position:relative;">
+    <button onclick="closeFoodModal()" style="position:absolute;top:12px;left:14px;background:none;border:none;color:#666;font-size:1.3rem;cursor:pointer;z-index:1;">✕</button>
+    <div id="food-modal-body"></div>
   </div>
 </div>
 </body>
