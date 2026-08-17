@@ -8014,9 +8014,9 @@ ${JSON.stringify(plan)}` }]
       });
       if (!res.ok) return null;
       const data = await res.json();
-      const m = (data.content?.[0]?.text || '').trim().match(/\[[\s\S]*\]/);
-      if (!m) return null;
-      const p = JSON.parse(m[0]);
+      /* גם כאן דרך הפענוח העמיד — שם מזון עם גרשיים כפולים שבר גם
+         את סבב התיקון, שנכשל בשקט והחזיר null. */
+      const p = parseAiJson((data.content?.[0]?.text || '').trim(), 'תיקון');
       return (Array.isArray(p) && p.length) ? p : null;
     } catch(_) { return null; }
   }
