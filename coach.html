@@ -8151,6 +8151,7 @@ ${buildFoodListForPrompt()}
 
   /* ── NUTRITION EDITOR ── */
   function renderNutritionEditor() {
+    syncVariableMenu();   // תפריט עם אופציות מדליק את הסוויץ' מעצמו
     const el = document.getElementById('nutrition-editor');
     if (!el) return;
     if (!nutritionPlan.length) { el.innerHTML='<div style="color:#444;font-size:0.85rem;padding:8px 0;">אין ארוחות עדיין — לחץ + הוסף ארוחה</div>'; return; }
@@ -8185,7 +8186,12 @@ ${buildFoodListForPrompt()}
         ${bar('שומן',    totFat,  tgFat,  '#facc15')}
       </div>`;
 
-    el.innerHTML = macroBar + nutritionPlan.map((meal,mi)=>`
+    const vmSwitch = `<div style="display:flex;align-items:center;gap:9px;margin-bottom:10px;padding:8px 12px;border-radius:10px;background:rgba(96,180,255,0.06);border:1px solid rgba(96,180,255,0.2);">
+      <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:0.8rem;font-weight:700;color:#7ec8ff;">
+        <input type="checkbox" ${variableMenu?'checked':''} onchange="toggleVariableMenu()"/> 🔀 תפריט משתנה</label>
+      <span style="font-size:0.72rem;color:#777;">כמה אופציות לארוחה — המתאמן בוחר אחת ביום</span>
+    </div>`;
+    el.innerHTML = macroBar + vmSwitch + nutritionPlan.map((meal,mi)=>`
       <div class="meal-block${collapsedMeals.has(mi)?' meal-collapsed':''}">
         <div class="meal-block-head">
           <button class="block-toggle" onclick="toggleMealCollapse(${mi})" title="הצג/הסתר ארוחה">▼</button>
@@ -8202,6 +8208,7 @@ ${buildFoodListForPrompt()}
           <div class="nutri-header"><span>מזון</span><span>כמות</span><span>קל׳</span><span>חלבון</span><span>פחמימה</span><span>שומן</span><span></span></div>
           <div>${(meal.items||[]).map((item,ii)=>itemRow(mi,ii,item)).join('')}</div>
           <button class="add-link" onclick="addItem(${mi})">+ הוסף מזון</button>
+          ${variableMenu ? variantBlock(mi, meal) : ''}
           ${(meal.items||[]).length ? `
           <div class="meal-alts">
             <div style="font-size:0.78rem;font-weight:700;color:#60b4ff;margin-bottom:8px;">חלופות לארוחה זו:</div>
@@ -8273,6 +8280,159 @@ ${buildFoodListForPrompt()}
     </div>`;
   }
   function toggleMealCollapse(mi) { collapsedMeals.has(mi)?collapsedMeals.delete(mi):collapsedMeals.add(mi); renderNutritionEditor(); }
+  /* ═══ 🔀 תפריט משתנה — אופציות לארוחה ═══
+     ארוחה יכולה לשאת כמה גרסאות, והמתאמן בוחר אחת ביום.
+
+     המבנה נשמר תואם לאחור בכוונה: הבסיס נשאר ב-items כפי שהיה,
+     והגרסאות הנוספות יושבות ב-variants. תפריט קיים בלי variants
+     נטען ומוצג בדיוק כמו קודם, אצל המאמן ואצל המתאמן.
+
+     ההמרה מתאימה לפי תפקיד הפריט ולא לפי קלוריות: מקור חלבון
+     מוחלף כך שייתן את אותו חלבון. אי אפשר להתאים את שלושת המאקרו
+     בהחלפת מזון אחד, ולכן מה שנשמר הוא מה שהפריט נועד לספק —
+     והפער בקלוריות מוצג במפורש במקום להיעלם. */
+
+  /* תפקיד הפריט. נשמר על הפריט כשהמאמן קובע ידנית; אחרת נגזר
+     מהמאקרו, באותה לוגיקה של החלופות. */
+  const itemRole = it => it.role || dominantMacro(it);
+  const ROLE_LABEL = { protein: 'חלבון', carbs: 'פחמימה', fat: 'שומן' };
+
+  const macroSum = items => (items || []).reduce((a, i) => ({
+    calories: a.calories + (+i.calories || 0), protein: a.protein + (+i.protein || 0),
+    carbs: a.carbs + (+i.carbs || 0), fat: a.fat + (+i.fat || 0),
+  }), { calories: 0, protein: 0, carbs: 0, fat: 0 });
+
+  /* כמה גרם מהמזון החדש נדרשים כדי לספק אותה כמות מהמאקרו המוביל.
+     מחזיר null כשאין במזון את המאקרו הזה — למשל "אורז" כמקור חלבון,
+     שהיה מייצר כמות אבסורדית. */
+  function convertByRole(targetGrams100, sourceItem, newFood, role) {
+    const per100 = +newFood[role] || 0;
+    if (per100 <= 0) return null;
+    const need = +sourceItem[role] || 0;
+    if (need <= 0) return null;
+    const grams = Math.round(need / per100 * 100);
+    if (!isFinite(grams) || grams <= 0 || grams > 3000) return null;   // שפיות
+    const f = grams / 100;
+    return {
+      food: newFood.name, quantity: `${grams} גרם`, role,
+      calories: Math.round(newFood.calories * f),
+      protein: Math.round(newFood.protein * f * 10) / 10,
+      carbs: Math.round(newFood.carbs * f * 10) / 10,
+      fat: Math.round(newFood.fat * f * 10) / 10,
+    };
+  }
+
+  function variantsOf(m) { return m.variants || []; }
+  function optionCount(m) { return 1 + variantsOf(m).length; }
+
+  function addVariant(mi) {
+    const m = nutritionPlan[mi];
+    m.variants = m.variants || [];
+    /* הגרסה החדשה מתחילה כהעתק של הבסיס — כך המאמן מחליף רק את מה
+       שהוא רוצה, במקום להקליד ארוחה שלמה מאפס. */
+    m.variants.push({
+      label: `אופציה ${optionCount(m) + 1}`,
+      items: JSON.parse(JSON.stringify(m.items || [])).map(i => ({ ...i, role: itemRole(i) })),
+    });
+    renderNutritionEditor(); nutriTouched();
+  }
+  function removeVariant(mi, vi) {
+    nutritionPlan[mi].variants.splice(vi, 1);
+    if (!nutritionPlan[mi].variants.length) delete nutritionPlan[mi].variants;
+    renderNutritionEditor(); nutriTouched();
+  }
+
+  /* החלפת מזון בתוך גרסה — הכמות מחושבת לפי תפקיד הפריט */
+  function swapVariantItem(mi, vi, ii, foodName) {
+    const m = nutritionPlan[mi];
+    const v = m.variants[vi];
+    const it = v.items[ii];
+    const base = (m.items || [])[ii] || it;
+    const role = itemRole(base);
+    const fd = findFood(foodName);
+    if (!fd) { toast('המזון לא נמצא במאגר', 'err'); return; }
+    const conv = convertByRole(null, base, fd, role);
+    if (!conv) { toast(`ל"${fd.name}" אין ${ROLE_LABEL[role]} — בחר מקור ${ROLE_LABEL[role]} אחר`, 'err'); return; }
+    v.items[ii] = conv;
+    renderNutritionEditor(); nutriTouched();
+  }
+
+  /* סוגר את פער הקלוריות מול הבסיס ע"י כיוון מקור הפחמימה.
+     נבחרה פחמימה ולא חלבון או שומן: היא הזולה ביותר מבחינה
+     תזונתית לשינוי, ולא פוגעת ביעד החלבון שהוא העיקר. */
+  function balanceVariant(mi, vi) {
+    const m = nutritionPlan[mi];
+    const v = m.variants[vi];
+    const base = macroSum(m.items), cur = macroSum(v.items);
+    const gap = base.calories - cur.calories;
+    if (Math.abs(gap) < 5) { toast('האופציה כבר מאוזנת', 'ok'); return; }
+    const idx = v.items.findIndex(i => itemRole(i) === 'carbs');
+    if (idx < 0) { toast('אין מקור פחמימה לאיזון באופציה הזו', 'err'); return; }
+    const it = v.items[idx];
+    const fd = findFood(it.food);
+    if (!fd || !fd.calories) { toast('המזון לא נמצא במאגר', 'err'); return; }
+    const curG = parseFloat(String(it.quantity).replace(/[^\d.]/g, '')) || 0;
+    const newG = Math.round(curG + gap / fd.calories * 100);
+    if (newG <= 0) { toast('לא ניתן לאזן — הפער גדול מדי', 'err'); return; }
+    const f = newG / 100;
+    v.items[idx] = { ...it, quantity: `${newG} גרם`,
+      calories: Math.round(fd.calories * f), protein: Math.round(fd.protein * f * 10) / 10,
+      carbs: Math.round(fd.carbs * f * 10) / 10, fat: Math.round(fd.fat * f * 10) / 10 };
+    renderNutritionEditor(); nutriTouched();
+    toast('האופציה אוזנה ✓', 'ok');
+  }
+
+  /* הסוויץ' הגלובלי. נגזר מהנתונים ולא נשמר בנפרד: אם קיימת ולו
+     ארוחה אחת עם אופציות — הוא דלוק, וכיבויו לא מוחק אותן. */
+  let variableMenu = false;
+  function syncVariableMenu() {
+    variableMenu = nutritionPlan.some(m => (m.variants || []).length);
+  }
+  function toggleVariableMenu() {
+    variableMenu = !variableMenu;
+    renderNutritionEditor();
+  }
+
+  function variantBlock(mi, meal) {
+    const vars = variantsOf(meal);
+    const base = macroSum(meal.items);
+    const rows = vars.map((v, vi) => {
+      const cur = macroSum(v.items);
+      const gap = Math.round(cur.calories - base.calories);
+      const pGap = Math.round((cur.protein - base.protein) * 10) / 10;
+      return `<div style="border:1px solid rgba(96,180,255,0.22);border-radius:10px;padding:10px;margin-top:7px;background:rgba(96,180,255,0.03);">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:7px;flex-wrap:wrap;">
+          <input value="${esc(v.label || '')}" oninput="nutritionPlan[${mi}].variants[${vi}].label=this.value;nutriTouched()"
+            style="flex:1;min-width:90px;padding:4px 8px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:6px;color:#7ec8ff;font-family:'Heebo';font-size:0.78rem;font-weight:700;"/>
+          <span style="font-size:0.72rem;color:#888;">${Math.round(cur.calories)} קל׳ · ${Math.round(cur.protein)}ח</span>
+          ${Math.abs(gap) >= 5 ? `<span style="font-size:0.7rem;color:#f0a24b;font-weight:700;">${gap > 0 ? '+' : ''}${gap} קל׳</span>
+            <button class="btn-sm btn-outline" style="font-size:0.64rem;padding:2px 8px;" onclick="balanceVariant(${mi},${vi})">אזן</button>` : ''}
+          ${Math.abs(pGap) >= 2 ? `<span style="font-size:0.7rem;color:#f87171;font-weight:700;">${pGap > 0 ? '+' : ''}${pGap}ח</span>` : ''}
+          <button class="btn-sm btn-red" style="font-size:0.64rem;padding:2px 8px;" onclick="removeVariant(${mi},${vi})">✕</button>
+        </div>
+        ${(v.items || []).map((it, ii) => {
+          const role = itemRole((meal.items || [])[ii] || it);
+          return `<div style="display:flex;align-items:center;gap:6px;padding:3px 0;flex-wrap:wrap;">
+            <span style="font-size:0.62rem;color:#666;min-width:44px;">${ROLE_LABEL[role]}</span>
+            <input value="${esc(it.food || '')}" placeholder="מקור ${ROLE_LABEL[role]}"
+              onchange="swapVariantItem(${mi},${vi},${ii},this.value)"
+              style="flex:2;min-width:100px;padding:4px 8px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:6px;color:#fff;font-family:'Heebo';font-size:0.76rem;"/>
+            <span style="font-size:0.72rem;color:var(--gold);min-width:62px;">${esc(it.quantity || '—')}</span>
+            <span style="font-size:0.68rem;color:#777;">${Math.round(it.calories || 0)}קל׳</span>
+          </div>`;
+        }).join('')}
+      </div>`;
+    }).join('');
+
+    return `<div style="margin-top:8px;">
+      ${vars.length ? `<div style="font-size:0.7rem;color:#7ec8ff;font-weight:700;">🔀 ${optionCount(meal)} אופציות — המתאמן יבחר אחת</div>` : ''}
+      ${rows}
+      ${(meal.items || []).length
+        ? `<button class="add-link" style="color:#7ec8ff;" onclick="addVariant(${mi})">+ הוסף אופציה</button>`
+        : ''}
+    </div>`;
+  }
+
   function addMeal()       { nutritionPlan.push({meal:'',items:[]}); renderNutritionEditor(); nutriTouched(); }
   function removeMeal(i)   { nutritionPlan.splice(i,1); renderNutritionEditor(); nutriTouched(); }
   function addItem(mi)     { nutritionPlan[mi].items.push({food:'',quantity:'',calories:0,protein:0,carbs:0,fat:0}); renderNutritionEditor(); nutriTouched(); }

@@ -1665,6 +1665,9 @@
   let _coachReferralReward  = '';
   let clientDebtBalance     = 0;     // surfaced on the home launcher
   let altChoices          = {};
+  /* בחירת אופציית ארוחה. המפתח כולל את התאריך, ולכן הבחירה
+     תקפה ליום הנוכחי בלבד ומתאפסת מעצמה מחר — בלי קוד ניקוי. */
+  let mealPick = {};
   let openAltPanelKey     = null;
   let nutriMeal           = 'בוקר';
   let selectedFood        = null;
@@ -4422,6 +4425,13 @@ ${foodList || 'אין פריטים'}
     renderNutriBody();
   }
 
+  /* בחירת אופציית ארוחה. שמירה בזיכרון בלבד — הבחירה תקפה להיום,
+     ומחר הוא בוחר מחדש. זו המטרה של תפריט משתנה. */
+  function pickMeal(key, idx) {
+    mealPick[key] = idx;
+    renderNutriBody();
+  }
+
   function renderNutriBody() {
     const body = document.getElementById('nutri-body');
     const tabs = `
@@ -4455,7 +4465,21 @@ ${foodList || 'אין פריטים'}
       const planHtml = nutritionPlanLocal.map((meal, mi) => {
         if (hasDayTags && meal.day_type && meal.day_type !== 'any' && meal.day_type !== nutriDayType) return '';
         const isLogged = loggedMeals.has(meal.meal);
-        const items = meal.items || [];
+        /* 🔀 ארוחה עם אופציות: המתאמן בוחר גרסה, והבחירה תקפה ליום
+           הנוכחי בלבד. ארוחה בלי variants מתנהגת בדיוק כמו קודם. */
+        const vars = meal.variants || [];
+        const pickKey = `${todayStr()}__${mi}`;
+        const picked = vars.length ? (mealPick[pickKey] || 0) : 0;
+        const items = picked === 0 ? (meal.items || []) : (vars[picked - 1].items || []);
+        const pickerHtml = vars.length ? `
+          <div style="display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 10px;">
+            ${[{label:'אופציה 1'}, ...vars].map((v,vi)=>`
+              <button onclick="pickMeal('${pickKey}',${vi})" style="padding:5px 12px;border-radius:999px;cursor:pointer;
+                font-family:'Heebo';font-size:0.74rem;font-weight:700;
+                border:1px solid ${vi===picked?'var(--orange)':'rgba(255,255,255,0.14)'};
+                background:${vi===picked?'rgba(255,107,0,0.14)':'rgba(255,255,255,0.04)'};
+                color:${vi===picked?'var(--orange)':'#999'};">${esc(v.label||('אופציה '+(vi+1)))}</button>`).join('')}
+          </div>` : '';
         let tot = {cal:0,p:0,c:0,f:0};
         const itemsHtml = items.map((item, ii) => {
           const alt = altChoices[`${mi}_${ii}`];
@@ -4508,6 +4532,7 @@ ${foodList || 'אין פריטים'}
               ${isLogged?'✓ נרשם':'✓ אכלתי'}
             </button>
           </div>
+          ${pickerHtml}
           ${itemsHtml}
           <div style="margin-top:8px;font-size:0.75rem;color:#555;display:flex;gap:12px;flex-wrap:wrap;">
             <span>סה"כ: <strong style="color:${isLogged?'#4ade80':'var(--white)'}">${Math.round(tot.cal)}</strong> קק"ל</span>
