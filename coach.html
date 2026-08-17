@@ -8384,12 +8384,16 @@ ${buildFoodListForPrompt()}
 
   /* הסוויץ' הגלובלי. נגזר מהנתונים ולא נשמר בנפרד: אם קיימת ולו
      ארוחה אחת עם אופציות — הוא דלוק, וכיבויו לא מוחק אותן. */
-  let variableMenu = false;
+  /* שני מקורות למצב הסוויץ': סימון ידני, ונוכחות אופציות בנתונים.
+     חישוב מהנתונים בלבד היה מכבה את הסימון הידני ברינדור הבא —
+     כי בזמן הסימון עדיין אין אופציות — ולכן אי אפשר היה להדליק אותו
+     בכלל. הידני נשמר בנפרד, וההצגה היא איחוד של השניים. */
+  let variableMenu = false, _vmManual = false;
   function syncVariableMenu() {
-    variableMenu = nutritionPlan.some(m => (m.variants || []).length);
+    variableMenu = _vmManual || nutritionPlan.some(m => (m.variants || []).length);
   }
   function toggleVariableMenu() {
-    variableMenu = !variableMenu;
+    _vmManual = !variableMenu;
     renderNutritionEditor();
   }
 
