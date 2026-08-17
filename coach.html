@@ -7292,7 +7292,8 @@ Bro Split: 6-8 תרגילים לשריר, דגש על מבודדים, ניתן 2
       statusEl.textContent = `✓ ${plan.length} ימי אימון נבנו — כל התרגילים זוהו ✓`;
     } catch (e) {
       statusEl.style.color = '#ff7070';
-      statusEl.textContent = 'שגיאה: ' + e.message;
+      statusEl.textContent = e.message + ' — הטוקנים הוחזרו';
+      await refundTokens(TOKEN_COST_PLAN, 'התוכנית');
     }
     btn.disabled = false; btn.textContent = '✨ צור תוכנית';
   }
@@ -8113,17 +8114,51 @@ ${JSON.stringify(plan)}` }]
     return out.replace(/,(\s*[}\]])/g, '$1');   // פסיק לפני סוגר
   }
 
-  function parseAiJson(text, label) {
-    const match = text.match(/\[[\s\S]*\]/);
-    if (!match) throw new Error(`ה-AI לא החזיר ${label} בפורמט צפוי — נסה שוב`);
-    try { return JSON.parse(match[0]); }
-    catch (e1) {
-      try { return JSON.parse(repairJson(match[0])); }
-      catch (e2) {
-        console.error('AI JSON', e1.message, '| after repair:', e2.message);
-        throw new Error(`התשובה מה-AI לא תקינה. נסה שוב — לרוב זה נפתר בניסיון נוסף.`);
-      }
+  /* תשובה שנחתכה באמצע (הגעה לתקרת הטוקנים) אינה JSON חוקי, ותיקון
+     גרשיים לא יעזור לה. כאן חותכים אחרי האובייקט השלם האחרון וסוגרים
+     את המערך — עדיף תפריט חלקי שאפשר להשלים מאשר כישלון מוחלט. */
+  function salvageJson(str) {
+    let depth = 0, inStr = false, esc = false, lastGood = -1;
+    for (let i = 0; i < str.length; i++) {
+      const ch = str[i];
+      if (esc) { esc = false; continue; }
+      if (ch === '\\') { esc = true; continue; }
+      if (ch === '"') { inStr = !inStr; continue; }
+      if (inStr) continue;
+      if (ch === '{' || ch === '[') depth++;
+      else if (ch === '}' || ch === ']') { depth--; if (depth === 1 && ch === '}') lastGood = i; }
     }
+    return lastGood > 0 ? str.slice(0, lastGood + 1) + ']' : null;
+  }
+
+  function parseAiJson(text, label) {
+    const start = text.indexOf('[');
+    if (start < 0) throw new Error(`ה-AI לא החזיר ${label} בפורמט צפוי`);
+    const body = text.slice(start);
+    /* שלוש רמות: כמו שהוא, אחרי תיקון גרשיים, ואחרי חילוץ מתשובה
+       חתוכה. כל אחת זולה, וכולן יחד חוסכות ניסיון חוזר. */
+    for (const attempt of [s => s, repairJson, salvageJson]) {
+      try {
+        const cand = attempt(body);
+        if (!cand) continue;
+        const out = JSON.parse(cand);
+        if (Array.isArray(out) && out.length) return out;
+      } catch (_) { /* לרמה הבאה */ }
+    }
+    throw new Error(`התשובה מה-AI לא תקינה`);
+  }
+
+  /* החזרת טוקנים כשהבנייה נכשלה. הניכוי נעשה לפני הקריאה, ולכן בלי
+     זה כישלון של המודל היה עולה למאמן כאילו קיבל תוצאה. */
+  async function refundTokens(amount, label) {
+    if (!amount) return;
+    const newBal = coachTokens + amount;
+    const { error } = await sb.from('coach_tokens')
+      .upsert({ coach_email: coachEmail, balance: newBal, updated_at: new Date().toISOString() });
+    if (error) return;
+    coachTokens = newBal;
+    renderTokenBadge();
+    toast(`${amount} טוקנים הוחזרו — ${label} לא נוצר`, 'ok');
   }
 
   async function generateNutritionWithAI() {
@@ -8210,7 +8245,21 @@ ${buildFoodListForPrompt()}
       if (!res.ok) { const e = await res.json(); throw new Error(e.error?.message || `HTTP ${res.status}`); }
       const data = await res.json();
       const text = data.content[0].text.trim();
-      let plan = parseAiJson(text, 'תפריט');
+      let plan;
+      try { plan = parseAiJson(text, 'תפריט'); }
+      catch (e1) {
+        /* ניסיון חוזר אחד. אינו עולה טוקנים למאמן — הניכוי כבר בוצע —
+           וחוסך ממנו ללחוץ שוב על תשובה פגומה אקראית. */
+        statusEl.textContent = 'התשובה חזרה פגומה — מנסה שוב...';
+        const res2 = await aiFetch('', {
+          method: 'POST',
+          headers: { 'Content-Type':'application/json','x-api-key':CLAUDE_KEY,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true' },
+          body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 8192,
+            messages: [{ role: 'user', content: 'החזר שוב את אותו תפריט, JSON תקין בלבד. הקפד שכל מרכאות בתוך ערך יהיו מוברזלות.' + String.fromCharCode(10,10) + text }] }),
+        });
+        if (!res2.ok) throw e1;
+        plan = parseAiJson((await res2.json()).content[0].text.trim(), 'תפריט');
+      }
       if (!Array.isArray(plan) || !plan.length) throw new Error('תפריט ריק');
 
       /* 1. אימות מאקרו — מול היעדים שנלכדו לפני הבנייה, ולפני שהסנכרון
@@ -8245,7 +8294,8 @@ ${buildFoodListForPrompt()}
       toast(`התפריט והיעדים נשמרו ✓`, 'ok');
     } catch(e) {
       statusEl.style.color = '#ff7070';
-      statusEl.textContent = 'שגיאה: ' + e.message;
+      statusEl.textContent = e.message + ' — הטוקנים הוחזרו';
+      await refundTokens(TOKEN_COST_NUTRI, 'התפריט');
     }
     btn.disabled = false; btn.textContent = '✨ בנה תפריט';
   }
