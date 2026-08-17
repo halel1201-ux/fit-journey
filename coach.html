@@ -8305,13 +8305,20 @@ ${buildFoodListForPrompt()}
   /* כמה גרם מהמזון החדש נדרשים כדי לספק אותה כמות מהמאקרו המוביל.
      מחזיר null כשאין במזון את המאקרו הזה — למשל "אורז" כמקור חלבון,
      שהיה מייצר כמות אבסורדית. */
+  /* סף צפיפות מינימלי למאקרו, כדי שמזון ייחשב מקור אמיתי שלו.
+     תקרת גרמים לבדה לא הספיקה: אורז מכיל 2.7 גרם חלבון ל-100, ולכן
+     2,296 גרם ממנו "נותנים" 62 גרם חלבון — מתחת לכל תקרה סבירה
+     ועדיין תוצאה אבסורדית. אותם ספים משמשים את רשימת ההשלמה, כך
+     שכל בחירה משם מצליחה. */
+  const ROLE_MIN = { protein: 8, carbs: 15, fat: 8 };
+
   function convertByRole(targetGrams100, sourceItem, newFood, role) {
     const per100 = +newFood[role] || 0;
-    if (per100 <= 0) return null;
+    if (per100 < (ROLE_MIN[role] || 1)) return null;
     const need = +sourceItem[role] || 0;
     if (need <= 0) return null;
     const grams = Math.round(need / per100 * 100);
-    if (!isFinite(grams) || grams <= 0 || grams > 3000) return null;   // שפיות
+    if (!isFinite(grams) || grams <= 0 || grams > 1500) return null;   // שפיות
     const f = grams / 100;
     return {
       food: newFood.name, quantity: `${grams} גרם`, role,
@@ -8349,12 +8356,37 @@ ${buildFoodListForPrompt()}
     const it = v.items[ii];
     const base = (m.items || [])[ii] || it;
     const role = itemRole(base);
-    const fd = findFood(foodName);
-    if (!fd) { toast('המזון לא נמצא במאגר', 'err'); return; }
-    const conv = convertByRole(null, base, fd, role);
-    if (!conv) { toast(`ל"${fd.name}" אין ${ROLE_LABEL[role]} — בחר מקור ${ROLE_LABEL[role]} אחר`, 'err'); return; }
-    v.items[ii] = conv;
+    const name = String(foodName || '').trim();
+    if (!name) return;
+
+    const fd = findFood(name);
+    const conv = fd ? convertByRole(null, base, fd, role) : null;
+    if (conv) { v.items[ii] = conv; renderNutritionEditor(); nutriTouched(); return; }
+
+    /* המזון לא נמצא במאגר, או שאין בו את המאקרו הנדרש. קודם הקלט
+       פשוט נזרק והשדה חזר לערכו הישן — מה שנראה כאילו הפיצ'ר לא
+       שומר. עכשיו השם נשמר והמאקרו מתאפס לעריכה ידנית, כדי שאפשר
+       יהיה להשתמש גם במזון שאינו במאגר. */
+    v.items[ii] = { ...it, food: name, role, quantity: '', calories: 0, protein: 0, carbs: 0, fat: 0, manual: true };
     renderNutritionEditor(); nutriTouched();
+    toast(fd ? `ל"${fd.name}" אין ${ROLE_LABEL[role]} — מלא כמות ידנית`
+             : 'המזון אינו במאגר — מלא כמות ומאקרו ידנית', 'err');
+  }
+
+  /* רשימת מקורות לפי מאקרו, להשלמה אוטומטית בשדה הגרסה.
+     מסוננת למזונות שבאמת מספקים את המאקרו — כך שכל בחירה מהרשימה
+     מצליחה בהמרה, ואי אפשר לבחור "אורז" כמקור חלבון. */
+  const _roleListCache = {};
+  function roleDatalist(role) {
+    if (_roleListCache[role]) return _roleListCache[role];
+    const min = ROLE_MIN[role] || 1;   // אותו סף של ההמרה, כדי שכל בחירה מהרשימה תצליח
+    const opts = (allFoodItems || [])
+      .filter(f => (+f[role] || 0) >= min)
+      .sort((a, b) => (+b[role] || 0) - (+a[role] || 0))
+      .slice(0, 300)
+      .map(f => `<option value="${esc(f.name)}"></option>`).join('');
+    _roleListCache[role] = `<datalist id="rl-${role}">${opts}</datalist>`;
+    return _roleListCache[role];
   }
 
   /* סוגר את פער הקלוריות מול הבסיס ע"י כיוון מקור הפחמימה.
@@ -8418,17 +8450,28 @@ ${buildFoodListForPrompt()}
           const role = itemRole((meal.items || [])[ii] || it);
           return `<div style="display:flex;align-items:center;gap:6px;padding:3px 0;flex-wrap:wrap;">
             <span style="font-size:0.62rem;color:#666;min-width:44px;">${ROLE_LABEL[role]}</span>
-            <input value="${esc(it.food || '')}" placeholder="מקור ${ROLE_LABEL[role]}"
+            <input value="${esc(it.food || '')}" placeholder="מקור ${ROLE_LABEL[role]}" list="rl-${role}"
               onchange="swapVariantItem(${mi},${vi},${ii},this.value)"
-              style="flex:2;min-width:100px;padding:4px 8px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:6px;color:#fff;font-family:'Heebo';font-size:0.76rem;"/>
-            <span style="font-size:0.72rem;color:var(--gold);min-width:62px;">${esc(it.quantity || '—')}</span>
-            <span style="font-size:0.68rem;color:#777;">${Math.round(it.calories || 0)}קל׳</span>
+              style="flex:2;min-width:100px;padding:4px 8px;background:rgba(255,255,255,0.05);border:1px solid ${it.manual?'rgba(240,162,75,0.5)':'rgba(255,255,255,0.12)'};border-radius:6px;color:#fff;font-family:'Heebo';font-size:0.76rem;"/>
+            ${it.manual
+              ? `<input value="${esc(it.quantity||'')}" placeholder="כמות"
+                   oninput="nutritionPlan[${mi}].variants[${vi}].items[${ii}].quantity=this.value;nutriTouched()"
+                   style="width:70px;padding:4px 6px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:6px;color:#fff;font-family:'Heebo';font-size:0.72rem;"/>
+                 <input type="number" value="${it.calories||''}" placeholder="קל׳"
+                   oninput="nutritionPlan[${mi}].variants[${vi}].items[${ii}].calories=+this.value;nutriTouched()"
+                   style="width:58px;padding:4px 6px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:6px;color:#fff;font-family:'Heebo';font-size:0.72rem;"/>
+                 <input type="number" value="${it[role]||''}" placeholder="${ROLE_LABEL[role]}"
+                   oninput="nutritionPlan[${mi}].variants[${vi}].items[${ii}]['${role}']=+this.value;nutriTouched()"
+                   style="width:58px;padding:4px 6px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:6px;color:#fff;font-family:'Heebo';font-size:0.72rem;"/>`
+              : `<span style="font-size:0.72rem;color:var(--gold);min-width:62px;">${esc(it.quantity || '—')}</span>
+                 <span style="font-size:0.68rem;color:#777;">${Math.round(it.calories || 0)}קל׳</span>`}
           </div>`;
         }).join('')}
       </div>`;
     }).join('');
 
     return `<div style="margin-top:8px;">
+      ${vars.length ? roleDatalist('protein') + roleDatalist('carbs') + roleDatalist('fat') : ''}
       ${vars.length ? `<div style="font-size:0.7rem;color:#7ec8ff;font-weight:700;">🔀 ${optionCount(meal)} אופציות — המתאמן יבחר אחת</div>` : ''}
       ${rows}
       ${(meal.items || []).length
