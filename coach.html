@@ -7180,9 +7180,7 @@ Bro Split: 6-8 תרגילים לשריר, דגש על מבודדים, ניתן 2
       if (!res.ok) { const e = await res.json(); throw new Error(e.error?.message || `HTTP ${res.status}`); }
       const data = await res.json();
       const text = data.content[0].text.trim();
-      const match = text.match(/\[[\s\S]*\]/);
-      if (!match) throw new Error('תשובה לא תקינה מה-AI');
-      const plan = JSON.parse(match[0]);
+      const plan = parseAiJson(text, 'תוכנית אימון');
       if (!Array.isArray(plan) || !plan.length) throw new Error('תוכנית ריקה');
       let unmatchedNames = [];
       trainingPlan = plan.map(day => ({
@@ -8023,6 +8021,47 @@ ${JSON.stringify(plan)}` }]
     } catch(_) { return null; }
   }
 
+  /* ═══ פענוח JSON מהסוכן, עמיד לתקלות ═══
+     המודל מחזיר טקסט, ולפעמים הוא לא JSON חוקי. המקרה שנתקלנו בו:
+     שם מזון שמכיל גרשיים כפולים ממש — "דפי אורז מאסטר שף 22 ס"מ" —
+     סוגר את המחרוזת באמצע ושובר את הפענוח.
+
+     במקום להפיל את כל הבנייה, מנסים לתקן: מעבר תו-תו שמזהה גרש
+     שאינו באמת סוגר מחרוזת (לא בא אחריו , } ] או :) ומברזל אותו.
+     גם פסיק עודף לפני סוגר מטופל. */
+  function repairJson(str) {
+    let out = '', inStr = false, esc = false;
+    for (let i = 0; i < str.length; i++) {
+      const ch = str[i];
+      if (esc) { out += ch; esc = false; continue; }
+      if (ch === '\\') { out += ch; esc = true; continue; }
+      if (ch === '"') {
+        if (!inStr) { inStr = true; out += ch; continue; }
+        /* בתוך מחרוזת: גרש סוגר רק אם אחריו מפריד מבני */
+        let j = i + 1;
+        while (j < str.length && /\s/.test(str[j])) j++;
+        if (j >= str.length || [',', '}', ']', ':'].includes(str[j])) { inStr = false; out += ch; }
+        else out += '\\"';
+        continue;
+      }
+      out += ch;
+    }
+    return out.replace(/,(\s*[}\]])/g, '$1');   // פסיק לפני סוגר
+  }
+
+  function parseAiJson(text, label) {
+    const match = text.match(/\[[\s\S]*\]/);
+    if (!match) throw new Error(`ה-AI לא החזיר ${label} בפורמט צפוי — נסה שוב`);
+    try { return JSON.parse(match[0]); }
+    catch (e1) {
+      try { return JSON.parse(repairJson(match[0])); }
+      catch (e2) {
+        console.error('AI JSON', e1.message, '| after repair:', e2.message);
+        throw new Error(`התשובה מה-AI לא תקינה. נסה שוב — לרוב זה נפתר בניסיון נוסף.`);
+      }
+    }
+  }
+
   async function generateNutritionWithAI() {
     if (!requireEdit()) return;
     const prompt   = document.getElementById('nutri-ai-prompt').value.trim();
@@ -8107,9 +8146,7 @@ ${buildFoodListForPrompt()}
       if (!res.ok) { const e = await res.json(); throw new Error(e.error?.message || `HTTP ${res.status}`); }
       const data = await res.json();
       const text = data.content[0].text.trim();
-      const match = text.match(/\[[\s\S]*\]/);
-      if (!match) throw new Error('תשובה לא תקינה מה-AI');
-      let plan = JSON.parse(match[0]);
+      let plan = parseAiJson(text, 'תפריט');
       if (!Array.isArray(plan) || !plan.length) throw new Error('תפריט ריק');
 
       /* 1. אימות מאקרו — מול היעדים שנלכדו לפני הבנייה, ולפני שהסנכרון
