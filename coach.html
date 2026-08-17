@@ -6948,6 +6948,8 @@ ${exLines || 'אין'}
         <input value="${esc(ex.name)}" oninput="trainingPlan[${di}].exercises[${ei}].name=this.value;showExSugg(this,${di},${ei})" onblur="setTimeout(hideExSugg,160)" autocomplete="off" placeholder="שם תרגיל" style="flex:2;"/>
         <button onclick="openDemoPicker(${di},${ei})" style="flex-shrink:0;padding:5px 10px;background:${ex.video_url?'rgba(255,107,0,0.15)':'rgba(255,255,255,0.04)'};border:1px solid ${ex.video_url?'rgba(255,107,0,0.5)':'rgba(255,255,255,0.1)'};border-radius:6px;color:${ex.video_url?'var(--orange)':'#666'};cursor:pointer;font-size:0.72rem;font-weight:700;font-family:'Heebo',sans-serif;white-space:nowrap;" title="${esc(ex.video_url||'לא הוגדרה הדגמה')}">${ex.video_url?'🎬 הדגמה ✓':'🎬 הדגמה'}</button>
         ${coachExNoteBtn(ex.name)}
+        ${exNeedsVideo(ex) ? `<button onclick="pickExerciseVideo(${di},${ei})" title="אין סרטון לתרגיל הזה — העלה אחד והוא יישמר במאגר שלך"
+          style="padding:3px 7px;background:rgba(240,162,75,0.12);border:1px solid rgba(240,162,75,0.4);border-radius:5px;color:#f0a24b;cursor:pointer;font-size:0.65rem;flex-shrink:0;">🎬+</button>` : ''}
         ${ei < total-1 ? `<button class="btn-link-next${ex.linked_next?' linked':''}" onclick="toggleLinkNext(${di},${ei})" title="חבר לתרגיל הבא לסופר-סט / טריפל-סט">🔗</button>` : ''}
         <div style="display:flex;flex-direction:column;gap:2px;">
           <button onclick="moveExercise(${di},${ei},-1)" ${ei===0?'disabled':''} style="padding:2px 6px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:4px;color:${ei===0?'#444':'#ccc'};cursor:${ei===0?'default':'pointer'};font-size:0.65rem;line-height:1;">▲</button>
@@ -7136,8 +7138,17 @@ ${hasFile ? `
 4. פאמפ + טכניקות
 
 ### 13. שדה notes — חובה לקרוא
-מלא notes רק אם המאמן ציין במפורש טכניקה ליד התרגיל (לדוגמה: "6 איטי 6 מהיר", "Rest Pause", "Isomix", "Drop Set", "איטי בירידה").
-אם המאמן לא כתב דבר מעבר לשם ולסטים — השאר notes ריק לחלוטין "".
+מלא notes בכל תרגיל שיש בו טכניקה או דגש ביצוע.
+
+א) אם המאמן ציין טכניקה ליד התרגיל ("6 איטי 6 מהיר", "Rest Pause", "Isomix",
+   "Drop Set", "איטי בירידה") — העתק אותה ל-notes כלשונה, והוסף הסבר קצר
+   כיצד לבצע אותה בפועל.
+ב) אם המאמן ביקש סגנון אימון שמכתיב טכניקה (פאמפ, כוח, דחיסה) — כתוב ב-notes
+   את אופן הביצוע הנגזר ממנו לאותו תרגיל.
+ג) גם בלי בקשה מפורשת — כתוב ב-notes דגש ביצוע קצר וענייני לתרגיל: קצב,
+   טווח תנועה, או נקודת תשומת לב מרכזית. משפט אחד, לא הרצאה.
+
+השאר notes ריק רק אם באמת אין מה להוסיף מעבר לשם התרגיל.
 
 ### 14. עומס מתקדם (Progressive Overload)
 המערכת שואפת להתקדמות שבועית — כוון להעלאה קטנה במשקל או בחזרות באותו תרגיל מול השבוע הקודם.
@@ -8689,6 +8700,75 @@ ${buildFoodListForPrompt()}
   }
 
   /* ── EXERCISE AUTOCOMPLETE ── */
+  /* ═══ 🎬 מאגר תרגילים פרטי למאמן ═══
+     סרטון שהמאמן מעלה לתרגיל חסר-סרטון נשמר תחת שם התרגיל שאליו
+     הוצמד, ומתמזג ל-exerciseLibrary. כמו במזון: מרגע המיזוג כל
+     המנגנונים — חיפוש, resolveExerciseMedia, כלי התיקון והפרומפט
+     של הסוכן — עובדים איתו בלי שינוי.
+
+     תרגיל בשם שכבר קיים במאגר הכללי דורס אותו ברשימה של המאמן
+     הזה בלבד; כך "לחיצת חזה במוט" יכולה לקבל סרטון משלו. */
+  let coachExercises = [];
+  /* תרגיל בלי סרטון: לא נמצא במאגר, או נמצא ואין לו וידאו. אלה
+     בדיוק המקרים שבהם העלאת סרטון מוסיפה ערך. */
+  function exNeedsVideo(ex) {
+    if (!ex || !ex.name) return false;
+    const m = ex.demo_ex_id ? exerciseLibrary.find(e => e.id === ex.demo_ex_id) : findLibraryMatch(ex.name);
+    return !(m && m.video) && !ex.video_url;
+  }
+
+  function pickExerciseVideo(di, ei) {
+    if (!requireEdit()) return;
+    const ex = trainingPlan[di]?.exercises?.[ei];
+    if (!ex || !ex.name) { toast('הזן שם תרגיל קודם', 'err'); return; }
+    const inp = document.createElement('input');
+    inp.type = 'file'; inp.accept = 'video/*';
+    inp.onchange = async () => {
+      const f = inp.files?.[0]; if (!f) return;
+      toast('מעלה סרטון...', 'ok');
+      const url = await uploadExerciseVideo(f, ex.name, (trainingPlan[di].muscles || [])[0] || '');
+      if (url) renderTrainingEditor();
+    };
+    inp.click();
+  }
+
+  async function loadCoachExercises() {
+    try {
+      const { data } = await sb.from('coach_exercises').select('*').eq('coach_email', coachEmail);
+      coachExercises = data || [];
+      exerciseLibrary = exerciseLibrary.filter(e => !e._mine);
+      for (const c of coachExercises) {
+        const norm = s => String(s || '').trim().toLowerCase();
+        const idx = exerciseLibrary.findIndex(e => norm(e.name) === norm(c.name));
+        const row = { id: 3000000 + c.id, name: c.name, muscle_group: c.muscle_group || '',
+          sub_muscle_group: '', video: c.video_url || '', thumb: c.thumb_url || '',
+          cues: c.cues || (idx >= 0 ? exerciseLibrary[idx].cues : ''), images: [], _mine: true };
+        if (idx >= 0) exerciseLibrary[idx] = row; else exerciseLibrary.push(row);
+      }
+    } catch (e) { coachExercises = []; }
+  }
+
+  /* העלאת סרטון לתרגיל. name הוא שם התרגיל שאליו הוא מוצמד — הוא
+     שמזהה אותו במאגר, ולכן הוא נשמר כלשונו. */
+  async function uploadExerciseVideo(file, name, muscle) {
+    if (!file || !name) return null;
+    const ext = (file.name.split('.').pop() || 'mp4').toLowerCase().replace(/[^a-z0-9]/g, '') || 'mp4';
+    /* מזהה ולא שם התרגיל: Storage דוחה מפתחות שאינם ASCII, ושמות
+       התרגילים בעברית. */
+    const path = `coach-exercises/${Date.now()}_${Math.random().toString(36).slice(2, 7)}.${ext}`;
+    const { error } = await sb.storage.from('coach-assets').upload(path, file, { upsert: true, contentType: file.type || 'video/mp4' });
+    if (error) { toast('שגיאה בהעלאה: ' + error.message, 'err'); return null; }
+    const url = sb.storage.from('coach-assets').getPublicUrl(path).data.publicUrl;
+    const { error: e2 } = await sb.from('coach_exercises').upsert({
+      coach_email: coachEmail, name: String(name).trim(),
+      muscle_group: muscle || null, video_url: url,
+    }, { onConflict: 'coach_email,name' });
+    if (e2) { toast('שגיאה בשמירה: ' + e2.message, 'err'); return null; }
+    await loadCoachExercises();
+    toast(`הסרטון נשמר תחת "${name}" במאגר שלך ✓`, 'ok');
+    return url;
+  }
+
   async function loadExerciseLibrary() {
     try {
       const res = await fetch('strength_exercises.json');
@@ -8714,6 +8794,7 @@ ${buildFoodListForPrompt()}
           sub_muscle_group: '', video: c.video_url || '', thumb: '', cues: c.cues || ''
         }));
       } catch (e) {}
+      await loadCoachExercises();
     } catch(e) { exerciseLibrary = []; selfHealSW(); }
   }
 
