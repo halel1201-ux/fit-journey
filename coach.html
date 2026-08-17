@@ -8259,7 +8259,7 @@ ${buildFoodListForPrompt()}
             oninput="showAltSuggCoach(this,${mi},${ii})"
             onfocus="showAltSuggCoach(this,${mi},${ii})"
             onblur="setTimeout(hideAltSuggCoach,160)"/>
-          <div id="alt-sugg-${mi}-${ii}" style="display:none;position:absolute;top:calc(100% + 2px);right:0;left:0;background:#1e1e1e;border:1px solid rgba(96,180,255,0.3);border-radius:8px;z-index:700;overflow:hidden;box-shadow:0 6px 20px rgba(0,0,0,0.7);max-height:220px;overflow-y:auto;"></div>
+          <div id="alt-sugg-${mi}-${ii}" style="display:none;position:absolute;top:calc(100% + 2px);right:0;left:0;background:#1e1e1e;border:1px solid rgba(96,180,255,0.3);border-radius:8px;z-index:700;overflow:hidden;box-shadow:0 6px 20px rgba(0,0,0,0.7);max-height:340px;overflow-y:auto;"></div>
         </div>
       </div>`:'' ;
     return `<div style="margin-bottom:6px;">
@@ -9009,21 +9009,32 @@ ${buildFoodListForPrompt()}
           .map(fd => ({...fd, _s: macroScore(item, fd)}))
           .filter(fd => fd._s > 0.35)
           .sort((a,b) => b._s - a._s)
-          .slice(0, 7);
+          .slice(0, 25);
       }
     } else {
-      /* Search by name, rank by macro similarity */
+      /* חיפוש לפי שם. כשהמאמן מקליד הוא יודע מה הוא מחפש, ולכן אין
+         סינון לפי דמיון מאקרו — רק דירוג לפיו. התקרה גבוהה בהרבה
+         מ-7: קודם חיפוש כמו "עוף" החזיר שבעה מתוך עשרות, ונראה
+         כאילו המאגר חסר. */
       matches = all
         .filter(fd => fd.name !== currentFoodName && !violatesKosher(mi, fd.name, currentFoodName) && fd.name.includes(q))
         .map(fd => ({...fd, _s: macroScore(item, fd)}))
         .sort((a,b) => b._s - a._s)
-        .slice(0, 7);
+        .slice(0, 60);
     }
 
     const drop = document.getElementById(`alt-sugg-${mi}-${ii}`);
     if (!drop || !matches.length) return;
     drop.innerHTML = '';
     drop.style.display = 'block';
+    /* כותרת ספירה: בלעדיה רשימה נגללת נראית כאילו היא נגמרת אחרי
+       השורות שנכנסות למסך, ומכאן ההרגשה ש"חסרים מזונות במאגר". */
+    if (matches.length > 6) {
+      const h = document.createElement('div');
+      h.style.cssText = 'padding:5px 12px;font-size:0.7rem;color:#888;background:rgba(255,255,255,0.03);position:sticky;top:0;';
+      h.textContent = `${matches.length} תוצאות · גלול לעוד`;
+      drop.appendChild(h);
+    }
     matches.forEach(fd => {
       const el = document.createElement('div');
       el.style.cssText = 'padding:8px 12px;cursor:pointer;font-size:0.82rem;border-bottom:1px solid rgba(255,255,255,0.04);color:#fff;display:flex;align-items:center;gap:8px;';
