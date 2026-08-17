@@ -6820,23 +6820,76 @@ ${exLines || 'אין'}
     trainingPlan[di].muscles=arr;
     btn.classList.toggle('muscle-active');
   }
+  /* ממיר את מה שהמאמן כתב בשדה הסטים למבנה סטים.
+     נוסף על "5x12" ו-"4x8-12" הקיימים, מזוהים כעת גם:
+       20/15/12/10/8   — רשימת חזרות לכל סט, בלי לציין כמות
+       12, 10, 8       — אותו דבר עם פסיקים
+       12-15/10-12     — טווח לכל סט
+       חימום 15/12/10  — הסט הראשון מסומן כחימום
+       2 חימום + 3x10  — שני סטי חימום ואז שלושה עובדים
+     סימון החימום חשוב מעבר לתצוגה: גרף ההתקדמות וחישוב הנפח
+     מתעלמים מסטי חימום, ובלעדיו הם היו מדללים את הממוצע. */
   function parseSetsToArray(spec) {
     if (Array.isArray(spec)) return spec.map(s => ({ set_type: 'working', ...s }));
-    const s = String(spec || '').trim();
-    let m = s.match(/^(\d+)[x×X]([\d\/]+)/);
-    if (m) {
-      const count = Math.min(parseInt(m[1]), 10);
-      const parts = m[2].split('/');
-      return Array.from({length: count}, (_, i) => {
-        const r = parseInt(parts[i] || parts[parts.length-1]) || 10;
-        return { reps_min: r, reps_max: r, recommended_kg: 0, set_type: 'working' };
-      });
+    let s = String(spec || '').trim();
+    if (!s) return DEFAULT_SETS();
+
+    const mk = (min, max, warm) => ({ reps_min: min, reps_max: max, recommended_kg: 0,
+                                      set_type: warm ? 'warmup' : 'working' });
+    const WARM = /חימום|warm\s*-?up|^w\b/i;
+
+    /* "2 חימום" או "חימום x2" בתחילת המחרוזת — סטי חימום נפרדים */
+    let lead = 0;
+    let m = s.match(/^(\d+)\s*(?:סטי?\s*)?(?:חימום|warm\s*-?up)\s*(?:\+|,|·)?\s*/i);
+    if (m) { lead = Math.min(parseInt(m[1]), 5); s = s.slice(m[0].length).trim(); }
+    else {
+      /* "חימום x2" — המספר הוא כמות. חייב x, אחרת "חימום 15/12/10"
+         היה נקרא כ-15 סטי חימום במקום חימום אחד ואז רשימת חזרות. */
+      m = s.match(/^(?:חימום|warm\s*-?up)\s*[x×]\s*(\d+)\s*(?:\+|,|·)?\s*/i);
+      if (m) { lead = Math.min(parseInt(m[1]), 5); s = s.slice(m[0].length).trim(); }
+      else {
+        m = s.match(/^(?:חימום|warm\s*-?up)\s*(?:\+|,|·)?\s*/i);
+        if (m) { lead = 1; s = s.slice(m[0].length).trim(); }
+      }
     }
-    m = s.match(/^(\d+)[x×X](\d+)-(\d+)/);
-    if (m) return Array.from({length: parseInt(m[1])}, () => ({ reps_min: parseInt(m[2]), reps_max: parseInt(m[3]), recommended_kg: 0, set_type: 'working' }));
+    const warmSets = Array.from({ length: lead }, () => mk(12, 15, true));
+    if (!s) return warmSets.length ? warmSets : DEFAULT_SETS();
+
+    /* "5x12" / "5x20/15/12" */
+    m = s.match(/^(\d+)\s*[x×X]\s*([\d\/\-]+)/);
+    if (m) {
+      const count = Math.min(parseInt(m[1]), 12);
+      const parts = m[2].split('/');
+      return warmSets.concat(Array.from({ length: count }, (_, i) => {
+        const p = parts[i] || parts[parts.length - 1] || '';
+        const r = p.split('-').map(x => parseInt(x)).filter(Number.isFinite);
+        return r.length >= 2 ? mk(r[0], r[1]) : mk(r[0] || 10, r[0] || 10);
+      }));
+    }
+
+    /* רשימה חשופה: "20/15/12/10/8" או "12, 10, 8" — כל איבר הוא סט.
+       זה מה שחסר קודם, ולכן הקלט הזה נפל לברירת המחדל של 4 סטים. */
+    const parts = s.split(/[\/,·|]+/).map(x => x.trim()).filter(Boolean);
+    if (parts.length > 1 && parts.every(p => /^\s*(?:חימום|warm\s*-?up|w)?\s*\d+(?:\s*-\s*\d+)?\s*$/i.test(p))) {
+      return warmSets.concat(parts.slice(0, 12).map(p => {
+        const warm = WARM.test(p);
+        const r = p.replace(/[^\d-]/g, '').split('-').map(x => parseInt(x)).filter(Number.isFinite);
+        return r.length >= 2 ? mk(r[0], r[1], warm) : mk(r[0] || 10, r[0] || 10, warm);
+      }));
+    }
+
+    /* מספר בודד = כמות סטים */
     m = s.match(/^(\d+)$/);
-    if (m) return Array.from({length: Math.min(parseInt(m[1]),10)}, () => ({ reps_min: 8, reps_max: 12, recommended_kg: 0, set_type: 'working' }));
-    return [{reps_min:10,reps_max:15,recommended_kg:0,set_type:'working'},{reps_min:8,reps_max:12,recommended_kg:0,set_type:'working'},{reps_min:8,reps_max:12,recommended_kg:0,set_type:'working'},{reps_min:8,reps_max:12,recommended_kg:0,set_type:'working'}];
+    if (m) return warmSets.concat(
+      Array.from({ length: Math.min(parseInt(m[1]), 12) }, () => mk(8, 12)));
+
+    return warmSets.length ? warmSets.concat(DEFAULT_SETS()) : DEFAULT_SETS();
+  }
+  function DEFAULT_SETS() {
+    return [{ reps_min: 10, reps_max: 15, recommended_kg: 0, set_type: 'working' },
+            { reps_min: 8,  reps_max: 12, recommended_kg: 0, set_type: 'working' },
+            { reps_min: 8,  reps_max: 12, recommended_kg: 0, set_type: 'working' },
+            { reps_min: 8,  reps_max: 12, recommended_kg: 0, set_type: 'working' }];
   }
 
   function updateCoachSet(di, ei, si, field, val) {
