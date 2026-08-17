@@ -3,7 +3,7 @@
 // (שני SW-ים נפרדים על "/" גורמים לבעיות הרשמה ל-Push, בעיקר ב-iOS Safari)
 importScripts('https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js');
 
-const CACHE = 'hf-v5'; // bumped: centered full-bleed FJ icon (no border seam) — refresh installed clients
+const CACHE = 'hf-v6'; // bumped: HTML נמשך עם no-cache — מפיל מטמון ישן אצל מי שכבר מותקן
 
 // relative paths — work from root AND from a subpath like /fit-journey/
 const STATIC = [
@@ -71,9 +71,24 @@ self.addEventListener('fetch', e => {
     return;
   }
 
-  /* App HTML/assets → network first (get latest), cache fallback for offline */
+  /* App HTML/assets → network first (get latest), cache fallback for offline.
+
+     דפי HTML נמשכים עם cache:'no-cache' כדי לאלץ אימות מול השרת. בלי זה
+     ה-fetch כאן נענה ממטמון ה-HTTP של הדפדפן, ו-GitHub Pages מגיש
+     max-age=600 — כלומר עד עשר דקות שבהן גם רענון קשיח מחזיר את הגרסה
+     הישנה, והמאמן רואה תיקון שכבר עלה כאילו לא נעשה. no-cache אינו
+     מדלג על המטמון אלא מאמת מולו: השרת מחזיר 304 ריק כשאין שינוי,
+     כלומר גיטהאב מייצר אותו לכל צומת קצה בנפרד, ולכן האימות יחזיר לרוב
+     את הקובץ המלא ולא 304. המחיר מוגבל: הוא נוצר רק בטעינת עמוד בתוך
+     חלון עשר הדקות — מעבר לכך המטמון פג ממילא וההורדה הייתה מתבצעת גם
+     קודם. זה בדיוק המקרה של "רעננתי כדי לראות את התיקון", ולכן ההחלה
+     מצומצמת לניווטים בלבד; נכסים ותת-בקשות ממשיכים כרגיל. */
+  const isDoc = e.request.method === 'GET' &&
+                url.origin === self.location.origin &&
+                e.request.mode === 'navigate';
   e.respondWith(
-    fetch(e.request)
+    fetch(isDoc ? new Request(url.href, { cache: 'no-cache', credentials: 'same-origin' })
+                : e.request)
       .then(res => {
         if (res.ok) {
           const clone = res.clone();
