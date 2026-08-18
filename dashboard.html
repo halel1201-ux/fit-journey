@@ -3381,7 +3381,7 @@
 
   function attachSetVideo(ei, file) {
     if (!file) return;
-    if (file.size > 80 * 1024 * 1024) { showDashToast('הסרטון גדול מדי (מקס׳ 80MB) — צלם קצר יותר'); return; }
+    if (file.size > 50 * 1024 * 1024) { showDashToast('הסרטון גדול מדי (מקס׳ 50MB) — צלם קצר יותר'); return; }
     setVideos[ei] = file;
     const btn = document.getElementById(`setvid-btn-${ei}`);
     if (btn) { btn.textContent = '🎥 ✓'; btn.style.borderColor = '#4ade80'; btn.style.color = '#4ade80'; }
@@ -3573,6 +3573,7 @@
   }
   // returning to the app → snap the countdown to the true remaining time immediately
   document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') refreshChatMessages();
     if (document.visibilityState === 'visible' && workoutSession?.restEndsAt && workoutSession.restRemaining > 0) {
       workoutSession.restRemaining = Math.max(0, Math.round((workoutSession.restEndsAt - Date.now()) / 1000));
       updateRestBanner();
@@ -5978,16 +5979,47 @@ ${foodList || 'אין פריטים'}
       }).subscribe();
   }
 
+  /* Realtime לבדו אינו אמין בנייד: הסוקט נסגר כשהאפליקציה עוברת לרקע,
+     והודעות שנשלחו בינתיים פשוט לא הגיעו. ההודעות נטענו מהשרת פעם אחת
+     בלבד בעליית העמוד, ולכן פתיחת הצ'אט הציגה מצב ישן והמתאמן חשב
+     שהצ'אט "לא עובד". כעת מרעננים מהשרת בכל פתיחה, בכל חזרה מרקע,
+     וכל 15 שניות בזמן שהצ'אט פתוח. Realtime נשאר המסלול המהיר; זהו
+     גיבוי שמבטיח שההודעה תגיע גם כשהוא נופל.
+     סימוני ה"נקרא" לא נוגעים כאן, אחרת הבאדג' היה מתאפס בכל רענון. */
+  let _chatRefreshing = false, _chatPoll = null;
+  async function refreshChatMessages() {
+    if (_chatRefreshing || !clientData?.coach_email) return;
+    _chatRefreshing = true;
+    try {
+      const [prv, grp] = await Promise.all([
+        sb.from('messages').select('*')
+          .eq('coach_email', clientData.coach_email).eq('client_email', currentEmail)
+          .order('created_at', { ascending: true }).limit(100),
+        sb.from('group_messages').select('*')
+          .eq('coach_email', clientData.coach_email)
+          .order('created_at', { ascending: true }).limit(100),
+      ]);
+      if (prv.data) chatMessages  = prv.data;
+      if (grp.data) groupMessages = grp.data;
+      if (document.getElementById('chat-overlay')?.classList.contains('open')) renderOverlayMsgs();
+      updateFabBadge();
+    } catch (e) { /* נפילת רשת — הסקר הבא ינסה שוב */ }
+    _chatRefreshing = false;
+  }
+
   /* ── Open / Close / Switch ── */
   function openChat(tab) {
     activeChatTab = tab || 'private';
     document.getElementById('chat-overlay').classList.add('open');
     document.body.style.overflow = 'hidden';
     switchChatTab(activeChatTab, false);
+    refreshChatMessages();
+    if (!_chatPoll) _chatPoll = setInterval(refreshChatMessages, 15000);
   }
   function closeChat() {
     document.getElementById('chat-overlay').classList.remove('open');
     document.body.style.overflow = '';
+    if (_chatPoll) { clearInterval(_chatPoll); _chatPoll = null; }
     updateFabBadge();
   }
   function switchChatTab(tab, doRender) {
@@ -6084,11 +6116,31 @@ ${foodList || 'אין פריטים'}
     wrap.scrollTop = wrap.scrollHeight;
   }
 
+  /* מפתחות ב-Storage חייבים להיות ASCII. מייל לא-לטיני הפיל את ההעלאה
+     בשקט והקובץ נעלם — בדיוק כפי שקרה בתיעוד סט ותוקן שם. אותו כלל
+     חייב לחול על כל נתיב העלאה, אחרת התקלה חוזרת דרך הפתח הבא. */
+  function storageWho() {
+    const e = currentEmail || '';
+    const clean = e.replace(/[^A-Za-z0-9._@-]/g, '');
+    if (clean.replace(/[^A-Za-z0-9]/g, '').length >= 3) return clean;
+    let h = 0; for (const ch of e) h = ((h << 5) - h + ch.charCodeAt(0)) | 0;
+    return 'c' + Math.abs(h).toString(36);
+  }
+
   /* ── File attach ── */
   function attachOvFile() {
     const file = document.getElementById('chat-ov-file-inp').files[0];
     if (!file) return;
-    if (file.size > 10*1024*1024) { alert('קובץ גדול מדי — מקסימום 10MB'); return; }
+    /* 10MB חסם למעשה כל סרטון מטלפון, ולכן סרטונים פשוט לא הגיעו למאמן. */
+    /* 50MB היא המגבלה בפועל של האחסון — נמדדה מול השרת: 52,428,800 בתים
+       עוברים, בית אחד מעל נדחה ב-EntityTooLarge. כל מספר גבוה מזה בדפדפן
+       הוא הבטחה שקרית: הסרטון עולה, נכשל בסוף, והמתאמן חושב ששלח. */
+    const CAP = 50 * 1024 * 1024;
+    if (file.size > CAP) {
+      alert(`הקובץ גדול מדי (${(file.size/1048576).toFixed(0)}MB) — מקסימום 50MB.` +
+            (file.type.startsWith('video/') ? ' צלם סרטון קצר יותר.' : ''));
+      return;
+    }
     chatOvFileAttach = file;
     const btn = document.getElementById('btn-ov-file');
     btn.classList.add('has-file'); btn.title = '📎 ' + file.name;
@@ -6125,7 +6177,7 @@ ${foodList || 'אין פריטים'}
   async function sendVoiceNote(blob) {
     if (!clientData?.coach_email) return;
     const ext = (blob.type.includes('mp4') ? 'm4a' : 'webm');
-    const path = `messages/${currentEmail}/${Date.now()}_voice-note.${ext}`;
+    const path = `messages/${storageWho()}/${Date.now()}_voice-note.${ext}`;
     let fileUrl = null;
     try {
       const { error: upErr } = await sb.storage.from('client-files').upload(path, blob, { upsert: false, contentType: blob.type });
@@ -6151,16 +6203,29 @@ ${foodList || 'אין פריטים'}
     const btn = document.getElementById('btn-ov-send');
     btn.disabled = true;
 
+    /* כישלון העלאה נבלע כאן קודם: ההודעה נשלחה בלי הקובץ, המתאמן ראה
+       בועה יוצאת והניח שהסרטון הגיע — והמאמן לא קיבל דבר. עכשיו כישלון
+       עוצר את השליחה, מציג את הסיבה ומשאיר את הקובץ מצורף לניסיון חוזר. */
     let fileUrl = null, fileName = null;
     if (chatOvFileAttach) {
+      const f = chatOvFileAttach;
+      const big = f.size > 3 * 1024 * 1024;
+      if (big) showDashToast('מעלה ' + (f.size/1048576).toFixed(0) + 'MB — רגע...');
       try {
-        const path = `messages/${currentEmail}/${Date.now()}_${chatOvFileAttach.name.replace(/[^a-zA-Z0-9._-]/g,'-')}`;
-        const { error: upErr } = await sb.storage.from('client-files').upload(path, chatOvFileAttach, { upsert:false });
-        if (!upErr) {
-          const { data: pub } = sb.storage.from('client-files').getPublicUrl(path);
-          fileUrl = pub.publicUrl; fileName = chatOvFileAttach.name;
+        const safeName = f.name.replace(/[^a-zA-Z0-9._-]/g,'-');
+        const path = `messages/${storageWho()}/${Date.now()}_${safeName}`;
+        const { error: upErr } = await sb.storage.from('client-files')
+          .upload(path, f, { upsert:false, contentType: f.type || undefined });
+        if (upErr) {
+          showDashToast('שליחת הקובץ נכשלה: ' + (upErr.message || 'נסה שוב'));
+          btn.disabled = false; return;
         }
-      } catch(e) {}
+        const { data: pub } = sb.storage.from('client-files').getPublicUrl(path);
+        fileUrl = pub.publicUrl; fileName = f.name;
+      } catch(e) {
+        showDashToast('שליחת הקובץ נכשלה — בדוק את החיבור ונסה שוב');
+        btn.disabled = false; return;
+      }
       chatOvFileAttach = null;
       const fBtn = document.getElementById('btn-ov-file');
       fBtn.classList.remove('has-file'); fBtn.title = 'צרף קובץ';
@@ -6168,14 +6233,14 @@ ${foodList || 'אין פריטים'}
       document.getElementById('chat-ov-inp').placeholder = activeChatTab==='private'?'הודעה פרטית למאמן...':'הודעה לקבוצה...';
     }
 
-    document.getElementById('chat-ov-inp').value = '';
-
     if (activeChatTab === 'private') {
       const { data: newMsg, error } = await sb.from('messages').insert({
         coach_email: clientData.coach_email, client_email: currentEmail, sender_email: currentEmail,
         content: text||null, file_url: fileUrl, file_name: fileName,
       }).select().single();
-      if (!error && newMsg && !chatMessages.find(m=>m.id===newMsg.id)) {
+      if (error) { showDashToast('ההודעה לא נשלחה — נסה שוב'); btn.disabled = false; return; }
+      document.getElementById('chat-ov-inp').value = '';
+      if (newMsg && !chatMessages.find(m=>m.id===newMsg.id)) {
         chatMessages.push(newMsg); renderOverlayMsgs();
       }
     } else {
@@ -6184,7 +6249,9 @@ ${foodList || 'אין פריטים'}
         coach_email: clientData.coach_email, sender_email: currentEmail, sender_name: senderName,
         content: text||null, file_url: fileUrl, file_name: fileName,
       }).select().single();
-      if (!error && newMsg && !groupMessages.find(m=>m.id===newMsg.id)) {
+      if (error) { showDashToast('ההודעה לא נשלחה לקבוצה — נסה שוב'); btn.disabled = false; return; }
+      document.getElementById('chat-ov-inp').value = '';
+      if (newMsg && !groupMessages.find(m=>m.id===newMsg.id)) {
         groupMessages.push(newMsg); renderOverlayMsgs();
       }
     }
@@ -7031,7 +7098,7 @@ ${foodList || 'אין פריטים'}
 
   <!-- Input row -->
   <div class="chat-ov-inp-row">
-    <input type="file" id="chat-ov-file-inp" style="display:none;" accept="image/*,.pdf" onchange="attachOvFile()"/>
+    <input type="file" id="chat-ov-file-inp" style="display:none;" accept="image/*,video/*,.pdf" onchange="attachOvFile()"/>
     <button class="btn-ov-file" id="btn-ov-file" onclick="document.getElementById('chat-ov-file-inp').click()" title="צרף קובץ">📎</button>
     <button class="btn-ov-file" id="btn-ov-mic" onclick="toggleVoiceRecord()" title="הקלט הודעה קולית">🎙️</button>
     <input class="chat-ov-inp" id="chat-ov-inp" placeholder="הודעה..."

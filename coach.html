@@ -11343,6 +11343,53 @@ ${buildFoodListForPrompt()}
   ══════════════════════════════════════════════════════ */
   let coachMessages       = [];
   let coachChatRealtime   = null;
+  let _grpPoll            = null;   // סקר גיבוי לצ'אט הקבוצתי בזמן שהוא פתוח
+
+  /* למאמן לא הייתה כלל דרך לשלוח קובץ — לא סרטון הדגמה, לא תמונה, לא PDF.
+     הצד המקבל כבר ידע להציג וידאו ותמונות, כך שרק שלב השליחה חסר.
+     מפתחות ב-Storage חייבים ASCII, ולכן הנתיב מנוקה כאן כמו בשאר
+     נתיבי ההעלאה. */
+  let _coachAttach = { private: null, group: null };
+    /* 50MB היא המגבלה בפועל של האחסון — נמדדה מול השרת: 52,428,800 בתים
+       עוברים, בית אחד מעל נדחה ב-EntityTooLarge. כל מספר גבוה מזה בדפדפן
+       הוא הבטחה שקרית: הסרטון עולה, נכשל בסוף, והמתאמן חושב ששלח. */
+  const COACH_FILE_CAP = 50 * 1024 * 1024;
+
+  function attachCoachFile(inp, kind) {
+    const f = inp.files[0];
+    if (!f) return;
+    if (f.size > COACH_FILE_CAP) {
+      toast(`הקובץ גדול מדי (${(f.size/1048576).toFixed(0)}MB) — מקסימום 50MB`, 'err');
+      inp.value = ''; return;
+    }
+    _coachAttach[kind] = f;
+    const btn = document.getElementById(kind === 'private' ? 'coach-file-btn' : 'grp-file-btn');
+    if (btn) { btn.style.color = 'var(--orange)'; btn.title = '📎 ' + f.name; }
+    toast('📎 ' + f.name + ' — הוסף הודעה ושלח', 'ok');
+  }
+
+  function clearCoachAttach(kind) {
+    _coachAttach[kind] = null;
+    const btn = document.getElementById(kind === 'private' ? 'coach-file-btn' : 'grp-file-btn');
+    if (btn) { btn.style.color = 'var(--muted)'; btn.title = 'צרף קובץ'; }
+    const inp = document.getElementById(kind === 'private' ? 'coach-chat-file-inp' : 'coach-grp-file-inp');
+    if (inp) inp.value = '';
+  }
+
+  /* מחזיר {url,name} או null. כישלון מדווח ואינו נבלע — שליחה בלי הקובץ
+     גרועה יותר מכישלון גלוי, כי שני הצדדים מניחים שהקובץ עבר. */
+  async function uploadCoachChatFile(f) {
+    const who = (coachEmail || '').replace(/[^A-Za-z0-9._@-]/g, '') || 'coach';
+    const safe = f.name.replace(/[^a-zA-Z0-9._-]/g, '-');
+    const path = `messages/${who}/${Date.now()}_${safe}`;
+    try {
+      if (f.size > 3 * 1024 * 1024) toast('מעלה ' + (f.size/1048576).toFixed(0) + 'MB...', 'ok');
+      const { error } = await sb.storage.from('client-files')
+        .upload(path, f, { upsert: false, contentType: f.type || undefined });
+      if (error) { toast('העלאת הקובץ נכשלה: ' + error.message, 'err'); return null; }
+      return { url: sb.storage.from('client-files').getPublicUrl(path).data.publicUrl, name: f.name };
+    } catch (e) { toast('העלאת הקובץ נכשלה — בדוק חיבור', 'err'); return null; }
+  }
 
   /* ── Chat ── */
   async function loadMessagesForClient(email) {
@@ -11428,6 +11475,8 @@ ${buildFoodListForPrompt()}
           placeholder="כתוב הודעה למתאמן..."
           onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMessageAsCoach();}"
           onfocus="this.style.borderColor='var(--orange)'" onblur="this.style.borderColor='rgba(255,255,255,0.1)'"/>
+        <input type="file" id="coach-chat-file-inp" style="display:none;" accept="image/*,video/*,.pdf" onchange="attachCoachFile(this,'private')"/>
+        <button id="coach-file-btn" onclick="document.getElementById('coach-chat-file-inp').click()" title="צרף קובץ" style="width:38px;height:38px;flex-shrink:0;border-radius:8px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:var(--muted);font-size:1rem;cursor:pointer;">📎</button>
         <button id="coach-mic-btn" onclick="toggleCoachVoice()" title="הקלט הודעה קולית" style="width:38px;height:38px;flex-shrink:0;border-radius:8px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:var(--muted);font-size:1rem;cursor:pointer;">🎙️</button>
         <button class="btn-sm btn-orange" onclick="sendMessageAsCoach()" style="white-space:nowrap;">שלח ←</button>
       </div>`;
@@ -11487,15 +11536,27 @@ ${buildFoodListForPrompt()}
     const email = activeEmail; if (!email) return;
     const inp = document.getElementById('coach-chat-inp');
     const text = inp?.value.trim();
-    if (!text) return;
-    inp.value = '';
+    const att  = _coachAttach.private;
+    if (!text && !att) return;
+
+    let fileUrl = null, fileName = null;
+    if (att) {
+      const up = await uploadCoachChatFile(att);
+      if (!up) return;                       // נכשל — הקובץ נשאר מצורף לניסיון חוזר
+      fileUrl = up.url; fileName = up.name;
+      clearCoachAttach('private');
+    }
+
     const { data: newMsg, error } = await sb.from('messages').insert({
       coach_email:  coachEmail,
       client_email: email,
       sender_email: coachEmail,
-      content:      text,
+      content:      text || null,
+      file_url:     fileUrl,
+      file_name:    fileName,
     }).select().single();
     if (error) { toast('שגיאה: ' + error.message, 'err'); return; }
+    inp.value = '';
     if (newMsg && !coachMessages.find(m => m.id === newMsg.id)) {
       coachMessages.push(newMsg);
       renderCoachChat();
@@ -11505,7 +11566,7 @@ ${buildFoodListForPrompt()}
       const { data: tok } = await sb.from('push_tokens').select('onesignal_player_id').eq('user_email', email).maybeSingle();
       if (tok?.onesignal_player_id) {
         const clientName = clients.find(c=>c.email===email)?.name || email.split('@')[0];
-        await sendPush([tok.onesignal_player_id], '💬 הודעה חדשה מהמאמן', text.slice(0, 80));
+        await sendPush([tok.onesignal_player_id], '💬 הודעה חדשה מהמאמן', text ? text.slice(0, 80) : '📎 קובץ');
       }
     } catch(e) { /* silent */ }
   }
@@ -11624,8 +11685,10 @@ ${buildFoodListForPrompt()}
     _ov.classList.add('open');
     document.body.style.overflow='hidden';
     populateGrpTargetSelect();
-    if (!coachGroupMessages.length) await loadCoachGroupMessages();
-    else renderCoachGroupMsgs();
+    /* קודם נטען רק אם היה ריק — כלומר אחרי הפעם הראשונה הצ'אט הציג
+       מצב ישן, וכל מה שהגיע בזמן ש-Realtime היה מנותק פשוט לא הופיע. */
+    await loadCoachGroupMessages();
+    if (!_grpPoll) _grpPoll = setInterval(loadCoachGroupMessages, 15000);
     coachGroupLastSeen = Date.now();
     ['grp-coach-badge','grp-mob-badge','grp-fab-badge'].forEach(id => {
       const b = document.getElementById(id); if (b) b.style.display = 'none';
@@ -11638,6 +11701,7 @@ ${buildFoodListForPrompt()}
     _ov.style.display = 'none';
     _ov.classList.remove('open');
     document.body.style.overflow='';
+    if (_grpPoll) { clearInterval(_grpPoll); _grpPoll = null; }
     coachGroupLastSeen = Date.now();
   }
 
@@ -11649,8 +11713,10 @@ ${buildFoodListForPrompt()}
       coachGroupMessages = data || [];
     } catch(e) { coachGroupMessages = []; }
     renderCoachGroupMsgs();
-    // Realtime
-    if (coachGroupRealtime) coachGroupRealtime.unsubscribe();
+    /* המנוי נבנה פעם אחת. קודם הוא נבנה מחדש בכל קריאה, ומרגע שיש סקר
+       תקופתי זה היה מנתק ומחבר את הסוקט כל 15 שניות — ודווקא מגדיל את
+       הסיכוי לפספס הודעה. */
+    if (coachGroupRealtime) return;
     coachGroupRealtime = sb.channel('coach-grp-' + coachEmail)
       .on('postgres_changes', { event:'INSERT', schema:'public', table:'group_messages', filter:`coach_email=eq.${coachEmail}` }, p => {
         if (!coachGroupMessages.find(m=>m.id===p.new.id)) {
@@ -11717,7 +11783,16 @@ ${buildFoodListForPrompt()}
     if (!requireEdit()) return;
     const inp  = document.getElementById('coach-grp-inp');
     const text = inp?.value.trim();
-    if (!text) return;
+    const att  = _coachAttach.group;
+    if (!text && !att) return;
+
+    let fileUrl = null, fileName = null;
+    if (att) {
+      const up = await uploadCoachChatFile(att);
+      if (!up) return;                       // נכשל — הקובץ נשאר מצורף
+      fileUrl = up.url; fileName = up.name;
+      clearCoachAttach('group');
+    }
     inp.value = '';
 
     const targetEmail = grpTargetMode === 'specific'
@@ -11730,14 +11805,16 @@ ${buildFoodListForPrompt()}
         coach_email:  coachEmail,
         client_email: targetEmail,
         sender_email: coachEmail,
-        content:      text,
+        content:      text || null,
+        file_url:     fileUrl,
+        file_name:    fileName,
       }).select().single();
       if (error) { toast('שגיאה: ' + error.message, 'err'); return; }
       toast('נשלח ל-' + (clients.find(c=>c.email===targetEmail)?.name||targetEmail.split('@')[0]), 'ok');
       // push למתאמן הספציפי
       try {
         const { data: tok } = await sb.from('push_tokens').select('onesignal_player_id').eq('user_email', targetEmail).maybeSingle();
-        if (tok?.onesignal_player_id) await sendPush([tok.onesignal_player_id], '💬 הודעה חדשה מהמאמן', text.slice(0,80));
+        if (tok?.onesignal_player_id) await sendPush([tok.onesignal_player_id], '💬 הודעה חדשה מהמאמן', text ? text.slice(0,80) : '📎 קובץ');
       } catch(e) {}
       return;
     }
@@ -11745,7 +11822,7 @@ ${buildFoodListForPrompt()}
     // שלח לכל הקבוצה
     const { data: newMsg, error } = await sb.from('group_messages').insert({
       coach_email: coachEmail, sender_email: coachEmail, sender_name: 'מאמן',
-      content: text,
+      content: text || null, file_url: fileUrl, file_name: fileName,
     }).select().single();
     if (error) { toast('שגיאה: ' + error.message, 'err'); return; }
     if (newMsg && !coachGroupMessages.find(m => m.id === newMsg.id)) {
@@ -11758,7 +11835,7 @@ ${buildFoodListForPrompt()}
       if (emails.length) {
         const { data: toks } = await sb.from('push_tokens').select('onesignal_player_id').in('user_email', emails);
         const ids = (toks || []).map(t => t.onesignal_player_id).filter(Boolean);
-        if (ids.length) await sendPush(ids, `👥 ${coachName}`, text.slice(0,80));
+        if (ids.length) await sendPush(ids, `👥 ${coachName}`, text ? text.slice(0,80) : '📎 קובץ');
       }
     } catch(e) {}
   }
@@ -12207,6 +12284,8 @@ ${buildFoodListForPrompt()}
   <!-- INPUT ROW -->
   <div style="flex-shrink:0;padding:8px 12px calc(12px + var(--sab,0px));background:#0d0d0d;display:flex;gap:8px;align-items:center;">
     <input id="coach-grp-inp" style="flex:1;padding:11px 16px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:24px;color:var(--white);font-family:'Heebo',sans-serif;font-size:0.93rem;outline:none;" placeholder="הודעה לכל הקבוצה..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendCoachGroupMsg();}"/>
+    <input type="file" id="coach-grp-file-inp" style="display:none;" accept="image/*,video/*,.pdf" onchange="attachCoachFile(this,'group')"/>
+    <button id="grp-file-btn" onclick="document.getElementById('coach-grp-file-inp').click()" title="צרף קובץ" style="width:42px;height:42px;flex-shrink:0;border-radius:50%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:var(--muted);font-size:1.05rem;cursor:pointer;">📎</button>
     <button onclick="sendCoachGroupMsg()" style="width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,#3B82F6,#8B5CF6);border:none;color:#fff;font-size:1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 12px rgba(59,130,246,0.4);">↑</button>
   </div>
 </div>
