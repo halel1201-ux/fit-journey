@@ -824,7 +824,10 @@
     <div onclick="goDetail('workouts')" style="display:flex;align-items:center;gap:9px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:10px 14px;margin-bottom:16px;cursor:pointer;">
       <span style="font-size:1.1rem;">🚶</span>
       <div style="flex:1;height:8px;background:rgba(255,255,255,0.08);border-radius:5px;overflow:hidden;"><div id="hl-steps-fill" style="width:0%;height:100%;background:linear-gradient(90deg,#4ade80,#22c55e);border-radius:5px;transition:width .4s;"></div></div>
-      <span id="hl-steps-num" style="font-weight:900;font-size:0.9rem;color:#4ade80;">0</span>
+      <span style="white-space:nowrap;color:#4ade80;">
+        <span id="hl-steps-num" style="font-weight:900;font-size:0.9rem;">0</span>
+        <span style="font-size:0.7rem;font-weight:600;opacity:0.75;">צעדים</span>
+      </span>
     </div>
     <div id="hl-cardio" style="display:none;margin-bottom:16px;"></div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px;">
@@ -6451,8 +6454,9 @@ ${foodList || 'אין פריטים'}
           <div style="flex:1;height:8px;background:rgba(255,255,255,0.08);border-radius:5px;overflow:hidden;">
             <div style="width:${(pct * 100).toFixed(0)}%;height:100%;background:linear-gradient(90deg,${accent},${done ? '#22c55e' : '#FF8C00'});border-radius:5px;transition:width .4s;"></div>
           </div>
-          <span style="font-weight:900;font-size:0.9rem;color:${accent};white-space:nowrap;">
-            ${running ? clock : mins + '/' + target}
+          <span style="color:${accent};white-space:nowrap;">
+            <span style="font-weight:900;font-size:0.9rem;">${running ? clock : mins + '/' + target}</span>
+            <span style="font-size:0.7rem;font-weight:600;opacity:0.75;">דקות אירובי</span>
           </span>
         </div>`;
     }
