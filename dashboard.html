@@ -826,9 +826,10 @@
       <div style="flex:1;height:8px;background:rgba(255,255,255,0.08);border-radius:5px;overflow:hidden;"><div id="hl-steps-fill" style="width:0%;height:100%;background:linear-gradient(90deg,#4ade80,#22c55e);border-radius:5px;transition:width .4s;"></div></div>
       <span id="hl-steps-num" style="font-weight:900;font-size:0.9rem;color:#4ade80;">0</span>
     </div>
+    <div id="hl-cardio" style="display:none;margin-bottom:16px;"></div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px;">
       <button class="hl-tile" onclick="goDetail('nutrition','nutri-body')"><span class="hl-ic">🥗</span><span class="hl-lbl">תפריט</span></button>
-      <button class="hl-tile" onclick="goTrainingPlan()"><span class="hl-ic">🏋️</span><span class="hl-lbl">תוכנית שלי</span></button>
+      <button class="hl-tile" onclick="goTrainingPlan()"><span class="hl-ic">🏋️</span><span class="hl-lbl">תוכנית האימונים שלי</span></button>
       <button class="hl-tile" onclick="goDetail('records','rec-body')"><span class="hl-ic">🏆</span><span class="hl-lbl">טבלת שיאים</span></button>
       <button class="hl-tile" onclick="goCommunity()"><span class="hl-ic">🌐</span><span class="hl-lbl">קהילה</span></button>
     </div>
@@ -6278,7 +6279,7 @@ ${foodList || 'אין פריטים'}
 
   function cardioSec() {
     if (!_cardio) return 0;
-    let sec = (_cardio.minutes || 0) * 60;
+    let sec = _cardio.seconds || 0;
     if (_cardio.running_since) {
       sec += Math.max(0, Math.floor((Date.now() - new Date(_cardio.running_since).getTime()) / 1000));
     }
@@ -6288,7 +6289,12 @@ ${foodList || 'אין פריטים'}
   async function loadCardio() {
     const card = document.getElementById('cardio-card');
     if (!card) return;
-    if (!cardioTarget()) { card.style.display = 'none'; return; }   // המאמן לא הגדיר אירובי
+    if (!cardioTarget()) {                                          // המאמן לא הגדיר אירובי
+      card.style.display = 'none';
+      const hl0 = document.getElementById('hl-cardio');
+      if (hl0) hl0.style.display = 'none';
+      return;
+    }
     card.style.display = 'block';
     const today = todayStr();
     const since = new Date(Date.now() - 2 * 86400000).toISOString().slice(0, 10);
@@ -6303,16 +6309,16 @@ ${foodList || 'אין פריטים'}
        על היום שלו ולא גוררים את הזמן להיום, ומגבילים ל-4 שעות כדי
        שלילה שלמה לא תירשם כאירובי. */
     for (const r of rows.filter(x => x.date !== today && x.running_since)) {
-      const add  = Math.floor((Date.now() - new Date(r.running_since).getTime()) / 60000);
-      const mins = Math.min(240, (r.minutes || 0) + Math.max(0, add));
+      const add  = Math.floor((Date.now() - new Date(r.running_since).getTime()) / 1000);
+      const secs = Math.min(14400, (r.seconds || 0) + Math.max(0, add));   // תקרה 4 שעות
       try {
         await sb.from('daily_cardio').upsert(
-          { client_email: currentEmail, date: r.date, minutes: mins, running_since: null,
+          { client_email: currentEmail, date: r.date, seconds: secs, running_since: null,
             updated_at: new Date().toISOString() }, { onConflict: 'client_email,date' });
       } catch (e) { /* ננסה שוב בטעינה הבאה */ }
     }
 
-    _cardio = rows.find(r => r.date === today) || { date: today, minutes: 0, running_since: null };
+    _cardio = rows.find(r => r.date === today) || { date: today, seconds: 0, running_since: null };
     renderCardio();
     if (_cardio.running_since) startCardioTick();
   }
@@ -6321,7 +6327,7 @@ ${foodList || 'אין פריטים'}
     try {
       const { error } = await sb.from('daily_cardio').upsert({
         client_email: currentEmail, date: _cardio.date,
-        minutes: _cardio.minutes || 0, running_since: _cardio.running_since,
+        seconds: _cardio.seconds || 0, running_since: _cardio.running_since,
         updated_at: new Date().toISOString(),
       }, { onConflict: 'client_email,date' });
       if (error) { showDashToast('האירובי לא נשמר — נסה שוב'); return false; }
@@ -6342,15 +6348,18 @@ ${foodList || 'אין פריטים'}
     if (!_cardio) return;
     if (_cardio.running_since) {
       const prev = Object.assign({}, _cardio);
-      const add  = Math.floor((Date.now() - new Date(_cardio.running_since).getTime()) / 60000);
-      _cardio.minutes = (_cardio.minutes || 0) + Math.max(0, add);
+      /* קודם חושב כאן ב-/60000, כלומר בדקות שלמות: ריצה של 40 שניות
+         נצברה כאפס והמונה חזר לאחור בכל עצירה. הצבירה היא בשניות,
+         ולכן המשך אחרי עצירה ממשיך בדיוק מהנקודה שנעצרה. */
+      const add  = Math.floor((Date.now() - new Date(_cardio.running_since).getTime()) / 1000);
+      _cardio.seconds = (_cardio.seconds || 0) + Math.max(0, add);
       _cardio.running_since = null;
       stopCardioTick();
       /* אם השמירה נכשלה מחזירים את המצב הקודם וממשיכים לספור, אחרת
          המתאמן היה מאבד אירובי שכבר עשה בגלל נפילת רשת רגעית. */
       if (!(await saveCardio())) { _cardio = prev; startCardioTick(); renderCardio(); return; }
       renderCardio();
-      showDashToast('אירובי נעצר — ' + (_cardio.minutes || 0) + ' דקות היום');
+      showDashToast('אירובי נעצר — ' + Math.floor((_cardio.seconds || 0) / 60) + ' דקות היום');
     } else {
       const done = Math.floor(cardioSec() / 60);
       const left = Math.max(0, cardioTarget() - done);
@@ -6423,6 +6432,30 @@ ${foodList || 'אין פריטים'}
           </div>
         </div>
       </div>`;
+
+    /* אותו שעון גם במסך הבית, בגרסה מקוצרת — כדי שאפשר יהיה להתחיל
+       אירובי בלי לנווט קודם ללשונית האימונים. שני המקומות מציגים את
+       אותו מצב ומפעילים את אותה פונקציה. */
+    const hl = document.getElementById('hl-cardio');
+    if (hl) {
+      hl.style.display = 'block';
+      hl.innerHTML = `
+        <div onclick="toggleCardio()" style="display:flex;align-items:center;gap:10px;background:rgba(255,255,255,0.04);border:1px solid ${running ? 'rgba(255,107,0,0.45)' : 'rgba(255,255,255,0.08)'};border-radius:12px;padding:8px 14px;cursor:pointer;">
+          <svg viewBox="0 0 120 120" width="34" height="34" class="${running ? 'cardio-beat' : ''}" style="flex-shrink:0;">
+            <path d="M60,106 C18,78 6,56 6,39 A27,27 0 0,1 60,31 A27,27 0 0,1 114,39 C114,56 102,78 60,106 Z"
+                  fill="rgba(248,113,113,0.12)" stroke="${accent}" stroke-width="6" stroke-linejoin="round"/>
+            <circle cx="60" cy="${CY}" r="${R}" fill="none" stroke="rgba(255,255,255,0.18)" stroke-width="5"/>
+            <circle cx="60" cy="${CY}" r="${R}" fill="none" stroke="${accent}" stroke-width="5" stroke-linecap="round"
+                    stroke-dasharray="${(C * pct).toFixed(1)} ${C.toFixed(1)}" transform="rotate(-90 60 ${CY})"/>
+          </svg>
+          <div style="flex:1;height:8px;background:rgba(255,255,255,0.08);border-radius:5px;overflow:hidden;">
+            <div style="width:${(pct * 100).toFixed(0)}%;height:100%;background:linear-gradient(90deg,${accent},${done ? '#22c55e' : '#FF8C00'});border-radius:5px;transition:width .4s;"></div>
+          </div>
+          <span style="font-weight:900;font-size:0.9rem;color:${accent};white-space:nowrap;">
+            ${running ? clock : mins + '/' + target}
+          </span>
+        </div>`;
+    }
   }
 
   /* ── Check-in ── */
