@@ -4925,6 +4925,11 @@ ${exLines || 'אין'}
         <div id="client-logs-wrap"><div style="color:#444;font-size:0.85rem;">טוען...</div></div>
       </div>
 
+      <div class="sec-card" id="cardio-editor-card">
+        <div class="sec-card-title">❤️ אירובי ויומן שנה</div>
+        <div id="cardio-editor"><div style="color:#444;font-size:0.85rem;padding:10px 0;">טוען...</div></div>
+      </div>
+
       <div class="sec-card">
         <div class="sec-card-title">🔄 הסייקל שלי</div>
         <div id="cycle-editor"><div style="color:#444;font-size:0.85rem;padding:10px 0;">טוען...</div></div>
@@ -4968,6 +4973,143 @@ ${exLines || 'אין'}
     loadBodyAlbum(client.email);
     loadMessagesForClient(client.email);
     loadCheckinsForClient(client.email);
+    loadCardioForClient(client.email);   // ❤️ אירובי + יומן שנה
+  }
+
+  /* ══ ❤️ אירובי ויומן שנה ══
+     המאמן קובע יעד דקות ליום, רואה את מה שהמתאמן צבר, ומקבל יומן שנה
+     שמסמן לכל יום אם בוצע אימון (ואיזה) ואם בוצע אירובי. הנתונים
+     נקראים משתי טבלאות קיימות — workout_logs ו-daily_cardio — ואין
+     כאן שום כתיבה מלבד יעד הדקות עצמו. */
+  let _cardioRows = [], _cardioLogs = [], _cardioYear = new Date().getFullYear();
+
+  async function loadCardioForClient(email) {
+    const wrap = document.getElementById('cardio-editor');
+    if (!wrap) return;
+    const from = _cardioYear + '-01-01', to = _cardioYear + '-12-31';
+    try {
+      const [cardio, logs] = await Promise.all([
+        sb.from('daily_cardio').select('date,minutes')
+          .eq('client_email', email).gte('date', from).lte('date', to),
+        sb.from('workout_logs').select('log_date,day_name')
+          .eq('client_email', email).gte('log_date', from).lte('log_date', to),
+      ]);
+      _cardioRows = cardio.data || [];
+      _cardioLogs = logs.data || [];
+    } catch (e) { _cardioRows = []; _cardioLogs = []; }
+    renderCardioEditor();
+  }
+
+  async function saveCardioTarget() {
+    if (!requireEdit()) return;
+    const raw = document.getElementById('cardio-target-inp')?.value;
+    const val = raw === '' ? null : Math.max(0, Math.min(300, parseInt(raw) || 0));
+    const { error } = await sb.from('clients')
+      .update({ cardio_daily_min: val || null }).eq('email', activeEmail);
+    if (error) { toast('שגיאה: ' + error.message, 'err'); return; }
+    const c = clients.find(x => x.email === activeEmail);
+    if (c) c.cardio_daily_min = val || null;
+    toast(val ? 'יעד אירובי: ' + val + ' דקות ליום' : 'האירובי בוטל למתאמן הזה', 'ok');
+    renderCardioEditor();
+  }
+
+  function changeCardioYear(delta) {
+    _cardioYear += delta;
+    loadCardioForClient(activeEmail);
+  }
+
+  function renderCardioEditor() {
+    const wrap = document.getElementById('cardio-editor');
+    if (!wrap) return;
+    const client = clients.find(c => c.email === activeEmail);
+    const target = Number(client?.cardio_daily_min) || 0;
+
+    const cardioBy = {}; _cardioRows.forEach(r => { cardioBy[r.date] = r.minutes || 0; });
+    const workBy   = {}; _cardioLogs.forEach(r => {
+      (workBy[r.log_date] = workBy[r.log_date] || []).push(r.day_name || 'אימון');
+    });
+
+    const today     = todayStr();
+    const todayMin  = cardioBy[today] || 0;
+    const totalMin  = Object.values(cardioBy).reduce((a, b) => a + b, 0);
+    const cardioDays = Object.values(cardioBy).filter(m => m > 0).length;
+    const workDays   = Object.keys(workBy).length;
+
+    /* יומן שנה: 12 חודשים, תא ליום. וי ירוק = בוצע אימון, לב אדום =
+       בוצע אירובי. הפירוט המלא יושב ב-title ובלחיצה, כי טקסט ליד כל
+       אחד מ-365 הימים לא היה נקרא. */
+    const MON = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
+    const DOW = ['א','ב','ג','ד','ה','ו','ש'];
+    let cal = '';
+    for (let m = 0; m < 12; m++) {
+      const days = new Date(_cardioYear, m + 1, 0).getDate();
+      const lead = new Date(_cardioYear, m, 1).getDay();          // 0 = ראשון
+      let cells = DOW.map(x => '<div style="font-size:6.5px;color:#555;text-align:center;line-height:9px;">' + x + '</div>').join('');
+      for (let k = 0; k < lead; k++) cells += '<div></div>';       // ריפוד עד היום בשבוע הנכון
+      for (let d = 1; d <= days; d++) {
+        const iso = _cardioYear + '-' + String(m + 1).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+        const w   = workBy[iso], cm = cardioBy[iso] || 0;
+        const hitCardio = cm > 0 && (!target || cm >= target);
+        const parts = [];
+        if (w)  parts.push('✓ בוצע אימון — ' + w.join(' + '));
+        if (cm) parts.push((hitCardio ? '✓' : '◔') + ' אירובי ' + cm + ' דקות');
+        const tip = iso + (parts.length ? ' — ' + parts.join('  |  ') : ' — אין פעילות');
+        const bg  = w ? 'rgba(74,222,128,0.22)' : 'rgba(255,255,255,0.04)';
+        const bd  = w ? 'rgba(74,222,128,0.5)'  : 'rgba(255,255,255,0.07)';
+        const heart = cm ? '<span style="position:absolute;bottom:-2px;left:0;font-size:6px;line-height:1;color:' +
+                           (hitCardio ? '#f87171' : '#7a4a4a') + ';">❤</span>' : '';
+        cells += '<div onclick="showCardioDay(' + JSON.stringify(tip).replace(/"/g, '&quot;') + ')" title="' +
+                 tip.replace(/"/g, '&quot;') + '" style="position:relative;width:13px;height:13px;border-radius:3px;' +
+                 'background:' + bg + ';border:1px solid ' + bd + ';font-size:8px;line-height:11px;text-align:center;' +
+                 'color:#4ade80;cursor:pointer;">' + (w ? '✓' : '') + heart + '</div>';
+      }
+      cal += '<div><div style="font-size:0.66rem;color:#888;margin-bottom:4px;font-weight:700;">' + MON[m] +
+             '</div><div style="display:grid;grid-template-columns:repeat(7,13px);gap:2px;">' + cells + '</div></div>';
+    }
+
+    wrap.innerHTML = `
+      <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin-bottom:14px;">
+        <div>
+          <label style="display:block;font-size:0.72rem;color:#888;margin-bottom:4px;">יעד אירובי יומי (דקות)</label>
+          <input id="cardio-target-inp" type="number" min="0" max="300" value="${target || ''}" placeholder="ללא"
+            style="width:110px;padding:8px 10px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:#fff;font-family:'Heebo',sans-serif;"/>
+        </div>
+        <button class="btn-sm btn-orange" onclick="saveCardioTarget()">שמור יעד</button>
+        <div style="font-size:0.72rem;color:#666;max-width:260px;line-height:1.5;">
+          ריק = לא מוצג למתאמן. אחרת יופיע אצלו שעון שהוא מפעיל ועוצר.
+        </div>
+      </div>
+
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;">
+        ${[['אירובי היום', todayMin + (target ? ' / ' + target : '') + ' דק', todayMin && (!target || todayMin >= target) ? '#4ade80' : '#fff'],
+             ['ימי אירובי בשנה', cardioDays, '#f87171'],
+             ['ימי אימון בשנה', workDays, '#4ade80'],
+             ['סה"כ דקות אירובי', totalMin, '#fff']]
+            .map(x => '<div style="flex:1;min-width:104px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:9px 11px;">' +
+                      '<div style="font-size:0.66rem;color:#888;">' + x[0] + '</div>' +
+                      '<div style="font-weight:900;font-size:1.05rem;color:' + x[2] + ';">' + x[1] + '</div></div>').join('')}
+      </div>
+
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:8px;">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <button class="btn-sm btn-outline" onclick="changeCardioYear(-1)" style="padding:3px 9px;">‹</button>
+          <span style="font-weight:900;color:#fff;">${_cardioYear}</span>
+          <button class="btn-sm btn-outline" onclick="changeCardioYear(1)" style="padding:3px 9px;">›</button>
+        </div>
+        <div style="font-size:0.68rem;color:#777;display:flex;gap:12px;flex-wrap:wrap;">
+          <span><span style="color:#4ade80;">✓</span> בוצע אימון</span>
+          <span><span style="color:#f87171;">❤</span> בוצע אירובי</span>
+        </div>
+      </div>
+      <div id="cardio-day-detail" style="font-size:0.76rem;color:#aaa;min-height:18px;margin-bottom:8px;">
+        לחץ על יום ביומן כדי לראות מה בוצע בו
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:14px;">${cal}</div>`;
+  }
+
+  function showCardioDay(txt) {
+    const el = document.getElementById('cardio-day-detail');
+    if (el) el.textContent = txt;
   }
 
   /* ── אלבום התקדמות (תמונות גוף) ── */
