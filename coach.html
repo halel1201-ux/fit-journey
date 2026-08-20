@@ -4906,6 +4906,11 @@ ${exLines || 'אין'}
             <span class="attach-filename" id="nutri-fname" style="display:none;"></span>
             <button class="btn-attach-clr" id="nutri-fclr" type="button" onclick="clearNutriAttach()" style="display:none;" title="הסר קובץ">✕</button>
           </div>
+          <label style="display:flex;align-items:center;gap:8px;margin-top:10px;cursor:pointer;font-size:0.8rem;color:#ccc;min-height:32px;">
+            <input type="checkbox" id="nutri-ai-variants" style="width:17px;height:17px;accent-color:var(--orange);cursor:pointer;"/>
+            🔀 שהסוכן יבנה גם אופציות מלאות לכל ארוחה
+            <span style="font-size:0.7rem;color:#777;">(ארוחה חלופית שלמה, לא רק החלפת מוצר)</span>
+          </label>
           <div style="display:flex;align-items:center;gap:10px;margin-top:8px;flex-wrap:wrap;">
             <button class="btn-sm btn-orange" id="nutri-ai-btn" onclick="generateNutritionWithAI()">✨ בנה תפריט</button>
             <span style="font-size:0.7rem;color:#666;font-weight:700;"><svg width="26" height="14" viewBox="0 0 30 16" xmlns="http://www.w3.org/2000/svg" style="vertical-align:middle;display:inline-block;margin-left:2px;"><rect x="0" y="0" width="25" height="16" rx="3" fill="#FF6B00"/><rect x="25.5" y="5" width="4" height="6" rx="1.5" fill="#FF6B00"/><text x="12.5" y="11.5" font-family="Arial Black,sans-serif" font-size="7.5" font-weight="900" fill="#000" text-anchor="middle">FJ</text></svg> 150 טוקנים</span>
@@ -8142,6 +8147,32 @@ BCAA אבקה|40|4|6|0
     if (kcal && (p*4)/kcal >= 0.30) return 'protein';
     return c >= f ? 'carbs' : 'fat';
   }
+  /* הסוכן עלול להחזיר variants חלקיים או ריקים. גרסה בלי מזונות תציג
+     למתאמן אופציה ריקה שאי אפשר לבחור, ולכן היא נזרקת כאן ולא מגיעה
+     למסך. הכמות מוגבלת לשלוש — מעבר לזה זו רשימה שאי אפשר להחליט בה. */
+  function normalizeAgentVariants(plan) {
+    let kept = 0, dropped = 0;
+    for (const m of plan) {
+      if (!Array.isArray(m.variants)) { delete m.variants; continue; }
+      const good = [];
+      for (const v of m.variants) {
+        const items = Array.isArray(v && v.items) ? v.items.filter(x => x && x.food) : [];
+        if (!items.length) { dropped++; continue; }
+        good.push({
+          label: (v.label || '').trim() || ('אופציה ' + (good.length + 2)),
+          items: items.map(x => ({
+            food: String(x.food), quantity: x.quantity || '',
+            calories: +x.calories || 0, protein: +x.protein || 0,
+            carbs: +x.carbs || 0, fat: +x.fat || 0, role: itemRole(x),
+          })),
+        });
+        kept++;
+      }
+      if (good.length) m.variants = good.slice(0, 3); else delete m.variants;
+    }
+    return { kept, dropped };
+  }
+
   function applyAgentAlternatives(plan) {
     let added = 0, dropped = 0;
     for (const meal of plan) {
@@ -8306,6 +8337,10 @@ ${JSON.stringify(plan)}` }]
   async function generateNutritionWithAI() {
     if (!requireEdit()) return;
     const prompt   = document.getElementById('nutri-ai-prompt').value.trim();
+    /* אופציות מלאות מכפילות בערך את אורך התשובה. לכן זו בחירה של
+       המאמן ולא ברירת מחדל, והתקרה עולה רק כשהיא נדרשת — אחרת
+       התשובה הייתה נקטעת באמצע ונשענת על חילוץ. */
+    const wantVariants = !!document.getElementById('nutri-ai-variants')?.checked;
     const statusEl = document.getElementById('nutri-ai-status');
     const btn      = document.getElementById('nutri-ai-btn');
     if (!prompt) { statusEl.style.color='#ff7070'; statusEl.textContent='יש לתאר את המטרה קודם'; return; }
@@ -8329,7 +8364,7 @@ ${JSON.stringify(plan)}` }]
         headers: { 'Content-Type':'application/json','x-api-key':CLAUDE_KEY,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true' },
         body: JSON.stringify({
           model: 'claude-sonnet-4-6',
-          max_tokens: 4096,
+          max_tokens: wantVariants ? 8192 : 4096,
           messages: [{ role: 'user', content: _withFile(
 `אתה NUTRITION AI — תזונאי ספורט ברמה הגבוהה ביותר (RD, CISSN), מומחה תזונת פיזיק/פיתוח גוף, מערכת HF Coaching. המטרה: ללוות לגוף חטוב, שרירי ואסתטי — אוכל איכותי בלבד בסגנון מפתחי גוף.
 
@@ -8378,10 +8413,23 @@ ${hasFile ? '' : `4. התאם כמויות וערכים מדויקים למשק�
 טז) ירקות/סיבים + מים כבסיס בארוחות עיקריות (ירק ירוקי חופשי).
 יז) לכל ארוחה הוסף שדה "day_type": "any" (ברירת מחדל — מוצג בכל יום) · "training" (ארוחות לפני/אחרי אימון — יום אימון בלבד) · "rest" (יום מנוחה) · "target" (יום שריר-מטרה לריקומפ).
 `}
+${wantVariants ? `
+## 🔀 אופציות מלאות לכל ארוחה — חובה
+לכל ארוחה הוסף שדה "variants": מערך של 1–2 גרסאות חלופיות **שלמות** לאותה ארוחה,
+במבנה {"label":"אופציה 2","items":[ ...אותו מבנה items... ]}.
+כל גרסה חייבת:
+1. להגיע לאותם מאקרו כמו הארוחה הבסיסית — סטייה של עד 7% בקלוריות ובחלבון.
+2. לשמור על כל חוקי הארוחה: כשרות, בוקר פרווה/חלבי, לפני-שינה ללא פחמימות.
+3. להיות שונה באמת — מזונות אחרים, לא אותו מזון בכמות אחרת.
+4. להשתמש אך ורק במזונות מהרשימה המאושרת ומהמאגר.
+זה **נוסף** ל-protein_options/carbs_options/fat_options ואינו מחליף אותם:
+ה-options הם החלפת מוצר בודד, ו-variants הם ארוחה חלופית שלמה.${hasFile ? `
+במצב חילוץ מקובץ: בנה variants רק אם הקובץ עצמו מציג ארוחה חלופית שלמה. אל תמציא.` : ''}
+` : ''}
 ${buildFoodListForPrompt()}
 
 ## פורמט — החזר JSON בלבד ללא markdown, ללא הסברים:
-[{"meal":"ארוחת בוקר","day_type":"any","items":[{"food":"שיבולת שועל","quantity":"1/2 כוס (40 גרם)","calories":152,"protein":5,"carbs":27,"fat":2.8},{"food":"גבינה לבנה 5% שומן","quantity":"4 כפות (80 גרם)","calories":78,"protein":7.2,"carbs":3.4,"fat":4}],"protein_options":["יוגורט יווני 0%","קוטג׳ 5% שומן","חלבון ביצה"],"carbs_options":["שיבולת שועל","לחם מלא","פריכיות אורז"],"fat_options":["שקדים","אבוקדו","טחינה גולמית"]}]`, _pendingNutriFiles) }]
+[{"meal":"ארוחת בוקר","day_type":"any","items":[{"food":"שיבולת שועל","quantity":"1/2 כוס (40 גרם)","calories":152,"protein":5,"carbs":27,"fat":2.8},{"food":"גבינה לבנה 5% שומן","quantity":"4 כפות (80 גרם)","calories":78,"protein":7.2,"carbs":3.4,"fat":4}],"protein_options":["יוגורט יווני 0%","קוטג׳ 5% שומן","חלבון ביצה"],"carbs_options":["שיבולת שועל","לחם מלא","פריכיות אורז"],"fat_options":["שקדים","אבוקדו","טחינה גולמית"]${wantVariants ? ',"variants":[{"label":"אופציה 2","items":[{"food":"לחם מלא","quantity":"2 פרוסות (60 גרם)","calories":150,"protein":6,"carbs":28,"fat":2},{"food":"חלבון ביצה","quantity":"200 גרם","calories":90,"protein":21,"carbs":2,"fat":0}]}]' : ''}}]`, _pendingNutriFiles) }]
         })
       });
       if (!res.ok) { const e = await res.json(); throw new Error(e.error?.message || `HTTP ${res.status}`); }
@@ -8425,10 +8473,13 @@ ${buildFoodListForPrompt()}
       await ensureLibs();
       const alt = applyAgentAlternatives(plan);
 
+      /* 3. אופציות מלאות: ניקוי מה שהסוכן החזיר */
+      const vr = normalizeAgentVariants(plan);
+
       nutritionPlan = plan;
       renderNutritionEditor();
       statusEl.style.color = chk.bad.length ? '#e0b040' : '#70dd70';
-      statusEl.textContent = `✓ ${plan.length} ארוחות · ${alt.added} חלופות${fixNote}` +
+      statusEl.textContent = `✓ ${plan.length} ארוחות · ${alt.added} חלופות${vr.kept ? ` · ${vr.kept} אופציות` : ''}${fixNote}` +
         (chk.bad.length ? ` — שים לב: ${chk.bad.map(b=>`${b.label} ${b.got}/${b.target}`).join(', ')}` : '');
       // הערכים שנבנו הופכים ליעדי המאקרו של הלקוח
       await saveNutrition(true);
