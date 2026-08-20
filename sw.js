@@ -3,7 +3,7 @@
 // (שני SW-ים נפרדים על "/" גורמים לבעיות הרשמה ל-Push, בעיקר ב-iOS Safari)
 importScripts('https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js');
 
-const CACHE = 'hf-v6'; // bumped: HTML נמשך עם no-cache — מפיל מטמון ישן אצל מי שכבר מותקן
+const CACHE = 'hf-v7'; // bumped: דפים מהמטמון + רענון ברקע — מחליף אימות כפוי שהאט טעינה
 
 // relative paths — work from root AND from a subpath like /fit-journey/
 const STATIC = [
@@ -13,6 +13,7 @@ const STATIC = [
   './admin.html',
   './dashboard.html',
   './food.html',
+  './nutrition-editor.js',   // עורך התזונה המשותף — נטען בכל אחד משני הפאנלים
   './manifest.json',
   './icon-192.png',
   './icon-512.png',
@@ -71,24 +72,42 @@ self.addEventListener('fetch', e => {
     return;
   }
 
-  /* App HTML/assets → network first (get latest), cache fallback for offline.
-
-     דפי HTML נמשכים עם cache:'no-cache' כדי לאלץ אימות מול השרת. בלי זה
-     ה-fetch כאן נענה ממטמון ה-HTTP של הדפדפן, ו-GitHub Pages מגיש
-     max-age=600 — כלומר עד עשר דקות שבהן גם רענון קשיח מחזיר את הגרסה
-     הישנה, והמאמן רואה תיקון שכבר עלה כאילו לא נעשה. no-cache אינו
-     מדלג על המטמון אלא מאמת מולו: השרת מחזיר 304 ריק כשאין שינוי,
-     כלומר גיטהאב מייצר אותו לכל צומת קצה בנפרד, ולכן האימות יחזיר לרוב
-     את הקובץ המלא ולא 304. המחיר מוגבל: הוא נוצר רק בטעינת עמוד בתוך
-     חלון עשר הדקות — מעבר לכך המטמון פג ממילא וההורדה הייתה מתבצעת גם
-     קודם. זה בדיוק המקרה של "רעננתי כדי לראות את התיקון", ולכן ההחלה
-     מצומצמת לניווטים בלבד; נכסים ותת-בקשות ממשיכים כרגיל. */
   const isDoc = e.request.method === 'GET' &&
                 url.origin === self.location.origin &&
                 e.request.mode === 'navigate';
+
+  /* ── דפי HTML: מגישים מהמטמון ומרעננים ברקע ──
+     הבעיה המקורית: ה-fetch כאן נענה ממטמון ה-HTTP של הדפדפן, וגיטהאב
+     מגיש max-age=600 — עד עשר דקות שבהן גם רענון קשיח מחזיר גרסה
+     ישנה, ותיקון שכבר עלה נראה כאילו לא נעשה.
+
+     הפתרון הקודם, אימות כפוי בכל ניווט, תיקן את זה אבל יצר בעיה
+     גדולה יותר: ה-ETag של גיטהאב אינו יציב בין צמתי הקצה, ולכן
+     האימות החזיר את הקובץ המלא כמעט תמיד. coach.html שוקל 830
+     קילובייט — כלומר כל כניסה לפאנל שילמה הורדה מלאה, ובסלולרי זה
+     שניות ארוכות. זה מה שהאט את ההתחברות ואת הטעינה.
+
+     כאן מגישים את העותק השמור מיד — טעינה מיידית — ובמקביל מורידים
+     ברקע ומעדכנים את המטמון. התיקון מופיע בטעינה הבאה במקום להשהות
+     את הנוכחית. waitUntil שומר על ה-Service Worker חי עד שהרענון
+     מסתיים, אחרת הדפדפן היה עלול לקטול אותו באמצע. */
+  if (isDoc) {
+    e.respondWith(
+      caches.open(CACHE).then(async cache => {
+        const cached = await cache.match(e.request);
+        const fresh = fetch(new Request(url.href, { cache: 'no-cache', credentials: 'same-origin' }))
+          .then(res => { if (res.ok) cache.put(e.request, res.clone()); return res; })
+          .catch(() => null);
+        e.waitUntil(fresh);
+        return cached || (await fresh) || cache.match('./login.html');
+      })
+    );
+    return;
+  }
+
+  /* שאר הנכסים → רשת תחילה, מטמון כגיבוי לאופליין */
   e.respondWith(
-    fetch(isDoc ? new Request(url.href, { cache: 'no-cache', credentials: 'same-origin' })
-                : e.request)
+    fetch(e.request)
       .then(res => {
         if (res.ok) {
           const clone = res.clone();
