@@ -5795,14 +5795,29 @@ ${exLines || 'אין'}
     const pwStart   = document.getElementById('e-pw-start')?.value || null;
     const stageDate = document.getElementById('e-stage')?.value || null;
     if (newEmail !== activeEmail) {
+      /* הפאנל של האדמין בדק פורמט וכאן לא — מייל שבור היה עובר לשרת
+         ומחזיר שגיאה גולמית במקום הודעה מובנת. */
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail)) { toast('מייל לא תקין', 'err'); return; }
       const { data: existing } = await sb.from('clients').select('email').eq('email', newEmail).maybeSingle();
       if (existing) { toast('כבר קיים לקוח עם המייל הזה', 'err'); return; }
-      // עדכון המייל בכל הטבלאות בטרנזקציה אחת (RPC בצד ה-DB)
-      const { error: rpcErr } = await sb.rpc('rename_client_email', { p_old: activeEmail, p_new: newEmail });
-      if (rpcErr) { toast('שגיאה בשינוי מייל: ' + rpcErr.message, 'err'); return; }
-      // עדכון משתמש ההתחברות (Supabase Auth) — דרך שרת מאובטח
+      /* סדר הפעולות קריטי כאן. קודם שונה המייל בכל טבלאות הנתונים ורק
+         אחר כך בהתחברות — ולכן כשהשלב השני נדחה (למשל מאמן בלי הרשאה
+         מספקת) הנתונים כבר עברו, והמתאמן נשאר עם נתונים תחת מייל אחד
+         והתחברות תחת אחר. כלומר: לא מצליח להיכנס.
+         ההתחברות משתנה ראשונה, כי היא זו שיכולה להידחות — וכשהיא
+         נדחית שום דבר עוד לא זז. */
       const _r = await adminCall({ action: 'rename_email', old_email: activeEmail, new_email: newEmail });
       if (_r?.error) { toast('שגיאה בעדכון מייל התחברות: ' + _r.error, 'err'); return; }
+      const { error: rpcErr } = await sb.rpc('rename_client_email', { p_old: activeEmail, p_new: newEmail });
+      if (rpcErr) {
+        /* הנתונים לא עברו — מחזירים את ההתחברות למייל הישן, אחרת נוצר
+           אותו חוסר התאמה בדיוק, רק בכיוון ההפוך. */
+        const back = await adminCall({ action: 'rename_email', old_email: newEmail, new_email: activeEmail });
+        toast(back?.error
+          ? `שגיאה בשינוי מייל: ${rpcErr.message} — שים לב: מייל ההתחברות כבר שונה ל-${newEmail} והנתונים נשארו תחת ${activeEmail}. יש להשלים ידנית.`
+          : 'שגיאה בשינוי מייל: ' + rpcErr.message, 'err');
+        return;
+      }
       activeEmail = newEmail;
     }
     const updatePayload = { name, phone, coaching_start: start, coaching_end: end, plan_type: plan,
@@ -8534,10 +8549,10 @@ ${buildFoodListForPrompt()}
     if (!el) return;
     if (!nutritionPlan.length) { el.innerHTML='<div style="color:#444;font-size:0.85rem;padding:8px 0;">אין ארוחות עדיין — לחץ + הוסף ארוחה</div>'; return; }
 
-    const totCal  = Math.round(nutritionPlan.reduce((s,m)=>s+(m.items||[]).reduce((a,i)=>a+(i.calories||0),0),0));
-    const totProt = Math.round(nutritionPlan.reduce((s,m)=>s+(m.items||[]).reduce((a,i)=>a+(i.protein||0),0),0));
-    const totCarb = Math.round(nutritionPlan.reduce((s,m)=>s+(m.items||[]).reduce((a,i)=>a+(i.carbs||0),0),0));
-    const totFat  = Math.round(nutritionPlan.reduce((s,m)=>s+(m.items||[]).reduce((a,i)=>a+(i.fat||0),0),0));
+    const totCal  = planSum('calories');
+    const totProt = planSum('protein');
+    const totCarb = planSum('carbs');
+    const totFat  = planSum('fat');
     const tgCal   = parseInt(document.getElementById('e-cal')?.value)  || 0;
     const tgProt  = parseInt(document.getElementById('e-prot')?.value) || 0;
     const tgCarb  = parseInt(document.getElementById('e-carb')?.value) || 0;
@@ -8568,14 +8583,18 @@ ${buildFoodListForPrompt()}
       <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:0.8rem;font-weight:700;color:#7ec8ff;">
         <input type="checkbox" ${variableMenu?'checked':''} onchange="toggleVariableMenu()"/> 🔀 תפריט משתנה</label>
       <span style="font-size:0.72rem;color:#777;">כמה אופציות לארוחה — המתאמן בוחר אחת ביום</span>
-      ${nutritionPlan.some(m => mealOptNum(m.meal) !== null) ? `<button class="btn-sm btn-outline" style="margin-inline-start:auto;font-size:0.72rem;border-color:rgba(255,215,0,0.5);color:var(--gold);" title="מאחד ארוחות בשם &quot;… אופציה 2&quot; לארוחה אחת עם אופציות" onclick="autoMergeOptions()">🔀 אחד אופציות לפי שם</button>` : ''}
-      <button class="btn-sm btn-outline" style="${nutritionPlan.some(m => mealOptNum(m.meal) !== null) ? '' : 'margin-inline-start:auto;'}font-size:0.72rem;border-color:rgba(255,215,0,0.4);color:var(--gold);" onclick="openFoodAdd('')">➕ מוצר למאגר שלי</button>
+      ${canAutoMerge() ? `<button class="btn-sm btn-outline" style="margin-inline-start:auto;font-size:0.72rem;border-color:rgba(255,215,0,0.5);color:var(--gold);" title="מאחד ארוחות מאותו סוג לארוחה אחת עם אופציות" onclick="autoMergeOptions()">🔀 אחד אופציות</button>` : ''}
+      <button class="btn-sm btn-outline" style="${canAutoMerge() ? '' : 'margin-inline-start:auto;'}font-size:0.72rem;border-color:rgba(255,215,0,0.4);color:var(--gold);" onclick="openFoodAdd('')">➕ מוצר למאגר שלי</button>
     </div>`;
     el.innerHTML = macroBar + vmSwitch + nutritionPlan.map((meal,mi)=>`
       <div class="meal-block${collapsedMeals.has(mi)?' meal-collapsed':''}">
         <div class="meal-block-head">
           <button class="block-toggle" onclick="toggleMealCollapse(${mi})" title="הצג/הסתר ארוחה">▼</button>
           <input value="${esc(meal.meal)}" oninput="nutritionPlan[${mi}].meal=this.value;nutriTouched()" placeholder="שם ארוחה"/>
+          <select onchange="nutritionPlan[${mi}].meal_type=this.value;nutriTouched();renderNutritionEditor()" title="סוג הארוחה — לפיו מתבצע איחוד האופציות, כדי שבוקר לא יתמזג עם צהריים" style="padding:4px 6px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,215,0,0.28);border-radius:6px;color:#fff;font-family:'Heebo',sans-serif;font-size:0.72rem;cursor:pointer;flex-shrink:0;">
+            <option value="" ${!mealKind(meal) ? 'selected' : ''}>סוג ארוחה…</option>
+            ${MEAL_KINDS.map(([v,l]) => `<option value="${v}" ${mealKind(meal)===v?'selected':''}>${l}</option>`).join('')}
+          </select>
           <select onchange="nutritionPlan[${mi}].day_type=this.value;nutriTouched()" title="סוג יום — נקבע איזה יום הארוחה מוצגת למתאמן" style="padding:4px 6px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.14);border-radius:6px;color:#fff;font-family:'Heebo',sans-serif;font-size:0.72rem;cursor:pointer;flex-shrink:0;">
             ${[['any','כל יום'],['training','🏋️ יום אימון'],['rest','😴 יום מנוחה'],['target','🎯 שריר מטרה']].map(([v,l])=>`<option value="${v}" ${(meal.day_type||'any')===v?'selected':''}>${l}</option>`).join('')}
           </select>
@@ -8718,6 +8737,44 @@ ${buildFoodListForPrompt()}
      שצריך לאכול, במקום בחירה אחת מתוך שלוש. המיזוג כאן הופך אותן
      למבנה הנכון בלי להקליד מחדש — במקביל ל-🔗 של הסופר-סט. */
   const OPT_RE = /^(.*?)[\s]*[—\-–:(]+[\s]*אופצי[יה]?ה[\s]*(\d+)[\s)]*$/;
+  /* ארוחה עם אופציות נספרה עד כה לפי items בלבד — כלומר רק אופציה 1,
+     ושאר האופציות לא השפיעו על היעדים כלל. מכיוון שהמתאמן אוכל אופציה
+     אחת ביום ולא את כולן, הערך הנכון לייצוג הארוחה הוא הממוצע על פני
+     האופציות: כך היעד היומי משקף את מה שייצא בפועל, בלי תלות במה
+     שנבחר. אופציות שנבנו נכון קרובות זו לזו ממילא, והממוצע פשוט
+     מונע הטיה לטובת האופציה הראשונה. */
+  function mealAvg(m, f) {
+    const one = arr => (arr || []).reduce((a, i) => a + (+i[f] || 0), 0);
+    const opts = [m.items || [], ...((m.variants || []).map(v => v.items || []))];
+    return opts.reduce((a, it) => a + one(it), 0) / opts.length;
+  }
+  function planSum(f) {
+    return Math.round(nutritionPlan.reduce((s, m) => s + mealAvg(m, f), 0));
+  }
+
+  /* איחוד לפי שם הבסיס לבדו שביר: "בוקר" ו"ארוחת בוקר" נחשבו שונים,
+     ובכיוון השני שתי ארוחות שונות שקיבלו במקרה אותו שם היו מתמזגות.
+     סוג הארוחה הוא שדה מפורש שהמאמן קובע, וההחלטה נשענת עליו.
+     הניחוש מהשם קיים כדי שתפריטים ותיקים יעבדו בלי לתייג ידנית —
+     אבל בחירה מפורשת תמיד גוברת עליו. */
+  const MEAL_KINDS = [
+    ['breakfast', '🌅 בוקר'], ['snack', '🥤 ביניים'], ['pre', '⚡ לפני אימון'],
+    ['lunch', '🍽 צהריים'], ['post', '💪 אחרי אימון'], ['dinner', '🌙 ערב'],
+    ['night', '😴 לילה'],
+  ];
+  function guessMealKind(name) {
+    const t = String(name || '');
+    if (/לפני\s*ה?אימון|pre[\s-]?workout/i.test(t)) return 'pre';
+    if (/אחרי\s*ה?אימון|post[\s-]?workout/i.test(t)) return 'post';
+    if (/לילה|לפני\s*ה?שינה/.test(t)) return 'night';
+    if (/בוקר/.test(t)) return 'breakfast';
+    if (/צהר/.test(t)) return 'lunch';
+    if (/ערב/.test(t)) return 'dinner';
+    if (/ביניים|נשנוש/.test(t)) return 'snack';
+    return '';
+  }
+  const mealKind = m => m.meal_type || guessMealKind(m.meal);
+
   function mealBaseName(name) {
     const m = String(name || '').match(OPT_RE);
     return m ? m[1].trim() : String(name || '').trim();
@@ -8737,6 +8794,12 @@ ${buildFoodListForPrompt()}
     if ((a.day_type || 'any') !== (b.day_type || 'any')) {
       toast('אי אפשר למזג ארוחות עם סוג יום שונה', 'err'); return;
     }
+    /* ההגנה המרכזית: בוקר לא יתמזג עם צהריים גם בלחיצה ידנית. */
+    const ka = mealKind(a), kb = mealKind(b);
+    if (ka && kb && ka !== kb) {
+      const lbl = k => (MEAL_KINDS.find(x => x[0] === k) || [, k])[1];
+      toast(`אי אפשר למזג ${lbl(ka)} עם ${lbl(kb)} — סוג ארוחה שונה`, 'err'); return;
+    }
     a.variants = a.variants || [];
     a.variants.push({
       label: 'אופציה ' + (a.variants.length + 2),
@@ -8752,13 +8815,30 @@ ${buildFoodListForPrompt()}
     toast('מוזג — ' + (a.variants.length + 1) + ' אופציות ב' + a.meal, 'ok');
   }
 
-  /* סורק את כל התפריט ומאחד לפי שם הבסיס. */
+  /* הכפתור מוצג רק כשיש באמת מה לאחד — שתי ארוחות מאותו סוג ואותו
+     יום, או שמות "אופציה N" חוזרים. */
+  function canAutoMerge() {
+    const seen = new Map();
+    for (const m of nutritionPlan) {
+      if (!mealKind(m) && mealOptNum(m.meal) === null) continue;
+      const k = (mealKind(m) || mealBaseName(m.meal)) + '|' + (m.day_type || 'any');
+      seen.set(k, (seen.get(k) || 0) + 1);
+      if (seen.get(k) > 1) return true;
+    }
+    return false;
+  }
+
+  /* סורק את כל התפריט ומאחד לפי סוג הארוחה. */
   function autoMergeOptions() {
     if (!requireEdit()) return;
     const groups = new Map();
     nutritionPlan.forEach((m, i) => {
-      if (mealOptNum(m.meal) === null) return;
-      const key = mealBaseName(m.meal) + '|' + (m.day_type || 'any');
+      /* סוג הארוחה קודם לשם. כשהוא ידוע — נבחר או נוחש — הוא המפתח,
+         ולכן "בוקר" ו"ארוחת בוקר" מתאחדים ובוקר לעולם לא מתמזג עם
+         צהריים. בלי סוג נופלים לשם הבסיס כמקודם. */
+      if (!mealKind(m) && mealOptNum(m.meal) === null) return;
+      const kind = mealKind(m);
+      const key = (kind || mealBaseName(m.meal)) + '|' + (m.day_type || 'any');
       if (!groups.has(key)) groups.set(key, []);
       groups.get(key).push(i);
     });
@@ -8777,10 +8857,14 @@ ${buildFoodListForPrompt()}
     for (let i = 0; i < nutritionPlan.length; i++) {
       if (consumed.has(i)) continue;
       const m = nutritionPlan[i];
-      const key = mealBaseName(m.meal) + '|' + (m.day_type || 'any');
+      const kind = mealKind(m);
+      const key = (kind || mealBaseName(m.meal)) + '|' + (m.day_type || 'any');
       const group = groups.get(key);
-      if (mealOptNum(m.meal) === null || !group || group.length < 2) { out.push(m); continue; }
-      const sorted = [...group].sort((x, y) => mealOptNum(nutritionPlan[x].meal) - mealOptNum(nutritionPlan[y].meal));
+      if (!group || group.length < 2) { out.push(m); continue; }
+      /* ארוחות ללא "אופציה N" בשם ממוינות לפי סדר הופעתן, אחרת
+         mealOptNum מחזיר null והמיון היה הופך לא צפוי. */
+      const sorted = [...group].sort((x, y) =>
+        (mealOptNum(nutritionPlan[x].meal) ?? x) - (mealOptNum(nutritionPlan[y].meal) ?? y));
       const base = nutritionPlan[sorted[0]];
       base.meal = mealBaseName(base.meal);
       base.variants = base.variants || [];
@@ -9015,7 +9099,7 @@ ${buildFoodListForPrompt()}
      גם לשדות הכרטיס וגם לבסיס הנתונים (בלי להמתין ל"שמור פרטים"). */
   async function syncMenuToClientTargets(silent) {
     if (!activeEmail || !canEdit) return false;
-    const sum = f => Math.round(nutritionPlan.reduce((s,m)=>s+(m.items||[]).reduce((a,i)=>a+(+i[f]||0),0),0));
+    const sum = f => planSum(f);
     const t = { target_calories: sum('calories'), target_protein: sum('protein'),
                 target_carbs: sum('carbs'),      target_fat: sum('fat') };
     if (!t.target_calories && !t.target_protein) return false;   // תפריט ריק — לא לאפס יעדים קיימים
@@ -9038,7 +9122,7 @@ ${buildFoodListForPrompt()}
   let _nutriSaveTimer = null;
   function refreshNutriTotals() {
     const box = document.getElementById('nutri-macro-bar'); if (!box) return;
-    const sum = f => Math.round(nutritionPlan.reduce((s,m)=>s+(m.items||[]).reduce((a,i)=>a+(+i[f]||0),0),0));
+    const sum = f => planSum(f);
     const TARGET = { calories:'e-cal', protein:'e-prot', carbs:'e-carb', fat:'e-fat' };
     const UNIT   = { calories:'', protein:' ג׳', carbs:' ג׳', fat:' ג׳' };
     box.querySelectorAll('[data-macro]').forEach(row => {

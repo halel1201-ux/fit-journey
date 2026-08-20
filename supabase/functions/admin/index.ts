@@ -88,6 +88,13 @@ Deno.serve(async (req) => {
       // Allowed: admin, senior coach, or a user renaming their own email
       const self = old_email === user.email
       if (!canManage && !self) return json({ error: 'forbidden' }, 403)
+      /* set_password כבר נבדק מול ownsTrainee, אבל כאן הבדיקה חסרה —
+         ולכן כל מאמן בכיר יכול היה לשנות את המייל של חשבון כלשהו,
+         כולל האדמין, ובכך להשתלט עליו. אותו כלל חייב לחול על שתי
+         הפעולות: שינוי מייל הוא השתלטות בדיוק כמו קביעת סיסמה. */
+      if (!self && !(await ownsTrainee(old_email))) {
+        return json({ error: 'המתאמן אינו שייך אליך' }, 403)
+      }
       const target = await findUser(old_email)
       if (target) {
         const { error } = await admin.auth.admin.updateUserById(target.id, { email: new_email, email_confirm: true })

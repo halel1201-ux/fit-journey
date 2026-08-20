@@ -3730,10 +3730,19 @@ ${hasFile ? '' : `4. התאם כמויות וערכים מדויקים למשק�
       const { data: existing } = await sb.from('clients').select('email').eq('email', newEmail).maybeSingle();
       if (existing) { toast('כבר קיים לקוח עם המייל הזה', 'err'); return; }
       if (!confirm(`שינוי מייל מ-\n${activeEmail}\nל-\n${newEmail}\n\nהשינוי משפיע על ההתחברות. להמשיך?`)) return;
-      const { error: rpcErr } = await sb.rpc('rename_client_email', { p_old: activeEmail, p_new: newEmail });
-      if (rpcErr) { toast('שגיאה בשינוי מייל: ' + rpcErr.message, 'err'); return; }
+      /* ההתחברות משתנה ראשונה. קודם שונו הנתונים ורק אחר כך ההתחברות,
+         וכשהשלב השני נכשל נשאר מתאמן עם נתונים תחת מייל אחד והתחברות
+         תחת אחר — כלומר לא מצליח להיכנס. */
       const _r = await adminCall({ action: 'rename_email', old_email: activeEmail, new_email: newEmail });
       if (_r?.error) { toast('שגיאה בעדכון מייל התחברות: ' + _r.error, 'err'); return; }
+      const { error: rpcErr } = await sb.rpc('rename_client_email', { p_old: activeEmail, p_new: newEmail });
+      if (rpcErr) {
+        const back = await adminCall({ action: 'rename_email', old_email: newEmail, new_email: activeEmail });
+        toast(back?.error
+          ? `שגיאה בשינוי מייל: ${rpcErr.message} — מייל ההתחברות כבר שונה ל-${newEmail} והנתונים נשארו תחת ${activeEmail}. יש להשלים ידנית.`
+          : 'שגיאה בשינוי מייל: ' + rpcErr.message, 'err');
+        return;
+      }
       activeEmail = newEmail;
     }
 
