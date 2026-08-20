@@ -8568,7 +8568,8 @@ ${buildFoodListForPrompt()}
       <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:0.8rem;font-weight:700;color:#7ec8ff;">
         <input type="checkbox" ${variableMenu?'checked':''} onchange="toggleVariableMenu()"/> 🔀 תפריט משתנה</label>
       <span style="font-size:0.72rem;color:#777;">כמה אופציות לארוחה — המתאמן בוחר אחת ביום</span>
-      <button class="btn-sm btn-outline" style="margin-inline-start:auto;font-size:0.72rem;border-color:rgba(255,215,0,0.4);color:var(--gold);" onclick="openFoodAdd('')">➕ מוצר למאגר שלי</button>
+      ${nutritionPlan.some(m => mealOptNum(m.meal) !== null) ? `<button class="btn-sm btn-outline" style="margin-inline-start:auto;font-size:0.72rem;border-color:rgba(255,215,0,0.5);color:var(--gold);" title="מאחד ארוחות בשם &quot;… אופציה 2&quot; לארוחה אחת עם אופציות" onclick="autoMergeOptions()">🔀 אחד אופציות לפי שם</button>` : ''}
+      <button class="btn-sm btn-outline" style="${nutritionPlan.some(m => mealOptNum(m.meal) !== null) ? '' : 'margin-inline-start:auto;'}font-size:0.72rem;border-color:rgba(255,215,0,0.4);color:var(--gold);" onclick="openFoodAdd('')">➕ מוצר למאגר שלי</button>
     </div>`;
     el.innerHTML = macroBar + vmSwitch + nutritionPlan.map((meal,mi)=>`
       <div class="meal-block${collapsedMeals.has(mi)?' meal-collapsed':''}">
@@ -8579,6 +8580,7 @@ ${buildFoodListForPrompt()}
             ${[['any','כל יום'],['training','🏋️ יום אימון'],['rest','😴 יום מנוחה'],['target','🎯 שריר מטרה']].map(([v,l])=>`<option value="${v}" ${(meal.day_type||'any')===v?'selected':''}>${l}</option>`).join('')}
           </select>
           <div style="display:flex;gap:5px;">
+            ${mi < nutritionPlan.length - 1 ? `<button class="btn-sm btn-outline" style="padding:4px 9px;font-size:0.75rem;border-color:rgba(255,215,0,0.45);color:var(--gold);" title="מזג את הארוחה הבאה לכאן כאופציה — המתאמן יבחר אחת" onclick="mergeMealDown(${mi})">🔗 מזג כאופציה</button>` : ''}
             <button class="btn-sm btn-outline" style="padding:4px 9px;font-size:0.75rem;" onclick="copyMeal(${mi})">📋 העתק ארוחה</button>
             <button class="btn-sm btn-red" onclick="removeMeal(${mi})">הסר ארוחה</button>
           </div>
@@ -8710,6 +8712,94 @@ ${buildFoodListForPrompt()}
 
   function variantsOf(m) { return m.variants || []; }
   function optionCount(m) { return 1 + variantsOf(m).length; }
+
+  /* תפריטים ותיקים נבנו כארוחות נפרדות בשם "ארוחת בוקר — אופציה 2",
+     כי לא הייתה אז אפשרות לאופציות. למתאמן הן נראות כשלוש ארוחות
+     שצריך לאכול, במקום בחירה אחת מתוך שלוש. המיזוג כאן הופך אותן
+     למבנה הנכון בלי להקליד מחדש — במקביל ל-🔗 של הסופר-סט. */
+  const OPT_RE = /^(.*?)[\s]*[—\-–:(]+[\s]*אופצי[יה]?ה[\s]*(\d+)[\s)]*$/;
+  function mealBaseName(name) {
+    const m = String(name || '').match(OPT_RE);
+    return m ? m[1].trim() : String(name || '').trim();
+  }
+  function mealOptNum(name) {
+    const m = String(name || '').match(OPT_RE);
+    return m ? parseInt(m[2]) : null;
+  }
+
+  /* ממזג את הארוחה הבאה לתוך הנוכחית כאופציה נוספת. */
+  function mergeMealDown(mi) {
+    if (!requireEdit()) return;
+    const a = nutritionPlan[mi], b = nutritionPlan[mi + 1];
+    if (!a || !b) return;
+    /* סוג היום נשמר על הארוחה ולא על האופציה. מיזוג של "יום אימון"
+       עם "יום מנוחה" היה מוחק את ההבחנה בשקט, ולכן הוא נחסם. */
+    if ((a.day_type || 'any') !== (b.day_type || 'any')) {
+      toast('אי אפשר למזג ארוחות עם סוג יום שונה', 'err'); return;
+    }
+    a.variants = a.variants || [];
+    a.variants.push({
+      label: 'אופציה ' + (a.variants.length + 2),
+      items: JSON.parse(JSON.stringify(b.items || [])).map(i => ({ ...i, role: itemRole(i) })),
+    });
+    /* גם האופציות של הארוחה הנבלעת עוברות, אחרת מיזוג שני היה מוחק אותן */
+    for (const v of (b.variants || [])) {
+      a.variants.push({ label: 'אופציה ' + (a.variants.length + 2), items: v.items || [] });
+    }
+    a.meal = mealBaseName(a.meal);
+    nutritionPlan.splice(mi + 1, 1);
+    renderNutritionEditor(); nutriTouched();
+    toast('מוזג — ' + (a.variants.length + 1) + ' אופציות ב' + a.meal, 'ok');
+  }
+
+  /* סורק את כל התפריט ומאחד לפי שם הבסיס. */
+  function autoMergeOptions() {
+    if (!requireEdit()) return;
+    const groups = new Map();
+    nutritionPlan.forEach((m, i) => {
+      if (mealOptNum(m.meal) === null) return;
+      const key = mealBaseName(m.meal) + '|' + (m.day_type || 'any');
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(i);
+    });
+    const merges = [...groups.values()].filter(g => g.length > 1);
+    if (!merges.length) {
+      toast('לא נמצאו ארוחות בשם "… אופציה 2" למיזוג', 'err'); return;
+    }
+    const total = merges.reduce((a, g) => a + g.length, 0);
+    if (!confirm(merges.length + ' ארוחות ימוזגו מ-' + total + ' שורות.' +
+                 String.fromCharCode(10,10) + 'המתאמן יראה ארוחה אחת ויבחר אופציה. להמשיך?')) return;
+
+    /* בונים תפריט חדש במקום למחוק תוך כדי מעבר — מחיקה באמצע לולאה
+       מזיזה את כל האינדקסים ומוחקת את הארוחה הלא נכונה. */
+    const consumed = new Set();
+    const out = [];
+    for (let i = 0; i < nutritionPlan.length; i++) {
+      if (consumed.has(i)) continue;
+      const m = nutritionPlan[i];
+      const key = mealBaseName(m.meal) + '|' + (m.day_type || 'any');
+      const group = groups.get(key);
+      if (mealOptNum(m.meal) === null || !group || group.length < 2) { out.push(m); continue; }
+      const sorted = [...group].sort((x, y) => mealOptNum(nutritionPlan[x].meal) - mealOptNum(nutritionPlan[y].meal));
+      const base = nutritionPlan[sorted[0]];
+      base.meal = mealBaseName(base.meal);
+      base.variants = base.variants || [];
+      for (const idx of sorted.slice(1)) {
+        const other = nutritionPlan[idx];
+        base.variants.push({
+          label: 'אופציה ' + (base.variants.length + 2),
+          items: JSON.parse(JSON.stringify(other.items || [])).map(it => ({ ...it, role: itemRole(it) })),
+        });
+        for (const v of (other.variants || []))
+          base.variants.push({ label: 'אופציה ' + (base.variants.length + 2), items: v.items || [] });
+      }
+      group.forEach(idx => consumed.add(idx));
+      out.push(base);
+    }
+    nutritionPlan = out;
+    renderNutritionEditor(); nutriTouched();
+    toast(merges.length + ' ארוחות אוחדו לאופציות ✓', 'ok');
+  }
 
   function addVariant(mi) {
     const m = nutritionPlan[mi];
