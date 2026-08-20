@@ -6093,7 +6093,12 @@ ${foodList || 'אין פריטים'}
     document.body.style.overflow = 'hidden';
     switchChatTab(activeChatTab, false);
     refreshChatMessages();
-    if (!_chatPoll) _chatPoll = setInterval(refreshChatMessages, 15000);
+    /* 30 שניות ולא 15, ורק כשהלשונית גלויה. מסד הנתונים נמדד תחת עומס
+       כבד, וסקר תכוף מכל מכשיר פתוח מוסיף לו עומס בדיוק כשהוא הכי
+       צריך אוויר. Realtime עדיין מביא הודעה מיד; זה רק הגיבוי. */
+    if (!_chatPoll) _chatPoll = setInterval(() => {
+      if (document.visibilityState === 'visible') refreshChatMessages();
+    }, 30000);
   }
   function closeChat() {
     document.getElementById('chat-overlay').classList.remove('open');

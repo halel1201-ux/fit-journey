@@ -11472,7 +11472,10 @@ ${buildFoodListForPrompt()}
     /* קודם נטען רק אם היה ריק — כלומר אחרי הפעם הראשונה הצ'אט הציג
        מצב ישן, וכל מה שהגיע בזמן ש-Realtime היה מנותק פשוט לא הופיע. */
     await loadCoachGroupMessages();
-    if (!_grpPoll) _grpPoll = setInterval(loadCoachGroupMessages, 15000);
+    /* כמו בצד המתאמן: מרווח כפול ורק כשהלשונית גלויה. */
+    if (!_grpPoll) _grpPoll = setInterval(() => {
+      if (document.visibilityState === 'visible') loadCoachGroupMessages();
+    }, 30000);
     coachGroupLastSeen = Date.now();
     ['grp-coach-badge','grp-mob-badge','grp-fab-badge'].forEach(id => {
       const b = document.getElementById(id); if (b) b.style.display = 'none';

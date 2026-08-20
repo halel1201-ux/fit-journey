@@ -239,15 +239,47 @@
     if (event === 'SIGNED_IN' && session) redirect(session.user.email);
   });
 
+  /* הניתוב אחרי התחברות מוצלחת.
+
+     קודם רצו כאן שתי שאילתות בזו אחר זו, וכל אחת המתינה לקודמתה. כשמסד
+     הנתונים עמוס — נמדדו 2 עד 12 שניות לשאילתה, ובקצה גם 44 — המתאמן
+     נשאר תקוע על מסך ההתחברות אחרי שההזדהות כבר הצליחה, וזה נראה כמו
+     "לא מצליח להתחבר".
+
+     שני שינויים: השאילתות רצות במקביל במקום בטור, ויש תקרת המתנה.
+     כשהתקרה נחצית מנתבים ללוח המתאמן — הרוב המכריע — במקום להישאר
+     תקועים. ניתוב שגוי מתקן את עצמו בעמוד היעד; המתנה אינסופית לא. */
+  const ROUTE_TIMEOUT_MS = 4000;
+
   async function redirect(email) {
     if (email === ADMIN) { window.location.href = 'admin.html'; return; }
-    const { data: coach } = await sb.from('coaches').select('email').eq('email', email).single();
-    if (coach) {
-      const { data: client } = await sb.from('clients').select('email').eq('email', email).single();
-      window.location.href = client ? 'dashboard.html' : 'coach.html';
-      return;
+    const go = p => { window.location.href = p; };
+    try {
+      const lookup = Promise.all([
+        sb.from('coaches').select('email').eq('email', email).maybeSingle(),
+        sb.from('clients').select('email').eq('email', email).maybeSingle(),
+      ]);
+      const timeout = new Promise(r => setTimeout(() => r(null), ROUTE_TIMEOUT_MS));
+      const res = await Promise.race([lookup, timeout]);
+      if (!res) { go(lastRoute()); return; }                   // עמוס מדי — לא נשארים תקועים
+      const [{ data: coach }, { data: client }] = res;
+      const dest = coach && !client ? 'coach.html' : 'dashboard.html';
+      try { localStorage.setItem('fj_route', dest); } catch (_) { }
+      go(dest);
+    } catch (e) {
+      go(lastRoute());
     }
-    window.location.href = 'dashboard.html';
+  }
+
+  /* לאן לנתב כשהבירור לא הספיק. מאמן שנכנס בעבר יגיע לפאנל שלו גם
+     כשמסד הנתונים עמוס, במקום להיזרק ללוח מתאמן ריק. מי שלא נכנס
+     מעולם מקבל את ברירת המחדל — הרוב המכריע הם מתאמנים. */
+  function lastRoute() {
+    try {
+      const v = localStorage.getItem('fj_route');
+      if (v === 'coach.html' || v === 'admin.html') return v;
+    } catch (_) { }
+    return 'dashboard.html';
   }
 
   function handleSubmit() {
