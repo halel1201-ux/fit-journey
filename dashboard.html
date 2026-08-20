@@ -1669,7 +1669,10 @@
   let foodItems           = null;
   let foodLogs            = null;
   let recipes             = null;
-  let nutriMode           = 'track';
+  /* null = טרם נבחר. כשמוגדרים גם תפריט וגם ערכים מוצג מסך בחירה;
+     כשמוגדר רק אחד נכנסים אליו ישר, בלי מסך ביניים מיותר. */
+  let nutriMode           = null;
+  let openMealIdx         = null;   // איזו ארוחה פתוחה בתפריט המוצע
   let nutriDayType        = null;   // 'training' | 'rest' | 'target' — which day's menu the client views
   let _coachReferralEnabled = false; // coach-controlled referral program
   let _coachReferralReward  = '';
@@ -4500,11 +4503,47 @@ ${foodList || 'אין פריטים'}
 
   function renderNutriBody() {
     const body = document.getElementById('nutri-body');
-    const tabs = `
+
+    /* למתאמן אחד המאמן בונה תפריט מלא, לאחר רק יעדי מאקרו, ולפעמים
+       את שניהם. לכן מציגים בדיוק את מה שקיים: שניהם → מסך בחירה,
+       אחד → נכנסים אליו ישר, אף אחד → הודעה אחת ברורה. */
+    const hasPlan    = (nutritionPlanLocal || []).length > 0;
+    const hasMacroTargets = !!(clientData && (clientData.target_calories || clientData.target_protein));
+
+    if (!hasPlan && !hasMacroTargets) {
+      body.innerHTML = '<div class="empty">עדיין לא הוגדרו לך תפריט או ערכים — פנה למאמן 🥗</div>';
+      return;
+    }
+    if (!hasPlan    && nutriMode !== 'track') nutriMode = 'track';
+    if (!hasMacroTargets && nutriMode !== 'plan')  nutriMode = 'plan';
+
+    if (hasPlan && hasMacroTargets && nutriMode === null) {
+      body.innerHTML = `
+        <div style="display:grid;gap:12px;margin-top:4px;">
+          ${[['plan','📋','תפריט מוצע','הארוחות שהמאמן בנה לך','var(--orange)','255,107,0'],
+              ['track','📊','הערכים שלי','יעדי מאקרו ומעקב יומי','#4ade80','74,222,128']]
+            .map(([m,ic,title,sub,col,rgb]) => `
+            <button onclick="setNutriMode('${m}')" style="display:flex;align-items:center;gap:14px;width:100%;text-align:right;
+              padding:18px 16px;min-height:44px;cursor:pointer;border-radius:16px;font-family:'Heebo',sans-serif;
+              background:rgba(${rgb},0.07);border:1px solid rgba(${rgb},0.35);transition:background .2s,border-color .2s;"
+              onmouseover="this.style.background='rgba(${rgb},0.13)'" onmouseout="this.style.background='rgba(${rgb},0.07)'">
+              <span style="font-size:1.7rem;line-height:1;">${ic}</span>
+              <span style="flex:1;">
+                <span style="display:block;font-weight:900;font-size:1.02rem;color:${col};">${title}</span>
+                <span style="display:block;font-size:0.78rem;color:#999;margin-top:2px;">${sub}</span>
+              </span>
+              <span style="color:${col};font-size:1.1rem;">←</span>
+            </button>`).join('')}
+        </div>`;
+      return;
+    }
+
+    /* הלשוניות מוצגות רק כשבאמת יש בין מה לעבור */
+    const tabs = (hasPlan && hasMacroTargets) ? `
       <div class="nutri-mode-tabs">
-        <button class="nutri-tab${nutriMode==='track'?' active':''}" onclick="setNutriMode('track')">📊 מעקב יומי</button>
+        <button class="nutri-tab${nutriMode==='track'?' active':''}" onclick="setNutriMode('track')">📊 הערכים שלי</button>
         <button class="nutri-tab${nutriMode==='plan'?' active':''}" onclick="setNutriMode('plan')">📋 תפריט מוצע</button>
-      </div>`;
+      </div>` : '';
 
     if (nutriMode === 'plan') {
       if (!nutritionPlanLocal.length) {
@@ -4537,14 +4576,19 @@ ${foodList || 'אין פריטים'}
         const pickKey = `${todayStr()}__${mi}`;
         const picked = vars.length ? (mealPick[pickKey] || 0) : 0;
         const items = picked === 0 ? (meal.items || []) : (vars[picked - 1].items || []);
+        /* גלולות של 26 פיקסלים היו קטנות מדי לאצבע. הכפתורים כאן
+           גבוהים מ-44 פיקסלים, ומסמנים את הנבחר גם בווי ולא רק בצבע —
+           כדי שהבחירה תהיה ברורה גם למי שלא מבחין היטב בגוונים. */
         const pickerHtml = vars.length ? `
-          <div style="display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 10px;">
+          <div style="font-size:0.72rem;color:#888;margin:2px 0 7px;">בחר אופציה לארוחה זו:</div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:8px;margin-bottom:12px;">
             ${[{label:'אופציה 1'}, ...vars].map((v,vi)=>`
-              <button onclick="pickMeal('${pickKey}',${vi})" style="padding:5px 12px;border-radius:999px;cursor:pointer;
-                font-family:'Heebo';font-size:0.74rem;font-weight:700;
+              <button onclick="pickMeal('${pickKey}',${vi})" style="min-height:44px;padding:10px 8px;
+                border-radius:12px;cursor:pointer;font-family:'Heebo',sans-serif;font-size:0.82rem;font-weight:800;
                 border:1px solid ${vi===picked?'var(--orange)':'rgba(255,255,255,0.14)'};
-                background:${vi===picked?'rgba(255,107,0,0.14)':'rgba(255,255,255,0.04)'};
-                color:${vi===picked?'var(--orange)':'#999'};">${esc(v.label||('אופציה '+(vi+1)))}</button>`).join('')}
+                background:${vi===picked?'rgba(255,107,0,0.16)':'rgba(255,255,255,0.04)'};
+                color:${vi===picked?'var(--orange)':'#aaa'};transition:background .2s,border-color .2s;">
+                ${vi===picked?'✓ ':''}${esc(v.label||('אופציה '+(vi+1)))}</button>`).join('')}
           </div>` : '';
         let tot = {cal:0,p:0,c:0,f:0};
         const itemsHtml = items.map((item, ii) => {
@@ -4590,22 +4634,44 @@ ${foodList || 'אין פריטים'}
             ${altPanelHtml}
           </div>`;
         }).join('');
-        return `<div style="background:${isLogged?'rgba(74,222,128,0.08)':'rgba(255,255,255,0.03)'};border:1px solid ${isLogged?'rgba(74,222,128,0.45)':'rgba(255,255,255,0.07)'};border-radius:12px;padding:14px 16px;margin-bottom:12px;transition:background 0.3s,border-color 0.3s;">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-            <div style="font-weight:900;font-size:0.95rem;color:${isLogged?'#4ade80':'var(--gold)'};">${esc(meal.meal)}${isLogged?' ✓':''}</div>
-            <button onclick="${isLogged?`unlogMeal(${mi})`:`logMeal(${mi})`}"
-              style="padding:5px 14px;background:${isLogged?'rgba(74,222,128,0.1)':'rgba(255,255,255,0.05)'};border:1px solid ${isLogged?'rgba(74,222,128,0.5)':'rgba(255,255,255,0.15)'};border-radius:20px;color:${isLogged?'#4ade80':'var(--muted)'};font-size:0.78rem;font-weight:700;cursor:pointer;font-family:'Heebo',sans-serif;transition:all 0.2s;">
+        /* התפריט נפתח כרשימת ארוחות בלבד. לחיצה על ארוחה פותחת אותה
+           ומראה את האופציות שלה; ארוחה עם אופציה אחת נפתחת ישר לתוכן
+           ולכפתור הסימון. כך המסך הראשון קצר וניתן לסריקה במבט אחד,
+           במקום כל הארוחות פרושות בבת אחת.
+           itemsHtml מחושב תמיד, גם כשהארוחה סגורה, כי הסיכום בשורה
+           המקופלת נשען על אותו חישוב בדיוק — כולל חלופות שנבחרו. */
+        const isOpen = openMealIdx === mi;
+        const pickedLabel = vars.length
+          ? (picked === 0 ? 'אופציה 1' : (vars[picked - 1].label || ('אופציה ' + (picked + 1))))
+          : '';
+        return `<div style="background:${isLogged?'rgba(74,222,128,0.08)':'rgba(255,255,255,0.03)'};border:1px solid ${isLogged?'rgba(74,222,128,0.45)':(isOpen?'rgba(255,107,0,0.35)':'rgba(255,255,255,0.07)')};border-radius:12px;padding:4px 16px;margin-bottom:12px;transition:background 0.3s,border-color 0.3s;">
+          <div onclick="toggleMealOpen(${mi})" role="button" tabindex="0" aria-expanded="${isOpen}"
+            onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleMealOpen(${mi});}"
+            style="display:flex;justify-content:space-between;align-items:center;gap:10px;min-height:52px;cursor:pointer;">
+            <div style="display:flex;align-items:center;gap:9px;min-width:0;">
+              <span style="color:${isOpen?'var(--orange)':'#666'};font-size:0.8rem;display:inline-block;transition:transform .2s;transform:rotate(${isOpen?'180deg':'0deg'});">▾</span>
+              <span style="min-width:0;">
+                <span style="display:block;font-weight:900;font-size:0.95rem;color:${isLogged?'#4ade80':'var(--gold)'};">${esc(meal.meal)}${isLogged?' ✓':''}</span>
+                <span style="display:block;font-size:0.72rem;color:#999;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                  ${Math.round(tot.cal)} קק"ל · P${Math.round(tot.p)}g${pickedLabel ? ' · ' + esc(pickedLabel) + ' מתוך ' + (vars.length + 1) : ''}
+                </span>
+              </span>
+            </div>
+            <button onclick="event.stopPropagation();${isLogged?`unlogMeal(${mi})`:`logMeal(${mi})`}"
+              style="flex-shrink:0;padding:9px 14px;min-height:40px;background:${isLogged?'rgba(74,222,128,0.1)':'rgba(255,255,255,0.05)'};border:1px solid ${isLogged?'rgba(74,222,128,0.5)':'rgba(255,255,255,0.15)'};border-radius:20px;color:${isLogged?'#4ade80':'var(--muted)'};font-size:0.78rem;font-weight:700;cursor:pointer;font-family:'Heebo',sans-serif;transition:all 0.2s;">
               ${isLogged?'✓ נרשם':'✓ אכלתי'}
             </button>
           </div>
-          ${pickerHtml}
-          ${itemsHtml}
-          <div style="margin-top:8px;font-size:0.75rem;color:#555;display:flex;gap:12px;flex-wrap:wrap;">
-            <span>סה"כ: <strong style="color:${isLogged?'#4ade80':'var(--white)'}">${Math.round(tot.cal)}</strong> קק"ל</span>
-            <span>חלבון: <strong style="color:var(--white)">${Math.round(tot.p)}g</strong></span>
-            <span>פחמימה: <strong style="color:var(--white)">${Math.round(tot.c)}g</strong></span>
-            <span>שומן: <strong style="color:var(--white)">${Math.round(tot.f)}g</strong></span>
-          </div>
+          ${isOpen ? `<div style="padding:6px 0 12px;border-top:1px solid rgba(255,255,255,0.06);">
+            ${pickerHtml}
+            ${itemsHtml}
+            <div style="margin-top:10px;font-size:0.75rem;color:#888;display:flex;gap:12px;flex-wrap:wrap;">
+              <span>סה"כ: <strong style="color:${isLogged?'#4ade80':'var(--white)'}">${Math.round(tot.cal)}</strong> קק"ל</span>
+              <span>חלבון: <strong style="color:var(--white)">${Math.round(tot.p)}g</strong></span>
+              <span>פחמימה: <strong style="color:var(--white)">${Math.round(tot.c)}g</strong></span>
+              <span>שומן: <strong style="color:var(--white)">${Math.round(tot.f)}g</strong></span>
+            </div>
+          </div>` : ''}
         </div>`;
       }).join('');
       body.innerHTML = tabs + daySelector + (planHtml.trim() ? planHtml : '<div class="empty">אין ארוחות מוגדרות ליום זה 🥗</div>');
@@ -4687,7 +4753,8 @@ ${foodList || 'אין פריטים'}
       ${logHtml || '<div style="color:#444;font-size:0.85rem;text-align:center;padding:20px 0;">לא נרשם אוכל היום עדיין 🍽️</div>'}`;
   }
 
-  function setNutriMode(m) { nutriMode=m; renderNutriBody(); }
+  function setNutriMode(m) { nutriMode = m; openMealIdx = null; renderNutriBody(); }
+  function toggleMealOpen(mi) { openMealIdx = (openMealIdx === mi ? null : mi); renderNutriBody(); }
   function setNutriDay(t) { nutriDayType=t; renderNutriBody(); }
   function setNutriMeal(m)  { nutriMeal=m; renderNutriBody(); }
 
