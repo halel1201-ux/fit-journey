@@ -4545,6 +4545,9 @@ ${foodList || 'אין פריטים'}
         <button class="nutri-tab${nutriMode==='plan'?' active':''}" onclick="setNutriMode('plan')">📋 תפריט מוצע</button>
       </div>` : '';
 
+    /* נאסף מחדש בכל רינדור, אחרת אריח שהוסר מהתצוגה היה משאיר
+       נתונים ישנים שהחלון עלול להציג. */
+    _mealCards = {}; _mealShown = [];
     if (nutriMode === 'plan') {
       if (!nutritionPlanLocal.length) {
         body.innerHTML = tabs + '<div class="empty">תפריט עדיין לא הוגדר — פנה למאמן 🥗</div>';
@@ -4640,41 +4643,53 @@ ${foodList || 'אין פריטים'}
            במקום כל הארוחות פרושות בבת אחת.
            itemsHtml מחושב תמיד, גם כשהארוחה סגורה, כי הסיכום בשורה
            המקופלת נשען על אותו חישוב בדיוק — כולל חלופות שנבחרו. */
-        const isOpen = openMealIdx === mi;
         const pickedLabel = vars.length
           ? (picked === 0 ? 'אופציה 1' : (vars[picked - 1].label || ('אופציה ' + (picked + 1))))
           : '';
-        return `<div style="background:${isLogged?'rgba(74,222,128,0.08)':'rgba(255,255,255,0.03)'};border:1px solid ${isLogged?'rgba(74,222,128,0.45)':(isOpen?'rgba(255,107,0,0.35)':'rgba(255,255,255,0.07)')};border-radius:12px;padding:4px 16px;margin-bottom:12px;transition:background 0.3s,border-color 0.3s;">
-          <div onclick="toggleMealOpen(${mi})" role="button" tabindex="0" aria-expanded="${isOpen}"
-            onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleMealOpen(${mi});}"
-            style="display:flex;justify-content:space-between;align-items:center;gap:10px;min-height:52px;cursor:pointer;">
-            <div style="display:flex;align-items:center;gap:9px;min-width:0;">
-              <span style="color:${isOpen?'var(--orange)':'#666'};font-size:0.8rem;display:inline-block;transition:transform .2s;transform:rotate(${isOpen?'180deg':'0deg'});">▾</span>
-              <span style="min-width:0;">
-                <span style="display:block;font-weight:900;font-size:0.95rem;color:${isLogged?'#4ade80':'var(--gold)'};">${esc(meal.meal)}${isLogged?' ✓':''}</span>
-                <span style="display:block;font-size:0.72rem;color:#999;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
-                  ${Math.round(tot.cal)} קק"ל · P${Math.round(tot.p)}g${pickedLabel ? ' · ' + esc(pickedLabel) + ' מתוך ' + (vars.length + 1) : ''}
-                </span>
-              </span>
-            </div>
-            <button onclick="event.stopPropagation();${isLogged?`unlogMeal(${mi})`:`logMeal(${mi})`}"
-              style="flex-shrink:0;padding:9px 14px;min-height:40px;background:${isLogged?'rgba(74,222,128,0.1)':'rgba(255,255,255,0.05)'};border:1px solid ${isLogged?'rgba(74,222,128,0.5)':'rgba(255,255,255,0.15)'};border-radius:20px;color:${isLogged?'#4ade80':'var(--muted)'};font-size:0.78rem;font-weight:700;cursor:pointer;font-family:'Heebo',sans-serif;transition:all 0.2s;">
-              ${isLogged?'✓ נרשם':'✓ אכלתי'}
-            </button>
+        /* כל מה שחושב כאן נשמר, כדי שהחלון ייבנה מאותו חישוב בדיוק —
+           כולל חלופות שהמתאמן בחר ברמת הפריט. חישוב שני היה יכול
+           להיפרד מהאריח ולהציג מספרים שונים באותו מסך. */
+        _mealCards[mi] = { meal, mi, isLogged, vars, pickKey, picked, tot, itemsHtml, pickedLabel };
+        _mealShown.push(mi);
+
+        const ic = mealIcon(meal.meal);
+        const nOpts = vars.length + 1;
+        return `<button onclick="openMealOptions(${mi})"
+          aria-label="${esc(meal.meal)}${isLogged ? ' — נאכל' : ''}"
+          style="text-align:center;cursor:pointer;font-family:'Heebo',sans-serif;min-height:112px;
+            padding:14px 8px;border-radius:16px;transition:background .2s,border-color .2s;
+            background:${isLogged ? 'rgba(74,222,128,0.09)' : 'rgba(255,255,255,0.03)'};
+            border:1px solid ${isLogged ? 'rgba(74,222,128,0.5)' : 'rgba(255,255,255,0.09)'};">
+          <div style="font-size:1.5rem;line-height:1;margin-bottom:5px;">${ic}</div>
+          <div style="font-weight:900;font-size:0.92rem;color:${isLogged ? '#4ade80' : 'var(--gold)'};">${esc(meal.meal)}</div>
+          <div style="font-size:0.74rem;color:#999;margin-top:2px;">${Math.round(tot.cal)} קק"ל</div>
+          <div style="display:inline-block;margin-top:7px;padding:3px 10px;border-radius:999px;
+            font-size:0.68rem;font-weight:900;
+            ${isLogged
+              ? 'background:rgba(74,222,128,0.14);color:#4ade80;border:1px solid rgba(74,222,128,0.45);'
+              : nOpts > 1
+                ? 'background:rgba(255,107,0,0.14);color:var(--orange);border:1px solid rgba(255,107,0,0.45);'
+                : 'background:rgba(255,255,255,0.05);color:#999;border:1px solid rgba(255,255,255,0.12);'}">
+            ${isLogged ? '✓ נאכל' : nOpts > 1 ? nOpts + ' אפשרויות' : 'סמן כנאכל'}
           </div>
-          ${isOpen ? `<div style="padding:6px 0 12px;border-top:1px solid rgba(255,255,255,0.06);">
-            ${pickerHtml}
-            ${itemsHtml}
-            <div style="margin-top:10px;font-size:0.75rem;color:#888;display:flex;gap:12px;flex-wrap:wrap;">
-              <span>סה"כ: <strong style="color:${isLogged?'#4ade80':'var(--white)'}">${Math.round(tot.cal)}</strong> קק"ל</span>
-              <span>חלבון: <strong style="color:var(--white)">${Math.round(tot.p)}g</strong></span>
-              <span>פחמימה: <strong style="color:var(--white)">${Math.round(tot.c)}g</strong></span>
-              <span>שומן: <strong style="color:var(--white)">${Math.round(tot.f)}g</strong></span>
-            </div>
-          </div>` : ''}
-        </div>`;
+        </button>`;
       }).join('');
-      body.innerHTML = tabs + daySelector + (planHtml.trim() ? planHtml : '<div class="empty">אין ארוחות מוגדרות ליום זה 🥗</div>');
+
+      /* סיכום היום מתחת לרשת — עונה על "מה נשאר לי לאכול" בלי לפתוח כלום */
+      const dayCal = _mealShown.reduce((a, k) => a + (_mealCards[k] ? _mealCards[k].tot.cal : 0), 0);
+      const eatenCal = _mealShown.reduce((a, k) => a + (_mealCards[k] && _mealCards[k].isLogged ? _mealCards[k].tot.cal : 0), 0);
+      const tgtCal = Number(clientData?.target_calories) || 0;
+      const summary = _mealShown.length ? `
+        <div style="margin-top:14px;text-align:center;font-size:0.78rem;color:#999;">
+          נאכלו <strong style="color:#4ade80;">${Math.round(eatenCal)}</strong>
+          מתוך <strong style="color:#fff;">${Math.round(tgtCal || dayCal)}</strong> קק"ל
+        </div>` : '';
+
+      body.innerHTML = tabs + daySelector +
+        (planHtml.trim()
+          ? '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">' + planHtml + '</div>' + summary
+          : '<div class="empty">אין ארוחות מוגדרות ליום זה 🥗</div>') +
+        mealOptionsModal();
       return;
     }
 
@@ -4754,6 +4769,103 @@ ${foodList || 'אין פריטים'}
   }
 
   function setNutriMode(m) { nutriMode = m; openMealIdx = null; renderNutriBody(); }
+  /* ══ תפריט מוצע — אריחים וחלון אפשרויות ══ */
+  let _mealCards = {}, _mealShown = [];
+
+  function mealIcon(name) {
+    const t = String(name || '');
+    if (/לפני\s*ה?אימון/.test(t))        return '⚡';
+    if (/אחרי\s*ה?אימון/.test(t))        return '💪';
+    if (/לילה|לפני\s*ה?שינה/.test(t))    return '😴';
+    if (/בוקר/.test(t))                  return '🌅';
+    if (/צהר/.test(t))                   return '🍽';
+    if (/ערב/.test(t))                   return '🌙';
+    if (/ביניים|נשנוש/.test(t))           return '🥤';
+    return '🍴';
+  }
+
+  /* לחיצה על אריח. ארוחה עם אפשרות אחת אין בה מה לבחור, ולכן היא
+     מסומנת ישר מהרשת — פתיחת חלון רק כדי ללחוץ "אכלתי" היא צעד מיותר. */
+  function openMealOptions(mi) {
+    const c = _mealCards[mi];
+    if (!c) return;
+    if (!c.vars.length) { c.isLogged ? unlogMeal(mi) : logMeal(mi); return; }
+    openMealIdx = mi;
+    renderNutriBody();
+  }
+  function closeMealOptions() { openMealIdx = null; renderNutriBody(); }
+
+  function mealOptionsModal() {
+    const c = _mealCards[openMealIdx];
+    if (!c) return '';
+    const { meal, mi, isLogged, vars, pickKey, picked, tot, itemsHtml } = c;
+    /* תיאור קצר לכל אפשרות — שני המזונות הראשונים. בלעדיו כל
+       האפשרויות נראות זהות ואי אפשר לבחור בלי לפתוח כל אחת. */
+    const brief = list => (list || []).slice(0, 2).map(x => esc(x.food || '')).filter(Boolean).join(' + ') +
+                          ((list || []).length > 2 ? ' + עוד' : '');
+    const sumOf = list => (list || []).reduce((a, x) => ({
+      cal: a.cal + (+x.calories || 0), p: a.p + (+x.protein || 0) }), { cal: 0, p: 0 });
+
+    const opts = [{ label: 'אופציה 1', items: meal.items || [] }, ...vars].map((v, vi) => {
+      const st = sumOf(v.items);
+      const on = vi === picked;
+      return `<button onclick="pickMeal('${pickKey}',${vi})"
+        style="width:100%;text-align:right;cursor:pointer;font-family:'Heebo',sans-serif;
+          margin-bottom:8px;padding:11px 13px;border-radius:12px;min-height:44px;
+          background:${on ? 'rgba(255,107,0,0.12)' : 'rgba(255,255,255,0.03)'};
+          border:1px solid ${on ? 'var(--orange)' : 'rgba(255,255,255,0.1)'};">
+        <div style="font-weight:900;font-size:0.85rem;color:${on ? 'var(--orange)' : '#ddd'};">
+          ${on ? '✓ ' : ''}${esc(v.label || ('אופציה ' + (vi + 1)))}</div>
+        <div style="font-size:0.75rem;color:#999;margin-top:2px;">${brief(v.items) || '—'}</div>
+        <div style="font-size:0.72rem;color:${on ? 'var(--gold)' : '#777'};margin-top:3px;">
+          ${Math.round(st.cal)} קק"ל · חלבון ${Math.round(st.p)}g</div>
+      </button>`;
+    }).join('');
+
+    return `
+      <div onclick="closeMealOptions()" role="dialog" aria-modal="true"
+        style="position:fixed;inset:0;z-index:320;background:rgba(0,0,0,0.72);
+          display:flex;align-items:center;justify-content:center;padding:18px;">
+        <div onclick="event.stopPropagation()"
+          style="width:100%;max-width:420px;max-height:86vh;overflow-y:auto;
+            background:#141414;border:1px solid rgba(255,107,0,0.4);border-radius:18px;
+            padding:16px 16px calc(16px + var(--sab,0px));">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;">
+            <div>
+              <div style="font-size:1.35rem;line-height:1;">${mealIcon(meal.meal)}</div>
+              <div style="font-weight:900;font-size:1rem;color:var(--orange);margin-top:4px;">${esc(meal.meal)}</div>
+              <div style="font-size:0.74rem;color:#999;">בחר אפשרות אחת</div>
+            </div>
+            <button onclick="closeMealOptions()" aria-label="סגור"
+              style="flex-shrink:0;width:36px;height:36px;border-radius:10px;cursor:pointer;
+                background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);
+                color:#999;font-size:0.95rem;font-family:'Heebo',sans-serif;">✕</button>
+          </div>
+
+          <div style="margin-top:12px;">${opts}</div>
+
+          <div style="border-top:1px solid rgba(255,255,255,0.07);padding-top:10px;">
+            ${itemsHtml}
+            <div style="margin-top:10px;font-size:0.75rem;color:#888;display:flex;gap:12px;flex-wrap:wrap;">
+              <span>סה"כ: <strong style="color:${isLogged ? '#4ade80' : 'var(--white)'}">${Math.round(tot.cal)}</strong> קק"ל</span>
+              <span>חלבון: <strong style="color:var(--white)">${Math.round(tot.p)}g</strong></span>
+              <span>פחמימה: <strong style="color:var(--white)">${Math.round(tot.c)}g</strong></span>
+              <span>שומן: <strong style="color:var(--white)">${Math.round(tot.f)}g</strong></span>
+            </div>
+          </div>
+
+          <button onclick="${isLogged ? `unlogMeal(${mi})` : `logMeal(${mi})`}"
+            style="width:100%;margin-top:14px;min-height:48px;border-radius:12px;cursor:pointer;
+              font-family:'Heebo',sans-serif;font-weight:900;font-size:0.95rem;
+              background:${isLogged ? 'rgba(74,222,128,0.12)' : 'linear-gradient(135deg,var(--orange),#FF8C00)'};
+              border:1px solid ${isLogged ? 'rgba(74,222,128,0.5)' : 'transparent'};
+              color:${isLogged ? '#4ade80' : '#fff'};">
+            ${isLogged ? '✓ נרשם — בטל סימון' : '✓ אכלתי את זה'}
+          </button>
+        </div>
+      </div>`;
+  }
+
   function toggleMealOpen(mi) { openMealIdx = (openMealIdx === mi ? null : mi); renderNutriBody(); }
   function setNutriDay(t) { nutriDayType=t; renderNutriBody(); }
   function setNutriMeal(m)  { nutriMeal=m; renderNutriBody(); }
