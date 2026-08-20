@@ -8408,7 +8408,7 @@ ${JSON.stringify(plan)}` }]
 ## בקשה:
 "${prompt}"
 ${weightLine ? '\n' + weightLine : ''}
-${macrosLine ? '\n' + macrosLine : ''}
+${(macrosLine && !preserveMode) ? '\n' + macrosLine : ''}
 ${goalLine ? '\n' + goalLine : ''}
 
 ${hasFile ? `## 📄 מצב: חילוץ מקובץ מצורף
@@ -8433,6 +8433,8 @@ ${hasFile ? `## 📄 מצב: חילוץ מקובץ מצורף
    מזון שהמאמן כתב נשאר גם אם אינו ברשימה ואפילו אם הוא מעובד.
 5. תפקידך היחיד: להשלים calories/protein/carbs/fat לכל פריט.
    אם כמות לא צוינה — הנח מנה סבירה וכתוב אותה ב-quantity.
+6. **אל תשנה כמויות כדי להגיע ליעד קלורי או מאקרו כלשהו.** היעדים של המתאמן
+   ייגזרו מהתפריט הזה, ולא להפך. 50 גרם נשארים 50 גרם, ושלוש ביצים נשארות שלוש.
 
 ` : ''}## חוקי${(hasFile || preserveMode) ? ' נוספים' : ' קשיח'}:
 ${(hasFile || preserveMode) ? '' : '0. אם המאמן שלח מבנה תפריט קיים (מזונות מופיעים בבקשה) — שמור עליו במדויק, רק מלא ערכים חסרים.\n'}1. ארוחת בוקר — פרווה או חלבית בלבד (אסור לשלב בשר/עוף/דג)
@@ -8505,7 +8507,11 @@ ${buildFoodListForPrompt()}
       /* 1. אימות מאקרו — מול היעדים שנלכדו לפני הבנייה, ולפני שהסנכרון
             ידרוס אותם בסכומי התפריט. */
       const tg  = { calories:targetCal, protein:targetProt, carbs:targetCarb, fat:targetFat };
-      let chk   = macroDeviations(plan, tg);
+      /* במצב שימור אין מה "לתקן": הכמויות שהמאמן כתב הן היעד, והיעדים
+         נגזרים מהתפריט בסוף התהליך. סבב התיקון כל תפקידו לשנות כמויות
+         כדי להגיע ליעד קיים — ולכן הוא ניפח 50 גרם קורנפלקס ל-171
+         ושלוש ביצים לעשר. הוא מדולג, וגם אזהרת הסטייה איתו. */
+      let chk   = preserveMode ? { bad: [] } : macroDeviations(plan, tg);
       let fixNote = '';
       if (chk.bad.length) {
         statusEl.style.color = 'var(--muted)';
