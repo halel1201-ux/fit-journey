@@ -3152,6 +3152,32 @@
   }
 
   /* ── INIT ── */
+  /* ══ מגביל טעינות משניות ══
+     טעינת הלוח יורה עשרות שאילתות, וחלקן יצאו בבת אחת. כשהמסד עמוס
+     כל אחת תופסת חיבור וממתינה, וקבוצה גדולה הופכת האטה רגעית
+     לתקיעה מלאה — זה מה שנראה כמו "הכניסה לא נטענת".
+     הנתיב הקריטי (פרטי המתאמן, התוכנית והתפריט) לא עובר כאן ונשאר
+     מהיר. כל השאר נכנס לתור ורץ שלושה בכל רגע: זמן הטעינה הכולל כמעט
+     זהה, אבל שיא החיבורים בו-זמנית יורד פי חמישה. */
+  const LOAD_CONCURRENCY = 3;
+  const _loadQueue = [];
+  let _loadRunning = 0;
+  function _pumpLoads() {
+    while (_loadRunning < LOAD_CONCURRENCY && _loadQueue.length) {
+      const job = _loadQueue.shift();
+      _loadRunning++;
+      Promise.resolve().then(job).catch(() => {}).then(() => { _loadRunning--; _pumpLoads(); });
+    }
+  }
+  /* מחזיר Promise שנפתר כשהטעינה הסתיימה, כדי שאפשר יהיה גם להמתין
+     לקבוצה וגם לירות בלי להמתין — בדיוק כמו קודם. */
+  function queueLoad(fn) {
+    return new Promise(res => {
+      _loadQueue.push(() => Promise.resolve().then(fn).catch(() => {}).then(res));
+      _pumpLoads();
+    });
+  }
+
   async function init() {
     let { data: { session } } = await sb.auth.getSession();
     if (!session) {
@@ -3176,15 +3202,15 @@
     isStudioOwner = (coachRole === 'studio_owner');       // studio owner = senior-level access + studio management
     isPremium  = (coachRole === 'admin') || (!!coach.premium_until && coach.premium_until >= todayStr());  // premium = instant generator ("second coach") unlocked
     canEdit    = (coachRole === 'senior' || coachRole === 'admin' || isStudioOwner);
-    loadDeputyState();   // לא ממתינים — הבאדג' מופיע כשהנתונים חוזרים
+    queueLoad(loadDeputyState);   // לא ממתינים — הבאדג' מופיע כשהנתונים חוזרים
     coachPlans = coach.plans || {};
     if (!canEdit && coachRole !== 'pending') showViewOnlyBanner();
     document.getElementById('coach-brand').textContent = `FJ — ${coachName}`;
     applyCoachOwnIcon(coach);   // 📱 האייקון של המאמן גם על הטלפון שלו
-    loadTokens();
+    queueLoad(loadTokens);
     if (isStudioOwner) loadStudio();
     else checkStudioMembership(); // is this coach a member of some studio?
-    loadAutopilotState();
+    queueLoad(loadAutopilotState);
     initOneSignal(coachEmail);
 
     // מאמן ממתין לאישור

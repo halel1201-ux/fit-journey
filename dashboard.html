@@ -1690,6 +1690,32 @@
   let manualFoodOpen      = false;
   let manualMode          = 'per100';   // 'per100' (values per 100g + grams) | 'unit' (values per portion × count)
 
+  /* ══ מגביל טעינות משניות ══
+     טעינת הלוח יורה עשרות שאילתות, וחלקן יצאו בבת אחת. כשהמסד עמוס
+     כל אחת תופסת חיבור וממתינה, וקבוצה גדולה הופכת האטה רגעית
+     לתקיעה מלאה — זה מה שנראה כמו "הכניסה לא נטענת".
+     הנתיב הקריטי (פרטי המתאמן, התוכנית והתפריט) לא עובר כאן ונשאר
+     מהיר. כל השאר נכנס לתור ורץ שלושה בכל רגע: זמן הטעינה הכולל כמעט
+     זהה, אבל שיא החיבורים בו-זמנית יורד פי חמישה. */
+  const LOAD_CONCURRENCY = 3;
+  const _loadQueue = [];
+  let _loadRunning = 0;
+  function _pumpLoads() {
+    while (_loadRunning < LOAD_CONCURRENCY && _loadQueue.length) {
+      const job = _loadQueue.shift();
+      _loadRunning++;
+      Promise.resolve().then(job).catch(() => {}).then(() => { _loadRunning--; _pumpLoads(); });
+    }
+  }
+  /* מחזיר Promise שנפתר כשהטעינה הסתיימה, כדי שאפשר יהיה גם להמתין
+     לקבוצה וגם לירות בלי להמתין — בדיוק כמו קודם. */
+  function queueLoad(fn) {
+    return new Promise(res => {
+      _loadQueue.push(() => Promise.resolve().then(fn).catch(() => {}).then(res));
+      _pumpLoads();
+    });
+  }
+
   async function init() {
     let { data: { session } } = await sb.auth.getSession();
 
@@ -1798,13 +1824,13 @@
       sb.from('client_packages').select('*').eq('client_email', email).order('created_at', { ascending: false }).limit(1).maybeSingle()
     ]);
     renderPackageCard(pkg);
-    loadDebtCard(email);
-    loadPeakWeekClient(email);
+    queueLoad(() => loadDebtCard(email));
+    queueLoad(() => loadPeakWeekClient(email));
 
     trainingPlanLocal  = Array.isArray(tr?.plan) ? (tr.plan || []) : (tr?.plan?.active || []);
     nutritionPlanLocal = nu?.plan || [];
     renderTraining(trainingPlanLocal);
-    loadExNoteKeys(); // 📝 which exercises already have personal notes (for the dot)
+    queueLoad(loadExNoteKeys); // 📝 which exercises already have personal notes (for the dot)
     renderResumeBanner(); // אם יש אימון פעיל שנשמר — הצג באנר המשך
     workoutLogs = logs || [];
     renderDeloadBanner();
@@ -1819,8 +1845,10 @@
     renderHabitsCard();
     renderCommunity();
     await loadWaterData();
-    await Promise.all([loadCycle(), loadProgressEntries(), loadCoachBranding(client.coach_email), loadMessages(), loadCheckin()]);
-    loadCardio();     // ❤️ שעון אירובי — מוצג רק אם המאמן הגדיר יעד
+    await Promise.all([loadCycle, loadProgressEntries,
+                       () => loadCoachBranding(client.coach_email),
+                       loadMessages, loadCheckin].map(queueLoad));
+    queueLoad(loadCardio);     // ❤️ שעון אירובי — מוצג רק אם המאמן הגדיר יעד
     initPeriodCard(); // כרטיס מחזור לנשים
     showFab(); // תמיד הצג כפתור צ'אט
     goHomeScreen(); // 🏠 נחיתה במסך הבית (עיצוב 7)
