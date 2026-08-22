@@ -1673,6 +1673,13 @@
      כשמוגדר רק אחד נכנסים אליו ישר, בלי מסך ביניים מיותר. */
   let nutriMode           = null;
   let openMealIdx         = null;   // איזו ארוחה פתוחה בתפריט המוצע
+  /* ארוחה שסומנה כנאכלה נרשמת ב-food_logs עם meal_type בקידומת הזו,
+     ומזוהה בחזרה לפי אותה קידומת. הקריאה חתכה 7 תווים בעוד הקידומת
+     היא 6, ולכן האות הראשונה של שם הארוחה נחתכה: "ארוחת בוקר" הפך
+     ל-"רוחת בוקר", ההשוואה נכשלה, ושום ארוחה לא נראתה כנאכלה —
+     האריח לא הפך לירוק והסיכום היומי נשאר על אפס.
+     קבוע אחד לשני הצדדים מונע מהם להיפרד שוב. */
+  const PLAN_PREFIX = 'plan__';
   let nutriDayType        = null;   // 'training' | 'rest' | 'target' — which day's menu the client views
   let _coachReferralEnabled = false; // coach-controlled referral program
   let _coachReferralReward  = '';
@@ -4582,7 +4589,8 @@ ${foodList || 'אין פריטים'}
         return;
       }
       const loggedMeals = new Set(
-        (foodLogs||[]).filter(l=>l.meal_type&&l.meal_type.startsWith('plan__')).map(l=>l.meal_type.slice(7))
+        (foodLogs||[]).filter(l => l.meal_type && l.meal_type.startsWith(PLAN_PREFIX))
+                      .map(l => l.meal_type.slice(PLAN_PREFIX.length))
       );
       // 🗓 day-type: if the coach tagged meals per day, show a selector and filter the menu
       const hasDayTags = nutritionPlanLocal.some(m => m.day_type && m.day_type !== 'any');
@@ -4703,15 +4711,50 @@ ${foodList || 'אין פריטים'}
         </button>`;
       }).join('');
 
-      /* סיכום היום מתחת לרשת — עונה על "מה נשאר לי לאכול" בלי לפתוח כלום */
-      const dayCal = _mealShown.reduce((a, k) => a + (_mealCards[k] ? _mealCards[k].tot.cal : 0), 0);
-      const eatenCal = _mealShown.reduce((a, k) => a + (_mealCards[k] && _mealCards[k].isLogged ? _mealCards[k].tot.cal : 0), 0);
-      const tgtCal = Number(clientData?.target_calories) || 0;
-      const summary = _mealShown.length ? `
-        <div style="margin-top:14px;text-align:center;font-size:0.78rem;color:#999;">
-          נאכלו <strong style="color:#4ade80;">${Math.round(eatenCal)}</strong>
-          מתוך <strong style="color:#fff;">${Math.round(tgtCal || dayCal)}</strong> קק"ל
-        </div>` : '';
+      /* ══ סיכום היום ══
+         עונה על "מה נשאר לי לאכול" בלי לפתוח שום ארוחה. הצבע קבוע לכל
+         מאקרו כדי שאפשר יהיה לזהות אותו במבט בלי לקרוא: חלבון ירוק,
+         פחמימה צהוב, שומן אדום, קלוריות כחול.
+         נספר רק מה שסומן כנאכל, ולכן הוא זז עם כל סימון. היעד נלקח
+         מכרטיס הלקוח, ואם לא הוגדר — מסך התפריט של היום. */
+      const MACROS = [
+        ['קלוריות', 'cal', 'target_calories', '#60a5fa', ''],
+        ['חלבון',   'p',   'target_protein',  '#4ade80', 'g'],
+        ['פחמימה',  'c',   'target_carbs',    '#facc15', 'g'],
+        ['שומן',    'f',   'target_fat',      '#f87171', 'g'],
+      ];
+      const _sum = (k, onlyEaten) => _mealShown.reduce((a, x) => {
+        const card = _mealCards[x];
+        if (!card) return a;
+        if (onlyEaten && !card.isLogged) return a;
+        return a + (card.tot[k] || 0);
+      }, 0);
+
+      const summary = _mealShown.length ? (
+        '<div style="margin-top:16px;padding:13px 14px;border-radius:14px;' +
+        'background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);">' +
+        '<div style="font-size:0.72rem;color:#999;margin-bottom:10px;">סיכום היום — מה שסומן כנאכל</div>' +
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">' +
+        MACROS.map(function (m) {
+          const label = m[0], key = m[1], tgtKey = m[2], color = m[3], unit = m[4];
+          const got = Math.round(_sum(key, true));
+          const tgt = Math.round(Number(clientData && clientData[tgtKey]) || _sum(key, false));
+          const pct = tgt ? Math.min(100, Math.round(got / tgt * 100)) : 0;
+          return '<div>' +
+            '<div style="display:flex;justify-content:space-between;align-items:baseline;gap:6px;">' +
+              '<span style="font-size:0.72rem;color:#aaa;">' + label + '</span>' +
+              '<span style="font-size:0.76rem;white-space:nowrap;">' +
+                '<strong style="color:' + color + ';font-weight:900;">' + got + '</strong>' +
+                '<span style="color:#777;"> / ' + tgt + unit + '</span>' +
+              '</span>' +
+            '</div>' +
+            '<div style="height:5px;margin-top:4px;border-radius:3px;background:rgba(255,255,255,0.08);overflow:hidden;">' +
+              '<div style="width:' + pct + '%;height:100%;background:' + color + ';border-radius:3px;transition:width .35s;"></div>' +
+            '</div>' +
+          '</div>';
+        }).join('') +
+        '</div></div>'
+      ) : '';
 
       body.innerHTML = tabs + daySelector +
         (planHtml.trim()
@@ -4817,7 +4860,10 @@ ${foodList || 'אין פריטים'}
   function openMealOptions(mi) {
     const c = _mealCards[mi];
     if (!c) return;
-    if (!c.vars.length) { c.isLogged ? unlogMeal(mi) : logMeal(mi); return; }
+    /* קודם לחיצה על ארוחה עם אפשרות אחת סימנה אותה מיד כנאכלה. אבל
+       לוחצים על ארוחה כדי לראות מה אוכלים בה ולא כדי לדווח, ולחיצה
+       מקרית רשמה ארוחה שלא נאכלה. גם כאן נפתח חלון — בלי בורר
+       אפשרויות, אבל עם התוכן ועם כפתור הסימון. */
     openMealIdx = mi;
     renderNutriBody();
   }
@@ -4978,9 +5024,17 @@ ${foodList || 'אין פריטים'}
     const meal = nutritionPlanLocal[mi];
     if (!meal) return;
     const today = todayStr();
-    const mealKey = 'plan__' + meal.meal;
-    const inserts = (meal.items||[]).map((item,ii) => {
-      const alt = altChoices[`${mi}_${ii}`];
+    const mealKey = PLAN_PREFIX + meal.meal;
+    /* עד כאן נרשמו תמיד המזונות של אפשרות 1, גם כשהמתאמן בחר אחרת —
+       המסך הראה אפשרות 3 והיומן קיבל את אפשרות 1, עם מאקרו שונה
+       לגמרי. נרשמת האפשרות שנבחרה בפועל.
+       החלופות ברמת הפריט חלות על אפשרות 1 בלבד: המפתח שלהן הוא
+       מיקום הפריט בבסיס, ועל אפשרות אחרת הוא היה מצביע על מזון אחר. */
+    const _vars = meal.variants || [];
+    const _picked = _vars.length ? (mealPick[today + '__' + mi] || 0) : 0;
+    const _items = _picked === 0 ? (meal.items || []) : (_vars[_picked - 1].items || []);
+    const inserts = _items.map((item,ii) => {
+      const alt = _picked === 0 ? altChoices[`${mi}_${ii}`] : null;
       return {
         client_email: currentEmail, log_date: today, meal_type: mealKey,
         food_name: alt ? alt.name : (item.food||''),
@@ -5002,7 +5056,7 @@ ${foodList || 'אין פריטים'}
   async function unlogMeal(mi) {
     const meal = nutritionPlanLocal[mi];
     if (!meal) return;
-    const mealKey = 'plan__' + meal.meal;
+    const mealKey = PLAN_PREFIX + meal.meal;
     const today = todayStr();
     const { error } = await sb.from('food_logs').delete()
       .eq('client_email', currentEmail).eq('meal_type', mealKey).eq('log_date', today);
