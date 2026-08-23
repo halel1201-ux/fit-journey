@@ -2770,7 +2770,7 @@
     ]);
     trainingPlan  = Array.isArray(tr?.plan) ? (tr.plan || []) : (tr?.plan?.active || []);
     _trainingArchive = Array.isArray(tr?.plan) ? [] : (tr?.plan?.archive || []);
-    nutritionPlan = nu?.plan  || [];
+    nutritionPlan = stripNonMeals(nu?.plan || []).plan;   // שורות סיכום אינן ארוחות
     nutritionArchive = Array.isArray(nu?.archive) ? nu.archive : [];
     _coachPrices   = co?.plan_prices || {};
     _coachDeputies = deps || [];

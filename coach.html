@@ -4411,7 +4411,9 @@
       if (d.name !== undefined) { const { name, ...rest } = d; return rest; }
       return d;
     });
-    nutritionPlan = nu?.plan || [];
+    /* תפריטים שנשמרו לפני החסימה נושאים עדיין שורת סיכום. היא
+       מוסרת בטעינה, ונעלמת לתמיד בשמירה הבאה. */
+    nutritionPlan = stripNonMeals(nu?.plan || []).plan;
     /* בלוקים שהוחלפו. עד עכשיו כל החלפה — ובעיקר אישור הצעה מסגן —
        דרסה את התפריט הקודם לתמיד; הוא נשמר מזה זמן מה, אבל לא
        הייתה שום דרך להחזיר אותו. */
@@ -8493,7 +8495,11 @@ BCAA אבקה|40|4|6|0
      לא תטה את הסכומים. */
   function dropNonMeals(plan) {
     const before = plan.length;
-    const kept = plan.filter(m => Array.isArray(m && m.items) &&
+    /* שתי בדיקות: שורה בלי מזון כלל, ושורה ששמה מעיד שהיא סיכום
+       ולא ארוחה — האחרונה לפעמים כן נושאת פריטים ולכן לא נתפסת
+       בבדיקת התוכן. */
+    const named = stripNonMeals(plan).plan;
+    const kept = named.filter(m => Array.isArray(m && m.items) &&
                                   m.items.some(i => i && String(i.food || '').trim()));
     return { plan: kept, dropped: before - kept.length };
   }
@@ -9768,6 +9774,22 @@ ${buildFoodListForPrompt()}
       <div style="font-size:0.76rem;color:#888;margin-bottom:14px;line-height:1.7;">
         סגן רואה <b style="color:#aaa;">רק את המתאמנים שתנגיש לו</b> (👤) ויכול להציע בהם שינויים.
         <b style="color:#aaa;">שום שינוי לא נכנס לתוקף עד שתאשר אותו.</b>
+      <!-- הצעות ממתינות: עד עכשיו הן היו נגישות רק דרך באדג׳ צף
+           שמופיע כשיש הצעה. כשאין — לא היה שום מקום לראות שאין,
+           ולא היה איך להגיע להיסטוריה. כאן זו כניסה קבועה. -->
+      <button onclick="openApprovals()" style="width:100%;margin-bottom:12px;padding:11px 13px;
+        border-radius:11px;min-height:44px;cursor:pointer;font-family:Heebo,sans-serif;text-align:right;
+        background:${pendingForMe.length ? 'rgba(255,107,0,0.12)' : 'rgba(255,255,255,0.03)'};
+        border:1px solid ${pendingForMe.length ? 'rgba(255,107,0,0.45)' : 'rgba(255,255,255,0.1)'};">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:9px;">
+          <span style="font-weight:900;font-size:0.85rem;color:${pendingForMe.length ? 'var(--orange)' : '#aaa'};">
+            📝 שינויים שהסגן הציע</span>
+          <span style="font-size:0.72rem;font-weight:800;padding:3px 10px;border-radius:999px;
+            background:${pendingForMe.length ? 'rgba(255,107,0,0.2)' : 'rgba(255,255,255,0.06)'};
+            color:${pendingForMe.length ? 'var(--orange)' : '#888'};">
+            ${pendingForMe.length ? pendingForMe.length + ' ממתינים' : 'אין ממתינים'}</span>
+        </div>
+      </button>
       </div>
       ${rows}
       <div class="f-group" style="margin-top:14px;"><label>מייל הסגן</label>
@@ -9794,10 +9816,52 @@ ${buildFoodListForPrompt()}
   }
 
   let _depClientsFor = null;
+  let _splitPct = {};                       // לקוח → אחוז לסגן שנבחר
+  const _pctOf = e => (_splitPct[e] != null ? _splitPct[e] : '');
+
+  /* קביעת האחוז ישירות מהרשימה. שמירה מיידית ולא כפתור "שמור":
+     המסך הזה הוא רשימה של הרבה שורות, וכפתור אחד לכולן היה מזמין
+     לצאת ממנו בלי לשמור חצי מהן.
+     senior_email תמיד שלי — הבכיר הוא זה שקובע את החלוקה. */
+  async function setClientPct(clientEmail, val, inp) {
+    if (!requireEdit()) return;
+    const dep = _depClientsFor;
+    if (!dep) return;
+    const raw = String(val == null ? '' : val).trim();
+    const pct = raw === '' ? 0 : Number(raw);
+    if (!(pct >= 0 && pct <= 100)) {
+      toast('אחוז חייב להיות בין 0 ל-100', 'err');
+      if (inp) inp.value = _pctOf(clientEmail);
+      return;
+    }
+    if (inp) inp.disabled = true;
+    const { error } = await sb.from('coaching_splits').upsert({
+      client_email: clientEmail, senior_email: coachEmail, deputy_email: dep,
+      deputy_pct: pct, active: pct > 0 }, { onConflict: 'client_email,deputy_email' });
+    if (inp) inp.disabled = false;
+    if (error) {
+      toast(/does not exist|schema cache/i.test(error.message)
+        ? 'טבלת החלוקה טרם הוגדרה — יש להריץ את המיגרציה'
+        : 'שגיאה: ' + error.message, 'err');
+      if (inp) inp.value = _pctOf(clientEmail);   // חוזר למצב האמיתי
+      return;
+    }
+    _splitPct[clientEmail] = pct;
+    toast(pct > 0 ? `נקבע ${pct}% לסגן` : 'החלוקה בוטלה למתאמן הזה', 'ok');
+  }
+
   async function openDeputyClients(deputyEmail) {
     if (!requireEdit()) return;
     _depClientsFor = deputyEmail;
     await loadDeputyState();
+    /* החלוקות של כל הלקוחות בבת אחת, במקום שאילתה לכל שורה. אם
+       הטבלה טרם הוגדרה המסך עדיין עובד — פשוט בלי אחוזים. */
+    _splitPct = {};
+    try {
+      const { data: sp } = await sb.from('coaching_splits')
+        .select('client_email,deputy_pct').eq('senior_email', coachEmail).eq('deputy_email', deputyEmail);
+      (sp || []).forEach(r => { _splitPct[r.client_email] = r.deputy_pct; });
+    } catch (e) { }
     /* רק המתאמנים שלי — אי אפשר להנגיש מתאמן של מאמן אחר */
     const mine = clients.filter(c => !c._deputy && c.coach_email === coachEmail);
     const rows = mine.map(c => {
@@ -9807,7 +9871,15 @@ ${buildFoodListForPrompt()}
         <input type="checkbox" ${on ? 'checked' : ''} style="width:18px;height:18px;accent-color:var(--orange);cursor:pointer;"
           onchange="toggleClientDeputy('${escJs(c.email)}',this.checked,this)"/>
         <span style="flex:1;font-size:0.85rem;color:#fff;font-weight:700;">${esc(c.name || c.email)}</span>
-        <span style="font-size:0.7rem;color:#777;">${esc(c.email)}</span>
+        <input type="number" min="0" max="100" step="0.5" value="${_pctOf(c.email)}"
+          placeholder="%" title="אחוז מההכנסה שמגיע לסגן על המתאמן הזה"
+          onchange="setClientPct('${escJs(c.email)}',this.value,this)"
+          ${on ? '' : 'disabled'}
+          style="width:72px;flex:none;padding:7px 8px;border-radius:8px;text-align:center;
+            background:rgba(255,255,255,0.05);border:1px solid rgba(196,165,255,0.3);
+            color:#c4a5ff;font-family:Heebo,sans-serif;font-size:0.82rem;font-weight:800;
+            ${on ? '' : 'opacity:0.35;'}"/>
+        <span style="font-size:0.7rem;color:#777;flex:none;">%</span>
       </label>`;
     }).join('') || '<div style="color:#666;padding:18px;text-align:center;font-size:0.85rem;">אין לך מתאמנים להנגיש.</div>';
 
@@ -9815,7 +9887,7 @@ ${buildFoodListForPrompt()}
       <div style="font-weight:900;font-size:1.05rem;color:var(--orange);margin-bottom:4px;">👤 מתאמנים של ${esc(deputyEmail)}</div>
       <div style="font-size:0.76rem;color:#888;margin-bottom:12px;line-height:1.7;">
         סמן את המתאמנים שהסגן מלווה. <b style="color:#aaa;">מה שלא מסומן — הוא לא רואה כלל.</b>
-        הסרת סימון מנתקת אותו מיד.
+        באחוז שלצד כל שם נקבע כמה מגיע לו מההכנסה של אותו מתאמן.
       </div>
       <div style="max-height:44vh;overflow-y:auto;">${rows}</div>
       <div style="display:flex;gap:8px;margin-top:14px;">
@@ -10084,6 +10156,15 @@ ${buildFoodListForPrompt()}
     /* מעדכנים את המפה מקומית כדי שהמונה בשורת הסגן יהיה נכון
        בלי סבב נוסף למסד על כל סימון. */
     const arr = clientDeputyMap[clientEmail] || [];
+    /* לקוח שהוסרה ממנו ההנגשה אינו מלווה יותר, ולכן גם החלוקה עליו
+       מפסיקה — אחרת היא הייתה ממשיכה להיספר בהתחשבנות על מי שהסגן
+       כבר לא רואה. קבלות שכבר הונפקו נשארות כפי שהן: הן צילום של
+       מה שהיה בזמן ההנפקה. */
+    if (!on) {
+      try { await sb.from('coaching_splits').update({ active: false })
+        .eq('client_email', clientEmail).eq('deputy_email', deputyEmail); } catch (e) { }
+      delete _splitPct[clientEmail];
+    }
     clientDeputyMap[clientEmail] = on
       ? [...new Set([...arr, deputyEmail])]
       : arr.filter(e => e !== deputyEmail);
