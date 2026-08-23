@@ -4613,7 +4613,13 @@ ${foodList || 'אין פריטים'}
            הנוכחי בלבד. ארוחה בלי variants מתנהגת בדיוק כמו קודם. */
         const vars = meal.variants || [];
         const pickKey = `${todayStr()}__${mi}`;
-        const picked = vars.length ? (mealPick[pickKey] || 0) : 0;
+        /* קודם אפשרות 1 נבחרה מאליה, כך שארוחה נראתה כאילו המתאמן כבר
+           החליט — ובארוחה עם אפשרות אחת לא נותר לו מה לעשות חוץ מלסמן.
+           chosen נשאר undefined עד שהוא באמת לוחץ. picked משמש לתצוגה
+           בלבד, כדי שיראה תוכן וסכומים עוד לפני שבחר. */
+        const chosen = mealPick[pickKey];
+        const hasChosen = chosen !== undefined;
+        const picked = hasChosen ? chosen : 0;
         const items = picked === 0 ? (meal.items || []) : (vars[picked - 1].items || []);
         /* גלולות של 26 פיקסלים היו קטנות מדי לאצבע. הכפתורים כאן
            גבוהים מ-44 פיקסלים, ומסמנים את הנבחר גם בווי ולא רק בצבע —
@@ -4685,7 +4691,7 @@ ${foodList || 'אין פריטים'}
         /* כל מה שחושב כאן נשמר, כדי שהחלון ייבנה מאותו חישוב בדיוק —
            כולל חלופות שהמתאמן בחר ברמת הפריט. חישוב שני היה יכול
            להיפרד מהאריח ולהציג מספרים שונים באותו מסך. */
-        _mealCards[mi] = { meal, mi, isLogged, vars, pickKey, picked, tot, itemsHtml, pickedLabel };
+        _mealCards[mi] = { meal, mi, isLogged, vars, pickKey, picked, hasChosen, tot, itemsHtml, pickedLabel };
         _mealShown.push(mi);
 
         const ic = mealIcon(meal.meal);
@@ -4706,7 +4712,7 @@ ${foodList || 'אין פריטים'}
               : nOpts > 1
                 ? 'background:rgba(255,107,0,0.14);color:var(--orange);border:1px solid rgba(255,107,0,0.45);'
                 : 'background:rgba(255,255,255,0.05);color:#999;border:1px solid rgba(255,255,255,0.12);'}">
-            ${isLogged ? '✓ נאכל' : nOpts > 1 ? nOpts + ' אפשרויות' : 'סמן כנאכל'}
+            ${isLogged ? '✓ נאכל' : nOpts > 1 ? nOpts + ' אפשרויות' : 'בחר וסמן'}
           </div>
         </button>`;
       }).join('');
@@ -4872,7 +4878,7 @@ ${foodList || 'אין פריטים'}
   function mealOptionsModal() {
     const c = _mealCards[openMealIdx];
     if (!c) return '';
-    const { meal, mi, isLogged, vars, pickKey, picked, tot, itemsHtml } = c;
+    const { meal, mi, isLogged, vars, pickKey, picked, hasChosen, tot, itemsHtml } = c;
     /* תיאור קצר לכל אפשרות — שני המזונות הראשונים. בלעדיו כל
        האפשרויות נראות זהות ואי אפשר לבחור בלי לפתוח כל אחת. */
     const brief = list => (list || []).slice(0, 2).map(x => esc(x.food || '')).filter(Boolean).join(' + ') +
@@ -4882,7 +4888,10 @@ ${foodList || 'אין פריטים'}
 
     const opts = [{ label: 'אופציה 1', items: meal.items || [] }, ...vars].map((v, vi) => {
       const st = sumOf(v.items);
-      const on = vi === picked;
+      /* אי אפשר לסמן בלי לבחור. גם בארוחה עם אפשרות אחת הבחירה היא
+         פעולה מודעת של המתאמן ולא משהו שקורה לו מאליו — אחרת לא ברור
+         אם הוא באמת אכל את מה שרשום או רק לחץ. */
+      const on = hasChosen && vi === picked;
       return `<button onclick="pickMeal('${pickKey}',${vi})"
         style="width:100%;text-align:right;cursor:pointer;font-family:'Heebo',sans-serif;
           margin-bottom:8px;padding:11px 13px;border-radius:12px;min-height:44px;
@@ -4928,13 +4937,18 @@ ${foodList || 'אין פריטים'}
             </div>
           </div>
 
-          <button onclick="${isLogged ? `unlogMeal(${mi})` : `logMeal(${mi})`}"
-            style="width:100%;margin-top:14px;min-height:48px;border-radius:12px;cursor:pointer;
+          <button ${(!isLogged && !hasChosen) ? 'disabled' : ''}
+            onclick="${isLogged ? `unlogMeal(${mi})` : `logMeal(${mi})`}"
+            style="width:100%;margin-top:14px;min-height:48px;border-radius:12px;
               font-family:'Heebo',sans-serif;font-weight:900;font-size:0.95rem;
-              background:${isLogged ? 'rgba(74,222,128,0.12)' : 'linear-gradient(135deg,var(--orange),#FF8C00)'};
-              border:1px solid ${isLogged ? 'rgba(74,222,128,0.5)' : 'transparent'};
-              color:${isLogged ? '#4ade80' : '#fff'};">
-            ${isLogged ? '✓ נרשם — בטל סימון' : '✓ אכלתי את זה'}
+              cursor:${(!isLogged && !hasChosen) ? 'not-allowed' : 'pointer'};
+              background:${isLogged ? 'rgba(74,222,128,0.12)'
+                : (!hasChosen ? 'rgba(255,255,255,0.05)' : 'linear-gradient(135deg,var(--orange),#FF8C00)')};
+              border:1px solid ${isLogged ? 'rgba(74,222,128,0.5)'
+                : (!hasChosen ? 'rgba(255,255,255,0.12)' : 'transparent')};
+              color:${isLogged ? '#4ade80' : (!hasChosen ? '#777' : '#fff')};">
+            ${isLogged ? '✓ נרשם — בטל סימון'
+              : (!hasChosen ? 'בחר אפשרות כדי לסמן' : '✓ אכלתי את זה')}
           </button>
         </div>
       </div>`;
