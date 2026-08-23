@@ -2752,8 +2752,16 @@
   let studioData = null;    // studios row for a studio owner
   let canEdit    = false;   // senior/admin/studio_owner עורכים · regular צופה בלבד
   function requireEdit() {
-    if (!canEdit) { toast('מצב צפייה בלבד — אין הרשאת עריכה', 'err'); return false; }
-    return true;
+    if (canEdit) return true;
+    /* לסגן יש role רגיל ולכן canEdit שלו כבוי — והשער הזה חסם אותו
+       *לפני* ש-saveTraining ו-saveNutrition הספיקו לנתב אותו
+       ל-proposeChange. כלומר מנגנון ההצעות היה בנוי ומת: הסגן לחץ
+       שמור וקיבל "מצב צפייה בלבד".
+       הוא עובר רק על מתאמן שהונגש לו, והכתיבה עצמה ממילא נחסמת
+       במסד — מה שעובר כאן הוא הנתיב להצעה, לא הרשאת כתיבה. */
+    if (iAmDeputyOf.length && isDeputyFor(activeEmail)) return true;
+    toast('מצב צפייה בלבד — אין הרשאת עריכה', 'err');
+    return false;
   }
   function showViewOnlyBanner() {
     if (document.getElementById('view-only-banner')) return;
@@ -3209,7 +3217,23 @@
        the second is read further down. */
     const _selfClientQ = sb.from('clients').select('email').eq('email', session.user.email).single();
     const { data: coach } = await sb.from('coaches').select('*').eq('email', session.user.email).single();
-    if (!coach) { window.location.href = 'login.html'; return; }
+    /* בלי שורת מאמן העמוד היה מחזיר להתחברות בלי לומר למה, וזה
+       נראה בדיוק כמו כשל התחברות. סגן שלא הופעל יראה עכשיו מה
+       חסר לו במקום לולאה שקטה. */
+    if (!coach) {
+      const { data: asDep } = await sb.from('coach_deputies')
+        .select('senior_email').eq('deputy_email', session.user.email).eq('active', true).limit(1);
+      if (asDep && asDep.length) {
+        document.body.innerHTML = '<div style="min-height:100vh;display:flex;align-items:center;' +
+          'justify-content:center;padding:24px;background:#0a0a0a;color:#fff;font-family:Heebo,sans-serif;' +
+          'direction:rtl;text-align:center;"><div><div style="font-size:2rem;">👥</div>' +
+          '<div style="font-weight:900;margin:10px 0 6px;">חשבון הסגן טרם הופעל</div>' +
+          '<div style="font-size:0.85rem;color:#aaa;line-height:1.7;">בקש מהמאמן הבכיר לפתוח מחדש את מסך' +
+          ' הסגנים ולהוסיף אותך שוב — הפעולה פותחת את הגישה.</div></div></div>';
+        return;
+      }
+      window.location.href = 'login.html'; return;
+    }
     coachEmail = session.user.email;
     coachName  = coach.name;
     coachPhone = coach.phone || null;
@@ -3221,7 +3245,6 @@
     /* המחירון — "המחיר הרגיל" לכל סוג מנוי. משמש כמציין מקום בשדה
        המחיר של הלקוח, כך שרואים מיד מה ייגבה אם משאירים ריק. */
     coachPlanPrices = coach.plan_prices || {};
-    if (!canEdit && coachRole !== 'pending') showViewOnlyBanner();
     document.getElementById('coach-brand').textContent = `FJ — ${coachName}`;
     applyCoachOwnIcon(coach);   // 📱 האייקון של המאמן גם על הטלפון שלו
     queueLoad(loadTokens);
@@ -3276,6 +3299,9 @@
        הרשימה כדי לדעת אילו לקוחות של בכיר להביא, ובתור המקביל היא
        הייתה רצה ראשונה ומחזירה רשימה ריקה לסגן. */
     await loadDeputyState();
+    /* הבאנר הועבר לכאן: לפני טעינת מצב הסגן עוד לא ידוע שהוא סגן,
+       והוא קיבל "מצב צפייה בלבד" למרות שהוא כן פועל — דרך הצעות. */
+    if (!canEdit && coachRole !== 'pending' && !iAmDeputyOf.length) showViewOnlyBanner();
     await loadClients();
     document.getElementById('loader').style.display = 'none';
     _libsReady = Promise.all([loadExerciseLibrary(), loadFoodItems()]);
