@@ -8188,6 +8188,19 @@ BCAA אבקה|40|4|6|0
   /* הסוכן עלול להחזיר variants חלקיים או ריקים. גרסה בלי מזונות תציג
      למתאמן אופציה ריקה שאי אפשר לבחור, ולכן היא נזרקת כאן ולא מגיעה
      למסך. הכמות מוגבלת לשלוש — מעבר לזה זו רשימה שאי אפשר להחליט בה. */
+  /* הסוכן מחזיר מערך ארוחות, ולפעמים מוסיף מיוזמתו שורה שאינה ארוחה —
+     "סיכום יומי", "סה״כ" וכדומה. שום דבר לא סינן אותה, ולכן היא הפכה
+     לאריח בתפריט של המתאמן: 0 קלוריות, בלי מזון, ועם כפתור "סמן כנאכל".
+     שורה בלי מזונות אינה שמישה בשום מצב — אי אפשר לאכול אותה ואי אפשר
+     לסמן אותה בכנות — ולכן היא נזרקת כאן, לפני בדיקת המאקרו, כדי שגם
+     לא תטה את הסכומים. */
+  function dropNonMeals(plan) {
+    const before = plan.length;
+    const kept = plan.filter(m => Array.isArray(m && m.items) &&
+                                  m.items.some(i => i && String(i.food || '').trim()));
+    return { plan: kept, dropped: before - kept.length };
+  }
+
   function normalizeAgentVariants(plan) {
     let kept = 0, dropped = 0;
     for (const m of plan) {
@@ -8502,6 +8515,9 @@ ${wantVariants ? `
 ` : ''}
 ${buildFoodListForPrompt()}
 
+החזר **ארוחות בלבד**. אל תוסיף שורת סיכום, "סה״כ", הערה או כל רשומה
+שאינה ארוחה שאפשר לאכול — גם לא בסוף המערך.
+
 ## פורמט — החזר JSON בלבד ללא markdown, ללא הסברים:
 [{"meal":"ארוחת בוקר","day_type":"any","items":[{"food":"שיבולת שועל","quantity":"1/2 כוס (40 גרם)","calories":152,"protein":5,"carbs":27,"fat":2.8},{"food":"גבינה לבנה 5% שומן","quantity":"4 כפות (80 גרם)","calories":78,"protein":7.2,"carbs":3.4,"fat":4}],"protein_options":["יוגורט יווני 0%","קוטג׳ 5% שומן","חלבון ביצה"],"carbs_options":["שיבולת שועל","לחם מלא","פריכיות אורז"],"fat_options":["שקדים","אבוקדו","טחינה גולמית"]${wantVariants ? ',"variants":[{"label":"אופציה 2","items":[{"food":"לחם מלא","quantity":"2 פרוסות (60 גרם)","calories":150,"protein":6,"carbs":28,"fat":2},{"food":"חלבון ביצה","quantity":"200 גרם","calories":90,"protein":21,"carbs":2,"fat":0}]}]' : ''}}]`, _pendingNutriFiles) }]
         })
@@ -8528,6 +8544,12 @@ ${buildFoodListForPrompt()}
 
       /* 1. אימות מאקרו — מול היעדים שנלכדו לפני הבנייה, ולפני שהסנכרון
             ידרוס אותם בסכומי התפריט. */
+      /* לפני הכול: להסיר שורות שאינן ארוחה, אחרת שורת "סיכום" ריקה
+         נכנסת לתפריט ומופיעה למתאמן כאריח שאפשר לסמן. */
+      const _clean = dropNonMeals(plan);
+      plan = _clean.plan;
+      const dropNote = _clean.dropped ? ` · ${_clean.dropped} שורות ריקות הוסרו` : '';
+
       const tg  = { calories:targetCal, protein:targetProt, carbs:targetCarb, fat:targetFat };
       /* במצב שימור אין מה "לתקן": הכמויות שהמאמן כתב הן היעד, והיעדים
          נגזרים מהתפריט בסוף התהליך. סבב התיקון כל תפקידו לשנות כמויות
@@ -8557,7 +8579,7 @@ ${buildFoodListForPrompt()}
       nutritionPlan = plan;
       renderNutritionEditor();
       statusEl.style.color = chk.bad.length ? '#e0b040' : '#70dd70';
-      statusEl.textContent = `✓ ${plan.length} ארוחות · ${alt.added} חלופות${vr.kept ? ` · ${vr.kept} אופציות` : ''}${fixNote}` +
+      statusEl.textContent = `✓ ${plan.length} ארוחות · ${alt.added} חלופות${vr.kept ? ` · ${vr.kept} אופציות` : ''}${fixNote}${dropNote}` +
         (chk.bad.length ? ` — שים לב: ${chk.bad.map(b=>`${b.label} ${b.got}/${b.target}`).join(', ')}` : '');
       // הערכים שנבנו הופכים ליעדי המאקרו של הלקוח
       await saveNutrition(true);
