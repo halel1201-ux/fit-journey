@@ -4267,13 +4267,57 @@
   }
 
   /* זוכר איזה מתאמן פתוח, כדי שרענון דף לא יזרוק חזרה ללובי */
+  /* ══ הגנה על כרטיס מתאמן פתוח ══
+     סגירת טאב או "חזור" בדפדפן בזמן שכרטיס מתאמן פתוח הוציאה את
+     המאמן מהפאנל בלי אזהרה, ולפעמים גם לפני שהעריכה נשמרה.
+
+     שתי הגנות. beforeunload תופס סגירת חלון ורענון — הדפדפן מציג בו
+     דיאלוג משלו, ואי אפשר לנסח אותו, אבל אפשר לגרום לו להופיע.
+     ו-pushState גורם לכפתור "חזור" לסגור את הכרטיס במקום לצאת
+     מהאתר — כלומר ההתנהגות שהמאמן מצפה לה ממילא. */
+  let _cardHistoryPushed = false;
+
+  function guardOpenCard() {
+    if (_cardHistoryPushed) return;
+    try { history.pushState({ fjCard: true }, ''); _cardHistoryPushed = true; } catch (e) { }
+  }
+  function releaseOpenCard() { _cardHistoryPushed = false; }
+
+  window.addEventListener('beforeunload', e => {
+    const editing = typeof hasUnsavedNutrition === 'function' && hasUnsavedNutrition();
+    if (!activeEmail && !editing) return;
+    e.preventDefault();
+    e.returnValue = '';        // נדרש בדפדפנים ישנים
+    return '';
+  });
+
+  window.addEventListener('popstate', () => {
+    if (!activeEmail) return;
+    _cardHistoryPushed = false;
+    const editing = typeof hasUnsavedNutrition === 'function' && hasUnsavedNutrition();
+    const msg = editing
+      ? 'יש עריכה שטרם נשמרה. לצאת מכרטיס המתאמן?'
+      : 'לצאת מכרטיס המתאמן?';
+    if (!confirm(msg)) { guardOpenCard(); return; }   // נשארים — מחזירים את המצב
+    if (typeof flushNutriSave === 'function') { try { flushNutriSave(); } catch (e) { } }
+    activeEmail = null;
+    rememberOpenClient(null);
+    if (typeof closeClientCard === 'function') closeClientCard();
+  });
+
   const OPEN_CLIENT_KEY = 'fj_open_client';
   function rememberOpenClient(email) { try { email ? localStorage.setItem(OPEN_CLIENT_KEY, email) : localStorage.removeItem(OPEN_CLIENT_KEY); } catch (e) {} }
 
   async function selectClient(email) {
+    /* עריכה שטרם נשמרה שייכת למתאמן הקודם. שומרים אותה לפני שמחליפים
+       את activeEmail, אחרת היא הולכת לאיבוד או נכתבת על החדש. */
+    if (typeof flushNutriSave === 'function' && activeEmail && activeEmail !== email) {
+      try { await flushNutriSave(); } catch (e) { }
+    }
     activeEmail = email;
     setTimeout(applyDeputyView, 0);   // אחרי שהכרטיס נבנה
     rememberOpenClient(email);
+    guardOpenCard();   // "חזור" יסגור את הכרטיס במקום לצאת מהאתר
     currentPackage = null;
     caTrack('view_client', { client: email }); caRapidCheck(); // activity guard
     markChatSeen(email); // פתיחת המתאמן = ההודעות נקראו

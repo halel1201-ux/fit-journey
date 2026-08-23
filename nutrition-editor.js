@@ -682,29 +682,60 @@
       if (fill) fill.style.width = (tg ? Math.min(100, Math.round(val / tg * 100)) : (val > 0 ? 100 : 0)) + '%';
     });
   }
+  /* השמירה המושהית קראה את activeEmail ואת nutritionPlan ברגע שירתה,
+     ולא ברגע שנקבעה. מאמן שערך את רוני ופתח מתאמן אחר בתוך 1.2 שניות
+     גרם לטיימר לכתוב את התוכנית של רוני על המתאמן החדש — ומבחינת
+     המאמן זה נראה כאילו התוכנית "נמחקה".
+
+     כאן נלכדים המייל והתוכנית ברגע העריכה, והשמירה מקבלת אותם
+     במפורש. גם אם המסך התחלף בינתיים, מה שנכתב הוא בדיוק מה שהיה
+     על המסך כשהמאמן הקליד, ואל המתאמן הנכון. */
+  let _nutriPending = null;   // { email, plan } — עריכה שטרם נשמרה
+
   function nutriTouched() {
     refreshNutriTotals();
     if (!activeEmail || !canEdit) return;
     clearTimeout(_nutriSaveTimer);
-    _nutriSaveTimer = setTimeout(async () => {
-      const ok = await saveNutrition(true);   // silent
-      const chip = document.getElementById('nutri-save-chip');
-      if (chip && ok !== false) { chip.style.opacity = '1'; setTimeout(() => { chip.style.opacity = '0'; }, 1600); }
-    }, 1200);
+    _nutriPending = { email: activeEmail, plan: JSON.parse(JSON.stringify(nutritionPlan)) };
+    _nutriSaveTimer = setTimeout(flushNutriSave, 1200);
   }
 
-  async function saveNutrition(silent) {
+  /* שומרת מיד את מה שממתין, ומחזירה true גם כשאין מה לשמור.
+     נקראת גם מהטיימר וגם לפני מעבר בין מתאמנים. */
+  async function flushNutriSave() {
+    clearTimeout(_nutriSaveTimer);
+    const p = _nutriPending;
+    _nutriPending = null;
+    if (!p) return true;
+    const ok = await saveNutritionFor(p.email, p.plan, true);
+    const chip = document.getElementById('nutri-save-chip');
+    if (chip && ok !== false) { chip.style.opacity = '1'; setTimeout(() => { chip.style.opacity = '0'; }, 1600); }
+    return ok;
+  }
+  function hasUnsavedNutrition() { return !!_nutriPending; }
+
+  /* שמירה אל מתאמן מפורש. כל מי שקורא לה מוסר את המייל ואת התוכנית,
+     ולכן היא אינה תלויה במה שמוצג על המסך ברגע הריצה. */
+  async function saveNutritionFor(email, plan, silent) {
     if (silent ? !canEdit : !requireEdit()) return false;
+    if (!email) return false;
     /* אצל סגן זו הצעה, לא שמירה. השמירה האוטומטית (silent) מדוכאת
        בכוונה — אחרת כל הקלדה הייתה מייצרת הצעה חדשה ומציפה את הבכיר. */
-    if (isDeputyFor(activeEmail)) {
+    if (isDeputyFor(email)) {
       if (silent) return true;
-      return proposeChange('nutrition_plan', nutritionPlan,
-        `${(nutritionPlan || []).length} ארוחות`, false);
+      return proposeChange('nutrition_plan', plan,
+        `${(plan || []).length} ארוחות`, false);
     }
-    const { error } = await sb.from('nutrition_plans').upsert({client_email:activeEmail,plan:nutritionPlan,updated_at:new Date().toISOString()},{onConflict:'client_email'});
+    const { error } = await sb.from('nutrition_plans').upsert({client_email:email,plan:plan,updated_at:new Date().toISOString()},{onConflict:'client_email'});
     if (!silent) error ? toast('שגיאה בשמירה','err') : toast('תפריט נשמר ✓','ok');
     return !error;
+  }
+
+  /* שמירה ידנית — מה שעל המסך, למתאמן שעל המסך. */
+  async function saveNutrition(silent) {
+    _nutriPending = null;             // הידנית גוברת על מה שהמתין
+    clearTimeout(_nutriSaveTimer);
+    return saveNutritionFor(activeEmail, nutritionPlan, silent);
   }
 
   /* בונה את רשימת התרגילים לפרומפט של ה-AI.
