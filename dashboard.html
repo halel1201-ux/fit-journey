@@ -4905,6 +4905,20 @@ ${foodList || 'אין פריטים'}
       </button>`;
     }).join('');
 
+    /* ארוחה עם אפשרות אחת נראתה חסרה — כרטיס בודד ומקום ריק בלי הסבר.
+       כאן מוצגת אפשרות שנייה שאינה ניתנת לבחירה: היא מסבירה למה אין
+       עוד, ומזמינה לפנות למאמן. המסגרת מקווקוות כדי שיהיה ברור מיד
+       שזו הזמנה ולא אפשרות אמיתית. */
+    const inviteHtml = vars.length ? '' :
+      '<button onclick="closeMealOptions();openChat(\'private\')"' +
+      ' style="width:100%;text-align:right;cursor:pointer;font-family:Heebo,sans-serif;' +
+      ' margin-bottom:8px;padding:11px 13px;border-radius:12px;min-height:44px;' +
+      ' background:rgba(255,255,255,0.02);border:1px dashed rgba(255,255,255,0.16);">' +
+        '<div style="font-weight:900;font-size:0.85rem;color:#888;">אופציה 2</div>' +
+        '<div style="font-size:0.75rem;color:#777;margin-top:3px;">לגיוון בתפריט — צור קשר עם המאמן שלך</div>' +
+        '<div style="font-size:0.72rem;color:var(--orange);margin-top:5px;font-weight:700;">💬 פתח צ\'אט</div>' +
+      '</button>';
+
     return `
       <div onclick="closeMealOptions()" role="dialog" aria-modal="true"
         style="position:fixed;inset:0;z-index:320;background:rgba(0,0,0,0.72);
@@ -4925,7 +4939,7 @@ ${foodList || 'אין פריטים'}
                 color:#999;font-size:0.95rem;font-family:'Heebo',sans-serif;">✕</button>
           </div>
 
-          <div style="margin-top:12px;">${opts}</div>
+          <div style="margin-top:12px;">${opts}${inviteHtml}</div>
 
           <div style="border-top:1px solid rgba(255,255,255,0.07);padding-top:10px;">
             ${itemsHtml}
@@ -5064,6 +5078,11 @@ ${foodList || 'אין פריטים'}
     if (error) { console.error(error); return; }
     foodLogs = [...(foodLogs||[]), ...(data||[])];
     renderNutriBody();
+    /* החלון נשאר פתוח אחרי הסימון, ולכן הרשת והסיכום שמתחתיה השתנו
+       מאחוריו והמתאמן לא ראה כלום עד שרענן. סוגרים אותו, וכך העדכון
+       נראה באותו רגע. */
+    openMealIdx = null;
+    renderNutriBody();
     showDashToast(`${meal.meal} נאכלה`);
   }
 
@@ -5076,6 +5095,7 @@ ${foodList || 'אין פריטים'}
       .eq('client_email', currentEmail).eq('meal_type', mealKey).eq('log_date', today);
     if (error) return;
     foodLogs = (foodLogs||[]).filter(l => l.meal_type !== mealKey);
+    openMealIdx = null;
     renderNutriBody();
   }
 
