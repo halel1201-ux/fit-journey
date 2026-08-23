@@ -7064,6 +7064,41 @@ ${exLines || 'אין'}
        2 חימום + 3x10  — שני סטי חימום ואז שלושה עובדים
      סימון החימום חשוב מעבר לתצוגה: גרף ההתקדמות וחישוב הנפח
      מתעלמים מסטי חימום, ובלעדיו הם היו מדללים את הממוצע. */
+  /* הסוכן נהג לכתוב "סופר-סט עם התרגיל הבא" בהערה במקום לחבר, כי
+     הפורמט לא הכיר בכך. הפרומפט תוקן, אבל פרומפט הוא בקשה ולא ערובה —
+     וגם תוכניות שכבר נבנו נושאות את ההערה. כאן ההערה מתורגמת לחיבור
+     אמיתי: התרגיל מחובר לזה שאחריו, וההזכרה מנוקה מההערה כדי שלא
+     תופיע פעמיים.
+     לא נוגעים בתרגיל אחרון ביום — אין למה לחבר אותו. */
+  const SUPERSET_RE = /(?:סופר[\s-]?סט|טריפל[\s-]?סט|super\s?set|tri\s?set)/i;
+  function linkSupersetsFromNotes(plan) {
+    let linked = 0;
+    for (const day of (plan || [])) {
+      const exs = day && day.exercises;
+      if (!Array.isArray(exs)) continue;
+      exs.forEach((ex, i) => {
+        if (!ex || i === exs.length - 1) return;      // אחרון — אין לאן לחבר
+        if (ex.linked_next) return;                   // הסוכן כבר חיבר
+        const note = String(ex.notes || '');
+        if (!SUPERSET_RE.test(note)) return;
+        ex.linked_next = true;
+        /* מנקים את המשפט שהזכיר סופר-סט, ומשאירים את שאר ההערה */
+        ex.notes = note.split(/[.,;·|\n]/)
+                       .filter(part => !SUPERSET_RE.test(part))
+                       .join(', ').replace(/\s+/g, ' ').replace(/^[\s,]+|[\s,]+$/g, '');
+        linked++;
+      });
+      /* מגבלת שלושה בקבוצה — רצף ארוך יותר נחתך, אחרת התצוגה נשברת */
+      let run = 0;
+      exs.forEach(ex => {
+        if (!ex) return;
+        if (ex.linked_next) { run++; if (run >= 3) { ex.linked_next = false; run = 0; } }
+        else run = 0;
+      });
+    }
+    return linked;
+  }
+
   function parseSetsToArray(spec) {
     if (Array.isArray(spec)) return spec.map(s => ({ set_type: 'working', ...s }));
     let s = String(spec || '').trim();
@@ -7472,8 +7507,15 @@ Bro Split: 6-8 תרגילים לשריר, דגש על מבודדים, ניתן 2
 - אם שם לא מופיע ברשימה — החלף בשם הקרוב ביותר שכן קיים
 - אסור להחזיר שם שלא קיים ברשימה
 
+### 3. סופר-סט
+סופר-סט מסומן בשדה "linked_next": true על התרגיל הראשון בצמד — כלומר
+הוא מחובר לתרגיל שאחריו. טריפל-סט = שני תרגילים רצופים עם true.
+**אל תכתוב "סופר-סט" בהערה.** הערה היא טקסט חופשי שהמערכת אינה מבינה,
+והתרגילים יוצגו נפרדים. השדה הוא מה שמחבר אותם בפועל.
+מקסימום שלושה תרגילים בקבוצה אחת.
+
 החזר אך ורק JSON תקני ללא markdown ללא הסבר:
-[{"day":"יום א׳ — PUSH","muscles":["חזה","כתפיים","יד אחורית"],"exercises":[{"name":"לחיצת חזה במוט","sets_reps":"5×20/15/12/10/8","notes":""},{"name":"פרפר חזה במכונה","sets_reps":"4×12-20","notes":""}]}]`, _pendingPlanFiles) }]
+[{"day":"יום א׳ — PUSH","muscles":["חזה","כתפיים","יד אחורית"],"exercises":[{"name":"לחיצת חזה במוט","sets_reps":"5×20/15/12/10/8","notes":"","linked_next":false},{"name":"פרפר חזה במכונה","sets_reps":"4×12-20","notes":"","linked_next":false}]}]`, _pendingPlanFiles) }]
         })
       });
       if (!res.ok) { const e = await res.json(); throw new Error(e.error?.message || `HTTP ${res.status}`); }
@@ -7481,6 +7523,8 @@ Bro Split: 6-8 תרגילים לשריר, דגש על מבודדים, ניתן 2
       const text = data.content[0].text.trim();
       const plan = parseAiJson(text, 'תוכנית אימון');
       if (!Array.isArray(plan) || !plan.length) throw new Error('תוכנית ריקה');
+      /* סופר-סטים שנכתבו בהערה מתורגמים לחיבור אמיתי לפני שהתוכנית נבנית */
+      const _linked = linkSupersetsFromNotes(plan);
       let unmatchedNames = [];
       trainingPlan = plan.map(day => ({
         ...day,
@@ -7512,6 +7556,12 @@ Bro Split: 6-8 תרגילים לשריר, דגש על מבודדים, ניתן 2
             demo_ex_id:  libMatch ? libMatch.id : null,
             cues:        libMatch ? libMatch.cues : (ex.cues || null),
             rest_time:   ex.rest_time || 90,
+            /* שני שדות שהמיפוי השמיט, ולכן מה שהסוכן החזיר בהם נעלם:
+               linked_next הוא מה שמחבר סופר-סט, ו-technique הוא הטכניקה
+               שהעורך מציג. בלעדיהם הסוכן היה יכול להחזיר אותם כמה שירצה —
+               הם נמחקו בדרך אל התוכנית. */
+            linked_next: !!ex.linked_next,
+            technique:   ex.technique || null,
           };
         })
       }));
