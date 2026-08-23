@@ -9613,15 +9613,60 @@ ${buildFoodListForPrompt()}
       </div>`;
   }
 
+  /* מעביר את התוכנית הנוכחית לארכיון לפני שההצעה מוחלת.
+     מחזיר מערך ארכיון (תפריטים), true (אימונים — נשמר בתוך plan),
+     או false אם הארכוב נכשל ואסור להמשיך. */
+  async function archiveBeforeApply(tbl, p) {
+    const who = p.deputy_email ? String(p.deputy_email).split('@')[0] : 'סגן';
+    const label = 'לפני הצעת ' + who + ' · ' + new Date().toLocaleDateString('he-IL');
+    try {
+      if (tbl === 'training_plans') {
+        const { data } = await sb.from('training_plans').select('plan')
+          .eq('client_email', p.client_email).maybeSingle();
+        const cur = data && data.plan;
+        const active = Array.isArray(cur) ? cur : ((cur && cur.active) || []);
+        if (!active.length) return true;                // אין מה לארכב
+        const arch = Array.isArray(cur) ? [] : ((cur && cur.archive) || []);
+        arch.push({ label, days: active, archived_at: new Date().toISOString() });
+        /* payload של ההצעה מכיל active+archive משלו, ולכן הארכיון
+           המעודכן מוזרק אליו — אחרת ההחלה הייתה מוחקת אותו. */
+        if (p.payload && typeof p.payload === 'object' && !Array.isArray(p.payload)) {
+          p.payload.archive = arch.slice(-10);
+        }
+        return true;
+      }
+      const { data } = await sb.from('nutrition_plans').select('plan,archive')
+        .eq('client_email', p.client_email).maybeSingle();
+      const cur = data && data.plan;
+      if (!Array.isArray(cur) || !cur.length) return [];    // אין מה לארכב
+      const arch = Array.isArray(data && data.archive) ? data.archive : [];
+      arch.push({ label, plan: cur, archived_at: new Date().toISOString() });
+      return arch.slice(-10);                          // עשרה אחרונים — לא צובר בלי סוף
+    } catch (e) {
+      toast('שגיאה בארכוב התוכנית הקודמת — ההצעה לא הוחלה', 'err');
+      return false;
+    }
+  }
+
   async function decideChange(id, approve) {
     const p = pendingForMe.find(x => x.id === id); if (!p) return;
     if (approve) {
       /* ההחלה נעשית ע"י הבכיר, שמורשה לכתוב — ולכן היא עוברת את
          אותה מדיניות שמגנה על הלקוחות שלו ממילא. */
+      /* אישור הצעה דרס את התוכנית הקיימת בלי שום דרך חזרה. כאן היא
+         מועברת קודם לארכיון, ורק אז ההצעה נכנסת במקומה — כך שתמיד
+         אפשר לשחזר את מה שהיה לפני.
+
+         באימונים הארכיון כבר קיים בתוך plan.archive; בתפריטים נוספה
+         עמודת archive נפרדת, כי plan הוא מערך שכל הקוד קורא ישירות
+         והפיכתו לאובייקט הייתה שוברת כל קורא קיים. */
       const tbl = p.kind === 'training_plan' ? 'training_plans' : 'nutrition_plans';
-      const { error } = await sb.from(tbl).upsert(
-        { client_email: p.client_email, plan: p.payload, updated_at: new Date().toISOString() },
-        { onConflict: 'client_email' });
+      const archived = await archiveBeforeApply(tbl, p);
+      if (archived === false) return;                 // הארכוב נכשל — לא דורסים
+
+      const row = { client_email: p.client_email, plan: p.payload, updated_at: new Date().toISOString() };
+      if (Array.isArray(archived)) row.archive = archived;   // תפריטים בלבד
+      const { error } = await sb.from(tbl).upsert(row, { onConflict: 'client_email' });
       if (error) { toast('שגיאה בהחלה: ' + error.message, 'err'); return; }
     }
     await sb.from('pending_changes')
