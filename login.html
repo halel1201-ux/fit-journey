@@ -258,12 +258,16 @@
       const lookup = Promise.all([
         sb.from('coaches').select('email').eq('email', email).maybeSingle(),
         sb.from('clients').select('email').eq('email', email).maybeSingle(),
+        /* סגן שהוא גם מתאמן נשלח למסך המתאמן, כי הבדיקה הייתה
+           "מאמן ולא לקוח". מי שמלווה מתאמנים של אחר צריך להגיע
+           לפאנל — יש שם מתג חזרה למסך האישי שלו. */
+        sb.from('coach_deputies').select('id').eq('deputy_email', email).eq('active', true).limit(1),
       ]);
       const timeout = new Promise(r => setTimeout(() => r(null), ROUTE_TIMEOUT_MS));
       const res = await Promise.race([lookup, timeout]);
       if (!res) { go(lastRoute()); return; }                   // עמוס מדי — לא נשארים תקועים
-      const [{ data: coach }, { data: client }] = res;
-      const dest = coach && !client ? 'coach.html' : 'dashboard.html';
+      const [{ data: coach }, { data: client }, { data: dep }] = res;
+      const dest = coach && (!client || (dep && dep.length)) ? 'coach.html' : 'dashboard.html';
       try { localStorage.setItem('fj_route', dest); } catch (_) { }
       go(dest);
     } catch (e) {

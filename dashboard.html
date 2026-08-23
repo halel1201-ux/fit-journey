@@ -1758,6 +1758,8 @@
       sb.from('coaches').select('email').eq('email', email).single(),
       sb.from('clients').select('*').eq('email', email).single(),
     ]);
+    /* המתג מופיע לכל מי שיש לו שורת מאמן — כולל סגן. בלעדיו סגן
+       שהוא גם מתאמן היה תקוע במסך האישי בלי דרך להגיע לפאנל. */
     if (coachRow) {
       document.getElementById('btn-coach-link').style.display = 'inline-flex';
     }
@@ -2168,6 +2170,7 @@
               ${ex.video_url ? `<a class="ex-video" href="${ex.video_url}" target="_blank" rel="noopener">▶ צפה</a>` : ''}
               ${exNoteBtn(ex.name)}
             </div>
+            ${setBreakdownHtml(ex)}
           `).join('')}
         </div>
       </div>
@@ -2467,7 +2470,7 @@
           linked_next: !!ex.linked_next,
           overloadTip: computeOverloadTip(setsArr, prevSetReps, prevSetWeights),
           sets: setsArr.map((s, si) => {
-            const setType = s.set_type || 'working';
+            const setType = setTypeOf(s);   // מנורמל, אחרת חימום נחשב סט עבודה
             // Use this set's prev weight (or last set's weight if not enough sets)
             const prevW = prevSetWeights[si] > 0
               ? prevSetWeights[si]
@@ -2508,6 +2511,48 @@
     persistWorkout();
   }
 
+  /* ── מה בדיוק המאמן הגדיר ──
+     תצוגת התוכנית כיווצה הכול ל"4×12": סטי חימום, סטי כשל, דרופים
+     וטכניקות פשוט לא הופיעו. המתאמן ראה מספר ולא ידע מה לעשות איתו,
+     והעבודה שהמאמן השקיע בהגדרה נעלמה עד שהוא לחץ "החל אימון".
+
+     כאן מוצג הפירוט: סוג לכל סט, טווח חזרות, משקל מומלץ אם נקבע,
+     זמן מנוחה והטכניקה. סט עבודה מסומן גם הוא במפורש — "מה חימום
+     ומה עבודה" היא בדיוק השאלה שהתצוגה לא ענתה עליה. */
+  const PLAN_SET_LABEL = { warm_up: 'חימום', working: 'עבודה', failure: 'כשל', drop: 'דרופ' };
+  const PLAN_SET_COLOR = { warm_up: '#64b4ff', working: '#9aa0a6', failure: 'var(--orange)', drop: '#b478ff' };
+
+  function setBreakdownHtml(ex) {
+    const sets = Array.isArray(ex.sets) ? ex.sets : null;
+    const tech = ex.technique && ex.technique !== 'none' ? TECHNIQUES[ex.technique] : null;
+    const rest = ex.rest_time || ex.restTime;
+    if (!sets && !tech && !rest) return '';
+
+    const chips = (sets || []).map((s, i) => {
+      const st = setTypeOf(s);
+      const lbl = PLAN_SET_LABEL[st] || st;
+      const col = PLAN_SET_COLOR[st] || '#9aa0a6';
+      const reps = s.reps_min && s.reps_max && s.reps_min !== s.reps_max
+        ? `${s.reps_min}–${s.reps_max}`
+        : (s.reps_max || s.reps_min || s.reps || '');
+      const kg = (+s.recommended_kg > 0) ? ` · ${s.recommended_kg} ק"ג` : '';
+      return `<span style="display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:999px;
+        background:${col}14;border:1px solid ${col}55;font-size:0.68rem;white-space:nowrap;">
+        <b style="color:${col};">${lbl}</b>
+        <span style="color:#bbb;">${reps ? reps + ' חז׳' : ''}${kg}</span>
+      </span>`;
+    }).join('');
+
+    return `<div style="padding:2px 4px 9px;display:flex;flex-wrap:wrap;gap:5px;align-items:center;">
+      ${chips}
+      ${rest ? `<span style="font-size:0.68rem;color:#888;padding:3px 8px;">⏱ מנוחה ${fmtRest(rest)}</span>` : ''}
+      ${tech ? `<div style="flex-basis:100%;margin-top:4px;padding:7px 10px;border-radius:8px;
+        background:rgba(124,58,237,0.12);border:1px solid rgba(168,85,247,0.4);
+        font-size:0.72rem;line-height:1.5;color:#c4a5ff;">
+        <b>🎯 ${tech.name}:</b> ${esc(tech.explain)}</div>` : ''}
+    </div>`;
+  }
+
   function formatSetsDisplay(sets) {
     if (!sets && sets !== 0) return '';
     if (typeof sets === 'string') return sets;
@@ -2541,7 +2586,7 @@
     if (!s) return DEFAULT_SETS();
 
     const mk = (min, max, warm) => ({ reps_min: min, reps_max: max, recommended_kg: 0,
-                                      set_type: warm ? 'warmup' : 'working' });
+                                      set_type: warm ? 'warm_up' : 'working' });
     const WARM = /חימום|warm\s*-?up|^w\b/i;
 
     /* "2 חימום" או "חימום x2" בתחילת המחרוזת — סטי חימום נפרדים */
@@ -3521,6 +3566,18 @@
     document.getElementById('session-body').innerHTML = html;
   }
 
+  /* בורר סוג הסט אצל המאמן כותב warm_up, והמפענח של שדה הסטים כתב
+     warmup — אותו דבר בשני שמות. הטבלה שמתרגמת סוג לתווית הכירה רק
+     את הראשון, ולכן תוכנית שנבנתה מטקסט או ע"י הסוכן הציגה סטי חימום
+     בלי שום סימון: המתאמן לא ידע מה חימום ומה עבודה.
+     המפענח תוקן, אבל תוכניות שכבר נשמרו נושאות את השם הישן — ולכן
+     הנרמול נעשה בקריאה, ולא בהגירה חד-פעמית של הנתונים. */
+  const SET_TYPE_ALIAS = { warmup: 'warm_up', warm: 'warm_up', drop_set: 'drop', fail: 'failure' };
+  function setTypeOf(s) {
+    const v = (s && s.set_type) || 'working';
+    return SET_TYPE_ALIAS[v] || v;
+  }
+
   const SET_TYPE_LABEL = { warm_up: 'חמ׳', working: '', failure: 'כשל', drop: 'דרופ סט' };
   const SET_TYPE_COLOR = { warm_up: '#64b4ff', working: '', failure: 'var(--orange)', drop: '#b478ff' };
 
@@ -3529,7 +3586,7 @@
     const nums = [];
     let main = 0, frac = 5;
     for (let i = 0; i < sets.length; i++) {
-      if ((sets[i].set_type || 'working') === 'drop') {
+      if (setTypeOf(sets[i]) === 'drop') {
         nums.push(main > 0 ? (main + frac / 10) : (frac / 10));
         frac++;
       } else {
@@ -3549,8 +3606,9 @@
       ? `<div style="font-size:0.62rem;color:var(--orange);text-align:center;margin-top:1px;">↑ ${progLow}${progHigh && progHigh !== progLow ? '–' + progHigh : ''} ק"ג</div>` : '';
     const rangeHint = hasRange
       ? `<div style="font-size:0.62rem;color:#888;text-align:center;margin-top:1px;">יעד: ${rangeDisplay}</div>` : '';
-    const typeLabel = SET_TYPE_LABEL[s.set_type] || '';
-    const typeColor = SET_TYPE_COLOR[s.set_type] || '';
+    const _st = setTypeOf(s);
+    const typeLabel = SET_TYPE_LABEL[_st] || '';
+    const typeColor = SET_TYPE_COLOR[_st] || '';
     const typeBadge = typeLabel
       ? `<div style="font-size:0.58rem;font-weight:700;color:${typeColor};text-align:center;margin-top:1px;">${typeLabel}</div>` : '';
     return `<div class="s-row${s.completed ? ' done' : ''}" id="sr-${ei}-${si}">

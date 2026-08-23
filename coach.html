@@ -4358,6 +4358,7 @@
     }
     activeEmail = email;
     setTimeout(applyDeputyView, 0);   // אחרי שהכרטיס נבנה
+    loadClientSplit(email);   // לא ממתינים — הכרטיס כבר מצויר
     rememberOpenClient(email);
     guardOpenCard();   // "חזור" יסגור את הכרטיס במקום לצאת מהאתר
     currentPackage = null;
@@ -4970,6 +4971,10 @@ ${exLines || 'אין'}
           ${(coachRole === 'senior' || coachRole === 'admin' || isStudioOwner) ? `<button class="btn-sm btn-outline" onclick="setClientPassword()" style="border-color:rgba(255,215,0,0.35);color:#FFD700;" title="הגדר סיסמה = מספר הטלפון (ספרות בלבד)">🔑 הגדר סיסמה</button>` : ''}
         </div>
       </div>
+
+      <!-- 🤝 חלוקה עם הסגן. מחוץ ל-DEPUTY_HIDDEN במכוון: הסגן צריך
+           לראות את החלק שלו, גם כשהחוב והקבלות מוסתרים ממנו. -->
+      <div id="split-card"></div>
 
       ${renderPackageCard()}
 
@@ -6583,6 +6588,17 @@ ${exLines || 'אין'}
         vat_rate:    brandData?.biz_type === 'licensed' ? (brandData?.vat_rate ?? 18) : null,
       };
 
+      /* צילום החלוקה עם הסגן ברגע ההנפקה. האחוז הוא פר עסקה, ולכן
+         הוא נשמר על הקבלה ולא נקרא מההגדרה בזמן החישוב — שינוי אחוז
+         מחר לא כותב מחדש התחשבנות שכבר נסגרה.
+         ביטול הקבלה מוריד את חלקו מאליו, כי הבסיס הוא הקבלות. */
+      const _sp = clientSplit;
+      if (_sp && _sp.active && _sp.client_email === activeEmail) {
+        receiptRow.split_deputy_email = _sp.deputy_email;
+        receiptRow.split_pct          = _sp.deputy_pct;
+        receiptRow.split_collector    = _sp.collector;
+      }
+
       const { error } = await sb.from('receipts').insert(receiptRow);
       if (error) throw new Error(error.message);
 
@@ -7203,13 +7219,16 @@ ${exLines || 'אין'}
     return linked;
   }
 
+  /* אותו נרמול כמו בפאנל המתאמן: שני שמות לאותו סוג סט. */
+  const SET_TYPE_ALIAS = { warmup: 'warm_up', warm: 'warm_up', drop_set: 'drop', fail: 'failure' };
+
   function parseSetsToArray(spec) {
     if (Array.isArray(spec)) return spec.map(s => ({ set_type: 'working', ...s }));
     let s = String(spec || '').trim();
     if (!s) return DEFAULT_SETS();
 
     const mk = (min, max, warm) => ({ reps_min: min, reps_max: max, recommended_kg: 0,
-                                      set_type: warm ? 'warmup' : 'working' });
+                                      set_type: warm ? 'warm_up' : 'working' });
     const WARM = /חימום|warm\s*-?up|^w\b/i;
 
     /* "2 חימום" או "חימום x2" בתחילת המחרוזת — סטי חימום נפרדים */
@@ -7387,7 +7406,9 @@ ${exLines || 'אין'}
       <div class="sets-coach-wrap">
         <div class="sets-coach-head"><span>סט</span><span style="text-align:center;">סוג</span><span style="text-align:center;">ק"ג מומלץ</span><span>טווח חזרות</span><span></span></div>
         ${sets.map((s, si) => {
-          const st = s.set_type || 'working';
+          /* תוכנית ישנה נושאת warmup; בלי הנרמול הבורר היה נופל
+             ל"עב׳" ומוחק את סימון החימום ברגע שהמאמן נגע בשורה. */
+          const st = SET_TYPE_ALIAS[s.set_type] || s.set_type || 'working';
           const stClass = st === 'warm_up' ? 'type-warm' : st === 'failure' ? 'type-failure' : st === 'drop' ? 'type-drop' : '';
           return `
           <div class="sets-coach-row">
@@ -9574,6 +9595,8 @@ ${buildFoodListForPrompt()}
   let myDeputies = [], iAmDeputyOf = [], pendingForMe = [];
   /* המיילים של הלקוחות שהונגשו לי כסגן, ומפת לקוח→סגנים עבור הבכיר */
   let myAssignedClients = [], clientDeputyMap = {};
+  /* החלוקה של הלקוח הפתוח, ומאזני ההתחשבנות מול כל שותף */
+  let clientSplit = null, splitBalances = [];
 
   /* האם הלקוח הפתוח שייך לבכיר שאני סגן שלו */
   function isDeputyFor(clientEmail) {
@@ -9645,6 +9668,7 @@ ${buildFoodListForPrompt()}
         (clientDeputyMap[r.client_email] = clientDeputyMap[r.client_email] || []).push(r.deputy_email);
       });
       renderDeputyBadge();
+      renderSettlementButton();
     } catch (e) { /* הטבלאות אולי טרם הוגדרו — לא מפילים את הפאנל */ }
   }
 
@@ -9662,6 +9686,25 @@ ${buildFoodListForPrompt()}
       document.body.appendChild(el);
     }
     el.textContent = `📝 ${pendingForMe.length} שינויים ממתינים לאישורך`;
+  }
+
+  /* ── כפתור התחשבנות ──
+     מופיע למי שיש לו בכלל שותפות: בכיר עם סגנים, או סגן. אצל מאמן
+     שאין לו שותפים הוא לא מופיע — כפתור שמוביל למסך ריק הוא רעש. */
+  function renderSettlementButton() {
+    let el = document.getElementById('settle-btn');
+    const relevant = myDeputies.some(d => d.active) || iAmDeputyOf.length;
+    if (!relevant) { el?.remove(); return; }
+    if (!el) {
+      el = document.createElement('button');
+      el.id = 'settle-btn';
+      el.onclick = openSettlement;
+      el.style.cssText = 'position:fixed;bottom:calc(78px + var(--sab,0px));inset-inline-end:16px;z-index:900;' +
+        'padding:10px 15px;border-radius:999px;cursor:pointer;font-family:Heebo,sans-serif;font-size:0.78rem;font-weight:800;' +
+        'border:1px solid rgba(196,165,255,0.5);background:rgba(196,165,255,0.14);color:#c4a5ff;';
+      document.body.appendChild(el);
+    }
+    el.textContent = '🤝 התחשבנות';
   }
 
   /* ── הגשת הצעה (סגן) ── */
@@ -9759,6 +9802,223 @@ ${buildFoodListForPrompt()}
   /* "סגן מטפל" הוא בחירה יחידה, אבל האחסון הוא טבלת שיוכים שתומכת
      בכמה. לכן בחירה חדשה מוחקת קודם את הקיימות ללקוח הזה — אחרת
      סגן קודם היה ממשיך לראות אותו בלי שזה נראה בשום מקום. */
+  /* ══ 🤝 חלוקת הכנסה בין בכיר לסגן ══
+     הסגן מקבל אחוז ממה ששולם בפועל, ולכן הבסיס הוא הקבלות ולא
+     החבילה שנמכרה או חוב פתוח. מי שגובה מחזיק את הכסף, ומכאן
+     המאזן הדו-כיווני: אם הסגן גבה — הוא חייב לבכיר את ההפרש. */
+  async function loadClientSplit(email) {
+    clientSplit = null;
+    try {
+      const { data } = await sb.from('coaching_splits').select('*')
+        .eq('client_email', email).maybeSingle();
+      clientSplit = data || null;
+    } catch (e) { /* הטבלה אולי טרם הוגדרה — לא מפילים את הכרטיס */ }
+    renderSplitCard();
+  }
+
+  function renderSplitCard() {
+    const el = document.getElementById('split-card');
+    if (!el) return;
+    const dep = (clientDeputyMap[activeEmail] || [])[0];
+    const isDep = isDeputyFor(activeEmail);
+    /* בלי סגן מוצמד אין מה לחלוק — הכרטיס לא מופיע כלל, במקום
+       להציג טופס ריק שלא ברור למה הוא שם. */
+    if (!dep && !isDep) { el.innerHTML = ''; return; }
+    const pct = clientSplit ? Number(clientSplit.deputy_pct) : 0;
+    const col = clientSplit ? clientSplit.collector : 'senior';
+    const on  = !!(clientSplit && clientSplit.active);
+
+    if (isDep) {
+      /* אצל הסגן זו תצוגה בלבד: אחוז שהצד המקבל יכול לערוך אינו הסכם. */
+      el.innerHTML = `<div style="background:rgba(196,165,255,0.06);border:1px solid rgba(196,165,255,0.3);
+        border-radius:12px;padding:13px;margin-bottom:14px;">
+        <div style="font-size:0.85rem;font-weight:900;color:#c4a5ff;margin-bottom:8px;">🤝 החלוקה שלי בליווי הזה</div>
+        ${on ? `
+        <div style="display:flex;gap:10px;flex-wrap:wrap;font-size:0.8rem;">
+          <span style="color:#bbb;">החלק שלי: <b style="color:#fff;">${pct}%</b> ממה ששולם</span>
+          <span style="color:#bbb;">הגבייה: <b style="color:#fff;">${col === 'deputy' ? 'אני גובה' : 'המאמן גובה'}</b></span>
+        </div>
+        ${col === 'deputy' ? '<div style="font-size:0.72rem;color:#f0b429;margin-top:7px;">⚠ אתה גובה מהמתאמן — ההפרש נרשם כחוב שלך למאמן</div>' : ''}`
+        : '<div style="font-size:0.8rem;color:#888;">לא הוגדרה חלוקה בליווי הזה.</div>'}
+      </div>`;
+      return;
+    }
+
+    el.innerHTML = `<div style="background:rgba(196,165,255,0.06);border:1px solid rgba(196,165,255,0.3);
+      border-radius:12px;padding:13px;margin-bottom:14px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:9px;">
+        <div style="font-size:0.85rem;font-weight:900;color:#c4a5ff;">🤝 חלוקת הכנסה עם ${esc(dep)}</div>
+        <label style="display:flex;align-items:center;gap:7px;min-height:34px;cursor:pointer;font-size:0.75rem;color:#bbb;">
+          <input type="checkbox" id="split-on" ${on ? 'checked' : ''} onchange="saveSplit()"
+            style="width:17px;height:17px;accent-color:#c4a5ff;cursor:pointer;"/> פעילה
+        </label>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;">
+        <div class="f-group" style="margin:0;"><label>אחוז לסגן (%)</label>
+          <input id="split-pct" type="number" min="0" max="100" step="0.5" value="${pct || ''}"
+            placeholder="0" onchange="saveSplit()"/></div>
+        <div class="f-group" style="margin:0;"><label>מי גובה מהמתאמן</label>
+          <select id="split-collector" onchange="saveSplit()">
+            <option value="senior" ${col === 'senior' ? 'selected' : ''}>אני</option>
+            <option value="deputy" ${col === 'deputy' ? 'selected' : ''}>הסגן</option>
+          </select></div>
+      </div>
+      <div style="font-size:0.68rem;color:#777;margin-top:8px;line-height:1.6;">
+        האחוז מחושב ממה ששולם בפועל, ונשמר על כל קבלה בנפרד — שינוי כאן
+        לא משנה קבלות שכבר הונפקו. ביטול קבלה מוריד את חלקו.
+        ${col === 'deputy' ? '<br><b style="color:#f0b429;">הסגן גובה — ההפרש ייזקף כחוב שלו אליך.</b>' : ''}
+      </div>
+    </div>`;
+  }
+
+  async function saveSplit() {
+    if (!requireEdit()) return;
+    const dep = (clientDeputyMap[activeEmail] || [])[0];
+    if (!dep) { toast('אין סגן מוצמד למתאמן הזה', 'err'); return; }
+    const pct = Number(document.getElementById('split-pct')?.value || 0);
+    if (!(pct >= 0 && pct <= 100)) { toast('אחוז חייב להיות בין 0 ל-100', 'err'); return; }
+    const row = {
+      client_email: activeEmail, senior_email: coachEmail, deputy_email: dep,
+      deputy_pct: pct,
+      collector: document.getElementById('split-collector')?.value || 'senior',
+      active: !!document.getElementById('split-on')?.checked,
+    };
+    const { data, error } = await sb.from('coaching_splits')
+      .upsert(row, { onConflict: 'client_email,deputy_email' }).select().maybeSingle();
+    if (error) { toast('שגיאה: ' + error.message, 'err'); return; }
+    clientSplit = data || row;
+    renderSplitCard();
+    toast('החלוקה נשמרה ✓', 'ok');
+  }
+
+  /* ── חלון ההתחשבנות ──
+     שני הצדדים נצברים בנפרד ורק בסוף מקוזזים: מי שגבה חצי מהלקוחות
+     רוצה לראות "לשלם X · לקבל Y" ולא מספר אחד שלא ברור ממה הורכב.
+     המאזן מגיע מהמסד ולא מחושב כאן — כך הבכיר והסגן רואים בדיוק
+     את אותו מספר ואין על מה להתווכח. */
+  async function openSettlement() {
+    const body = document.getElementById('dep-modal-body');
+    if (!body) return;
+    body.innerHTML = '<div style="color:#888;padding:24px;text-align:center;">טוען התחשבנות…</div>';
+    document.getElementById('dep-modal').style.display = 'flex';
+    try {
+      const [{ data: bal }, { data: led }] = await Promise.all([
+        sb.from('v_split_balance').select('*'),
+        sb.from('v_split_ledger').select('*').order('receipt_date', { ascending: false }).limit(60),
+      ]);
+      splitBalances = bal || [];
+      renderSettlement(splitBalances, led || []);
+    } catch (e) {
+      body.innerHTML = '<div style="color:#ff8080;padding:24px;text-align:center;font-size:0.85rem;">' +
+        'לא ניתן לטעון את ההתחשבנות. ודא שהמיגרציה הורצה.</div>';
+    }
+  }
+
+  const _ils = n => Math.round(Number(n) || 0).toLocaleString('he-IL') + ' ₪';
+
+  function renderSettlement(bals, led) {
+    const iAmSenior = b => b.senior_email === coachEmail;
+    if (!bals.length) {
+      document.getElementById('dep-modal-body').innerHTML = `
+        <div style="font-weight:900;font-size:1.05rem;color:#c4a5ff;margin-bottom:6px;">🤝 התחשבנות</div>
+        <div style="color:#888;padding:22px 4px;font-size:0.85rem;line-height:1.7;">
+          עדיין אין קבלות עם חלוקה. הגדר אחוז בכרטיס המתאמן, וכל קבלה
+          שתונפק מכאן והלאה תיכנס להתחשבנות.
+        </div>
+        <button class="btn-sm btn-outline" style="width:100%;" onclick="closeDepModal()">סגור</button>`;
+      return;
+    }
+
+    const cards = bals.map(b => {
+      const mine  = iAmSenior(b);
+      const other = mine ? b.deputy_email : b.senior_email;
+      /* net חיובי = הבכיר חייב לסגן. מנקודת המבט של מי שצופה: */
+      const net = Number(b.net) || 0;
+      const iOwe  = mine ? Math.max(net, 0)  : Math.max(-net, 0);
+      const iGet  = mine ? Math.max(-net, 0) : Math.max(net, 0);
+      const settled = Math.abs(net) < 0.5;
+      const tone = settled ? '#4ade80' : iOwe > 0 ? '#f0b429' : '#4ade80';
+      return `<div style="background:rgba(255,255,255,0.03);border:1px solid ${settled ? 'rgba(74,222,128,0.3)' : 'rgba(196,165,255,0.32)'};
+        border-radius:14px;padding:13px;margin-bottom:11px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:9px;margin-bottom:10px;">
+          <div style="font-weight:900;font-size:0.9rem;color:#fff;">${esc(other)}</div>
+          <div style="font-size:0.68rem;color:#888;">${b.receipts_count} קבלות · ${_ils(b.gross)}</div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:10px;">
+          <div style="background:rgba(240,180,41,0.08);border:1px solid rgba(240,180,41,0.28);border-radius:10px;padding:9px 11px;">
+            <div style="font-size:0.68rem;color:#999;">לשלם</div>
+            <div style="font-size:1.05rem;font-weight:900;color:${iOwe > 0 ? '#f0b429' : '#666'};">${_ils(iOwe)}</div>
+          </div>
+          <div style="background:rgba(74,222,128,0.08);border:1px solid rgba(74,222,128,0.28);border-radius:10px;padding:9px 11px;">
+            <div style="font-size:0.68rem;color:#999;">לקבל</div>
+            <div style="font-size:1.05rem;font-weight:900;color:${iGet > 0 ? '#4ade80' : '#666'};">${_ils(iGet)}</div>
+          </div>
+        </div>
+
+        <div style="text-align:center;padding:9px;border-radius:10px;background:rgba(0,0,0,0.35);">
+          <div style="font-size:0.68rem;color:#999;">${settled ? 'מאוזן' : iOwe > 0 ? 'חוב' : 'זכות'}</div>
+          <div style="font-size:1.25rem;font-weight:900;color:${tone};">${settled ? '✓ 0 ₪' : _ils(iOwe > 0 ? iOwe : iGet)}</div>
+        </div>
+
+        <div style="font-size:0.68rem;color:#777;margin-top:8px;line-height:1.7;">
+          מגיע לסגן ${_ils(b.owed_to_deputy)} · שולם ${_ils(b.paid_to_deputy)}<br>
+          הסגן גבה וחייב ${_ils(b.owed_to_senior)} · העביר ${_ils(b.paid_to_senior)}
+          ${b.cancelled_count ? `<br><span style="color:#f0b429;">${b.cancelled_count} קבלות מבוטלות ירדו מהחישוב</span>` : ''}
+        </div>
+
+        ${mine && !settled ? `<div style="display:flex;gap:7px;margin-top:10px;">
+          <button class="btn-sm btn-orange" style="flex:1;font-size:0.75rem;"
+            onclick="recordSettlement('${escJs(b.deputy_email)}',${net > 0 ? net : -net},'${net > 0 ? 'to_deputy' : 'to_senior'}')">
+            ✓ ${net > 0 ? 'שילמתי לסגן' : 'קיבלתי מהסגן'} ${_ils(Math.abs(net))}</button>
+          <button class="btn-sm btn-outline" style="font-size:0.75rem;"
+            onclick="recordSettlementPartial('${escJs(b.deputy_email)}','${net > 0 ? 'to_deputy' : 'to_senior'}')">חלקי</button>
+        </div>` : ''}
+        ${!mine ? '<div style="font-size:0.68rem;color:#777;margin-top:9px;">רק המאמן הבכיר רושם התחשבנות.</div>' : ''}
+      </div>`;
+    }).join('');
+
+    /* פירוט הקבלות מתחת לכרטיסים — כדי שאפשר יהיה לראות ממה הסכום
+       הורכב בלי לצאת מהחלון. קבלה מבוטלת מוצגת מחוקה ולא נעלמת:
+       היעלמות שקטה נראית כמו טעות בחישוב. */
+    const rows = led.map(r => `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;
+      padding:7px 2px;border-bottom:1px solid rgba(255,255,255,0.05);font-size:0.75rem;
+      ${r.cancelled ? 'opacity:0.45;text-decoration:line-through;' : ''}">
+      <span style="color:#ddd;">${esc(r.client_name || r.client_email)}</span>
+      <span style="color:#888;">${r.receipt_date} · ${_ils(r.amount)} · ${r.pct}%</span>
+      <span style="color:${r.collector === 'deputy' ? '#f0b429' : '#4ade80'};font-weight:800;">${_ils(r.deputy_share)}</span>
+    </div>`).join('');
+
+    document.getElementById('dep-modal-body').innerHTML = `
+      <div style="font-weight:900;font-size:1.05rem;color:#c4a5ff;margin-bottom:4px;">🤝 התחשבנות</div>
+      <div style="font-size:0.74rem;color:#888;margin-bottom:13px;">מחושב מקבלות שלא בוטלו, לפי האחוז שנשמר על כל קבלה.</div>
+      ${cards}
+      ${rows ? `<div style="margin-top:6px;">
+        <div style="font-size:0.78rem;font-weight:800;color:#c4a5ff;margin-bottom:5px;">פירוט קבלות</div>
+        <div style="max-height:32vh;overflow-y:auto;">${rows}</div>
+      </div>` : ''}
+      <button class="btn-sm btn-outline" style="width:100%;margin-top:13px;" onclick="closeDepModal()">סגור</button>`;
+  }
+
+  async function recordSettlement(deputyEmail, amount, direction, note) {
+    if (!requireEdit()) return;
+    const amt = Math.round(Number(amount) * 100) / 100;
+    if (!(amt > 0)) { toast('סכום לא תקין', 'err'); return; }
+    const { error } = await sb.from('split_settlements').insert({
+      senior_email: coachEmail, deputy_email: deputyEmail, amount: amt,
+      direction, note: note || null, created_by: coachName || coachEmail });
+    if (error) { toast('שגיאה: ' + error.message, 'err'); return; }
+    toast('ההתחשבנות נרשמה ✓', 'ok');
+    openSettlement();
+  }
+
+  function recordSettlementPartial(deputyEmail, direction) {
+    const v = prompt('סכום חלקי (₪):');
+    if (v === null) return;
+    recordSettlement(deputyEmail, Number(v), direction, 'תשלום חלקי');
+  }
+
+
   async function setClientDeputy(deputyEmail, sel) {
     if (!requireEdit()) return;
     if (!activeEmail) return;
@@ -9813,7 +10073,16 @@ ${buildFoodListForPrompt()}
       senior_email: coachEmail, deputy_email: email,
       note: document.getElementById('dep-note').value.trim() || null });
     if (error) { st.textContent = /duplicate/i.test(error.message) ? 'הסגן כבר מוגדר' : 'שגיאה: ' + error.message; st.style.color = '#ff7070'; return; }
-    toast('הסגן נוסף ✓', 'ok');
+    /* שורה ב-coach_deputies לבדה לא מספיקה: בלי שורת מאמן הסגן
+       נכנס ומגיע למסך המתאמן. ההפעלה נעשית במסד כי לבכיר אין
+       ואסור שתהיה הרשאת כתיבה על coaches. */
+    const { data: act, error: actErr } = await sb.rpc('activate_deputy_coach', { p_email: email });
+    if (actErr || act === 'forbidden') {
+      st.style.color = '#f0b429';
+      st.textContent = 'הסגן נוסף, אך פתיחת הגישה נכשלה — ודא שהמיגרציה הורצה';
+    } else {
+      toast('הסגן נוסף ✓ — קבע לו סיסמה כדי שיוכל להיכנס', 'ok');
+    }
     openDeputies();
   }
   /* קביעת סיסמה לסגן. השרת בודק שהוא באמת סגן פעיל שלי — כאן זו
