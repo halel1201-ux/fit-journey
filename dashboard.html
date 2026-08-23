@@ -4664,13 +4664,6 @@ ${foodList || 'אין פריטים'}
           ${dayOpts.map(([v,l]) => `<button onclick="setNutriDay('${v}')" style="flex:1;min-width:90px;padding:9px 8px;border-radius:10px;font-family:'Heebo',sans-serif;font-size:0.82rem;font-weight:800;cursor:pointer;border:1px solid ${nutriDayType===v?'var(--orange)':'rgba(255,255,255,0.14)'};background:${nutriDayType===v?'rgba(255,107,0,0.15)':'rgba(255,255,255,0.03)'};color:${nutriDayType===v?'var(--orange)':'var(--muted)'};">${l}</button>`).join('')}
         </div>
         <div style="font-size:0.72rem;color:#666;margin:0 0 12px;text-align:center;">📋 התפריט מותאם לסוג היום שבחרת</div>` : '';
-      /* תפריט שאין בו אף אופציה לא צריך רשת אריחים וחלון בחירה:
-         אין מה לבחור, והאריח רק מוסיף לחיצה כדי להגיע למה שאפשר היה
-         להראות ישר. במקרה הזה מוצגת התצוגה הפרושה כפי שהייתה לפני
-         שהאופציות נוספו — הארוחות אחת מתחת לשנייה, עם המזונות
-         והחלופות גלויים. ברגע שיש ולו אופציה אחת בתפריט, חוזרת
-         תצוגת האריחים על כל יתרונותיה. */
-      const anyOptions = nutritionPlanLocal.some(m => (m && m.variants || []).length > 0);
       const planHtml = nutritionPlanLocal.map((meal, mi) => {
         if (hasDayTags && meal.day_type && meal.day_type !== 'any' && meal.day_type !== nutriDayType) return '';
         const isLogged = loggedMeals.has(meal.meal);
@@ -4759,26 +4752,6 @@ ${foodList || 'אין פריטים'}
         _mealCards[mi] = { meal, mi, isLogged, vars, pickKey, picked, hasChosen, tot, itemsHtml, pickedLabel };
         _mealShown.push(mi);
 
-        /* ── תצוגה פרושה: כשאין אופציות בתפריט ── */
-        if (!anyOptions) {
-          return `<div style="background:${isLogged?'rgba(74,222,128,0.08)':'rgba(255,255,255,0.03)'};border:1px solid ${isLogged?'rgba(74,222,128,0.45)':'rgba(255,255,255,0.07)'};border-radius:12px;padding:14px 16px;margin-bottom:12px;transition:background 0.3s,border-color 0.3s;">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;gap:10px;">
-              <div style="font-weight:900;font-size:0.95rem;color:${isLogged?'#4ade80':'var(--gold)'};">${mealIcon(meal.meal)} ${esc(meal.meal)}${isLogged?' ✓':''}</div>
-              <button onclick="${isLogged?`unlogMeal(${mi})`:`logMeal(${mi})`}"
-                style="flex-shrink:0;padding:9px 14px;min-height:40px;background:${isLogged?'rgba(74,222,128,0.1)':'rgba(255,255,255,0.05)'};border:1px solid ${isLogged?'rgba(74,222,128,0.5)':'rgba(255,255,255,0.15)'};border-radius:20px;color:${isLogged?'#4ade80':'var(--muted)'};font-size:0.78rem;font-weight:700;cursor:pointer;font-family:'Heebo',sans-serif;transition:all 0.2s;">
-                ${isLogged?'✓ נרשם':'✓ אכלתי'}
-              </button>
-            </div>
-            ${itemsHtml}
-            <div style="margin-top:10px;font-size:0.75rem;color:#888;display:flex;gap:12px;flex-wrap:wrap;">
-              <span>סה"כ: <strong style="color:${isLogged?'#4ade80':'var(--white)'}">${Math.round(tot.cal)}</strong> קק"ל</span>
-              <span>חלבון: <strong style="color:var(--white)">${Math.round(tot.p)}g</strong></span>
-              <span>פחמימה: <strong style="color:var(--white)">${Math.round(tot.c)}g</strong></span>
-              <span>שומן: <strong style="color:var(--white)">${Math.round(tot.f)}g</strong></span>
-            </div>
-          </div>`;
-        }
-
         const ic = mealIcon(meal.meal);
         const nOpts = vars.length + 1;
         return `<button onclick="openMealOptions(${mi})"
@@ -4847,24 +4820,11 @@ ${foodList || 'אין פריטים'}
         '</div></div>'
       ) : '';
 
-      /* בתצוגת האריחים ההזמנה לפנות למאמן יושבת בתוך חלון הארוחה.
-         כאן אין חלון, וחזרה עליה מתחת לכל ארוחה הייתה רעש — לכן היא
-         מופיעה פעם אחת בתחתית התפריט, באותה נימה ובאותה מסגרת מקווקוות. */
-      const inviteStrip = anyOptions ? '' : `
-        <button onclick="openChat('private')" style="width:100%;text-align:right;
-          cursor:pointer;font-family:Heebo,sans-serif;margin:2px 0 12px;padding:11px 13px;
-          border-radius:12px;min-height:44px;background:rgba(255,255,255,0.02);
-          border:1px dashed rgba(255,255,255,0.16);">
-          <div style="font-weight:900;font-size:0.85rem;color:#888;">רוצה אופציה נוספת?</div>
-          <div style="font-size:0.75rem;color:#777;margin-top:3px;">לגיוון בתפריט — צור קשר עם המאמן שלך</div>
-          <div style="font-size:0.72rem;color:var(--orange);margin-top:5px;font-weight:700;">💬 פתח צ׳אט</div>
-        </button>`;
-
       body.innerHTML = tabs + daySelector +
         (planHtml.trim()
-          ? (anyOptions ? '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">' + planHtml + '</div>' : planHtml + inviteStrip) + summary
+          ? '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">' + planHtml + '</div>' + summary
           : '<div class="empty">אין ארוחות מוגדרות ליום זה 🥗</div>') +
-        (anyOptions ? mealOptionsModal() : '');   // אין מה לבחור — אין חלון
+        mealOptionsModal();
       return;
     }
 
