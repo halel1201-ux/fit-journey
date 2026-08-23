@@ -641,6 +641,20 @@
         <div class="f-group" id="biz-vat-wrap" style="display:none;margin-bottom:10px;max-width:170px;">
           <label>שיעור מע״מ (%)</label><input id="biz-vat" type="number" min="0" max="100" step="0.5" value="18"/>
         </div>
+        <!-- 💰 מחירון: המחיר הרגיל לכל סוג מנוי -->
+        <div style="border-top:1px solid rgba(255,255,255,0.08);margin:12px 0 10px;padding-top:11px;">
+          <div style="font-size:0.8rem;font-weight:800;color:#eee;margin-bottom:3px;">💰 מחירון</div>
+          <div style="font-size:0.7rem;color:#777;margin-bottom:9px;line-height:1.6;">
+            המחיר הרגיל לכל סוג מנוי. בכרטיס מתאמן אפשר לקבוע מחיר אחר —
+            והוא זה שיחויב. משמש גם לחידוש האוטומטי.
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+            <div class="f-group"><label>ליווי חודשי (₪)</label><input id="price-m1" type="number" min="0" step="1" placeholder="—"/></div>
+            <div class="f-group"><label>ליווי 3 חודשים (₪)</label><input id="price-m3" type="number" min="0" step="1" placeholder="—"/></div>
+            <div class="f-group"><label>ליווי חצי שנה (₪)</label><input id="price-m6" type="number" min="0" step="1" placeholder="—"/></div>
+            <div class="f-group"><label>ליווי שנתי (₪)</label><input id="price-m12" type="number" min="0" step="1" placeholder="—"/></div>
+          </div>
+        </div>
         <button class="btn-sm btn-orange" style="width:100%;" onclick="saveBusinessDetails()">💾 שמור פרטי עסק</button>
         <div id="biz-status" style="font-size:0.76rem;margin-top:7px;min-height:1em;"></div>
         <div style="font-size:0.7rem;color:#777;margin-top:8px;line-height:1.6;">
@@ -3204,6 +3218,9 @@
     isPremium  = (coachRole === 'admin') || (!!coach.premium_until && coach.premium_until >= todayStr());  // premium = instant generator ("second coach") unlocked
     canEdit    = (coachRole === 'senior' || coachRole === 'admin' || isStudioOwner);
     coachPlans = coach.plans || {};
+    /* המחירון — "המחיר הרגיל" לכל סוג מנוי. משמש כמציין מקום בשדה
+       המחיר של הלקוח, כך שרואים מיד מה ייגבה אם משאירים ריק. */
+    coachPlanPrices = coach.plan_prices || {};
     if (!canEdit && coachRole !== 'pending') showViewOnlyBanner();
     document.getElementById('coach-brand').textContent = `FJ — ${coachName}`;
     applyCoachOwnIcon(coach);   // 📱 האייקון של המאמן גם על הטלפון שלו
@@ -4764,6 +4781,11 @@ ${exLines || 'אין'}
   }
 
   function renderMain(client) {
+    /* מצב סגן נקבע פעם אחת לכרטיס: הוא מופיע בכמה שדות, וחישוב
+       חוזר בכל אחד מהם היה מזמין חוסר עקביות ביניהם. */
+    const isDep = isDeputyFor(client.email);
+    const listPrice = coachPlanPrices[client.plan_type];
+    const curDeputy = (clientDeputyMap[client.email] || [])[0] || '';
     const phone = client.phone || '';
     const endDate = client.coaching_end ? new Date(client.coaching_end + 'T12:00:00').toLocaleDateString('he-IL') : '—';
     // Period status block (females only) — built outside template literal to avoid nesting issues
@@ -4849,6 +4871,35 @@ ${exLines || 'אין'}
               <option ${client.plan_type === 'ליווי שנתי' ? 'selected' : ''}>ליווי שנתי</option>
             </select></div>
           <div class="f-group"><label>סיום מנוי (אוטומטי)</label><input id="e-end" type="date" value="${client.coaching_end || ''}"/></div>
+          <!-- 💰 מחיר, חידוש אוטומטי וסגן מטפל -->
+          <div class="f-group">
+            <label>מחיר החבילה (₪)</label>
+            <input id="e-price" type="number" min="0" step="1" inputmode="numeric"
+              value="${client.subscription_price != null ? client.subscription_price : ''}"
+              ${isDep ? 'readonly' : ''}
+              placeholder="${listPrice != null ? listPrice + ' — מחירון' : 'לפי המחירון'}"/>
+            <div style="font-size:0.68rem;color:#777;margin-top:3px;">
+              ${isDep ? 'המחיר שהלקוח משלם' : 'ריק = המחיר הרגיל לפי המחירון. סכום כאן גובר — להנחות חיילים, זוגות או חברים.'}
+            </div>
+          </div>
+          <div class="f-group">
+            <label>חידוש אוטומטי</label>
+            <label style="display:flex;align-items:center;gap:9px;min-height:44px;cursor:${isDep ? 'default' : 'pointer'};">
+              <input id="e-autorenew" type="checkbox" ${client.auto_renew ? 'checked' : ''} ${isDep ? 'disabled' : ''}
+                style="width:19px;height:19px;accent-color:var(--orange);cursor:inherit;"/>
+              <span style="font-size:0.78rem;color:#bbb;">בסיום התקופה המנוי מתארך והסכום נכנס לחוב</span>
+            </label>
+          </div>
+          ${myDeputies.length && !isDep ? `
+          <div class="f-group">
+            <label>סגן מטפל</label>
+            <select id="e-deputy" onchange="setClientDeputy(this.value, this)">
+              <option value="">— אין —</option>
+              ${myDeputies.filter(d => d.active).map(d => `<option value="${escJs(d.deputy_email)}"
+                ${curDeputy === d.deputy_email ? 'selected' : ''}>${esc(d.note || d.deputy_email)}</option>`).join('')}
+            </select>
+            <div style="font-size:0.68rem;color:#777;margin-top:3px;">הסגן יראה רק את המתאמנים שהוצמדו אליו</div>
+          </div>` : ''}
           <div class="f-group" style="grid-column:1/-1;"><button type="button" class="btn-sm btn-outline" onclick="renewFromToday()" style="width:100%;border-color:rgba(74,222,128,0.4);color:#4ade80;">🔄 חדש מהיום — מנוי חדש לפי הסוג (אחרי תשלום חידוש)</button></div>
           ${isStudioOwner ? `
           <div class="f-group"><label>סוג לקוח</label>
@@ -5928,6 +5979,12 @@ ${exLines || 'אין'}
                 target_calories: cal, target_protein: prot, target_carbs: carb, target_fat: fat,
                 target_water: water, current_weight: weight, gender,
                 goal: goal || null, peak_week_start: pwStart || null, stage_date: stageDate || null };
+    /* שדה ריק פירושו "לפי המחירון" ולכן הוא נשמר כ-NULL ולא כאפס:
+       אפס הוא מחיר אמיתי — ליווי ללא תשלום — ובלי ההבחנה הזאת כל
+       לקוח בלי מחיר פרטני היה נראה כאילו הוא לא משלם כלום. */
+    const _priceRaw = document.getElementById('e-price')?.value.trim();
+    updatePayload.subscription_price = _priceRaw === '' || _priceRaw == null ? null : Number(_priceRaw);
+    updatePayload.auto_renew = !!document.getElementById('e-autorenew')?.checked;
     if (isStudioOwner) {
       const ct = document.getElementById('e-client-type')?.value || 'coaching';
       updatePayload.client_type = ct;
@@ -6135,7 +6192,7 @@ ${exLines || 'אין'}
   }
   async function loadBusinessDetails() {
     const { data } = await sb.from('coaches')
-      .select('biz_number,biz_type,biz_address,biz_phone,vat_rate,name,phone')
+      .select('biz_number,biz_type,biz_address,biz_phone,vat_rate,name,phone,plan_prices')
       .eq('email', coachEmail).maybeSingle();
     _bizDetails = data || {};
     const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v ?? ''; };
@@ -6144,6 +6201,12 @@ ${exLines || 'אין'}
     set('biz-address', _bizDetails.biz_address);
     set('biz-phone', _bizDetails.biz_phone || _bizDetails.phone);
     set('biz-vat', _bizDetails.vat_rate ?? 18);
+    const pp = _bizDetails.plan_prices || {};
+    coachPlanPrices = pp;
+    set('price-m1',  pp['ליווי חודשי']);
+    set('price-m3',  pp['ליווי 3 חודשים']);
+    set('price-m6',  pp['ליווי חצי שנה']);
+    set('price-m12', pp['ליווי שנתי']);
     onBizTypeChange();
   }
   async function saveBusinessDetails() {
@@ -6156,10 +6219,20 @@ ${exLines || 'אין'}
       biz_phone:   document.getElementById('biz-phone')?.value.trim() || null,
       vat_rate:    parseFloat(document.getElementById('biz-vat')?.value) || 18,
     };
+    /* שדה ריק יורד מהמחירון במקום להישמר כאפס — אפס הוא מחיר
+       אמיתי, ו"לא הגדרתי" צריך להיראות אחרת ממנו גם כאן. */
+    const _pp = {};
+    for (const [id, key] of [['price-m1','ליווי חודשי'], ['price-m3','ליווי 3 חודשים'],
+                             ['price-m6','ליווי חצי שנה'], ['price-m12','ליווי שנתי']]) {
+      const v = document.getElementById(id)?.value.trim();
+      if (v !== '' && v != null) _pp[key] = Number(v);
+    }
+    patch.plan_prices = _pp;
     if (!patch.biz_number) { st.style.color = '#ff7070'; st.textContent = 'מספר עוסק הוא שדה חובה על הקבלה'; return; }
     const { error } = await sb.from('coaches').update(patch).eq('email', coachEmail);
     if (error) { st.style.color = '#ff7070'; st.textContent = 'שגיאה: ' + error.message; return; }
     _bizDetails = { ..._bizDetails, ...patch };
+    coachPlanPrices = patch.plan_prices;   // הכרטיסים יראו את המחיר החדש מיד
     st.style.color = '#4ade80'; st.textContent = '✓ נשמר — יופיע על הקבלות הבאות';
     setTimeout(() => { st.textContent = ''; }, 2200);
   }
@@ -9683,6 +9756,30 @@ ${buildFoodListForPrompt()}
     document.getElementById('dep-modal').style.display = 'flex';
   }
 
+  /* "סגן מטפל" הוא בחירה יחידה, אבל האחסון הוא טבלת שיוכים שתומכת
+     בכמה. לכן בחירה חדשה מוחקת קודם את הקיימות ללקוח הזה — אחרת
+     סגן קודם היה ממשיך לראות אותו בלי שזה נראה בשום מקום. */
+  async function setClientDeputy(deputyEmail, sel) {
+    if (!requireEdit()) return;
+    if (!activeEmail) return;
+    if (sel) sel.disabled = true;
+    const { error: delErr } = await sb.from('client_deputies').delete()
+      .eq('client_email', activeEmail).eq('senior_email', coachEmail);
+    let error = delErr;
+    if (!error && deputyEmail) {
+      ({ error } = await sb.from('client_deputies').insert({
+        client_email: activeEmail, deputy_email: deputyEmail, senior_email: coachEmail }));
+    }
+    if (sel) sel.disabled = false;
+    if (error) {
+      toast('שגיאה: ' + error.message, 'err');
+      if (sel) sel.value = (clientDeputyMap[activeEmail] || [])[0] || '';   // חוזר למצב האמיתי
+      return;
+    }
+    clientDeputyMap[activeEmail] = deputyEmail ? [deputyEmail] : [];
+    toast(deputyEmail ? 'הוצמד לסגן ✓' : 'ההצמדה הוסרה', 'ok');
+  }
+
   async function toggleClientDeputy(clientEmail, on, box) {
     const deputyEmail = _depClientsFor;
     if (!deputyEmail) return;
@@ -10381,6 +10478,7 @@ ${buildFoodListForPrompt()}
 
   /* ── PLANS ── */
   let coachPlans = {};
+  let coachPlanPrices = {};
   let plansTab = 'editor';
 
   function openPlans() {

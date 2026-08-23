@@ -670,6 +670,8 @@
   let _trainingArchive = [];
   let nutritionPlan = [];
   let nutritionArchive = [];   // בלוקי תפריט שהוחלפו, לשחזור
+  /* מחירון המאמן של הלקוח הפתוח, סגניו, והסגן המוצמד ללקוח */
+  let _coachPrices = {}, _coachDeputies = [], _clientDeputy = null;
   let dayClipboard  = null;
   let mealClipboard = null;
   let exerciseLibrary = [];
@@ -2758,17 +2760,49 @@
     activeEmail = email;
     renderSidebar();
     closeMobileSidebar();
-    const client = clients.find(c => c.email === email);
-    const [{ data: tr }, { data: nu }] = await Promise.all([
+    const client0 = clients.find(c => c.email === email);
+    const [{ data: tr }, { data: nu }, { data: co }, { data: deps }, { data: cds }] = await Promise.all([
       sb.from('training_plans').select('plan').eq('client_email', email).single(),
-      sb.from('nutrition_plans').select('plan,archive').eq('client_email', email).single()
+      sb.from('nutrition_plans').select('plan,archive').eq('client_email', email).single(),
+      sb.from('coaches').select('plan_prices').eq('email', client0?.coach_email || '').maybeSingle(),
+      sb.from('coach_deputies').select('deputy_email,note,active').eq('senior_email', client0?.coach_email || '').eq('active', true),
+      sb.from('client_deputies').select('deputy_email').eq('client_email', email)
     ]);
     trainingPlan  = Array.isArray(tr?.plan) ? (tr.plan || []) : (tr?.plan?.active || []);
     _trainingArchive = Array.isArray(tr?.plan) ? [] : (tr?.plan?.archive || []);
     nutritionPlan = nu?.plan  || [];
     nutritionArchive = Array.isArray(nu?.archive) ? nu.archive : [];
-    renderMain(client);
+    _coachPrices   = co?.plan_prices || {};
+    _coachDeputies = deps || [];
+    _clientDeputy  = (cds || [])[0]?.deputy_email || null;
+    renderMain(client0);
     renderNutriArchive();
+  }
+
+  /* הצמדת סגן ללקוח. האחסון תומך בכמה סגנים ללקוח, והבחירה כאן
+     יחידה — ולכן בחירה חדשה מוחקת קודם את הקיימות, אחרת סגן קודם
+     היה ממשיך לראות אותו בלי שזה נראה בשום מקום.
+     senior_email נלקח מהמאמן של הלקוח ולא ממנהל המערכת: הוא בעל
+     התיק, והמדיניות במסד נשענת עליו. */
+  async function setClientDeputy(deputyEmail, sel) {
+    if (!activeEmail) return;
+    const c = clients.find(x => x.email === activeEmail);
+    if (!c || !c.coach_email) { toast('ללקוח אין מאמן משויך', 'err'); return; }
+    if (sel) sel.disabled = true;
+    const { error: delErr } = await sb.from('client_deputies').delete().eq('client_email', activeEmail);
+    let error = delErr;
+    if (!error && deputyEmail) {
+      ({ error } = await sb.from('client_deputies').insert({
+        client_email: activeEmail, deputy_email: deputyEmail, senior_email: c.coach_email }));
+    }
+    if (sel) sel.disabled = false;
+    if (error) {
+      toast('שגיאה: ' + error.message, 'err');
+      if (sel) sel.value = _clientDeputy || '';       // חוזר למצב האמיתי
+      return;
+    }
+    _clientDeputy = deputyEmail || null;
+    toast(deputyEmail ? 'הוצמד לסגן ✓' : 'ההצמדה הוסרה', 'ok');
   }
 
   /* ── ארכיון תפריטים ── */
@@ -2820,6 +2854,11 @@
   }
 
   function renderMain(client) {
+    /* המחירון והסגנים שייכים למאמן של הלקוח ולא למנהל המערכת,
+       ולכן הם נשלפים בכל בחירת לקוח ולא פעם אחת בטעינה. */
+    const _listPrice = (_coachPrices || {})[client.plan_type];
+    const _clientDeputies = _coachDeputies || [];
+    const _curDeputy = _clientDeputy || '';
     const coachOpts = coachesList.map(c =>
       `<option value="${c.email}" ${client.coach_email===c.email?'selected':''}>${esc(c.name)}</option>`
     ).join('');
@@ -2846,6 +2885,32 @@
           </div>
           <div class="f-group"><label>תחילת מנוי</label><input id="e-start" type="date" value="${client.coaching_start||''}" onchange="syncClientEnd()"/></div>
           <div class="f-group"><label>סיום מנוי (אוטומטי)</label><input id="e-end" type="date" value="${client.coaching_end||''}"/></div>
+          <!-- 💰 מחיר, חידוש אוטומטי וסגן מטפל -->
+          <div class="f-group">
+            <label>מחיר החבילה (₪)</label>
+            <input id="e-price" type="number" min="0" step="1" inputmode="numeric"
+              value="${client.subscription_price != null ? client.subscription_price : ''}"
+              placeholder="${_listPrice != null ? _listPrice + ' — מחירון' : 'לפי המחירון'}"/>
+            <div style="font-size:0.68rem;color:#777;margin-top:3px;">ריק = המחיר הרגיל של המאמן. סכום כאן גובר.</div>
+          </div>
+          <div class="f-group">
+            <label>חידוש אוטומטי</label>
+            <label style="display:flex;align-items:center;gap:9px;min-height:44px;cursor:pointer;">
+              <input id="e-autorenew" type="checkbox" ${client.auto_renew ? 'checked' : ''}
+                style="width:19px;height:19px;accent-color:var(--orange);cursor:pointer;"/>
+              <span style="font-size:0.78rem;color:#bbb;">בסיום התקופה המנוי מתארך והסכום נכנס לחוב</span>
+            </label>
+          </div>
+          ${_clientDeputies.length ? `
+          <div class="f-group">
+            <label>סגן מטפל</label>
+            <select id="e-deputy" onchange="setClientDeputy(this.value, this)">
+              <option value="">— אין —</option>
+              ${_clientDeputies.map(d => `<option value="${esc(d.deputy_email)}"
+                ${_curDeputy === d.deputy_email ? 'selected' : ''}>${esc(d.note || d.deputy_email)}</option>`).join('')}
+            </select>
+            <div style="font-size:0.68rem;color:#777;margin-top:3px;">הסגן יראה רק את המתאמנים שהוצמדו אליו</div>
+          </div>` : ''}
         </div>
         <div class="f-group" style="margin-bottom:10px;">
           <label>סוג מנוי</label>
@@ -3641,7 +3706,11 @@ ${hasFile ? '' : `4. התאם כמויות וערכים מדויקים למשק�
     const { error } = await sb.from('clients')
       .update({ name, phone, coach_email: coachEmail, coaching_start: start, coaching_end: end, plan_type: plan,
                 target_calories: cal, target_protein: prot, target_carbs: carb, target_fat: fat,
-                target_water: water, current_weight: weight })
+                target_water: water, current_weight: weight,
+                /* ריק = לפי המחירון ולכן NULL; אפס הוא מחיר אמיתי */
+                subscription_price: (document.getElementById('e-price')?.value.trim() || '') === ''
+                  ? null : Number(document.getElementById('e-price').value),
+                auto_renew: !!document.getElementById('e-autorenew')?.checked })
       .eq('email', activeEmail);
     if (error) { toast('שגיאה בשמירה: ' + error.message, 'err'); return; }
     await loadClients();
