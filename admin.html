@@ -669,6 +669,7 @@
   let trainingPlan  = [];
   let _trainingArchive = [];
   let nutritionPlan = [];
+  let nutritionArchive = [];   // בלוקי תפריט שהוחלפו, לשחזור
   let dayClipboard  = null;
   let mealClipboard = null;
   let exerciseLibrary = [];
@@ -2760,12 +2761,62 @@
     const client = clients.find(c => c.email === email);
     const [{ data: tr }, { data: nu }] = await Promise.all([
       sb.from('training_plans').select('plan').eq('client_email', email).single(),
-      sb.from('nutrition_plans').select('plan').eq('client_email', email).single()
+      sb.from('nutrition_plans').select('plan,archive').eq('client_email', email).single()
     ]);
     trainingPlan  = Array.isArray(tr?.plan) ? (tr.plan || []) : (tr?.plan?.active || []);
     _trainingArchive = Array.isArray(tr?.plan) ? [] : (tr?.plan?.archive || []);
     nutritionPlan = nu?.plan  || [];
+    nutritionArchive = Array.isArray(nu?.archive) ? nu.archive : [];
     renderMain(client);
+    renderNutriArchive();
+  }
+
+  /* ── ארכיון תפריטים ── */
+  function renderNutriArchive() {
+    const el = document.getElementById('nutrition-archive-list');
+    if (!el) return;
+    if (!nutritionArchive.length) { el.innerHTML = ''; return; }
+    el.innerHTML = '<div style="font-size:0.78rem;color:#9bb3ff;font-weight:800;margin:14px 0 7px;">🗄️ תפריטים קודמים</div>' +
+      nutritionArchive.map((b, bi) => {
+        const when = b.archived_at ? new Date(b.archived_at).toLocaleDateString('he-IL') : '';
+        const meals = (b.plan || []).length;
+        const cal = (b.plan || []).reduce((s, m) => s + (m.items || []).reduce((a, it) => a + (+it.calories || 0), 0), 0);
+        return `<div style="background:rgba(255,255,255,0.03);border:1px solid rgba(120,150,255,0.2);
+          border-radius:8px;padding:9px 12px;margin-bottom:7px;display:flex;align-items:center;
+          justify-content:space-between;flex-wrap:wrap;gap:8px;">
+          <div>
+            <div style="font-weight:900;font-size:0.85rem;color:#9bb3ff;">${esc(b.label || 'תפריט קודם')}</div>
+            <div style="font-size:0.72rem;color:#666;">${when} · ${meals} ארוחות · ${Math.round(cal)} קק"ל</div>
+          </div>
+          <button class="btn-sm btn-outline" style="border-color:rgba(74,222,128,0.4);color:#4ade80;
+            font-size:0.72rem;padding:4px 9px;" onclick="restoreNutriArchive(${bi})">↩ שחזר</button>
+        </div>`;
+      }).join('');
+  }
+
+  /* השחזור מחליף את הפעיל, ולכן הפעיל נכנס לארכיון לפני כן — אחרת
+     שחזור בטעות היה מוחק את מה שהיה, וזו התקלה שהארכיון נועד למנוע. */
+  async function restoreNutriArchive(bi) {
+    if (!requireEdit()) return;
+    const b = nutritionArchive[bi];
+    if (!b) return;
+    if (!confirm(`לשחזר את "${b.label || 'תפריט קודם'}"?\n\nהתפריט הנוכחי יישמר בארכיון ותוכל לחזור אליו.`)) return;
+    const arch = nutritionArchive.slice();
+    if ((nutritionPlan || []).length) {
+      arch.push({ label: 'לפני שחזור · ' + new Date().toLocaleDateString('he-IL'),
+        plan: JSON.parse(JSON.stringify(nutritionPlan)), archived_at: new Date().toISOString() });
+    }
+    arch.splice(bi, 1);
+    const restored = JSON.parse(JSON.stringify(b.plan || []));
+    const { error } = await sb.from('nutrition_plans').upsert({
+      client_email: activeEmail, plan: restored, archive: arch.slice(-10),
+      updated_at: new Date().toISOString() }, { onConflict: 'client_email' });
+    if (error) { toast('שגיאה בשחזור: ' + error.message, 'err'); return; }
+    nutritionPlan = restored;
+    nutritionArchive = arch.slice(-10);
+    renderNutritionEditor();
+    renderNutriArchive();
+    toast('התפריט שוחזר ✓', 'ok');
   }
 
   function renderMain(client) {
@@ -2884,6 +2935,7 @@
           </div>
         </div>
         <div id="nutrition-editor"></div>
+        <div id="nutrition-archive-list"></div>
         <div class="ai-box" style="margin-top:14px;">
           <div class="ai-box-title">✨ בניית תפריט עם AI</div>
           <textarea class="ai-textarea" id="nutri-ai-prompt" placeholder='תאר את המטרה: לדוגמה "בניית מסה לגבר 3 ארוחות ביום" — הבינה תבנה תפריט מלא עם חלופות למקורות חלבון, פחמימה ושומן בכל ארוחה'></textarea>
