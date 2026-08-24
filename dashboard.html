@@ -4919,7 +4919,12 @@ ${foodList || 'אין פריטים'}
      לא היה כלום — למרות שזה בדיוק היום שהוא הכי רוצה להראות.
      האריח יושב בסוף הרשת, באותו גודל, ומוביל לאותה תמונה. */
   function shareTileHtml() {
-    const eaten = _sum('cal', true);
+    /* נסכם כאן ולא דרך _sum: הוא const מקומי של renderNutriBody
+       ואינו נראה מפונקציה ברמת המודול. */
+    const eaten = _mealShown.reduce((a, k) => {
+      const card = _mealCards[k];
+      return card && card.isLogged ? a + (card.tot.cal || 0) : a;
+    }, 0);
     const done  = _mealShown.filter(k => _mealCards[k] && _mealCards[k].isLogged).length;
     const all   = _mealShown.length;
     const full  = all > 0 && done === all;
