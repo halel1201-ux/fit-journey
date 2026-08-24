@@ -12315,6 +12315,12 @@ ${buildFoodListForPrompt()}
       btnAll.style.color            = '#666';
       // populate clients dropdown
       clientSel.innerHTML = '';
+      /* אפשרות ריקה בראש: בלעדיה הדפדפן בוחר מאליו את הראשון,
+         onchange לא נורה, ובחירה במתאמן הראשון לא הייתה פותחת כלום.
+         עכשיו כל בחירה אמיתית היא שינוי. */
+      const ph = document.createElement('option');
+      ph.value = ''; ph.textContent = '— בחר מתאמן —';
+      clientSel.appendChild(ph);
       (clients || []).forEach(c => {
         const opt = document.createElement('option');
         opt.value = c.email;
@@ -12326,6 +12332,30 @@ ${buildFoodListForPrompt()}
     }
   }
 
+  /* בחירת מתאמן מרשימת "מתאמן ספציפי" שלחה הודעה פרטית מתוך חלון
+     הקבוצה — בלי לראות את השיחה איתו, ובלי שההודעה שנשלחה תופיע
+     במסך. כלומר שליחה עיוורת.
+     עכשיו הבחירה פותחת את הצ׳אט האישי איתו: החלון נסגר, כרטיס
+     המתאמן נפתח, והמסך גולל לשיחה עם הסמן בשדה הכתיבה. */
+  async function openPrivateFromGroup(email) {
+    if (!email) { updateGrpPlaceholder(); return; }
+    closeGroupChat();
+    await openPrivateChat(email);
+  }
+
+  async function openPrivateChat(email) {
+    if (!email) return;
+    if (activeEmail !== email) await selectClient(email);
+    /* הכרטיס נבנה זה עתה — הגלילה נדחית לפריים הבא כדי שהאזור
+       כבר יהיה במסמך. */
+    setTimeout(() => {
+      const sec = document.getElementById('sec-chat');
+      if (sec) sec.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      const inp = document.getElementById('coach-chat-inp');
+      if (inp) inp.focus();
+    }, 60);
+  }
+
   function updateGrpPlaceholder() {
     const clientSel = document.getElementById('grp-client-select');
     const inp       = document.getElementById('coach-grp-inp');
@@ -12334,6 +12364,7 @@ ${buildFoodListForPrompt()}
       inp.placeholder = 'הודעה לכל הקבוצה...';
     } else {
       const email = clientSel?.value || '';
+      if (!email) { inp.placeholder = 'בחר מתאמן מהרשימה כדי לפתוח איתו שיחה'; return; }
       const name  = clients.find(c=>c.email===email)?.name || email.split('@')[0] || 'מתאמן';
       inp.placeholder = `הודעה פרטית ל-${name}...`;
     }
@@ -12463,6 +12494,13 @@ ${buildFoodListForPrompt()}
     }
     inp.value = '';
 
+    /* מצב "ספציפי" בלי בחירה שלח בטעות לכל הקבוצה. עדיף לעצור
+       ולומר מה חסר מאשר להפיץ לכולם הודעה שנועדה לאחד. */
+    if (grpTargetMode === 'specific' && !document.getElementById('grp-client-select')?.value) {
+      toast('בחר מתאמן מהרשימה', 'err');
+      inp.value = text;                    // ההודעה נשארת, לא נמחקת
+      return;
+    }
     const targetEmail = grpTargetMode === 'specific'
       ? (document.getElementById('grp-client-select')?.value || 'all')
       : 'all';
@@ -12947,7 +12985,7 @@ ${buildFoodListForPrompt()}
         👤 מתאמן ספציפי
       </button>
       <!-- client dropdown — shows when specific is selected -->
-      <select id="grp-client-select" onchange="updateGrpPlaceholder()"
+      <select id="grp-client-select" onchange="openPrivateFromGroup(this.value)"
         style="display:none;flex:1;min-width:140px;padding:6px 10px;background:rgba(255,255,255,0.07);border:1.5px solid rgba(255,107,0,0.4);border-radius:20px;color:var(--white);font-family:'Heebo',sans-serif;font-size:0.82rem;font-weight:700;outline:none;cursor:pointer;">
       </select>
     </div>
