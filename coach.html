@@ -4924,7 +4924,7 @@ ${exLines || 'אין'}
             <input id="e-price" type="number" min="0" step="1" inputmode="numeric"
               value="${client.subscription_price != null ? client.subscription_price : ''}"
               ${isDep ? 'readonly' : ''}
-              placeholder="${monthlyHint != null ? monthlyHint + ' — מחירון' : 'לפי המחירון'}" oninput="renderPkgSummary()"
+              placeholder="${monthlyHint != null ? monthlyHint + ' — מחירון' : 'לפי המחירון'}" oninput="renderPkgSummary()"/>
             <div style="font-size:0.68rem;color:#777;margin-top:3px;">
               ${isDep ? 'המחיר שהלקוח משלם לחודש' : 'ריק = לפי המחירון. סכום כאן גובר — להנחות חיילים, זוגות או חברים.'}
             </div>
