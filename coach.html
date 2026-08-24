@@ -2623,7 +2623,10 @@
 
     // שלח תמיד לצ'אט הקבוצה (ללא צורך באישור Push)
     const { data: newMsg } = await sb.from('group_messages').insert({
-      coach_email: coachEmail, sender_email: coachEmail, sender_name: 'מאמן',
+      /* sender_name הוא מי שכתב בפועל — "מאמן" סתמי היה מסתיר
+         מהמתאמנים שההודעה מהסגן. */
+      coach_email: groupCoach(), sender_email: coachEmail,
+      sender_name: (coachName || 'מאמן'),
       content: msg,
     }).select().single();
     if (newMsg && !coachGroupMessages.find(m => m.id === newMsg.id)) {
@@ -12006,6 +12009,15 @@ ${buildFoodListForPrompt()}
   }
 
   /* ── Chat ── */
+  /* הצ׳אט הקבוצתי שייך לבכיר: זו הקבוצה של המתאמנים שלו. סגן
+     שכתב בה בשמו יצר קבוצה שנייה ריקה שאיש לא רואה. כאן הוא כותב
+     לקבוצה של הבכיר — ותמיד בשמו, כך שברור מי דיבר.
+     כשהוא סגן של יותר מבכיר אחד נלקח הראשון; ריבוי קבוצות יצריך
+     בורר, וזה מקרה שעדיין לא קיים בשטח. */
+  function groupCoach() {
+    return iAmDeputyOf.length ? iAmDeputyOf[0] : coachEmail;
+  }
+
   /* השיחה עם מתאמן מזוהה לפי coach_email, ולכן היא שייכת לבכיר
      ולא למי שכותב בה כרגע. סגן שהיה כותב בשמו היה פותח שרשור שני
      שהמתאמן לא רואה, והבכיר היה מאבד חצי משיחה. sender_email הוא
@@ -12119,7 +12131,7 @@ ${buildFoodListForPrompt()}
     if (!requireEdit()) return;
     const email = activeEmail; if (!email) return;
     if (!confirm('לנקות את כל היסטוריית הצ\'אט עם המתאמן?\n\nההודעות יימחקו אצל שני הצדדים (גם אצלך וגם אצל המתאמן) — הפעולה אינה הפיכה.')) return;
-    const { error } = await sb.from('messages').delete().eq('coach_email', coachEmail).eq('client_email', email);
+    const { error } = await sb.from('messages').delete().eq('coach_email', threadCoach(email)).eq('client_email', email);
     if (error) { toast('שגיאה במחיקה: ' + error.message, 'err'); return; }
     coachMessages = [];
     renderCoachChat();
@@ -12186,7 +12198,16 @@ ${buildFoodListForPrompt()}
       file_url:     fileUrl,
       file_name:    fileName,
     }).select().single();
-    if (error) { toast('שגיאה: ' + error.message, 'err'); return; }
+    if (error) {
+      /* 42501 היא דחיית הרשאה. ההודעה הגולמית אינה אומרת דבר למי
+         שלא מכיר את המסד — ולסגן זה תמיד אותו דבר חסר: המתאמן לא
+         הונגש לו, או שהמיגרציה לא הורצה. */
+      const denied = error.code === '42501' || /policy|permission/i.test(error.message || '');
+      toast(denied && isDeputyFor(activeEmail)
+        ? 'אין הרשאה לשלוח למתאמן הזה — בקש מהמאמן הבכיר לוודא שהוא מוצמד אליך'
+        : 'שגיאה: ' + error.message, 'err');
+      return;
+    }
     inp.value = '';
     if (newMsg && !coachMessages.find(m => m.id === newMsg.id)) {
       coachMessages.push(newMsg);
@@ -12342,7 +12363,7 @@ ${buildFoodListForPrompt()}
   async function loadCoachGroupMessages() {
     try {
       const { data } = await sb.from('group_messages')
-        .select('*').eq('coach_email', coachEmail)
+        .select('*').eq('coach_email', groupCoach())
         .order('created_at', { ascending: true }).limit(150);
       coachGroupMessages = data || [];
     } catch(e) { coachGroupMessages = []; }
@@ -12352,7 +12373,7 @@ ${buildFoodListForPrompt()}
        הסיכוי לפספס הודעה. */
     if (coachGroupRealtime) return;
     coachGroupRealtime = sb.channel('coach-grp-' + coachEmail)
-      .on('postgres_changes', { event:'INSERT', schema:'public', table:'group_messages', filter:`coach_email=eq.${coachEmail}` }, p => {
+      .on('postgres_changes', { event:'INSERT', schema:'public', table:'group_messages', filter:`coach_email=eq.${groupCoach()}` }, p => {
         if (!coachGroupMessages.find(m=>m.id===p.new.id)) {
           coachGroupMessages.push(p.new);
           if (document.getElementById('coach-grp-overlay').classList.contains('open')) renderCoachGroupMsgs();
@@ -12455,7 +12476,10 @@ ${buildFoodListForPrompt()}
 
     // שלח לכל הקבוצה
     const { data: newMsg, error } = await sb.from('group_messages').insert({
-      coach_email: coachEmail, sender_email: coachEmail, sender_name: 'מאמן',
+      /* sender_name הוא מי שכתב בפועל — "מאמן" סתמי היה מסתיר
+         מהמתאמנים שההודעה מהסגן. */
+      coach_email: groupCoach(), sender_email: coachEmail,
+      sender_name: (coachName || 'מאמן'),
       content: text || null, file_url: fileUrl, file_name: fileName,
     }).select().single();
     if (error) { toast('שגיאה: ' + error.message, 'err'); return; }
