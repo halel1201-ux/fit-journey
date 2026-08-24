@@ -4397,6 +4397,7 @@
     activeEmail = email;
     setTimeout(applyDeputyView, 0);   // אחרי שהכרטיס נבנה
     loadClientSplit(email);   // לא ממתינים — הכרטיס כבר מצויר
+    loadPayments(email);      // לוח התשלומים — גם הוא לא מעכב את הכרטיס
     rememberOpenClient(email);
     guardOpenCard();   // "חזור" יסגור את הכרטיס במקום לצאת מהאתר
     currentPackage = null;
@@ -4825,7 +4826,12 @@ ${exLines || 'אין'}
     /* מצב סגן נקבע פעם אחת לכרטיס: הוא מופיע בכמה שדות, וחישוב
        חוזר בכל אחד מהם היה מזמין חוסר עקביות ביניהם. */
     const isDep = isDeputyFor(client.email);
+    /* המחירון נקוב לחבילה שלמה; השדה הוא לחודש — ולכן הרמז מחולק
+       במספר החודשים של המסלול. */
     const listPrice = coachPlanPrices[client.plan_type];
+    const planMonths = PLAN_MONTHS[client.plan_type] || 0;
+    const monthlyHint = (listPrice != null && planMonths)
+      ? Math.round(Number(listPrice) / planMonths) : null;
     const curDeputy = (clientDeputyMap[client.email] || [])[0] || '';
     const phone = client.phone || '';
     const endDate = client.coaching_end ? new Date(client.coaching_end + 'T12:00:00').toLocaleDateString('he-IL') : '—';
@@ -4914,14 +4920,20 @@ ${exLines || 'אין'}
           <div class="f-group"><label>סיום מנוי (אוטומטי)</label><input id="e-end" type="date" value="${client.coaching_end || ''}"/></div>
           <!-- 💰 מחיר, חידוש אוטומטי וסגן מטפל -->
           <div class="f-group">
-            <label>מחיר החבילה (₪)</label>
+            <label>מחיר לחודש (₪)</label>
             <input id="e-price" type="number" min="0" step="1" inputmode="numeric"
               value="${client.subscription_price != null ? client.subscription_price : ''}"
               ${isDep ? 'readonly' : ''}
-              placeholder="${listPrice != null ? listPrice + ' — מחירון' : 'לפי המחירון'}"/>
+              placeholder="${monthlyHint != null ? monthlyHint + ' — מחירון' : 'לפי המחירון'}" oninput="renderPkgSummary()"
             <div style="font-size:0.68rem;color:#777;margin-top:3px;">
-              ${isDep ? 'המחיר שהלקוח משלם' : 'ריק = המחיר הרגיל לפי המחירון. סכום כאן גובר — להנחות חיילים, זוגות או חברים.'}
+              ${isDep ? 'המחיר שהלקוח משלם לחודש' : 'ריק = לפי המחירון. סכום כאן גובר — להנחות חיילים, זוגות או חברים.'}
             </div>
+            <!-- סיכום החבילה: נגזר מהמחיר החודשי כפול חודשי המסלול, ולא
+                 נשמר בנפרד — שני מספרים שאפשר להם לסתור זה את זה הם באג
+                 שמחכה לקרות. -->
+            <div id="pkg-summary" style="margin-top:7px;padding:8px 11px;border-radius:9px;
+              background:rgba(74,222,128,0.08);border:1px solid rgba(74,222,128,0.28);
+              font-size:0.78rem;font-weight:800;color:#4ade80;"></div>
           </div>
           <div class="f-group">
             <label>חידוש אוטומטי</label>
@@ -5014,6 +5026,8 @@ ${exLines || 'אין'}
 
       <!-- 🤝 חלוקה עם הסגן. מחוץ ל-DEPUTY_HIDDEN במכוון: הסגן צריך
            לראות את החלק שלו, גם כשהחוב והקבלות מוסתרים ממנו. -->
+      <!-- 💳 לוח התשלומים — חלון לכל חודש עם טווח תאריכים -->
+      <div id="pay-card"></div>
       <div id="split-card"></div>
 
       ${renderPackageCard()}
@@ -9918,6 +9932,117 @@ ${buildFoodListForPrompt()}
      הסגן מקבל אחוז ממה ששולם בפועל, ולכן הבסיס הוא הקבלות ולא
      החבילה שנמכרה או חוב פתוח. מי שגובה מחזיק את הכסף, ומכאן
      המאזן הדו-כיווני: אם הסגן גבה — הוא חייב לבכיר את ההפרש. */
+  /* ══ 💳 לוח תשלומים ══
+     המאמן חושב בחודשים: 500 לחודש, שלושה חודשים, 1,500 סה"כ. הלוח
+     הוא חלון לכל חודש עם טווח התאריכים שלו, וסימון "שולם" מנפיק
+     קבלה — פעולה אחת ולא שתיים שאפשר לשכוח את השנייה. */
+  let clientPayments = [];
+
+  const HEB_MONTHS = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני',
+                      'יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
+  const _d = s => s ? new Date(s + 'T12:00:00').toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit' }) : '';
+
+  function renderPkgSummary() {
+    const el = document.getElementById('pkg-summary');
+    if (!el) return;
+    const c = clients.find(x => x.email === activeEmail) || {};
+    const months = PLAN_MONTHS[document.getElementById('e-plan')?.value || c.plan_type] || 0;
+    const raw = document.getElementById('e-price')?.value.trim();
+    const listP = coachPlanPrices[document.getElementById('e-plan')?.value || c.plan_type];
+    const monthly = raw !== '' && raw != null ? Number(raw)
+      : (listP != null && months ? Number(listP) / months : null);
+    if (!months || monthly == null) {
+      el.style.display = 'none'; return;
+    }
+    el.style.display = 'block';
+    const total = Math.round(monthly * months);
+    const per = Math.round(monthly).toLocaleString('he-IL');
+    el.innerHTML = 'סה"כ החבילה: <span style="font-size:0.95rem;">' +
+      total.toLocaleString('he-IL') + ' ₪</span> · ' + months + ' ' +
+      (months === 1 ? 'תשלום' : 'תשלומים') + ' של ' + per + ' ₪';
+  }
+
+  async function loadPayments(email) {
+    clientPayments = [];
+    try {
+      await sb.rpc('build_payment_schedule', { p_client: email });
+      const { data } = await sb.from('client_payments').select('*')
+        .eq('client_email', email).order('seq');
+      clientPayments = data || [];
+    } catch (e) { /* הטבלה אולי טרם הוגדרה — הכרטיס לא נופל */ }
+    renderPayments();
+    renderPkgSummary();
+  }
+
+  function renderPayments() {
+    const el = document.getElementById('pay-card');
+    if (!el) return;
+    if (!clientPayments.length) { el.innerHTML = ''; return; }
+    const paid = clientPayments.filter(p => p.paid).length;
+    const tot  = clientPayments.length;
+    const sum  = clientPayments.reduce((a, p) => a + Number(p.amount || 0), 0);
+    const got  = clientPayments.filter(p => p.paid).reduce((a, p) => a + Number(p.amount || 0), 0);
+    const isDep = isDeputyFor(activeEmail);
+
+    const rows = clientPayments.map(p => {
+      const m = new Date(p.period_start + 'T12:00:00').getMonth();
+      return `<div style="display:flex;align-items:center;gap:9px;padding:9px 4px;
+        border-bottom:1px solid rgba(255,255,255,0.05);">
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:0.82rem;font-weight:800;color:${p.paid ? '#4ade80' : '#fff'};">
+            תשלום ${p.seq} מתוך ${p.total} · ${HEB_MONTHS[m]}</div>
+          <div style="font-size:0.7rem;color:#888;">${_d(p.period_start)} — ${_d(p.period_end)}
+            ${p.paid && p.paid_at ? ' · שולם ' + _d(p.paid_at) : ''}</div>
+        </div>
+        <div style="font-size:0.85rem;font-weight:900;color:${p.paid ? '#4ade80' : '#bbb'};flex:none;">
+          ${Math.round(p.amount).toLocaleString('he-IL')} ₪</div>
+        <button onclick="togglePayment(${p.id}, ${p.paid ? 'false' : 'true'})"
+          ${p.paid && isDep ? 'disabled' : ''}
+          style="flex:none;min-height:38px;padding:7px 13px;border-radius:9px;cursor:pointer;
+            font-family:Heebo,sans-serif;font-size:0.75rem;font-weight:800;
+            background:${p.paid ? 'rgba(74,222,128,0.12)' : 'rgba(255,107,0,0.14)'};
+            border:1px solid ${p.paid ? 'rgba(74,222,128,0.45)' : 'rgba(255,107,0,0.45)'};
+            color:${p.paid ? '#4ade80' : 'var(--orange)'};
+            ${p.paid && isDep ? 'opacity:0.5;cursor:default;' : ''}">
+          ${p.paid ? '✓ שולם' : 'סמן שולם'}</button>
+      </div>`;
+    }).join('');
+
+    el.innerHTML = `<div class="sec-card" style="border-color:rgba(74,222,128,0.28);">
+      <div class="sec-card-title" style="color:#4ade80;">💳 לוח תשלומים
+        <span style="font-size:0.75rem;font-weight:800;color:#888;">
+          ${paid}/${tot} · ${Math.round(got).toLocaleString('he-IL')} מתוך ${Math.round(sum).toLocaleString('he-IL')} ₪</span>
+      </div>
+      ${rows}
+      <div style="font-size:0.68rem;color:#777;margin-top:9px;line-height:1.6;">
+        סימון "שולם" מנפיק קבלה אוטומטית עם תיאור החודש ומספר התשלום,
+        מקזז מהחוב, ומחלק לסגן אם הוגדרה חלוקה.
+      </div>
+    </div>`;
+  }
+
+  async function togglePayment(id, mark) {
+    if (!requireEdit()) return;
+    const p = clientPayments.find(x => x.id === id);
+    if (!p) return;
+    if (!mark) {
+      if (!confirm('לבטל את סימון התשלום?\n\nהקבלה שהונפקה תסומן כמבוטלת ותרד מההכנסות ומחלוקת הסגן.')) return;
+    }
+    try {
+      const { data, error } = mark
+        ? await sb.rpc('mark_payment_paid', { p_id: id })
+        : await sb.rpc('unmark_payment_paid', { p_id: id });
+      if (error) { toast('שגיאה: ' + error.message, 'err'); return; }
+      if (data === 'forbidden')     { toast('אין לך הרשאה לסמן תשלום למתאמן הזה', 'err'); return; }
+      if (data === 'already-paid')  { toast('התשלום כבר סומן', 'err'); return; }
+      if (data === 'not-found')     { toast('התשלום לא נמצא — רענן את הדף', 'err'); return; }
+      toast(mark ? 'סומן ✓ · הונפקה קבלה ' + data : 'הסימון בוטל', 'ok');
+      await loadPayments(activeEmail);
+      if (typeof loadClientReceipts === 'function') loadClientReceipts(activeEmail);
+      if (typeof refreshDebtUI === 'function') refreshDebtUI();
+    } catch (e) { toast('שגיאה בסימון התשלום', 'err'); }
+  }
+
   async function loadClientSplit(email) {
     clientSplit = null;
     try {
