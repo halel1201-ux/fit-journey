@@ -9640,7 +9640,7 @@ ${buildFoodListForPrompt()}
   /* המיילים של הלקוחות שהונגשו לי כסגן, ומפת לקוח→סגנים עבור הבכיר */
   let myAssignedClients = [], clientDeputyMap = {};
   /* החלוקה של הלקוח הפתוח, ומאזני ההתחשבנות מול כל שותף */
-  let clientSplit = null, splitBalances = [];
+  let clientSplit = null, splitBalances = [], splitConfigs = [];
 
   /* האם הלקוח הפתוח שייך לבכיר שאני סגן שלו */
   function isDeputyFor(clientEmail) {
@@ -10014,11 +10014,13 @@ ${buildFoodListForPrompt()}
     body.innerHTML = '<div style="color:#888;padding:24px;text-align:center;">טוען התחשבנות…</div>';
     document.getElementById('dep-modal').style.display = 'flex';
     try {
-      const [{ data: bal }, { data: led }] = await Promise.all([
+      const [{ data: bal }, { data: led }, { data: cfg }] = await Promise.all([
         sb.from('v_split_balance').select('*'),
         sb.from('v_split_ledger').select('*').order('receipt_date', { ascending: false }).limit(60),
+        sb.from('coaching_splits').select('*').eq('active', true),
       ]);
       splitBalances = bal || [];
+      splitConfigs  = cfg || [];
       renderSettlement(splitBalances, led || []);
     } catch (e) {
       body.innerHTML = '<div style="color:#ff8080;padding:24px;text-align:center;font-size:0.85rem;">' +
@@ -10030,6 +10032,31 @@ ${buildFoodListForPrompt()}
 
   function renderSettlement(bals, led) {
     const iAmSenior = b => b.senior_email === coachEmail;
+    /* מסך ריק עד שתונפק הקבלה הראשונה הוא בדיוק מה שגרם ל"הגדרתי
+       אחוזים ואני לא רואה כלום". כאן מוצג הצפוי: לכל מתאמן עם
+       חלוקה — המחיר, האחוז, וכמה זה יוצא. זה לא כסף שנגבה, ולכן
+       הוא מוצג בנפרד ובאפור, מתחת למה שכבר נגבה. */
+    const expected = (splitConfigs || []).map(s => {
+      const c = clients.find(x => x.email === s.client_email);
+      const price = c && c.subscription_price != null
+        ? Number(c.subscription_price)
+        : Number((coachPlanPrices || {})[c && c.plan_type] || 0);
+      return { s, c, price, share: Math.round(price * (Number(s.deputy_pct) || 0)) / 100 };
+    }).filter(x => x.c);
+
+    const expectedHtml = expected.length ? `
+      <div style="margin-top:14px;">
+        <div style="font-size:0.78rem;font-weight:800;color:#c4a5ff;margin-bottom:5px;">צפוי בחידוש הבא</div>
+        <div style="font-size:0.68rem;color:#777;margin-bottom:7px;">לפי המחיר והאחוז שהוגדרו. נכנס להתחשבנות רק כשתונפק קבלה.</div>
+        ${expected.map(x => `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;
+          padding:7px 2px;border-bottom:1px solid rgba(255,255,255,0.05);font-size:0.75rem;">
+          <span style="color:#ddd;">${esc(x.c.name || x.c.email)}</span>
+          <span style="color:#888;">${x.price ? _ils(x.price) : 'אין מחיר'} · ${x.s.deputy_pct}%
+            ${x.s.collector === 'deputy' ? ' · הסגן גובה' : ''}</span>
+          <span style="color:#c4a5ff;font-weight:800;">${_ils(x.share)}</span>
+        </div>`).join('')}
+      </div>` : '';
+
     if (!bals.length) {
       document.getElementById('dep-modal-body').innerHTML = `
         <div style="font-weight:900;font-size:1.05rem;color:#c4a5ff;margin-bottom:6px;">${iAmDeputyOf.length && !myDeputies.length ? '💰 הרווחים שלי' : '🤝 התחשבנות'}</div>
@@ -10039,7 +10066,8 @@ ${buildFoodListForPrompt()}
             ? 'ברגע שהמאמן יגדיר לך אחוז ותונפק קבלה, החלק שלך יופיע כאן.'
             : 'הגדר אחוז בכרטיס המתאמן, וכל קבלה שתונפק מכאן והלאה תיכנס להתחשבנות.'}
         </div>
-        <button class="btn-sm btn-outline" style="width:100%;" onclick="closeDepModal()">סגור</button>`;
+        ${expectedHtml}
+        <button class="btn-sm btn-outline" style="width:100%;margin-top:12px;" onclick="closeDepModal()">סגור</button>`;
       return;
     }
 
@@ -10111,6 +10139,7 @@ ${buildFoodListForPrompt()}
         <div style="font-size:0.78rem;font-weight:800;color:#c4a5ff;margin-bottom:5px;">פירוט קבלות</div>
         <div style="max-height:32vh;overflow-y:auto;">${rows}</div>
       </div>` : ''}
+      ${expectedHtml}
       <button class="btn-sm btn-outline" style="width:100%;margin-top:13px;" onclick="closeDepModal()">סגור</button>`;
   }
 
@@ -12187,6 +12216,21 @@ ${buildFoodListForPrompt()}
     _cVoiceTimer = setInterval(() => { secs++; if (inp) inp.placeholder = `🔴 מקליט... ${Math.floor(secs/60)}:${String(secs%60).padStart(2,'0')} — לחץ ⏹ לשליחה`; if (secs >= 180) _cVoiceRec.stop(); }, 1000);
   }
 
+  /* מריץ את בדיקת השרשרת במסד ומציג את החוליה הראשונה שנכשלה.
+     נכשל בשקט אם הפונקציה עוד לא הותקנה — אז נשארת ההודעה הכללית. */
+  async function reportDeputyBlock(clientEmail) {
+    try {
+      const { data } = await sb.rpc('deputy_selftest', { p_client: clientEmail });
+      const bad = (data || []).find(r => r[Object.keys(r)[1]] === false);
+      if (!bad) {
+        toast('ההרשאות תקינות — נסה לרענן את הדף (🔄)', 'err');
+        return;
+      }
+      const k = Object.keys(bad);
+      toast('חסר: ' + bad[k[0]] + (bad[k[2]] ? ' · ' + bad[k[2]] : ''), 'err');
+    } catch (e) { /* אין אבחון מותקן — ההודעה הכללית כבר הוצגה */ }
+  }
+
   async function sendMessageAsCoach() {
     if (!requireEdit()) return;
     const email = activeEmail; if (!email) return;
@@ -12217,8 +12261,11 @@ ${buildFoodListForPrompt()}
          הונגש לו, או שהמיגרציה לא הורצה. */
       const denied = error.code === '42501' || /policy|permission/i.test(error.message || '');
       toast(denied && isDeputyFor(activeEmail)
-        ? 'אין הרשאה לשלוח למתאמן הזה — בקש מהמאמן הבכיר לוודא שהוא מוצמד אליך'
+        ? 'אין הרשאה לשלוח — בודק למה…'
         : 'שגיאה: ' + error.message, 'err');
+      /* "אין הרשאה" אינו אבחון. במקום להשאיר את המאמן לנחש, נשאלת
+         בדיקת השרשרת במסד ומוצגת החוליה הראשונה שנשברה. */
+      if (denied) reportDeputyBlock(email);
       return;
     }
     inp.value = '';
