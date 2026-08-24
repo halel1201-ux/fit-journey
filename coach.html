@@ -483,7 +483,7 @@
         <button class="btn-mob-menu" onclick="toggleMobileSidebar()">☰ מתאמנים</button>
       <button class="btn-sm btn-outline" onclick="openGroupChat()" style="border-color:rgba(74,222,128,0.4);color:#4ade80;position:relative;">💬 קבוצה<span id="grp-coach-badge" style="display:none;position:absolute;top:-5px;right:-5px;background:#ef4444;color:#fff;border-radius:9px;font-size:0.58rem;font-weight:900;padding:1px 5px;border:2px solid var(--black);"></span></button>
       <button class="btn-sm btn-outline" onclick="openBranding()" style="border-color:rgba(255,215,0,0.35);color:#FFD700;">🎨 מיתוג</button>
-      <button class="btn-sm btn-outline" onclick="openDeputies()" style="border-color:rgba(196,165,255,0.45);color:#c4a5ff;">👥 סגנים</button>
+      <button id="btn-deputies" class="btn-sm btn-outline" onclick="openDeputies()" style="border-color:rgba(196,165,255,0.45);color:#c4a5ff;">👥 סגנים</button>
       <button class="btn-sm btn-outline" onclick="openRecords()" style="border-color:rgba(255,215,0,0.35);color:#FFD700;">🏆 שיאים</button>
       <button class="btn-sm btn-outline" onclick="openPlans()" style="border-color:rgba(255,107,0,0.4);color:var(--orange);">💰 מסלולים</button>
       <button class="btn-sm btn-outline" onclick="openPushOverlay()" style="border-color:rgba(255,107,0,0.4);color:var(--orange);">📣 הודעות</button>
@@ -3302,6 +3302,15 @@
        הרשימה כדי לדעת אילו לקוחות של בכיר להביא, ובתור המקביל היא
        הייתה רצה ראשונה ומחזירה רשימה ריקה לסגן. */
     await loadDeputyState();
+    /* סגן אינו ממנה סגנים משלו: מסך הסגנים מנהל את מי שמלווה את
+       *לקוחותיי*, ולסגן אין לקוחות משלו במערכת הזאת. הכפתור מוסתר
+       ממנו — אבל רק אם הוא עצמו אינו בכיר עם סגנים, כי מאמן יכול
+       להיות שניהם. */
+    if (iAmDeputyOf.length && !myDeputies.length) {
+      ['btn-deputies', 'bn-deputies'].forEach(id => {
+        const el = document.getElementById(id); if (el) el.style.display = 'none';
+      });
+    }
     /* הבאנר הועבר לכאן: לפני טעינת מצב הסגן עוד לא ידוע שהוא סגן,
        והוא קיבל "מצב צפייה בלבד" למרות שהוא כן פועל — דרך הצעות. */
     if (!canEdit && coachRole !== 'pending' && !iAmDeputyOf.length) showViewOnlyBanner();
@@ -9739,7 +9748,9 @@ ${buildFoodListForPrompt()}
         'border:1px solid rgba(196,165,255,0.5);background:rgba(196,165,255,0.14);color:#c4a5ff;';
       document.body.appendChild(el);
     }
-    el.textContent = '🤝 התחשבנות';
+    /* לבכיר זו התחשבנות מול הסגנים; לסגן זה פשוט כמה הוא הרוויח.
+       אותו מסך, אבל השם צריך לומר לו מה הוא ימצא שם. */
+    el.textContent = iAmDeputyOf.length && !myDeputies.length ? '💰 הרווחים שלי' : '🤝 התחשבנות';
   }
 
   /* ── הגשת הצעה (סגן) ── */
@@ -10021,10 +10032,12 @@ ${buildFoodListForPrompt()}
     const iAmSenior = b => b.senior_email === coachEmail;
     if (!bals.length) {
       document.getElementById('dep-modal-body').innerHTML = `
-        <div style="font-weight:900;font-size:1.05rem;color:#c4a5ff;margin-bottom:6px;">🤝 התחשבנות</div>
+        <div style="font-weight:900;font-size:1.05rem;color:#c4a5ff;margin-bottom:6px;">${iAmDeputyOf.length && !myDeputies.length ? '💰 הרווחים שלי' : '🤝 התחשבנות'}</div>
         <div style="color:#888;padding:22px 4px;font-size:0.85rem;line-height:1.7;">
-          עדיין אין קבלות עם חלוקה. הגדר אחוז בכרטיס המתאמן, וכל קבלה
-          שתונפק מכאן והלאה תיכנס להתחשבנות.
+          עדיין אין קבלות עם חלוקה.
+          ${iAmDeputyOf.length && !myDeputies.length
+            ? 'ברגע שהמאמן יגדיר לך אחוז ותונפק קבלה, החלק שלך יופיע כאן.'
+            : 'הגדר אחוז בכרטיס המתאמן, וכל קבלה שתונפק מכאן והלאה תיכנס להתחשבנות.'}
         </div>
         <button class="btn-sm btn-outline" style="width:100%;" onclick="closeDepModal()">סגור</button>`;
       return;
@@ -10091,7 +10104,7 @@ ${buildFoodListForPrompt()}
     </div>`).join('');
 
     document.getElementById('dep-modal-body').innerHTML = `
-      <div style="font-weight:900;font-size:1.05rem;color:#c4a5ff;margin-bottom:4px;">🤝 התחשבנות</div>
+      <div style="font-weight:900;font-size:1.05rem;color:#c4a5ff;margin-bottom:4px;">${iAmDeputyOf.length && !myDeputies.length ? '💰 הרווחים שלי' : '🤝 התחשבנות'}</div>
       <div style="font-size:0.74rem;color:#888;margin-bottom:13px;">מחושב מקבלות שלא בוטלו, לפי האחוז שנשמר על כל קבלה.</div>
       ${cards}
       ${rows ? `<div style="margin-top:6px;">
@@ -12976,7 +12989,7 @@ ${buildFoodListForPrompt()}
   <button class="bn-more-item" onclick="openPushOverlay()">📣 הודעות ו-Push</button>
   <button class="bn-more-item" onclick="openPlans()">💰 מסלולים לחידוש</button>
   <button class="bn-more-item" onclick="openBranding()">🎨 מיתוג</button>
-      <button class="bn-more-item" onclick="openDeputies()">👥 סגנים</button>
+      <button id="bn-deputies" class="bn-more-item" onclick="openDeputies()">👥 סגנים</button>
   <a href="coach-guide.html" class="bn-more-item">📖 מדריך</a>
   <button class="bn-more-item" onclick="logout()">🚪 התנתק</button>
 </div>
