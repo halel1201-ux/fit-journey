@@ -6073,7 +6073,7 @@ ${foodList || 'אין פריטים'}
 
   /* 📋 מעתיק את שם המשתמש לתיוג. אינסטגרם לא מאפשרת לאפליקציה לתייג
      חשבון אוטומטית בסטורי — לכן מעתיקים ללוח כדי שהדבקה תספיק. */
-  const FJ_TAG = '@fitjourney';
+  const FJ_TAG = '@fit_journey0812';
   async function copyTagHandle() {
     try {
       if (navigator.clipboard && window.isSecureContext) { await navigator.clipboard.writeText(FJ_TAG); return true; }
@@ -6102,9 +6102,9 @@ ${foodList || 'אין פריטים'}
         await navigator.share({
           files: [file],
           title: 'נפח אימון',
-          text: `סיימתי אימון ${lastVolumeShareData.dayName || ''} 💪 @fitjourney`
+          text: `סיימתי אימון ${lastVolumeShareData.dayName || ''} 💪 ${FJ_TAG}`
         });
-        if (copied) showDashToast('📋 @fitjourney הועתק — הדבק בסטורי כדי לתייג אותנו 🎁');
+        if (copied) showDashToast('📋 ' + FJ_TAG + ' הועתק — הדבק בסטורי כדי לתייג אותנו 🎁');
       } else {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -6112,7 +6112,7 @@ ${foodList || 'אין פריטים'}
         document.body.appendChild(a); a.click(); a.remove();
         setTimeout(() => URL.revokeObjectURL(url), 5000);
         showDashToast(copied
-          ? '✓ התמונה נשמרה · 📋 @fitjourney הועתק — הדבק בסטורי ותייג אותנו 🎁'
+          ? '✓ התמונה נשמרה · 📋 ' + FJ_TAG + ' הועתק — הדבק בסטורי ותייג אותנו 🎁'
           : 'התמונה נשמרה — אפשר לשתף אותה באינסטגרם');
       }
     } catch (e) {
@@ -6298,17 +6298,17 @@ ${foodList || 'אין פריטים'}
       ctx.font = '500 30px Heebo, sans-serif'; ctx.fillStyle = 'rgba(255,255,255,0.45)';
       ctx.fillText(new Date().toLocaleDateString('he-IL', { day: 'numeric', month: 'long', year: 'numeric' }), CX, fY + 54);
 
-      ctx.font = '700 26px Heebo, sans-serif'; ctx.fillStyle = 'rgba(255,255,255,0.5)';
-      ctx.fillText('תייג אותנו בסטורי 👇', CX, fY + 96);
+      ctx.font = '600 22px Heebo, sans-serif'; ctx.fillStyle = 'rgba(255,255,255,0.5)';
+      ctx.fillText('אשמח שתתייג אותנו 🙏', CX, fY + 92);
 
       ctx.direction = 'ltr';
-      ctx.font = '900 40px Heebo, sans-serif';
+      ctx.font = '800 26px Heebo, sans-serif';
       const tw = ctx.measureText(FJ_TAG).width;
-      const padX = 34, padY = 18, stH = 40 + padY * 2;
-      const stW = tw + padX * 2, stX = CX - stW / 2, stY = fY + 122;
+      const padX = 20, padY = 10, stH = 26 + padY * 2;
+      const stW = tw + padX * 2, stX = CX - stW / 2, stY = fY + 112;
       ctx.save();
-      ctx.shadowColor = 'rgba(0,0,0,0.45)'; ctx.shadowBlur = 22; ctx.shadowOffsetY = 6;
-      ctx.fillStyle = '#ffffff'; rr(stX, stY, stW, stH, stH / 2); ctx.fill();
+      ctx.shadowColor = 'rgba(0,0,0,0.3)'; ctx.shadowBlur = 12; ctx.shadowOffsetY = 6;
+      ctx.fillStyle = 'rgba(255,255,255,0.92)'; rr(stX, stY, stW, stH, stH / 2); ctx.fill();
       ctx.restore();
       ctx.textBaseline = 'middle'; ctx.fillStyle = '#111318';
       ctx.fillText(FJ_TAG, CX, stY + stH / 2 + 2);
@@ -6506,24 +6506,28 @@ ${foodList || 'אין פריטים'}
       ctx.fillStyle = 'rgba(255,255,255,0.45)';
       ctx.fillText(new Date().toLocaleDateString('he-IL', { day: 'numeric', month: 'long', year: 'numeric' }), CX, fY + 54);
 
-      /* 🏷️ סטיקר תיוג בסגנון אינסטגרם — בולט, כדי להזכיר למשתמש לתייג */
+      /* 🏷️ סטיקר תיוג — קטן ועדין בכוונה. המתאמן משתף את *ההישג
+         שלו*, ותג גדול של מישהו אחר עליו הופך את התמונה לפרסומת —
+         ואז הוא פשוט לא משתף. */
       ctx.direction = 'rtl';
       ctx.textAlign = 'center';
-      ctx.font = '700 26px Heebo, sans-serif';
+      ctx.font = '600 22px Heebo, sans-serif';
       ctx.fillStyle = 'rgba(255,255,255,0.5)';
-      ctx.fillText('תייג אותנו בסטורי 👇', CX, fY + 96);
+      ctx.fillText('אשמח שתתייג אותנו 🙏', CX, fY + 92);
 
-      const handle = '@fitjourney';
+      /* אותו קבוע כמו בכל שאר המקומות — שם שכתוב פעמיים מתפצל
+         ברגע שמשנים אותו במקום אחד. */
+      const handle = FJ_TAG;
       ctx.direction = 'ltr';
-      ctx.font = '900 40px Heebo, sans-serif';
+      ctx.font = '800 26px Heebo, sans-serif';
       const tw = ctx.measureText(handle).width;
-      const padX = 34, padY = 18, stH = 40 + padY * 2;
-      const stW = tw + padX * 2, stX = CX - stW / 2, stY = fY + 122;
+      const padX = 20, padY = 10, stH = 26 + padY * 2;
+      const stW = tw + padX * 2, stX = CX - stW / 2, stY = fY + 112;
 
       ctx.save();
-      ctx.shadowColor = 'rgba(0,0,0,0.45)';
-      ctx.shadowBlur = 22; ctx.shadowOffsetY = 6;
-      ctx.fillStyle = '#ffffff';
+      ctx.shadowColor = 'rgba(0,0,0,0.3)';
+      ctx.shadowBlur = 12; ctx.shadowOffsetY = 3;
+      ctx.fillStyle = 'rgba(255,255,255,0.92)';
       rr(stX, stY, stW, stH, stH / 2); ctx.fill();
       ctx.restore();
 
