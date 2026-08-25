@@ -829,6 +829,8 @@
         <span style="font-size:0.7rem;font-weight:600;opacity:0.75;">צעדים</span>
       </span>
     </div>
+    <!-- ⚖️ שקילה יומית — מעל האירובי, כי היא הדבר הראשון בבוקר -->
+    <div id="hl-weigh" style="margin-bottom:10px;"></div>
     <div id="hl-cardio" style="display:none;margin-bottom:16px;"></div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px;">
       <button class="hl-tile" onclick="goDetail('nutrition','nutri-body')"><span class="hl-ic">🥗</span><span class="hl-lbl">תפריט</span></button>
@@ -4148,6 +4150,7 @@
       } else { debtEl.style.display = 'none'; debtEl.innerHTML = ''; }
     }
     // 🔗 full-control shortcuts — every panel section, one tap away
+    renderWeighStrip();
     const extraEl = document.getElementById('hl-extra');
     if (extraEl) {
       const shortcuts = [
@@ -5834,6 +5837,112 @@ ${foodList || 'אין פריטים'}
     if (btn) btn.disabled = false;
     renderPeriodCard();
     showDashToast(newActive ? '🔴 מחזור סומן כפעיל' : '✓ מחזור סומן כהסתיים', 'ok');
+  }
+
+  /* ══ ⚖️ שקילה יומית ══
+     המשקל נשמר כבר היום, אבל רק דרך שלוש נגיעות בלשונית ההתקדמות.
+     שקילה יומית עובדת רק אם היא לוקחת שתי שניות בבוקר — ולכן היא
+     יושבת במסך הבית, עם שדה שנפתח במקום ולא בחלון.
+     הכתיבה היא לאותה שורה יומית של ההתקדמות, כדי שהגרף, השיאים
+     והדוח השבועי יראו את אותו מספר. */
+  let _weighOpen = false;
+
+  function todayWeight() {
+    const t = todayStr();
+    const e = (progressEntries || []).find(x => x.date === t);
+    return e && e.weight ? Number(e.weight) : null;
+  }
+
+  function renderWeighStrip() {
+    const el = document.getElementById('hl-weigh');
+    if (!el) return;
+    const w = todayWeight();
+    const prev = (progressEntries || []).filter(x => x.weight && x.date !== todayStr())[0];
+    /* הפרש מהשקילה הקודמת — המספר הבודד לא אומר כלום בלי ההקשר */
+    let delta = '';
+    if (w && prev && prev.weight) {
+      const d = Math.round((w - Number(prev.weight)) * 10) / 10;
+      if (d !== 0) {
+        const up = d > 0;
+        delta = `<span style="font-size:0.72rem;font-weight:800;color:${up ? '#f0b429' : '#4ade80'};">` +
+          `${up ? '▲' : '▼'} ${Math.abs(d)}</span>`;
+      }
+    }
+
+    if (_weighOpen) {
+      el.innerHTML = `
+        <div style="display:flex;align-items:center;gap:8px;background:rgba(255,255,255,0.04);
+          border:1px solid rgba(255,107,0,0.45);border-radius:12px;padding:8px 12px;">
+          <span style="font-size:1.15rem;">⚖️</span>
+          <input id="weigh-inp" type="number" inputmode="decimal" step="0.1" min="20" max="500"
+            value="${w != null ? w : ''}" placeholder="משקל היום"
+            onkeydown="if(event.key==='Enter'){event.preventDefault();saveWeighIn();}"
+            style="flex:1;min-width:0;padding:9px 11px;border-radius:9px;background:rgba(255,255,255,0.06);
+              border:1px solid rgba(255,255,255,0.14);color:#fff;font-family:'Heebo',sans-serif;
+              font-size:1rem;font-weight:800;text-align:center;outline:none;"/>
+          <span style="font-size:0.75rem;color:#888;">ק"ג</span>
+          <button onclick="saveWeighIn()" style="flex:none;min-height:40px;padding:8px 16px;border-radius:9px;
+            background:var(--orange);border:none;color:#fff;font-family:'Heebo',sans-serif;
+            font-size:0.82rem;font-weight:800;cursor:pointer;">שמור</button>
+          <button onclick="closeWeighIn()" aria-label="ביטול" style="flex:none;width:34px;height:34px;
+            border-radius:9px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);
+            color:#888;font-size:0.9rem;cursor:pointer;">✕</button>
+        </div>`;
+      setTimeout(() => { const i2 = document.getElementById('weigh-inp'); if (i2) { i2.focus(); i2.select(); } }, 30);
+      return;
+    }
+
+    el.innerHTML = `
+      <div onclick="openWeighIn()" style="display:flex;align-items:center;gap:10px;
+        background:rgba(255,255,255,0.04);border:1px solid ${w ? 'rgba(74,222,128,0.4)' : 'rgba(255,255,255,0.08)'};
+        border-radius:12px;padding:9px 14px;cursor:pointer;">
+        <span style="font-size:1.15rem;">⚖️</span>
+        <span style="flex:1;font-size:0.82rem;color:${w ? '#bbb' : '#888'};font-weight:700;">
+          ${w ? 'נשקלת היום' : 'שקילה יומית'}</span>
+        ${delta}
+        <span style="color:${w ? '#4ade80' : 'var(--orange)'};white-space:nowrap;">
+          <span style="font-weight:900;font-size:0.95rem;">${w != null ? w : '—'}</span>
+          <span style="font-size:0.7rem;font-weight:600;opacity:0.75;">ק"ג</span>
+        </span>
+        <span style="font-size:0.72rem;font-weight:800;color:var(--orange);">${w ? 'עדכן' : 'הזן'}</span>
+      </div>`;
+  }
+
+  function openWeighIn()  { _weighOpen = true;  renderWeighStrip(); }
+  function closeWeighIn() { _weighOpen = false; renderWeighStrip(); }
+
+  async function saveWeighIn() {
+    const el = document.getElementById('weigh-inp');
+    if (!el) return;
+    const kg = parseFloat(String(el.value).replace(',', '.'));
+    if (!kg || kg < 20 || kg > 500) { showDashToast('משקל לא תקין'); return; }
+    const today = todayStr();
+    /* לא upsert: upsert חלקי דורס את כל השורה, ומוחק את ההיקפים
+       ואחוז השומן שנרשמו באותו יום. מעדכנים כשקיימת, מוסיפים רק
+       כשאין — בדיוק כמו בשאר מסלולי השמירה. */
+    const { data: upd, error } = await sb.from('progress_entries')
+      .update({ weight: kg })
+      .eq('client_email', currentEmail).eq('date', today).select('date');
+    if (error) { showDashToast('שגיאה בשמירה'); return; }
+    if (!upd || !upd.length) {
+      const { error: insErr } = await sb.from('progress_entries').insert({
+        client_email: currentEmail, coach_email: (clientData && clientData.coach_email) || '',
+        date: today, weight: kg });
+      if (insErr) { showDashToast('שגיאה בשמירה'); return; }
+    }
+    await sb.from('clients').update({ current_weight: kg }).eq('email', currentEmail);
+
+    if (clientData) clientData.current_weight = kg;
+    if (!progressEntries) progressEntries = [];
+    const idx = progressEntries.findIndex(e => e.date === today);
+    if (idx >= 0) progressEntries[idx].weight = kg;
+    else progressEntries.unshift({ client_email: currentEmail, date: today, weight: kg });
+
+    _weighOpen = false;
+    renderWeighStrip();
+    if (typeof renderWeightRow === 'function') renderWeightRow();
+    if (typeof renderProgressSection === 'function') renderProgressSection();
+    showDashToast('נשמר ✓ ' + kg + ' ק"ג');
   }
 
   function renderWeightRow() {
