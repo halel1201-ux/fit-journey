@@ -310,6 +310,7 @@ async function submitIntake(){
 
   // PDF — נוצר בדפדפן כדי שהעברית תרונדר נכון
   let pdf64 = '';
+  let pdfClientError = '';
   try {
     if (!window.html2pdf) await new Promise((ok,no)=>{ const s=document.createElement('script');
       s.src='https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js'; s.onload=ok; s.onerror=no; document.head.appendChild(s); });
@@ -321,13 +322,19 @@ async function submitIntake(){
       html2canvas:{scale:2,useCORS:true,backgroundColor:'#ffffff'},
       jsPDF:{unit:'mm',format:'a4',orientation:'portrait'} }).from(holder.firstElementChild).outputPdf('datauristring');
     holder.remove();
-  } catch(e){ /* בלי PDF — התשובות עדיין נשלחות במייל */ }
+  } catch(e){
+    /* בלי PDF — התשובות עדיין נשלחות ונשמרות, והמאמן יכול להפיק
+       אותו מהפאנל. הסיבה נשלחת כדי שנדע *למה* הוא נכשל במקום
+       לגלות חודש אחרי שאין קבצים. */
+    pdfClientError = String((e && e.message) || e || 'unknown');
+  }
 
   try {
     const res = await fetch(FN, { method:'POST',
       headers:{ 'Content-Type':'application/json','apikey':KEY,'Authorization':'Bearer '+KEY },
       body: JSON.stringify({ full_name:name, phone:val(Q[1]), email:val(Q[3]), answers, pdf_base64:pdf64,
-                             plan_label:plan, payment_ref:ref, proof_base64:proofData }) });
+                             plan_label:plan, payment_ref:ref, proof_base64:proofData,
+                             pdf_client_error:pdfClientError }) });
     const j = await res.json();
     if (!res.ok || j.error) throw new Error(j.error||'שגיאת שרת');
     document.getElementById('done-name').textContent = name;

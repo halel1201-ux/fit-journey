@@ -132,6 +132,9 @@ Deno.serve(async (req) => {
       /* mail_sent=false פירושו שהשאלון נשמר אך ההתראה לא יצאה —
          בדרך כלל כי מפתח שירות המייל אינו מוגדר. */
       mail_sent: mailSent,
+      /* הסיבה שה-PDF נכשל אצל הממלא — נשלחת מהדפדפן כדי שלא
+         נגלה חודש אחרי שאין קבצים ולא נדע למה. */
+      pdf_client_error: String(body.pdf_client_error || '') || undefined,
       mail_error: mailErr || (WEB3FORMS_KEY ? undefined : 'מפתח שירות המייל אינו מוגדר'),
     })
   } catch (e) {
