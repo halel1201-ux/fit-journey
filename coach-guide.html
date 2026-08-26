@@ -174,11 +174,13 @@
     <div class="sidebar-title" style="margin-top:6px;">ניהול לקוחות</div>
     <a href="#clients"   class="sidebar-link">👥 לקוחות</a>
     <a href="#training"  class="sidebar-link">🏋️ תוכנית אימונים</a>
+    <a href="#strength" class="sidebar-link">🏋️ פאוורליפטינג</a>
     <a href="#nutrition" class="sidebar-link">🥗 תפריט תזונה</a>
     <div class="sidebar-sep"></div>
     <div class="sidebar-title" style="margin-top:6px;">פיצ'רים</div>
     <a href="#cycle"     class="sidebar-link">🔄 ניהול סייקל</a>
     <a href="#progress"  class="sidebar-link">📈 מעקב התקדמות</a>
+    <a href="#weighins" class="sidebar-link">⚖️ שקילות שבועיות</a>
     <a href="#chat"      class="sidebar-link">💬 צ'אט וצ'ק-אין</a>
     <a href="#branding"  class="sidebar-link">🎨 מיתוג אישי</a>
     <a href="#deputies" class="sidebar-link">👥 סגנים וחלוקת הכנסה</a>
@@ -186,6 +188,7 @@
     <div class="sidebar-title" style="margin-top:6px;">עסקי</div>
     <a href="#plans"     class="sidebar-link">💰 מסלולי תמחור</a>
     <a href="#pricing" class="sidebar-link">💰 מחירון וחידוש אוטומטי</a>
+    <a href="#payments" class="sidebar-link">💳 לוח תשלומים</a>
     <a href="#push"      class="sidebar-link">🔔 התראות Push</a>
     <a href="#ai"        class="sidebar-link">✨ AI</a>
     <div class="sidebar-sep"></div>
@@ -390,6 +393,20 @@
     </div>
 
     <div class="divider"></div>
+
+    <div class="guide-section">
+      <div class="section-tag">תכנון</div>
+      <h3 class="sub-h">סוגי סטים — מה המתאמן רואה</h3>
+      <p>בכל שורת סט בעורך יש בורר: <code>חמ׳</code> חימום · <code>עב׳</code> עבודה ·
+      <code>כשל</code> · <code>דרופ</code>. מה שתבחר מופיע אצל המתאמן בצבע — גם בתוכנית
+      וגם תוך כדי האימון.</p>
+      <p>בתצוגת התוכנית שלו כל תרגיל מראה את הפירוט המלא: <code>חימום 12–15</code> ·
+      <code>עבודה 8–12 · 70 ק"ג</code> · <code>כשל 6–8</code> · <code>דרופ</code> · זמן המנוחה,
+      ואם הגדרת טכניקה — גם ההסבר שלה.</p>
+      <div class="tip-box green">
+        סטי חימום אינם נספרים בחישוב הנפח ובגרף ההתקדמות — הם היו מדללים את הממוצע.
+      </div>
+    </div>
 
     <!-- NUTRITION -->
     <div class="guide-section">
@@ -756,6 +773,107 @@
       <p>הבדיקה רצה כל לילה בשרת — היא לא תלויה בכך שתפתח את הפאנל.</p>
       <div class="tip-box green">
         <strong>מה לא יתחדש:</strong> מתאמן מוקפא, מנוי שסומן כ"ידני", ומנוי שאין לו מחיר (לא במחירון ולא פרטני) — הוא יתארך אבל בלי חיוב, כדי שתראה שחסר סכום במקום שייווצר חוב שגוי.
+      </div>
+    </div>
+
+    <!-- PAYMENTS -->
+    <div class="guide-section">
+      <span class="section-anchor" id="payments"></span>
+      <div class="section-tag">עסקי</div>
+      <h2 class="sec-h"><span>💳</span> לוח תשלומים וקבלות אוטומטיות</h2>
+      <p>המחיר בכרטיס המתאמן הוא <strong>לחודש</strong>. מתחתיו מופיע בירוק סכום החבילה
+      ומספר התשלומים — 500 לחודש על 4 חודשים הם 2,000 ₪ בארבעה תשלומים. הסכום נגזר
+      מהמחיר ואינו נשמר בנפרד, כדי ששני מספרים לא יוכלו לסתור זה את זה.</p>
+
+      <h3 class="sub-h">איך זה עובד</h3>
+      <div class="step"><div class="step-num">1</div><div class="step-body">
+        <div class="step-title">קבע מחיר לחודש וסוג מסלול</div>
+        <div class="step-desc">בכרטיס המתאמן ← <code>מחיר לחודש</code> + <code>סוג מנוי</code> ← <code>שמור פרטים</code></div>
+      </div></div>
+      <div class="step"><div class="step-num">2</div><div class="step-body">
+        <div class="step-title">הלוח נבנה מעצמו</div>
+        <div class="step-desc">חלון לכל חודש עם טווח התאריכים שלו, מתחילת הליווי.</div>
+      </div></div>
+      <div class="step"><div class="step-num">3</div><div class="step-body">
+        <div class="step-title">קיבלת תשלום? סמן</div>
+        <div class="step-desc"><code>סמן שולם</code> — <strong>מנפיק קבלה, מקזז מהחוב ומחלק לסגן, בפעולה אחת.</strong></div>
+      </div></div>
+
+      <div class="tip-box green">
+        <strong>מה כתוב על הקבלה:</strong> <code>ליווי עבור יוסי כהן · חודש 8 אוגוסט · תשלום 1 מתוך 4</code>
+      </div>
+      <div class="tip-box orange">
+        <strong>ביטול סימון</strong> מסמן את הקבלה כמבוטלת ואינו מוחק אותה — חובה לשמור תיעוד.
+        היא יורדת מההכנסות ומחלוקת הסגן אוטומטית. הביטול שמור לך; הסגן יכול לסמן שולם אבל לא לבטל.
+      </div>
+      <div class="tip-box gold">
+        <strong>שינוי מחיר לא מוחק קבלות:</strong> בנייה מחדש של הלוח נוגעת רק בחודשים שטרם שולמו.
+      </div>
+    </div>
+
+    <!-- STRENGTH -->
+    <div class="guide-section">
+      <span class="section-anchor" id="strength"></span>
+      <div class="section-tag">תכנון</div>
+      <h2 class="sec-h"><span>🏋️</span> פאוורליפטינג — תוכניות כוח</h2>
+      <p>הסוכן יודע לבנות גם תוכניות כוח מרבי, לא רק היפרטרופיה. <strong>זו החלפה של
+      חוקי הבנייה ולא תוספת</strong>: טכניקות הכשל, הנפח והסדר שבנויים לגדילת שריר
+      פוגעים בכוח מרבי.</p>
+
+      <h3 class="sub-h">איך מפעילים</h3>
+      <p>כרטיס המתאמן ← <code>מצב נוכחי / מטרה</code> ← <code>🏋️ פאוורליפטינג</code>.
+      אפשר גם בלי לשנות מטרה — פשוט לכתוב בבקשה לסוכן "פאוורליפטינג", "כוח מרבי" או "1RM".</p>
+
+      <h3 class="sub-h">מה משתנה בתוכנית</h3>
+      <p><strong>עצימות לפי אחוזים מ-1RM ולא לפי תחושה:</strong> 85–95% לחזרות 1–3 · 75–85%
+      לחזרות 3–6 · 65–75% לעבודת בסיס.</p>
+      <p><strong>סדר קבוע:</strong> התרגיל התחרותי ראשון כשמערכת העצבים טרייה, אחריו וריאציה
+      שלו, ואז עזר ומבודדים.</p>
+      <p><strong>מנוחות ארוכות:</strong> 3–5 דקות מעל 85%. מנוחה קצרה מורידה את המשקל בסט
+      הבא — כלומר מאמנת עייפות במקום כוח.</p>
+      <p><strong>פריודיזציה בגלים</strong> של ארבעה שבועות, והשבוע הרביעי דילאוד.</p>
+      <p><strong>כל סט עבודה מקבל בהערה את האחוז או ה-RPE והמנוחה</strong> — למשל
+      <code>80% · RPE 8 · מנוחה 4 דק׳</code>. זה מה שמבדיל תוכנית כוח מרשימת תרגילים.</p>
+
+      <div class="tip-box red">
+        <strong>אסור על סקוואט, בנץ׳ ודדליפט:</strong> דרופ-סט, מיו-רפס, רסט-פאוז, סופר-סט וכשל.
+        מותרים רק על מבודדים בסוף האימון.
+      </div>
+
+      <h3 class="sub-h">החוליה החלשה — ומה מתקן אותה</h3>
+      <p>הסוכן מכיר את התקיעות הנפוצות ובוחר את תרגיל העזר לפיהן:</p>
+      <p><strong>סקוואט:</strong> תקוע בתחתית → Pause/Pin Squat · ברכיים נופלות פנימה → Box
+      Squat ומקרבים · חזה נופל → Front Squat וגב עליון.</p>
+      <p><strong>בנץ׳:</strong> תקוע מהחזה → Pause/Spoto · תקוע בנעילה → Board Press וטרייספס ·
+      שכמות מתפרקות → חתירות. <strong>גב חזק = בנץ׳ חזק</strong>, יחס משיכה:דחיפה 2:1.</p>
+      <p><strong>דדליפט:</strong> תקוע מהרצפה → Deficit וקוואד · תקוע מהברך → Rack Pull ועכוז ·
+      גב מתעגל → Good Morning והורדת עומס · אחיזה נשמטת → Farmer Walk.</p>
+    </div>
+
+    <!-- WEIGH-INS -->
+    <div class="guide-section">
+      <span class="section-anchor" id="weighins"></span>
+      <div class="section-tag">מעקב</div>
+      <h2 class="sec-h"><span>⚖️</span> שקילות שבועיות — מגיעות אליך מעצמן</h2>
+      <p>למתאמן יש רצועת שקילה במסך הבית שלו: לחיצה, מספר, שמור. <strong>כל שישי בבוקר</strong>
+      נשלח אליך אוטומטית לצ׳אט של כל מתאמן דוח של השבוע.</p>
+
+      <div class="tip-box green">
+        ⚖️ שקילות השבוע — יוסי כהן<br>
+        24/8 יום ראשון — 82.4 ק״ג<br>
+        25/8 יום שני — 82.1 ק״ג<br>
+        28/8 יום חמישי — 81.9 ק״ג<br>
+        ━━━━━━━━━━<br>
+        <strong>ממוצע שבועי: 82.1 ק״ג (3 שקילות)</strong>
+      </div>
+
+      <p><strong>שישי ושבת אינם נספרים בממוצע</strong> — הם ימי אכילה שונים, ומשקל שנמדד
+      בהם מטה את המגמה ומקשה להשוות שבוע לשבוע.</p>
+      <p>יום שבו המתאמן לא נשקל פשוט לא מופיע — הוא אינו מוצג כאפס. מתאמן שלא נשקל כלל
+      באותו שבוע לא ייצור דוח ריק.</p>
+      <div class="tip-box gold">
+        הדוח רץ בשרת ולא באפליקציה — הוא מגיע גם אם אף אחד לא פתח אותה בסוף השבוע.
+        המשקל הוא אותו משקל שמזין את גרף ההתקדמות, לא מעקב נפרד.
       </div>
     </div>
 

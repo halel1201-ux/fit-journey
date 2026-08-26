@@ -831,6 +831,7 @@
     </div>
     <!-- ⚖️ שקילה יומית — מעל האירובי, כי היא הדבר הראשון בבוקר -->
     <div id="hl-weigh" style="margin-bottom:10px;"></div>
+    <div id="guide-modal" style="display:none;"></div>
     <div id="hl-cardio" style="display:none;margin-bottom:16px;"></div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px;">
       <button class="hl-tile" onclick="goDetail('nutrition','nutri-body')"><span class="hl-ic">🥗</span><span class="hl-lbl">תפריט</span></button>
@@ -4098,6 +4099,112 @@
     renderLauncher();
     window.scrollTo({ top: 0, behavior: 'instant' });
   }
+  /* ══ 📖 מדריך למתאמן ══
+     מסודר לפי מה שהמתאמן עושה ולא לפי מבנה המסכים: הוא מחפש
+     "איך אני מסמן אימון", לא "מה יש בלשונית אימון". */
+  const GUIDE = [
+    ['🏋️', 'האימון שלי', [
+      ['להתחיל אימון', 'לשונית <b>אימון</b> ← בחר יום ← <b>▶ החל אימון</b>. המסך נפתח עם כל התרגילים והסטים.'],
+      ['לרשום משקל וחזרות', 'בכל סט יש שני שדות. המספר האפור הוא מה שעשית בפעם הקודמת — כתוב מעליו. ✓ מסמן שהסט בוצע.'],
+      ['מה זה חימום / עבודה / כשל / דרופ', 'הצבע ליד כל סט אומר מה סוגו. <b>חימום</b> אינו נספר בנפח ובגרף — הוא הכנה. <b>כשל</b> הוא סט שנלקח עד הסוף. <b>דרופ</b> — מורידים משקל וממשיכים בלי מנוחה.'],
+      ['🔗 סופר-סט', 'שני תרגילים מחוברים = עוברים ביניהם בלי מנוחה, ומנוחה רק בסוף הסיבוב.'],
+      ['🔄 להחליף תרגיל', 'מכשיר תפוס או כואב? <b>החלפה</b> מציע חלופה לאותו שריר. ההחלפה נשמרת לאימון הזה.'],
+      ['🎥 לצלם סט למאמן', 'כפתור <b>תיעוד</b> בתרגיל — סרטון אחד לתרגיל, נשלח למאמן לבדיקת טכניקה.'],
+      ['📝 הערות לתרגיל', 'יומן אישי לכל תרגיל: הערה, 🎯 יעד לפעם הבאה, או 🩹 כאב. היעד יקפוץ לך באימון הבא.'],
+      ['הדגמה', 'כפתור <b>הדגמה ▶</b> מראה סרטון של התרגיל.'],
+    ]],
+    ['🥗', 'תזונה', [
+      ['התפריט שלי', 'לחיצה על <b>תפריט</b> ← אריח לכל ארוחה ← לחיצה פותחת את האפשרויות שלה.'],
+      ['לבחור אפשרות', 'לכל ארוחה יכולות להיות כמה אפשרויות שוות ערך. <b>בוחרים אחת</b> ואז מסמנים — כך המאמן יודע מה באמת אכלת.'],
+      ['🔄 חלופות למוצר', 'בתוך ארוחה, ליד מוצר עם כפתור חלופות — אפשר להחליף מוצר בודד. הערכים מתעדכנים לפי מה שבחרת.'],
+      ['הסיכום היומי', 'ארבעת המספרים למטה זזים עם כל סימון: קלוריות (כחול), חלבון (ירוק), פחמימה (צהוב), שומן (אדום).'],
+      ['📸 תמונה לשיתוף', 'אריח <b>סיכום יומי</b> מייצר תמונה עם הערכים ורצף הימים — מוכנה לסטורי.'],
+      ['💧 מים', 'מונה השתייה במסך הבית — לחיצה מוסיפה כוס.'],
+    ]],
+    ['📊', 'מעקב והתקדמות', [
+      ['⚖️ שקילה יומית', 'הרצועה במסך הבית: לחיצה, מספר, שמור. מוצג ההפרש מהשקילה הקודמת. <b>המאמן מקבל סיכום שבועי אוטומטי.</b>'],
+      ['מתי להישקל', 'אותה שעה, אותם תנאים — הכי טוב בבוקר אחרי שירותים ולפני אוכל. המשקל קופץ מיום ליום; מה שחשוב הוא <b>המגמה</b>.'],
+      ['📏 מדידות', 'היקפים ואחוז שומן. נכנסים לאותה רשומה יומית של המשקל.'],
+      ['📸 תמונות התקדמות', 'התמונות נשלחות למאמן ומופיעות באלבום שלך לפי תאריך.'],
+      ['🏆 שיאים', 'המערכת מזהה שיא אישי מהנתונים שרשמת ומציינת אותו.'],
+      ['📊 היסטוריה', 'כל אימון שביצעת, עם הנפח והתרגילים.'],
+      ['🚶 צעדים ואירובי', 'יעד יומי שהמאמן קבע. שעון האירובי במסך הבית ממשיך מאיפה שעצרת.'],
+    ]],
+    ['💬', 'תקשורת', [
+      ['צ׳אט עם המאמן', 'שיחה פרטית — טקסט, קבצים והודעות קוליות.'],
+      ['🌐 קהילה', 'הצ׳אט הקבוצתי של כל המתאמנים.'],
+      ['צ׳ק-אין שבועי', 'שאלון קצר על השבוע. התשובות מגיעות למאמן ומשמשות אותו לעדכן לך את התוכנית.'],
+      ['🔔 התראות', 'המתג במסך הבית — בלעדיו לא תדע שהמאמן ענה או עדכן.'],
+    ]],
+    ['⚙️', 'החשבון', [
+      ['📝 הצהרת בריאות', 'חתימה חד-פעמית לפני תחילת הליווי.'],
+      ['💳 תשלומים', 'יתרה פתוחה וקבלות.'],
+      ['🎁 חבר מביא חבר', 'הקוד האישי שלך — חבר שמצטרף איתו, שניכם מקבלים.'],
+      ['🔄 עדכון האפליקציה', 'הכפתור בסרגל העליון. אם משהו נראה ישן או תקוע — זה מה שמרענן.'],
+    ]],
+  ];
+
+  function openGuide() {
+    const el = document.getElementById('guide-modal');
+    if (!el) return;
+    el.innerHTML = `
+      <div onclick="closeGuide()" style="position:fixed;inset:0;z-index:3200;background:rgba(0,0,0,0.8);
+        display:flex;align-items:flex-end;justify-content:center;">
+        <div onclick="event.stopPropagation()" style="width:100%;max-width:520px;max-height:88vh;
+          overflow-y:auto;background:#121212;border:1px solid rgba(255,107,0,0.35);
+          border-radius:20px 20px 0 0;padding:18px 16px calc(20px + var(--sab,0px));">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:4px;">
+            <div style="font-weight:900;font-size:1.1rem;color:var(--orange);">📖 איך זה עובד</div>
+            <button onclick="closeGuide()" aria-label="סגור" style="width:34px;height:34px;flex:none;
+              border-radius:10px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);
+              color:#aaa;font-size:1rem;cursor:pointer;">✕</button>
+          </div>
+          <div style="font-size:0.78rem;color:#888;margin-bottom:14px;">כל מה שאפשר לעשות באפליקציה, לפי מה שרצית לעשות.</div>
+          ${GUIDE.map((g, gi) => `
+            <div style="margin-bottom:10px;border:1px solid rgba(255,255,255,0.08);border-radius:14px;overflow:hidden;">
+              <button onclick="toggleGuideSec(${gi})" style="width:100%;text-align:right;cursor:pointer;
+                min-height:48px;padding:12px 14px;background:rgba(255,255,255,0.03);border:none;
+                font-family:Heebo,sans-serif;display:flex;align-items:center;gap:9px;">
+                <span style="font-size:1.1rem;">${g[0]}</span>
+                <span style="flex:1;font-weight:900;font-size:0.92rem;color:#fff;">${g[1]}</span>
+                <span id="gs-arr-${gi}" style="color:var(--orange);font-size:0.8rem;">▼</span>
+              </button>
+              <div id="gs-${gi}" style="display:none;padding:4px 14px 12px;">
+                ${g[2].map(([q, ans]) => `
+                  <div style="padding:9px 0;border-top:1px solid rgba(255,255,255,0.05);">
+                    <div style="font-weight:800;font-size:0.84rem;color:var(--gold);margin-bottom:3px;">${q}</div>
+                    <div style="font-size:0.8rem;color:#bbb;line-height:1.65;">${ans}</div>
+                  </div>`).join('')}
+              </div>
+            </div>`).join('')}
+          <div style="font-size:0.74rem;color:#777;text-align:center;line-height:1.7;margin-top:6px;">
+            לא מצאת תשובה? שאל את המאמן בצ׳אט — הוא רואה הכול.
+          </div>
+        </div>
+      </div>`;
+    el.style.display = 'block';
+    document.body.style.overflow = 'hidden';
+    toggleGuideSec(0);                      // הראשון פתוח, כדי שלא ייראה כמו רשימת כפתורים
+  }
+
+  function closeGuide() {
+    const el = document.getElementById('guide-modal');
+    if (el) { el.style.display = 'none'; el.innerHTML = ''; }
+    document.body.style.overflow = '';
+  }
+
+  /* אקורדיון: רק סעיף אחד פתוח, אחרת החלון הופך לקיר טקסט */
+  function toggleGuideSec(gi) {
+    GUIDE.forEach((_, k) => {
+      const b = document.getElementById('gs-' + k);
+      const a = document.getElementById('gs-arr-' + k);
+      if (!b) return;
+      const open = k === gi && b.style.display !== 'block';
+      b.style.display = open ? 'block' : 'none';
+      if (a) a.textContent = open ? '▲' : '▼';
+    });
+  }
+
   function renderLauncher() {
     // steps
     const steps = (typeof _stepsToday !== 'undefined' ? _stepsToday : 0) + (typeof _pedoCount !== 'undefined' ? _pedoCount : 0);
@@ -4154,6 +4261,7 @@
     const extraEl = document.getElementById('hl-extra');
     if (extraEl) {
       const shortcuts = [
+        ['openGuide()', '📖 איך זה עובד'],
         ["goDetail('measurements')", '📏 מדידות'],
         ["goDetail('history')", '📊 היסטוריה'],
         ["goDetail('workouts','debt-card-client')", '💳 תשלומים'],
