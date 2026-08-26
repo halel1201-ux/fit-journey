@@ -7060,7 +7060,17 @@ ${exLines || 'אין'}
     const box = document.getElementById('lobby-intake'); if (!box) return;
     let q = sb.from('intake_forms').select('*').order('created_at', { ascending: false });
     if (!_intakeAll) q = q.neq('payment_status', 'refunded');
-    const { data } = await q.limit(30);
+    const { data, error } = await q.limit(30);
+    /* דחיית הרשאה החזירה מערך ריק, והכרטיס נעלם — כלומר שאלון
+       שהגיע נראה בדיוק כמו שאלון שלא הגיע. כאן זה נאמר. */
+    if (error) {
+      box.innerHTML = `<div style="background:rgba(248,113,113,0.08);border:1px solid rgba(248,113,113,0.35);
+        border-radius:12px;padding:12px 14px;margin-bottom:20px;font-size:0.84rem;color:#f87171;">
+        ⚠️ לא ניתן לטעון שאלוני קליטה — ${esc(error.message || 'שגיאה')}<br>
+        <span style="font-size:0.76rem;color:#bbb;">השאלונים נשמרים גם כך; זו בעיית הרשאת צפייה בלבד.</span>
+      </div>`;
+      return;
+    }
     const rows = (data || []).filter(r => _intakeAll || !r.work_started_at || r.payment_status === 'pending');
     if (!rows.length) { box.innerHTML = ''; return; }
     const pend = rows.filter(r => r.payment_status === 'pending').length;

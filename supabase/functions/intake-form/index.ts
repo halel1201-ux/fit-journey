@@ -90,6 +90,7 @@ Deno.serve(async (req) => {
     }
 
     // 3. מייל למאמן — כל התשובות + קישור ל-PDF
+    let mailSent = false, mailErr = ''
     if (WEB3FORMS_KEY) {
       const lines = [
         `שאלון קליטה חדש — ${name}`,
@@ -118,10 +119,21 @@ Deno.serve(async (req) => {
             message: lines.join('\n'),
           }),
         })
-      } catch (_e) { /* המייל הוא התראה — הנתונים כבר נשמרו */ }
+        mailSent = true
+      } catch (e) {
+        /* המייל הוא התראה בלבד — הנתונים כבר נשמרו. אבל שקט מוחלט
+           כאן הוא מה שגרם ל"מילאתי ולא הגיע": צריך לדעת שהוא נכשל. */
+        mailErr = String((e as Error)?.message || e)
+      }
     }
 
-    return json({ ok: true, id: row.id, pdf_url: pdfUrl, pdf_error: pdfError || undefined })
+    return json({
+      ok: true, id: row.id, pdf_url: pdfUrl, pdf_error: pdfError || undefined,
+      /* mail_sent=false פירושו שהשאלון נשמר אך ההתראה לא יצאה —
+         בדרך כלל כי מפתח שירות המייל אינו מוגדר. */
+      mail_sent: mailSent,
+      mail_error: mailErr || (WEB3FORMS_KEY ? undefined : 'מפתח שירות המייל אינו מוגדר'),
+    })
   } catch (e) {
     return json({ error: String((e as Error)?.message || e) }, 500)
   }

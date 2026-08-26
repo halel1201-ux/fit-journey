@@ -296,6 +296,17 @@ async function submitIntake(){
 
   const answers = {}; Q.forEach(q=>answers[q.t] = val(q));
   const name = val(Q[0]);
+  /* השרת דוחה שאלון בלי שם, אבל הבדיקה שם רצה אחרי בניית ה-PDF
+     ואחרי שהכפתור כבר ננעל — המשתמש ראה "שולח" ואז שגיאה שלא
+     ברור לאן היא מפנה. נבדק כאן, לפני. */
+  if (!name) {
+    errEl.textContent = 'חסר שם מלא — חזור לשאלה הראשונה ומלא אותה.';
+    errEl.style.display = 'block';
+    document.getElementById('send').disabled = false;
+    document.getElementById('send').textContent = 'שלח את השאלון';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    return;
+  }
 
   // PDF — נוצר בדפדפן כדי שהעברית תרונדר נכון
   let pdf64 = '';
