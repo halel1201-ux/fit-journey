@@ -97,7 +97,7 @@ Deno.serve(async (req) => {
         '',
         planLabel ? `מסלול: ${planLabel}` : '',
         payRef ? `אסמכתא: ${payRef}` : '',
-        proofUrl ? `🧾 אישור התשלום: ${proofUrl}` : '(לא צורף אישור)',
+        proofUrl ? `🧾 אישור התשלום: ${proofUrl}` : '📲 לא צורף צילום — המתאמן נתבקש לשלוח בוואטסאפ. אמת מול האסמכתא.',
         '',
         phone ? `טלפון: ${phone}` : '',
         email ? `אימייל: ${email}` : '',

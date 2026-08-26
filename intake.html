@@ -109,9 +109,22 @@
       </div>
 
       <div class="q" style="margin-bottom:0;">
-        <div class="q-t" style="margin-top:0;">צילום מסך של אישור התשלום <span class="req">*</span></div>
+        <div class="q-t" style="margin-top:0;">צילום מסך של אישור התשלום <span style="font-size:0.72rem;font-weight:700;color:#888;">(מומלץ)</span></div>
         <input type="file" id="p_proof" accept="image/*" onchange="onProof()" style="padding:9px;"/>
         <div id="proof-ok" style="font-size:0.8rem;color:#4ade80;margin-top:7px;display:none;"></div>
+        <!-- חלופה לצירוף: לא כל אחד מצליח לצרף קובץ מהנייד, ומי
+             שנתקע היה נוטש טופס שכבר מילא ושילם עליו. -->
+        <div style="margin-top:9px;padding:10px 12px;border-radius:10px;
+          background:rgba(37,211,102,0.07);border:1px solid rgba(37,211,102,0.3);">
+          <div style="font-size:0.8rem;color:#bbb;line-height:1.6;">
+            לא מצליח לצרף? אפשר לשלוח את הצילום בוואטסאפ — השאלון יישלח בלי הצילום
+            והתשלום יאומת לפי האסמכתא.
+          </div>
+          <a href="https://wa.me/972586931163" target="_blank" rel="noopener"
+            style="display:inline-block;margin-top:8px;padding:9px 16px;border-radius:9px;
+              background:linear-gradient(135deg,#25D366,#128C7E);color:#fff;text-decoration:none;
+              font-weight:800;font-size:0.84rem;">📲 שלח את הצילום בוואטסאפ</a>
+        </div>
       </div>
     </div>
 
@@ -271,8 +284,8 @@ async function submitIntake(){
   // שלב התשלום
   const plan = document.getElementById('p_plan').value;
   const ref  = document.getElementById('p_ref').value.trim();
-  if (!plan || !ref || !proofData || !document.getElementById('p_terms').checked){
-    errEl.textContent = 'כדי לשלוח יש לבחור מסלול, להזין אסמכתא, לצרף צילום של אישור התשלום ולאשר את מדיניות ההחזר.';
+  if (!plan || !ref || !document.getElementById('p_terms').checked){
+    errEl.textContent = 'כדי לשלוח יש לבחור מסלול, להזין אסמכתא ולאשר את מדיניות ההחזר.';
     errEl.style.display='block';
     document.getElementById('p_plan').scrollIntoView({behavior:'smooth',block:'center'});
     return;
