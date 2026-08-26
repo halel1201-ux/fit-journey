@@ -377,6 +377,7 @@
         <select id="new-plan">
           <option value="ליווי חודשי">ליווי חודשי</option>
           <option value="ליווי 3 חודשים">ליווי 3 חודשים</option>
+          <option value="ליווי 4 חודשים">ליווי 4 חודשים</option>
           <option value="ליווי חצי שנה">ליווי חצי שנה</option>
         </select>
       </div>
@@ -2917,6 +2918,7 @@
           <select id="e-plan" onchange="syncClientEnd()">
             <option ${client.plan_type==='ליווי חודשי'?'selected':''}>ליווי חודשי</option>
             <option ${client.plan_type==='ליווי 3 חודשים'?'selected':''}>ליווי 3 חודשים</option>
+            <option ${client.plan_type==='ליווי 4 חודשים'?'selected':''}>ליווי 4 חודשים</option>
             <option ${client.plan_type==='ליווי חצי שנה'?'selected':''}>ליווי חצי שנה</option>
             <option ${client.plan_type==='ליווי שנתי'?'selected':''}>ליווי שנתי</option>
           </select>
@@ -3645,7 +3647,7 @@ ${hasFile ? '' : `4. התאם כמויות וערכים מדויקים למשק�
 
   /* ── PROFILE ── */
   /* ── 📅 subscription dates: end auto-computes from start + plan type ── */
-  const PLAN_MONTHS = { 'ליווי חודשי': 1, 'ליווי 3 חודשים': 3, 'ליווי חצי שנה': 6, 'ליווי שנתי': 12 };
+  const PLAN_MONTHS = { 'ליווי חודשי': 1, 'ליווי 3 חודשים': 3, 'ליווי 4 חודשים': 4, 'ליווי חצי שנה': 6, 'ליווי שנתי': 12 };
   const _addMonths = (dateStr, months) => {
     const d = new Date(dateStr + 'T12:00:00'); d.setMonth(d.getMonth() + months);
     return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');

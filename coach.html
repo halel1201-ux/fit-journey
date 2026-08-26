@@ -651,6 +651,7 @@
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
             <div class="f-group"><label>ליווי חודשי (₪)</label><input id="price-m1" type="number" min="0" step="1" placeholder="—"/></div>
             <div class="f-group"><label>ליווי 3 חודשים (₪)</label><input id="price-m3" type="number" min="0" step="1" placeholder="—"/></div>
+            <div class="f-group"><label>ליווי 4 חודשים (₪)</label><input id="price-m4" type="number" min="0" step="1" placeholder="—"/></div>
             <div class="f-group"><label>ליווי חצי שנה (₪)</label><input id="price-m6" type="number" min="0" step="1" placeholder="—"/></div>
             <div class="f-group"><label>ליווי שנתי (₪)</label><input id="price-m12" type="number" min="0" step="1" placeholder="—"/></div>
           </div>
@@ -886,6 +887,7 @@
           <select id="new-plan" onchange="syncNewClientEnd()">
             <option value="ליווי חודשי">ליווי חודשי</option>
             <option value="ליווי 3 חודשים">ליווי 3 חודשים</option>
+            <option value="ליווי 4 חודשים">ליווי 4 חודשים</option>
             <option value="ליווי חצי שנה">ליווי חצי שנה</option>
             <option value="ליווי שנתי">ליווי שנתי</option>
           </select>
@@ -4914,6 +4916,7 @@ ${exLines || 'אין'}
               <option value="" ${!client.plan_type ? 'selected' : ''}>— ידני —</option>
               <option ${client.plan_type === 'ליווי חודשי' ? 'selected' : ''}>ליווי חודשי</option>
               <option ${client.plan_type === 'ליווי 3 חודשים' ? 'selected' : ''}>ליווי 3 חודשים</option>
+              <option ${client.plan_type === 'ליווי 4 חודשים' ? 'selected' : ''}>ליווי 4 חודשים</option>
               <option ${client.plan_type === 'ליווי חצי שנה' ? 'selected' : ''}>ליווי חצי שנה</option>
               <option ${client.plan_type === 'ליווי שנתי' ? 'selected' : ''}>ליווי שנתי</option>
             </select></div>
@@ -5969,7 +5972,7 @@ ${exLines || 'אין'}
   }
 
   /* ── 📅 subscription dates: end auto-computes from start + plan type ── */
-  const PLAN_MONTHS = { 'ליווי חודשי': 1, 'ליווי 3 חודשים': 3, 'ליווי חצי שנה': 6, 'ליווי שנתי': 12 };
+  const PLAN_MONTHS = { 'ליווי חודשי': 1, 'ליווי 3 חודשים': 3, 'ליווי 4 חודשים': 4, 'ליווי חצי שנה': 6, 'ליווי שנתי': 12 };
   const _addMonths = (dateStr, months) => {
     const d = new Date(dateStr + 'T12:00:00'); d.setMonth(d.getMonth() + months);
     return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
@@ -6265,6 +6268,7 @@ ${exLines || 'אין'}
     coachPlanPrices = pp;
     set('price-m1',  pp['ליווי חודשי']);
     set('price-m3',  pp['ליווי 3 חודשים']);
+    set('price-m4',  pp['ליווי 4 חודשים']);
     set('price-m6',  pp['ליווי חצי שנה']);
     set('price-m12', pp['ליווי שנתי']);
     onBizTypeChange();
@@ -6282,7 +6286,7 @@ ${exLines || 'אין'}
     /* שדה ריק יורד מהמחירון במקום להישמר כאפס — אפס הוא מחיר
        אמיתי, ו"לא הגדרתי" צריך להיראות אחרת ממנו גם כאן. */
     const _pp = {};
-    for (const [id, key] of [['price-m1','ליווי חודשי'], ['price-m3','ליווי 3 חודשים'],
+    for (const [id, key] of [['price-m1','ליווי חודשי'], ['price-m3','ליווי 3 חודשים'], ['price-m4','ליווי 4 חודשים'],
                              ['price-m6','ליווי חצי שנה'], ['price-m12','ליווי שנתי']]) {
       const v = document.getElementById(id)?.value.trim();
       if (v !== '' && v != null) _pp[key] = Number(v);
