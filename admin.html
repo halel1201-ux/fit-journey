@@ -1167,11 +1167,17 @@
   };
   let coachesDiag = '';
   async function loadCoaches() {
-    let { data, error } = await sb.from('coaches').select('*').order('name');
-    /* טוקן שנדחה לא ירפא מעצמו — ניסיון אחד להנפיק מחדש. */
-    if (isAuthErr(error)) {
-      try { await sb.auth.refreshSession(); } catch (_) { }
-      ({ data, error } = await sb.from('coaches').select('*').order('name'));
+    const q = () => sb.from('coaches').select('*').order('name');
+    let { data, error } = await q();
+    /* PGRST303: הטוקן תקין ושעון המאמת מפגר — ממתינים שישיג אותו.
+       הנפקה מחדש כאן רק מרחיקה את החותמת. */
+    for (let i = 0; i < 3 && error; i++) {
+      if (String(error.code || '') === 'PGRST303') {
+        await new Promise(res => setTimeout(res, 2000 * Math.pow(2, i)));
+      } else if (isAuthErr(error) && i === 0) {
+        try { await sb.auth.refreshSession(); } catch (_) { }
+      } else { break; }
+      ({ data, error } = await q());
     }
     coachesErr = error || null;
     coachesDiag = error ? await fjTokenDiag() : '';
@@ -2205,12 +2211,15 @@
     if (coachesErr) {
       const _c = coachesErr.code || coachesErr.status || '';
       const _m = (coachesErr.message || '').slice(0, 160);
-      const _auth = isAuthErr(coachesErr);
+      /* PGRST303 אינו 'התחבר מחדש' — התחברות תחמיר. 'נסה שוב' נכון. */
+      const _auth = isAuthErr(coachesErr) && String((coachesErr || {}).code || '') !== 'PGRST303';
       el.innerHTML = '<div style="padding:14px;border:1px solid #6b2b00;border-radius:10px;background:#1a0f05;">' +
         '<div style="font-weight:900;color:#FF6B00;">⚠️ הרשימה לא נטענה</div>' +
         '<div style="color:#aaa;font-size:0.8rem;margin:6px 0 10px;">' +
-        (_auth ? 'ההזדהות פגה — התחברות מחדש תפתור. הנתונים במקום.'
-               : 'זו תקלת קריאה — הנתונים במקום.') + '</div>' +
+        (String((coachesErr || {}).code || '') === 'PGRST303'
+          ? 'שעון השרת מפגר מול חותמת הזמן של ההזדהות. הנתונים במקום — נסה שוב בעוד רגע.'
+          : _auth ? 'ההזדהות פגה — התחברות מחדש תפתור. הנתונים במקום.'
+                  : 'זו תקלת קריאה — הנתונים במקום.') + '</div>' +
         '<button onclick="' + (_auth ? 'fjRelogin()' : 'loadCoaches()') +
         '" style="background:#FF6B00;color:#fff;border:0;border-radius:8px;' +
         'padding:8px 16px;font-weight:900;cursor:pointer;">' +

@@ -3229,14 +3229,19 @@
     };
     /* שגיאת שאילתה אינה "אין שורה". שלושה נסיונות עם המתנה עולה,
        ואם כולם נפלו מדווחים תקלה במקום להאשים את המשתמש. */
-    const loadRow = async (run, tries = 3) => {
+    const loadRow = async (run, tries = 4) => {
       let last = null;
       for (let i = 0; i < tries; i++) {
         const r = await run();
         if (!r.error) return r;
         last = r;
-        /* טוקן שנדחה לא ירפא מעצמו בהמתנה — צריך להנפיק מחדש.
-           ניסיון אחד, ואם נכשל ממשיכים לנסיונות הרגילים. */
+        if (String(r.error.code || '') === 'PGRST303') {
+          /* הטוקן תקין — שעון המאמת פשוט עוד לא הגיע לחותמת שלו.
+             הנפקה מחדש תחתום מאוחר יותר ותרחיק אותו עוד. ממתינים. */
+          await new Promise(res => setTimeout(res, 2000 * Math.pow(2, i)));
+          continue;
+        }
+        /* כאן הטוקן באמת פסול, והנפקה מחדש היא התשובה. */
         if (isAuthErr(r.error) && i === 0) {
           try { await sb.auth.refreshSession(); } catch (_) { }
           continue;
