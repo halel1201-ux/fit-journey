@@ -3220,6 +3220,13 @@
     /* The coach row and the "is this coach also a trainee?" lookup are
        independent, and used to cost two round trips in a row. Fire both now;
        the second is read further down. */
+    /* PGRST303 = נחתם בעתיד, PGRST301 = לא ניתן לפענוח, 401 = נדחה.
+       שלושתם אומרים "הטוקן פסול", לא "אין נתונים". */
+    const isAuthErr = (e) => {
+      if (!e) return false;
+      const c = String(e.code || '');
+      return c === 'PGRST303' || c === 'PGRST301' || c === 'PGRST302' || e.status === 401;
+    };
     /* שגיאת שאילתה אינה "אין שורה". שלושה נסיונות עם המתנה עולה,
        ואם כולם נפלו מדווחים תקלה במקום להאשים את המשתמש. */
     const loadRow = async (run, tries = 3) => {
@@ -3228,6 +3235,12 @@
         const r = await run();
         if (!r.error) return r;
         last = r;
+        /* טוקן שנדחה לא ירפא מעצמו בהמתנה — צריך להנפיק מחדש.
+           ניסיון אחד, ואם נכשל ממשיכים לנסיונות הרגילים. */
+        if (isAuthErr(r.error) && i === 0) {
+          try { await sb.auth.refreshSession(); } catch (_) { }
+          continue;
+        }
         if (i < tries - 1) await new Promise(res => setTimeout(res, 600 * (i + 1)));
       }
       return last;
@@ -3245,6 +3258,15 @@
       const msg  = (e.message || '').slice(0, 160);
       return (code ? code + ' · ' : '') + msg;
     };
+    /* התחברות מחדש מנקה את הטוקן הפסול. reload לא היה עוזר כאן. */
+    window.fjRelogin = async () => {
+      try { await sb.auth.signOut({ scope: 'local' }); } catch (_) { }
+      try {
+        Object.keys(localStorage).filter(k => k.indexOf('sb-') === 0)
+          .forEach(k => localStorage.removeItem(k));
+      } catch (_) { }
+      location.href = 'login.html';
+    };
     /* כשל טעינה החזיר להתחברות, ומשם הניתוב הביא ללוח המתאמן עם
        "ממתין לאישור מאמן" — הודעה שגויה על תקלה זמנית. */
     if (coachRes && coachRes.error) {
@@ -3254,8 +3276,10 @@
         '<div style="font-weight:900;margin:10px 0 6px;">הטעינה לא הושלמה</div>' +
         '<div style="font-size:0.85rem;color:#aaa;line-height:1.7;margin-bottom:14px;">תקלה זמנית — ' +
         'החשבון וההרשאות שלך במקום.</div>' +
-        '<button onclick="location.reload()" style="background:#FF6B00;color:#fff;border:0;' +
-        'border-radius:10px;padding:10px 18px;font-weight:900;cursor:pointer;">נסה שוב</button>' +
+        '<button onclick="' + (isAuthErr(coachRes.error) ? 'fjRelogin()' : 'location.reload()') +
+        '" style="background:#FF6B00;color:#fff;border:0;' +
+        'border-radius:10px;padding:10px 18px;font-weight:900;cursor:pointer;">' +
+        (isAuthErr(coachRes.error) ? 'התחבר מחדש' : 'נסה שוב') + '</button>' +
         '<div style="margin-top:12px;font-size:0.7rem;color:#666;direction:ltr;text-align:left;' +
         'font-family:monospace;word-break:break-all;max-width:420px;">' + errLine(coachRes.error) + '</div>' +
         '</div></div>';

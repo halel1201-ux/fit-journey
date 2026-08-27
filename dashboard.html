@@ -1757,6 +1757,13 @@
     /* These two do not depend on each other — running them in sequence cost a
        full extra round trip on every load, which is a lot when switching
        between trainee and coach mode reloads the whole page. */
+    /* PGRST303 = נחתם בעתיד, PGRST301 = לא ניתן לפענוח, 401 = נדחה.
+       שלושתם אומרים "הטוקן פסול", לא "אין נתונים". */
+    const isAuthErr = (e) => {
+      if (!e) return false;
+      const c = String(e.code || '');
+      return c === 'PGRST303' || c === 'PGRST301' || c === 'PGRST302' || e.status === 401;
+    };
     /* שגיאת שאילתה אינה "אין שורה". שלושה נסיונות עם המתנה עולה,
        ואם כולם נפלו מדווחים תקלה במקום להאשים את המשתמש. */
     const loadRow = async (run, tries = 3) => {
@@ -1765,6 +1772,12 @@
         const r = await run();
         if (!r.error) return r;
         last = r;
+        /* טוקן שנדחה לא ירפא מעצמו בהמתנה — צריך להנפיק מחדש.
+           ניסיון אחד, ואם נכשל ממשיכים לנסיונות הרגילים. */
+        if (isAuthErr(r.error) && i === 0) {
+          try { await sb.auth.refreshSession(); } catch (_) { }
+          continue;
+        }
         if (i < tries - 1) await new Promise(res => setTimeout(res, 600 * (i + 1)));
       }
       return last;
@@ -1804,14 +1817,26 @@
       const msg  = (e.message || '').slice(0, 160);
       return (code ? code + ' · ' : '') + msg;
     };
+    /* התחברות מחדש מנקה את הטוקן הפסול. reload לא היה עוזר כאן. */
+    window.fjRelogin = async () => {
+      try { await sb.auth.signOut({ scope: 'local' }); } catch (_) { }
+      try {
+        Object.keys(localStorage).filter(k => k.indexOf('sb-') === 0)
+          .forEach(k => localStorage.removeItem(k));
+      } catch (_) { }
+      location.href = 'login.html';
+    };
     /* תקלת טעינה — לא מתאמן שממתין לאישור. */
     if (clientRes && clientRes.error) {
       document.getElementById('client-name').textContent = email.split('@')[0];
       document.getElementById('timer-card').innerHTML =
         '<div style="padding:20px;line-height:1.8;">⚠️ לא הצלחנו לטעון את הנתונים שלך כרגע.' +
         '<div style="color:#aaa;font-size:0.85rem;margin:8px 0 14px;">תקלה זמנית בטעינה — הנתונים שלך במקום.</div>' +
-        '<button onclick="location.reload()" style="background:#FF6B00;color:#fff;border:0;border-radius:10px;' +
-        'padding:10px 18px;font-weight:900;cursor:pointer;">נסה שוב</button>' +
+        (isAuthErr(clientRes.error)
+          ? '<button onclick="fjRelogin()" style="background:#FF6B00;color:#fff;border:0;border-radius:10px;' +
+            'padding:10px 18px;font-weight:900;cursor:pointer;">התחבר מחדש</button>'
+          : '<button onclick="location.reload()" style="background:#FF6B00;color:#fff;border:0;border-radius:10px;' +
+            'padding:10px 18px;font-weight:900;cursor:pointer;">נסה שוב</button>') +
         '<div style="margin-top:12px;font-size:0.7rem;color:#666;direction:ltr;text-align:left;' +
         'font-family:monospace;word-break:break-all;">' + errLine(clientRes.error) + '</div>' +
         '</div>';
