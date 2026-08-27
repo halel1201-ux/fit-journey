@@ -1131,8 +1131,12 @@
   }
 
   /* ── COACHES ── */
+  /* שגיאת טעינה נשמרת ומוצגת. בלי זה כשל קריאה צויר כ"אין מאמנים
+     עדיין" — הודעה שנראית כמו מחיקת נתונים. */
+  let coachesErr = null;
   async function loadCoaches() {
-    const { data } = await sb.from('coaches').select('*').order('name');
+    const { data, error } = await sb.from('coaches').select('*').order('name');
+    coachesErr = error || null;
     coachesList = data || [];
     const pendingCount = coachesList.filter(c => c.role === 'pending').length;
     const btn = document.querySelector('[onclick="openCoachesView()"]');
@@ -2160,6 +2164,18 @@
     renderPendingCoaches();
     const el = document.getElementById('coaches-wrap');
     if (!el) return;
+    if (coachesErr) {
+      const _c = coachesErr.code || coachesErr.status || '';
+      const _m = (coachesErr.message || '').slice(0, 160);
+      el.innerHTML = '<div style="padding:14px;border:1px solid #6b2b00;border-radius:10px;background:#1a0f05;">' +
+        '<div style="font-weight:900;color:#FF6B00;">⚠️ הרשימה לא נטענה</div>' +
+        '<div style="color:#aaa;font-size:0.8rem;margin:6px 0 10px;">זו תקלת קריאה — הנתונים במקום.</div>' +
+        '<button onclick="loadCoaches()" style="background:#FF6B00;color:#fff;border:0;border-radius:8px;' +
+        'padding:8px 16px;font-weight:900;cursor:pointer;">נסה שוב</button>' +
+        '<div style="margin-top:10px;font-size:0.68rem;color:#666;direction:ltr;text-align:left;' +
+        'font-family:monospace;word-break:break-all;">' + (_c ? _c + ' · ' : '') + _m + '</div></div>';
+      return;
+    }
     if (!coachesList.length) { el.innerHTML = '<div style="color:#444;font-size:0.85rem;padding:8px 0;">אין מאמנים עדיין</div>'; return; }
     el.innerHTML = coachesList.map(c => {
       const myClients = clients.filter(cl => cl.coach_email === c.email);
