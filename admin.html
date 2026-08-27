@@ -2771,7 +2771,8 @@
     ]);
     trainingPlan  = Array.isArray(tr?.plan) ? (tr.plan || []) : (tr?.plan?.active || []);
     _trainingArchive = Array.isArray(tr?.plan) ? [] : (tr?.plan?.archive || []);
-    nutritionPlan = stripNonMeals(nu?.plan || []).plan;   // שורות סיכום אינן ארוחות
+    nutritionPlan = typeof stripNonMeals === 'function'
+      ? stripNonMeals(nu?.plan || []).plan : (nu?.plan || []);   // שורות סיכום אינן ארוחות
     nutritionArchive = Array.isArray(nu?.archive) ? nu.archive : [];
     _coachPrices   = co?.plan_prices || {};
     _coachDeputies = deps || [];

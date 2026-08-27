@@ -4428,7 +4428,8 @@
     });
     /* תפריטים שנשמרו לפני החסימה נושאים עדיין שורת סיכום. היא
        מוסרת בטעינה, ונעלמת לתמיד בשמירה הבאה. */
-    nutritionPlan = stripNonMeals(nu?.plan || []).plan;
+    nutritionPlan = typeof stripNonMeals === 'function'
+      ? stripNonMeals(nu?.plan || []).plan : (nu?.plan || []);
     /* בלוקים שהוחלפו. עד עכשיו כל החלפה — ובעיקר אישור הצעה מסגן —
        דרסה את התפריט הקודם לתמיד; הוא נשמר מזה זמן מה, אבל לא
        הייתה שום דרך להחזיר אותו. */
@@ -8684,7 +8685,10 @@ BCAA אבקה|40|4|6|0
     /* שתי בדיקות: שורה בלי מזון כלל, ושורה ששמה מעיד שהיא סיכום
        ולא ארוחה — האחרונה לפעמים כן נושאת פריטים ולכן לא נתפסת
        בבדיקת התוכן. */
-    const named = stripNonMeals(plan).plan;
+    /* אם הקובץ המשותף לא נטען (מטמון ישן, רשת שנפלה) — מסננים
+       פחות, אבל המסך ממשיך לעבוד. תלות קשיחה כאן הפילה את כל
+       כרטיס המתאמן. */
+    const named = typeof stripNonMeals === 'function' ? stripNonMeals(plan).plan : plan;
     const kept = named.filter(m => Array.isArray(m && m.items) &&
                                   m.items.some(i => i && String(i.food || '').trim()));
     return { plan: kept, dropped: before - kept.length };
