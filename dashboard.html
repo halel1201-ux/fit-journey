@@ -1757,10 +1757,23 @@
     /* These two do not depend on each other — running them in sequence cost a
        full extra round trip on every load, which is a lot when switching
        between trainee and coach mode reloads the whole page. */
-    const [{ data: coachRow }, { data: client }] = await Promise.all([
-      sb.from('coaches').select('email').eq('email', email).single(),
-      sb.from('clients').select('*').eq('email', email).single(),
+    /* שגיאת שאילתה אינה "אין שורה". שלושה נסיונות עם המתנה עולה,
+       ואם כולם נפלו מדווחים תקלה במקום להאשים את המשתמש. */
+    const loadRow = async (run, tries = 3) => {
+      let last = null;
+      for (let i = 0; i < tries; i++) {
+        const r = await run();
+        if (!r.error) return r;
+        last = r;
+        if (i < tries - 1) await new Promise(res => setTimeout(res, 600 * (i + 1)));
+      }
+      return last;
+    };
+    const [{ data: coachRow }, clientRes] = await Promise.all([
+      loadRow(() => sb.from('coaches').select('email').eq('email', email).maybeSingle()),
+      loadRow(() => sb.from('clients').select('*').eq('email', email).maybeSingle()),
     ]);
+    const client = clientRes.data;
     /* המתג מופיע לכל מי שיש לו שורת מאמן — כולל סגן. בלעדיו סגן
        שהוא גם מתאמן היה תקוע במסך האישי בלי דרך להגיע לפאנל. */
     if (coachRow) {
@@ -1782,6 +1795,20 @@
     initOneSignal(email);
     checkNotifBanner();
     loadExerciseDB();
+
+    /* תקלת טעינה — לא מתאמן שממתין לאישור. */
+    if (clientRes && clientRes.error) {
+      document.getElementById('client-name').textContent = email.split('@')[0];
+      document.getElementById('timer-card').innerHTML =
+        '<div style="padding:20px;line-height:1.8;">⚠️ לא הצלחנו לטעון את הנתונים שלך כרגע.' +
+        '<div style="color:#aaa;font-size:0.85rem;margin:8px 0 14px;">תקלה זמנית בטעינה — הנתונים שלך במקום.</div>' +
+        '<button onclick="location.reload()" style="background:#FF6B00;color:#fff;border:0;border-radius:10px;' +
+        'padding:10px 18px;font-weight:900;cursor:pointer;">נסה שוב</button></div>';
+      document.getElementById('tabbar').style.display = 'none';
+      const _hlE = document.getElementById('home-launcher'); if (_hlE) _hlE.style.display = 'none';
+      const _dvE = document.getElementById('detail-view'); if (_dvE) _dvE.style.display = 'block';
+      return;
+    }
 
     if (!client) {
       document.getElementById('client-name').textContent = email.split('@')[0];
