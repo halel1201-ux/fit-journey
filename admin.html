@@ -1150,6 +1150,22 @@
     } catch (_) { }
     location.href = 'login.html';
   };
+  /* פענוח מקומי של הטוקן. base64url אינו base64: יש להחליף
+     את התווים לפני atob. שום דבר כאן לא נשלח לשום מקום. */
+  const fjTokenDiag = async () => {
+    try {
+      const s = (await sb.auth.getSession()).data.session;
+      if (!s || !s.access_token) return 'no-session';
+      const part = (i) => JSON.parse(atob(s.access_token.split('.')[i]
+        .replace(/-/g, '+').replace(/_/g, '/')));
+      const h = part(0), p = part(1);
+      const now = Math.floor(Date.now() / 1000);
+      return 'alg=' + h.alg + ' kid=' + String(h.kid || '-').slice(0, 8) +
+        ' iat=' + p.iat + ' now=' + now + ' delta=' + (p.iat - now) + 's' +
+        ' exp_in=' + (p.exp - now) + 's role=' + (p.role || '-');
+    } catch (e) { return 'diag:' + String((e && e.message) || e).slice(0, 60); }
+  };
+  let coachesDiag = '';
   async function loadCoaches() {
     let { data, error } = await sb.from('coaches').select('*').order('name');
     /* טוקן שנדחה לא ירפא מעצמו — ניסיון אחד להנפיק מחדש. */
@@ -1158,6 +1174,7 @@
       ({ data, error } = await sb.from('coaches').select('*').order('name'));
     }
     coachesErr = error || null;
+    coachesDiag = error ? await fjTokenDiag() : '';
     coachesList = data || [];
     const pendingCount = coachesList.filter(c => c.role === 'pending').length;
     const btn = document.querySelector('[onclick="openCoachesView()"]');
@@ -2199,7 +2216,8 @@
         'padding:8px 16px;font-weight:900;cursor:pointer;">' +
         (_auth ? 'התחבר מחדש' : 'נסה שוב') + '</button>' +
         '<div style="margin-top:10px;font-size:0.68rem;color:#666;direction:ltr;text-align:left;' +
-        'font-family:monospace;word-break:break-all;">' + (_c ? _c + ' · ' : '') + _m + '</div></div>';
+        'font-family:monospace;word-break:break-all;">' + (_c ? _c + ' · ' : '') + _m +
+        '<br>' + coachesDiag + '</div></div>';
       return;
     }
     if (!coachesList.length) { el.innerHTML = '<div style="color:#444;font-size:0.85rem;padding:8px 0;">אין מאמנים עדיין</div>'; return; }
