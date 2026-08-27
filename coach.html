@@ -7180,6 +7180,132 @@ ${exLines || 'אין'}
     w.document.close();
   }
 
+  /* חלון השאלון המלא. נבנה בזיכרון ולא ב-HTML כדי לא לגעת במבנה
+     הדף, ונשאר מוסתר עד שנפתח. */
+  let _intakeRow = null;
+  function _intakeBox() {
+    let el = document.getElementById('intake-modal');
+    if (el) return el;
+    el = document.createElement('div');
+    el.id = 'intake-modal';
+    el.style.cssText = 'position:fixed;inset:0;z-index:820;background:rgba(0,0,0,0.86);' +
+      'backdrop-filter:blur(6px);display:none;align-items:flex-start;justify-content:center;' +
+      'padding:calc(16px + var(--sat,0px)) 14px calc(16px + var(--sab,0px));overflow-y:auto;';
+    el.onclick = (e) => { if (e.target === el) closeIntake(); };
+    document.body.appendChild(el);
+    return el;
+  }
+  function closeIntake() {
+    const el = document.getElementById('intake-modal');
+    if (el) el.style.display = 'none';
+    _intakeRow = null;
+  }
+
+  async function openIntake(id) {
+    const box = _intakeBox();
+    box.style.display = 'flex';
+    box.innerHTML = '<div style="color:#888;padding:40px;font-size:0.9rem;">טוען את השאלון…</div>';
+    const { data, error } = await sb.from('intake_forms').select('*').eq('id', id).maybeSingle();
+    if (error || !data) {
+      box.innerHTML = '<div style="background:#181613;border:1px solid rgba(255,255,255,0.12);' +
+        'border-radius:14px;padding:22px;max-width:420px;text-align:center;">' +
+        '<div style="font-weight:900;color:#FF6B00;margin-bottom:6px;">⚠️ השאלון לא נטען</div>' +
+        '<div style="color:#aaa;font-size:0.8rem;margin-bottom:14px;">' +
+        esc((error && error.message) || 'לא נמצאה רשומה') + '</div>' +
+        '<button onclick="closeIntake()" style="background:#FF6B00;color:#fff;border:0;' +
+        'border-radius:9px;padding:9px 18px;font-weight:900;cursor:pointer;' +
+        'font-family:Heebo,sans-serif;">סגור</button></div>';
+      return;
+    }
+    _intakeRow = data;
+
+    const a = (data.answers && typeof data.answers === 'object') ? data.answers : {};
+    const pairs = Object.entries(a);
+    const when = new Date(data.created_at).toLocaleString('he-IL',
+      { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+
+    const st = data.payment_status === 'refunded' ? ['🔁 הוחזר', '#f87171']
+             : data.work_started_at ? ['🔒 בעבודה — אין החזר', '#60a5fa']
+             : data.payment_status === 'verified' ? ['✓ תשלום אומת', '#4ade80']
+             : ['⏳ ממתין לאימות תשלום', '#facc15'];
+
+    const chip = (label, val) => val
+      ? '<span style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);' +
+        'border-radius:8px;padding:4px 9px;font-size:0.72rem;color:#bbb;">' + label +
+        ' <b style="color:#eee;">' + esc(val) + '</b></span>' : '';
+
+    /* האסמכתא בתצוגה. אם המתאמן שלח בוואטסאפ אין קובץ, ואומרים זאת
+       במפורש כדי שלא ייראה כאילו משהו חסר. */
+    const proof = data.payment_proof_url
+      ? '<a href="' + esc(data.payment_proof_url) + '" target="_blank" rel="noopener" ' +
+        'style="display:block;border:1px solid rgba(255,255,255,0.14);border-radius:10px;' +
+        'overflow:hidden;background:#000;">' +
+        '<img src="' + esc(data.payment_proof_url) + '" alt="אישור תשלום" ' +
+        'style="display:block;width:100%;max-height:340px;object-fit:contain;"></a>' +
+        '<div style="font-size:0.68rem;color:#777;margin-top:5px;">לחיצה פותחת בגודל מלא</div>'
+      : '<div style="background:rgba(240,180,41,0.1);border:1px solid rgba(240,180,41,0.35);' +
+        'border-radius:10px;padding:12px;font-size:0.78rem;color:#f0b429;line-height:1.7;">' +
+        '📲 לא צורף צילום — המתאמן נתבקש לשלוח בוואטסאפ.<br>' +
+        'אמת מול השיחה או מול מספר האסמכתא.</div>';
+
+    const rows = pairs.length
+      ? pairs.map(([q, ans], i) =>
+          '<tr>' +
+          '<td style="padding:9px 11px;border-bottom:1px solid rgba(255,255,255,0.07);' +
+          'color:#8a8a8a;font-size:0.74rem;width:44%;vertical-align:top;">' +
+          (i + 1) + '. ' + esc(q) + '</td>' +
+          '<td style="padding:9px 11px;border-bottom:1px solid rgba(255,255,255,0.07);' +
+          'color:#eee;font-size:0.82rem;font-weight:600;">' + (esc(ans) || '—') + '</td>' +
+          '</tr>').join('')
+      : '<tr><td style="padding:16px;color:#777;font-size:0.8rem;">' +
+        'לא נשמרו תשובות לרשומה הזאת.</td></tr>';
+
+    const act = [];
+    if (data.payment_status === 'pending') {
+      act.push('<button onclick="intakeSet(' + data.id + ',\'verify\');closeIntake();" ' +
+        'style="background:rgba(74,222,128,0.16);border:1px solid rgba(74,222,128,0.5);' +
+        'color:#4ade80;border-radius:9px;padding:8px 16px;font-size:0.78rem;font-weight:900;' +
+        'cursor:pointer;font-family:Heebo,sans-serif;">✓ אמת תשלום</button>');
+    }
+    act.push('<button onclick="printIntake(' + data.id + ')" ' +
+      'style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.16);' +
+      'color:#ccc;border-radius:9px;padding:8px 16px;font-size:0.78rem;font-weight:800;' +
+      'cursor:pointer;font-family:Heebo,sans-serif;">🖨 הדפס / PDF</button>');
+    act.push('<button onclick="closeIntake()" ' +
+      'style="background:none;border:1px solid rgba(255,255,255,0.16);color:#999;' +
+      'border-radius:9px;padding:8px 16px;font-size:0.78rem;font-weight:700;' +
+      'cursor:pointer;font-family:Heebo,sans-serif;">סגור</button>');
+
+    box.innerHTML =
+      '<div style="background:linear-gradient(160deg,#181613,#0e0d0b);' +
+      'border:1px solid rgba(255,215,0,0.28);border-radius:16px;width:100%;max-width:680px;' +
+      'margin:auto;overflow:hidden;">' +
+        '<div style="padding:15px 18px;border-bottom:1px solid rgba(255,255,255,0.08);">' +
+          '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;' +
+          'flex-wrap:wrap;">' +
+            '<div style="font-size:1.05rem;font-weight:900;color:#FFD700;">📋 ' +
+            esc(data.full_name || '—') + '</div>' +
+            '<div style="font-size:0.74rem;font-weight:800;color:' + st[1] + ';">' + st[0] + '</div>' +
+          '</div>' +
+          '<div style="font-size:0.72rem;color:#777;margin-top:3px;">נשלח ' + when + '</div>' +
+          '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:9px;">' +
+            chip('טלפון', data.phone) + chip('אימייל', data.email) +
+            chip('מסלול', data.plan_label) + chip('אסמכתא', data.payment_ref) +
+          '</div>' +
+        '</div>' +
+        '<div style="padding:14px 18px;">' +
+          '<div style="font-size:0.76rem;font-weight:900;color:#FF6B00;margin-bottom:7px;">' +
+          'אישור התשלום</div>' + proof +
+          '<div style="font-size:0.76rem;font-weight:900;color:#FF6B00;margin:16px 0 7px;">' +
+          'התשובות · ' + pairs.length + '</div>' +
+          '<table style="width:100%;border-collapse:collapse;">' + rows + '</table>' +
+        '</div>' +
+        '<div style="padding:13px 18px;border-top:1px solid rgba(255,255,255,0.08);' +
+        'display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;">' +
+        act.join('') + '</div>' +
+      '</div>';
+  }
+
   async function renderIntakeForms() {
     const box = document.getElementById('lobby-intake'); if (!box) return;
     let q = sb.from('intake_forms').select('*').order('created_at', { ascending: false });
@@ -7218,7 +7344,7 @@ ${exLines || 'אין'}
             <div style="font-size:0.72rem;font-weight:800;color:${st[1]};white-space:nowrap;">${st[0]}</div>
           </div>
           <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:9px;">
-            ${r.payment_proof_url ? `<a href="${r.payment_proof_url}" target="_blank" rel="noopener" style="text-decoration:none;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);color:#ccc;border-radius:7px;padding:4px 10px;font-size:0.72rem;font-weight:700;">🧾 אישור תשלום</a>` : `<span style="background:rgba(240,180,41,0.12);border:1px solid rgba(240,180,41,0.4);color:#f0b429;border-radius:7px;padding:4px 10px;font-size:0.72rem;font-weight:700;" title="המתאמן בחר לשלוח את הצילום בוואטסאפ — אמת מול השיחה או מול האסמכתא">📲 אישור בוואטסאפ</span>`}
+            <button onclick="openIntake(${r.id})" style="background:rgba(255,215,0,0.12);border:1px solid rgba(255,215,0,0.42);color:#FFD700;border-radius:7px;padding:4px 10px;font-size:0.72rem;font-weight:800;cursor:pointer;font-family:'Heebo',sans-serif;" title="פותח את השאלון המלא עם כל התשובות ואת אישור התשלום">${r.payment_proof_url ? '🧾 אישור תשלום' : '📲 אישור בוואטסאפ'} · שאלון מלא</button>
             ${r.pdf_url ? `<a href="${r.pdf_url}" target="_blank" rel="noopener" style="text-decoration:none;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);color:#ccc;border-radius:7px;padding:4px 10px;font-size:0.72rem;font-weight:700;">📄 השאלון</a>` : ''}
             <button onclick="printIntake(${r.id})" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);color:#ccc;border-radius:7px;padding:4px 10px;font-size:0.72rem;font-weight:700;cursor:pointer;font-family:'Heebo',sans-serif;" title="מפיק את השאלון מהתשובות השמורות — עובד גם כשה-PDF לא נוצר">🖨 הצג והדפס</button>
             ${r.payment_status === 'pending' ? `<button onclick="intakeSet(${r.id},'verify')" style="background:rgba(74,222,128,0.15);border:1px solid rgba(74,222,128,0.45);color:#4ade80;border-radius:7px;padding:4px 10px;font-size:0.72rem;font-weight:800;cursor:pointer;font-family:'Heebo',sans-serif;">✓ אמת תשלום</button>` : ''}
