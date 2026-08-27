@@ -11230,11 +11230,27 @@ ${buildFoodListForPrompt()}
       + '\n\nהתרגילים יאוחדו, סטים של אותו תרגיל יצטרפו, והמשך יסוכם.'
       + '\nהרשומות הנוספות יימחקו — אי אפשר לבטל.' + warn)) return;
 
-    const { error } = await sb.rpc('merge_workout_logs', { p_ids: _mergePick });
+    const { data, error } = await sb.rpc('merge_workout_logs', { p_ids: _mergePick });
     if (error) { toast('המיזוג נכשל: ' + error.message, 'err'); return; }
     _mergePick = [];
-    toast('האימונים מוזגו לאימון אחד', 'ok');
     await loadClientLogs(activeEmail);
+
+    /* הדיווח מהמסד, לא הנחה: כמה נמחקו בפועל וכמה נשארו באותו
+       תאריך. מתאמן ששלח שלושה חלקים ומהם סומנו שניים משאיר שורה,
+       וזה נראה בדיוק כמו מחיקה שנכשלה. */
+    const rep = data || {};
+    const merged = Number(rep.merged || 0);
+    const deleted = Number(rep.deleted || 0);
+    const left = Number(rep.same_day || 0);
+
+    if (merged && deleted < merged - 1) {
+      toast('מוזגו ' + merged + ' אך נמחקו רק ' + deleted + ' — בדוק הרשאות', 'err');
+    } else if (left > 0) {
+      toast('מוזגו ' + merged + ' אימונים · נשאר עוד ' + left +
+        ' באותו תאריך — סמן גם אותו ומזג שוב', 'ok');
+    } else {
+      toast(merged ? merged + ' אימונים מוזגו לאחד' : 'האימונים מוזגו', 'ok');
+    }
   }
 
   async function loadClientLogs(email) {
