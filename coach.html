@@ -11181,20 +11181,95 @@ ${buildFoodListForPrompt()}
   }
 
   /* ── WORKOUT LOGS ── */
+  /* ── מיזוג אימונים שנשלחו בחלקים ── */
+  /* הבחירה נשמרת כאן ולא ב-DOM, כדי שציור מחדש של היומן לא יאבד
+     אותה ושהמיזוג יידע בדיוק על מה הוא פועל. */
+  let _mergePick = [];
+
+  function toggleMergePick(id, on) {
+    id = Number(id);
+    _mergePick = on ? _mergePick.filter(x => x !== id).concat([id])
+                    : _mergePick.filter(x => x !== id);
+    renderMergeBar();
+  }
+
+  function renderMergeBar() {
+    const b = document.getElementById('merge-bar');
+    if (!b) return;
+    /* פחות משניים אינו מיזוג — הסרגל נעלם במקום להציע פעולה
+       שתיכשל. */
+    b.style.display = _mergePick.length >= 2 ? 'flex' : 'none';
+    const c = document.getElementById('merge-count');
+    if (c) c.textContent = _mergePick.length;
+  }
+
+  async function mergePickedLogs() {
+    if (_mergePick.length < 2) { toast('סמן לפחות שני אימונים', 'err'); return; }
+    const picked = _mergePick
+      .map(id => (_progLogs || []).find(l => Number(l.id) === Number(id)))
+      .filter(Boolean)
+      .sort((a, b) => String(a.log_date).localeCompare(String(b.log_date)));
+
+    const fmt = (l) => {
+      const d = new Date(l.log_date + 'T12:00:00')
+        .toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit', year: 'numeric' });
+      const n = (l.exercises || []).length;
+      const m = (String(l.notes || '').match(/משך אימון:\s*(\d+)/) || [])[1];
+      return '· ' + d + ' · ' + (l.day_name || '—') + ' · ' + n + ' תרגילים'
+        + (m ? ' · ' + m + ' דקות' : '');
+    };
+
+    /* תאריכים שונים כמעט תמיד אומרים שסומן אימון לא נכון —
+       אומרים זאת במפורש במקום לאחד בשקט. */
+    const dates = Array.from(new Set(picked.map(l => l.log_date)));
+    const warn = dates.length > 1
+      ? '\n\n⚠️ שים לב: האימונים מתאריכים שונים. התאריך שיישאר הוא המוקדם.' : '';
+
+    if (!confirm('מיזוג ' + picked.length + ' אימונים לרשומה אחת:\n\n'
+      + picked.map(fmt).join('\n')
+      + '\n\nהתרגילים יאוחדו, סטים של אותו תרגיל יצטרפו, והמשך יסוכם.'
+      + '\nהרשומות הנוספות יימחקו — אי אפשר לבטל.' + warn)) return;
+
+    const { error } = await sb.rpc('merge_workout_logs', { p_ids: _mergePick });
+    if (error) { toast('המיזוג נכשל: ' + error.message, 'err'); return; }
+    _mergePick = [];
+    toast('האימונים מוזגו לאימון אחד', 'ok');
+    await loadClientLogs(activeEmail);
+  }
+
   async function loadClientLogs(email) {
     const el=document.getElementById('client-logs-wrap'); if(!el) return;
     const { data } = await sb.from('workout_logs').select('*').eq('client_email',email).order('log_date',{ascending:false}).limit(60);
     if(!el) return;
     const cl = clients.find(c=>c.email===email) || {};
     _progLogs = data || [];   // הגרף עובד על אותם יומנים
+    _mergePick = [];          // מעבר בין מתאמנים מאפס את הבחירה
     const weekBlock = buildTrainingWeekBlock(cl, data||[]);
     if(!(data||[]).length){ el.innerHTML = weekBlock + '<div style="color:#444;font-size:0.85rem;">המתאמן עדיין לא תיעד אימונים</div>'; return; }
-    el.innerHTML = weekBlock + (data||[]).map(log=>{
+
+    /* המיזוג מוחק רשומות, ולסגן אין מסלול אישור לפעולה הזאת —
+       הבחירה מוסתרת לו, והמסד חוסם אותה גם אם הממשק ישונה. */
+    const canMerge = !(typeof isDeputyFor === 'function' && isDeputyFor(email));
+    const mergeBar = canMerge ? `<div id="merge-bar" style="display:none;align-items:center;
+      gap:10px;flex-wrap:wrap;background:rgba(255,107,0,0.1);border:1px solid rgba(255,107,0,0.4);
+      border-radius:10px;padding:9px 13px;margin-bottom:8px;">
+      <span style="font-size:0.82rem;color:#FF6B00;font-weight:800;">
+        <span id="merge-count">0</span> אימונים מסומנים</span>
+      <span style="font-size:0.74rem;color:var(--muted);">אותו אימון שנשלח בחלקים?</span>
+      <button onclick="mergePickedLogs()" style="margin-inline-start:auto;background:#FF6B00;
+        color:#fff;border:0;border-radius:8px;padding:6px 14px;font-size:0.78rem;font-weight:900;
+        cursor:pointer;font-family:'Heebo',sans-serif;">🔗 מזג לאימון אחד</button>
+    </div>` : '';
+
+    el.innerHTML = weekBlock + mergeBar + (data||[]).map(log=>{
       const d=new Date(log.log_date+'T12:00:00');
       const ds=d.toLocaleDateString('he-IL',{day:'2-digit',month:'2-digit',year:'numeric'});
       return `<div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:10px;margin-bottom:6px;overflow:hidden;">
         <div style="padding:10px 14px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='block'?'none':'block'">
-          <div><div style="font-size:0.88rem;font-weight:700;">${ds}</div><div style="font-size:0.78rem;color:var(--orange);margin-top:2px;">${esc(log.day_name)}</div></div>
+          <div style="display:flex;align-items:center;gap:10px;min-width:0;">
+            ${canMerge ? `<input type="checkbox" title="סמן למיזוג" onclick="event.stopPropagation()" onchange="toggleMergePick(${log.id}, this.checked)" style="width:17px;height:17px;accent-color:#FF6B00;cursor:pointer;flex:none;">` : ''}
+            <div><div style="font-size:0.88rem;font-weight:700;">${ds}</div><div style="font-size:0.78rem;color:var(--orange);margin-top:2px;">${esc(log.day_name)}</div></div>
+          </div>
           <span style="color:var(--orange);font-size:0.75rem;">▼</span>
         </div>
         <div style="display:none;padding:0 14px 12px;">
