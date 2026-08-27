@@ -2806,9 +2806,25 @@
       </div>`).join('');
   }
 
+  /* סדר א-ב לפי שם. localeCompare עם 'he' מסדר עברית נכון —
+     השוואת קוד תווים הייתה שוברת סדר בשמות עם גרשיים, ניקוד
+     או תערובת עברית-אנגלית. numeric כדי ש"אורי 2" יקדים את
+     "אורי 10". מי שאין לו שם יורד לסוף ומסודר לפי המייל, כדי
+     שלא ייעלם מהרשימה. */
+  function byClientName(a, b) {
+    const an = ((a && a.name) || '').trim();
+    const bn = ((b && b.name) || '').trim();
+    if (!an && !bn) {
+      return ((a && a.email) || '').localeCompare(((b && b.email) || ''), 'he');
+    }
+    if (!an) return 1;
+    if (!bn) return -1;
+    return an.localeCompare(bn, 'he', { numeric: true, sensitivity: 'base' });
+  }
+  
   async function loadClients() {
     const { data } = await sb.from('clients').select('*').order('created_at');
-    clients = data || [];
+    clients = (data || []).sort(byClientName);
     renderSidebar();
   }
 
