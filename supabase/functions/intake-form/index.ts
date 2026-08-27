@@ -12,6 +12,10 @@ const SUPABASE_URL = Deno.env.get('SB_URL') ?? Deno.env.get('SUPABASE_URL') ?? '
 const SERVICE_KEY  = Deno.env.get('ADMIN_DB_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 const WEB3FORMS_KEY = Deno.env.get('WEB3FORMS_KEY') ?? ''
 const NOTIFY_EMAIL  = Deno.env.get('INTAKE_NOTIFY_EMAIL') ?? 'halel1201@gmail.com'
+const RESEND_KEY    = Deno.env.get('RESEND_API_KEY') ?? ''
+/* כתובת השולח חייבת להיות בדומיין מאומת אצל ספק המייל. ברירת
+   המחדל היא דומיין הבדיקה שלו — עובד מיד, בלי הגדרת DNS. */
+const MAIL_FROM     = Deno.env.get('INTAKE_MAIL_FROM') ?? 'Fit Journey <onboarding@resend.dev>'
 const BUCKET = 'client-files'
 
 const cors = {
@@ -22,6 +26,89 @@ const cors = {
 const json = (b: unknown, s = 200) =>
   new Response(JSON.stringify(b), { status: s, headers: { ...cors, 'Content-Type': 'application/json' } })
 
+/* מייל ממותג FJ. HTML למייל אינו HTML לדפדפן: טבלאות ולא flex,
+   סגנון בשורה ולא גיליון, ורוחב קבוע — אחרת לקוחות מייל שוברים
+   את הפריסה. הכותרת כהה עם כתום כמו המותג, והגוף בהיר כי מיילים
+   כהים נשברים במצב לילה של ג׳ימייל. */
+function esc(v: unknown) {
+  return String(v ?? '').replace(/[&<>"]/g, (c) =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c] as string))
+}
+
+function buildIntakeEmailHtml(o: {
+  name: string; phone: string; email: string; planLabel: string; payRef: string
+  proofUrl: string; pdfUrl: string; answers: Record<string, string>
+}) {
+  const row = (q: string, a: string, i: number) => `
+    <tr>
+      <td style="padding:10px 14px;border-bottom:1px solid #eee;color:#666;font-size:13px;width:42%;vertical-align:top;">
+        ${i + 1}. ${esc(q)}</td>
+      <td style="padding:10px 14px;border-bottom:1px solid #eee;color:#111;font-size:14px;font-weight:600;">
+        ${esc(a) || '&mdash;'}</td>
+    </tr>`
+
+  const chip = (label: string, value: string) => value ? `
+    <td style="padding:0 6px 8px 0;">
+      <table cellpadding="0" cellspacing="0" style="background:#fff5ec;border:1px solid #ffd0a8;border-radius:8px;">
+        <tr><td style="padding:7px 12px;font-size:12px;color:#8a4b00;">
+          <span style="color:#b06a1a;">${esc(label)}</span> <b style="color:#7a3d00;">${esc(value)}</b>
+        </td></tr></table></td>` : ''
+
+  return `<!doctype html><html dir="rtl" lang="he"><head><meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1"></head>
+  <body style="margin:0;padding:0;background:#f3f4f6;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f3f4f6;padding:24px 12px;">
+    <tr><td align="center">
+      <table width="620" cellpadding="0" cellspacing="0" style="width:620px;max-width:100%;background:#ffffff;
+        border-radius:16px;overflow:hidden;font-family:Arial,Helvetica,sans-serif;
+        box-shadow:0 2px 12px rgba(0,0,0,0.08);">
+
+        <tr><td style="background:#0d0d0f;padding:22px 24px;border-bottom:4px solid #FF6B00;">
+          <div style="font-size:24px;font-weight:900;color:#ffffff;letter-spacing:0.5px;">
+            FIT <span style="color:#FF6B00;">JOURNEY</span></div>
+          <div style="font-size:13px;color:#9aa0a6;margin-top:4px;">שאלון קליטה חדש</div>
+        </td></tr>
+
+        <tr><td style="padding:20px 24px 6px;">
+          <div style="font-size:20px;font-weight:900;color:#111;">${esc(o.name)}</div>
+          <table cellpadding="0" cellspacing="0" style="margin-top:12px;"><tr>
+            ${chip('טלפון', o.phone)}${chip('אימייל', o.email)}
+          </tr><tr>
+            ${chip('מסלול', o.planLabel)}${chip('אסמכתא', o.payRef)}
+          </tr></table>
+        </td></tr>
+
+        <tr><td style="padding:6px 24px 0;">
+          <table width="100%" cellpadding="0" cellspacing="0" style="background:#fffbe8;border:1px solid #f0d98a;border-radius:10px;">
+            <tr><td style="padding:12px 14px;font-size:13px;color:#7a5c00;line-height:1.6;">
+              <b>⏳ ממתין לאימות תשלום</b><br>
+              ${o.proofUrl
+                ? `אישור התשלום צורף — <a href="${esc(o.proofUrl)}" style="color:#b45309;">פתח את הצילום</a>`
+                : '📲 לא צורף צילום — המתאמן נתבקש לשלוח בוואטסאפ. אמת מול האסמכתא.'}
+              <br>לאשר בפאנל לפני תחילת העבודה.
+            </td></tr></table>
+        </td></tr>
+
+        <tr><td style="padding:18px 24px 4px;font-size:13px;font-weight:900;color:#FF6B00;">התשובות</td></tr>
+        <tr><td style="padding:0 24px;">
+          <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #eee;border-radius:10px;">
+            ${Object.entries(o.answers).map(([q, a], i) => row(q, a, i)).join('')}
+          </table>
+        </td></tr>
+
+        <tr><td style="padding:18px 24px 24px;">
+          ${o.pdfUrl ? `<a href="${esc(o.pdfUrl)}" style="display:inline-block;padding:11px 20px;
+            background:#FF6B00;color:#fff;text-decoration:none;border-radius:9px;font-weight:900;
+            font-size:14px;">📄 השאלון כ-PDF</a>` :
+            `<div style="font-size:12px;color:#888;">ה-PDF לא נוצר אצל הממלא — אפשר להפיק אותו
+             מהפאנל בכפתור "הצג והדפס".</div>`}
+        </td></tr>
+
+        <tr><td style="background:#fafafa;border-top:1px solid #eee;padding:14px 24px;
+          font-size:11px;color:#999;">הודעה אוטומטית ממערכת Fit Journey</td></tr>
+      </table>
+    </td></tr></table></body></html>`
+}
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors })
   if (req.method !== 'POST') return json({ error: 'method' }, 405)
@@ -90,8 +177,31 @@ Deno.serve(async (req) => {
     }
 
     // 3. מייל למאמן — כל התשובות + קישור ל-PDF
-    let mailSent = false, mailErr = ''
-    if (WEB3FORMS_KEY) {
+    let mailSent = false, mailErr = '', mailVia = ''
+    const emailHtml = buildIntakeEmailHtml({
+      name, phone, email, planLabel, payRef, proofUrl, pdfUrl, answers,
+    })
+
+    /* ספק שתומך ב-HTML קודם; Web3Forms נשאר כנפילה חזרה כדי
+       שהיעדר מפתח לא ישתיק את ההתראה לגמרי. */
+    if (RESEND_KEY) {
+      try {
+        const r = await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${RESEND_KEY}` },
+          body: JSON.stringify({
+            from: MAIL_FROM,
+            to: [NOTIFY_EMAIL],
+            subject: `📋 שאלון קליטה (ממתין לאימות) — ${name}`,
+            html: emailHtml,
+          }),
+        })
+        if (r.ok) { mailSent = true; mailVia = 'resend' }
+        else { mailErr = `resend ${r.status}: ${(await r.text()).slice(0, 200)}` }
+      } catch (e) { mailErr = 'resend: ' + String((e as Error)?.message || e) }
+    }
+
+    if (!mailSent && WEB3FORMS_KEY) {
       const lines = [
         `שאלון קליטה חדש — ${name}`,
         '⏳ ממתין לאימות תשלום — לאשר בפאנל לפני תחילת העבודה',
@@ -119,7 +229,7 @@ Deno.serve(async (req) => {
             message: lines.join('\n'),
           }),
         })
-        mailSent = true
+        mailSent = true; mailVia = 'web3forms'
       } catch (e) {
         /* המייל הוא התראה בלבד — הנתונים כבר נשמרו. אבל שקט מוחלט
            כאן הוא מה שגרם ל"מילאתי ולא הגיע": צריך לדעת שהוא נכשל. */
@@ -132,6 +242,7 @@ Deno.serve(async (req) => {
       /* mail_sent=false פירושו שהשאלון נשמר אך ההתראה לא יצאה —
          בדרך כלל כי מפתח שירות המייל אינו מוגדר. */
       mail_sent: mailSent,
+      mail_via: mailVia || undefined,
       /* הסיבה שה-PDF נכשל אצל הממלא — נשלחת מהדפדפן כדי שלא
          נגלה חודש אחרי שאין קבצים ולא נדע למה. */
       pdf_client_error: String(body.pdf_client_error || '') || undefined,
