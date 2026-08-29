@@ -2537,6 +2537,7 @@
     if (!day) return;
     const dayName = day.name || day.day || '';
     const suggestions = calcProgressionSuggestions(dayName);
+    const _dl = deloadState();
     const prevReps = lastSessionReps(dayName);
     workoutSession = {
       dayName,
@@ -2545,7 +2546,11 @@
       restInterval: null,
       restRemaining: 0,
       exercises: (day.exercises || []).map(ex => {
-        const setsArr = parseSetsToArray(ex.sets);
+        const _rawSets = parseSetsToArray(ex.sets);
+        const setsArr = (_dl && _dl.cutSets) ? deloadCutSets(_rawSets) : _rawSets;
+        /* הצילום לפי שם תרגיל: תרגיל שהמאמן הוסיף אחרי ההפעלה אינו
+           בצילום, ולכן פשוט מתנהג רגיל. אין מקרה קצה לטפל בו. */
+        const _anchorW = _dl ? (+_dl.anchor[ex.name] || 0) : 0;
         const prevSetWeights = suggestions[ex.name] || []; // per-set weights from last session
         const prevSetReps = prevReps[ex.name] || [];       // per-set reps from last session
         return {
@@ -2560,11 +2565,16 @@
           sets: setsArr.map((s, si) => {
             const setType = setTypeOf(s);   // מנורמל, אחרת חימום נחשב סט עבודה
             // Use this set's prev weight (or last set's weight if not enough sets)
-            const prevW = prevSetWeights[si] > 0
+            /* בדילאוד היעד הוא אחוז מהצילום, ובלי תוספת התקדמות:
+               76% הוא 76%, לא 76% ועוד 2%. מחוץ לדילאוד שום דבר
+               כאן לא משתנה. */
+            const _dlKg = _anchorW > 0
+              ? Math.round(_anchorW * _dl.factor * 2) / 2 : 0;
+            const prevW = _dlKg || (prevSetWeights[si] > 0
               ? prevSetWeights[si]
-              : (prevSetWeights[prevSetWeights.length - 1] || 0);
+              : (prevSetWeights[prevSetWeights.length - 1] || 0));
             // Progressive overload only for failure sets
-            const isProgression = prevW > 0 && setType === 'failure';
+            const isProgression = !_dlKg && prevW > 0 && setType === 'failure';
             // 1-2% increase, rounded to nearest 0.5kg
             const sugLow  = isProgression ? Math.round(prevW * 1.01 * 2) / 2 : 0;
             const sugHigh = isProgression ? Math.round(prevW * 1.02 * 2) / 2 : 0;
@@ -2590,6 +2600,30 @@
       })
     };
     document.getElementById('session-day').textContent = day.name || day.day || '';
+
+    /* מתאמן שרואה פתאום משקלים נמוכים בלי הסבר מסיק אחד משניים:
+       המערכת נשברה, או שהוא נחלש. שניהם פוגעים בעקביות. */
+    {
+      let b = document.getElementById('deload-banner');
+      if (!b) {
+        const body = document.getElementById('session-body');
+        b = document.createElement('div');
+        b.id = 'deload-banner';
+        body.parentNode.insertBefore(b, body);
+      }
+      if (!_dl) {
+        b.style.display = 'none';
+      } else {
+        b.style.cssText = 'display:block;margin:10px 14px 0;padding:9px 13px;' +
+          'border-radius:10px;font-size:0.8rem;font-weight:800;line-height:1.6;' +
+          (_dl.week === 0
+            ? 'background:rgba(255,215,0,0.1);border:1px solid rgba(255,215,0,0.4);color:#FFD700;'
+            : 'background:rgba(74,222,128,0.1);border:1px solid rgba(74,222,128,0.35);color:#4ade80;');
+        b.textContent = _dl.week === 0
+          ? '🌙 שבוע התאוששות — מכוון. פחות סטים ומשקל קל יותר, אותן חזרות.'
+          : '📈 בדרך חזרה — ' + _dl.pct + '% מהמשקלים שלך, בנפח מלא.';
+      }
+    }
     document.getElementById('session-clock').textContent = '00:00';
     renderSession();
     document.getElementById('workout-session').classList.add('open');
@@ -2729,6 +2763,43 @@
             { reps_min: 8,  reps_max: 12, recommended_kg: 0, set_type: 'working' },
             { reps_min: 8,  reps_max: 12, recommended_kg: 0, set_type: 'working' },
             { reps_min: 8,  reps_max: 12, recommended_kg: 0, set_type: 'working' }];
+  }
+
+  /* ── דילאוד מנוהל ──
+     המצב נשמר על המתאמן: תאריך הפעלה + צילום משקלי שיא לכל תרגיל.
+     השבוע מחושב מהתאריך בזמן קריאה — בלי משימה מתוזמנת, ובלי תלות
+     בכך שהמתאמן התאמן. שבוע קלנדרי רץ גם אם דילג.
+
+     שבוע 0 = 76% מהמשקל ו-40% מסטי העבודה. אחריו נפח מלא ועלייה
+     של 5 נקודות אחוז בשבוע עד 100%. משבוע 5 מחזירים null והמנוע
+     הרגיל ממשיך מאליו מהאימון של שבוע 4 — שהוא בדיוק משקל השיא. */
+  const DELOAD_FACTORS = [0.76, 0.85, 0.90, 0.95, 1.00];
+
+  function deloadState() {
+    const d = clientData && clientData.deload;
+    if (!d || !d.start_date) return null;
+    const start = new Date(d.start_date + 'T00:00:00');
+    const now   = new Date(todayStr() + 'T00:00:00');
+    if (isNaN(start)) return null;
+    const week = Math.floor((now - start) / 604800000);
+    if (week < 0 || week >= DELOAD_FACTORS.length) return null;
+    return {
+      week,
+      factor:  DELOAD_FACTORS[week],
+      cutSets: week === 0,
+      anchor:  d.anchor || {},
+      pct:     Math.round(DELOAD_FACTORS[week] * 100),
+    };
+  }
+
+  /* 5 סטי עבודה → 2, 4 → 2, 3 → 1. תרגיל בסט אחד נשאר סט אחד:
+     מורידים עומס, לא מוחקים תרגיל — מתאמן שתרגיל נעלם לו חושב
+     שהמאמן שכח אותו. סטי חימום נשארים כפי שהם. */
+  function deloadCutSets(arr) {
+    const warm = arr.filter(s => setTypeOf(s) === 'warm_up');
+    const work = arr.filter(s => setTypeOf(s) !== 'warm_up');
+    if (!work.length) return arr;
+    return warm.concat(work.slice(0, Math.max(1, Math.round(work.length * 0.4))));
   }
 
   function calcProgressionSuggestions(dayName) {
