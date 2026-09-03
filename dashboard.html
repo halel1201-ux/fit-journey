@@ -1870,7 +1870,12 @@
 
     if (!client) {
       document.getElementById('client-name').textContent = email.split('@')[0];
-      document.getElementById('timer-card').innerHTML = '<div style="color:#555;padding:20px;">ממתין לאישור מאמן — צור קשר עם הלל להפעלת האזור האישי שלך.</div>';
+      document.getElementById('timer-card').innerHTML = '<div style="color:#888;padding:20px;line-height:1.8;">' +
+        'ממתין לאישור מאמן — צור קשר עם המאמן שלך להפעלת האזור האישי שלך.' +
+        '<div style="margin-top:9px;font-size:0.78rem;color:#666;">' +
+        'נרשמת ועדיין לא שויכת למאמן? ' +
+        '<a href="https://wa.me/972586931163" target="_blank" rel="noopener" ' +
+        'style="color:#FF6B00;font-weight:800;">כתוב לנו</a></div></div>';
       document.getElementById('tabbar').style.display = 'none';
       // pending client: no launcher — show the detail-view so the waiting message is visible
       const _hl = document.getElementById('home-launcher'); if (_hl) _hl.style.display = 'none';
