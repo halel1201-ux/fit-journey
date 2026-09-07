@@ -1747,6 +1747,10 @@
 
     const email = session.user.email;
     currentEmail = email;
+    /* אימון פעיל מוצג מיד, לפני כל שאילתה. קודם הבאנר נבנה רק
+       בסוף מסלול הטעינה, וטעינה איטית או כושלת הסתירה אימון
+       שנשמר — זה נראה כאילו הוא נמחק. */
+    try { renderResumeBanner(); } catch (e) { }
     const acctEl = document.getElementById('acct-email');
     if (acctEl) acctEl.textContent = email;
 
@@ -1933,7 +1937,7 @@
     nutritionPlanLocal = nu?.plan || [];
     renderTraining(trainingPlanLocal);
     queueLoad(loadExNoteKeys); // 📝 which exercises already have personal notes (for the dot)
-    renderResumeBanner(); // אם יש אימון פעיל שנשמר — הצג באנר המשך
+    renderResumeBanner(); // אם יש אימון פעיל שנשמר — הצג באנר המשך (שוב, אחרי התוכנית)
     workoutLogs = logs || [];
     renderDeloadBanner();
     renderHistory(logs || []);
@@ -2879,6 +2883,9 @@
   function tickClock() {
     if (!workoutSession) return;
     const s = Math.floor((Date.now() - workoutSession.startTime) / 1000);
+    /* רשת ביטחון: גם אם האפליקציה נהרגת בלי שום אות, נאבדות
+       לכל היותר 15 שניות של הקלדה. */
+    if (s > 0 && s % 15 === 0) persistWorkout();
     const m = Math.floor(s / 60).toString().padStart(2, '0');
     const sec = (s % 60).toString().padStart(2, '0');
     document.getElementById('session-clock').textContent = m + ':' + sec;
@@ -3842,8 +3849,21 @@
       }
     }, 500);
   }
+  /* ── שמירת האימון לפני שהדף נעלם ──
+     מערכת ההפעלה במובייל הורגת דפים ברקע בלי אזהרה. beforeunload
+     אינו אמין ב-iOS; visibilitychange ל-hidden ו-pagehide הם
+     האותות שכן מגיעים. ההשהיה של ההקלדה מבוטלת קודם, אחרת סט
+     שהוקלד רגע לפני הסגירה היה נשאר בהמתנה ונאבד. */
+  function flushWorkout() {
+    if (!workoutSession) return;
+    clearTimeout(_persistTimer);
+    persistWorkout();
+  }
+  document.addEventListener('pagehide', flushWorkout);
+
   // returning to the app → snap the countdown to the true remaining time immediately
   document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') flushWorkout();
     if (document.visibilityState === 'visible') refreshChatMessages();
     if (document.visibilityState === 'visible' && _cardio) renderCardio();
     if (document.visibilityState === 'visible' && workoutSession?.restEndsAt && workoutSession.restRemaining > 0) {
