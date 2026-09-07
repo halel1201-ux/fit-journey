@@ -2774,6 +2774,141 @@
             { reps_min: 8,  reps_max: 12, recommended_kg: 0, set_type: 'working' }];
   }
 
+  /* ══ פרופיל אישי ══
+     נבנה בזיכרון ולא במבנה הדף. הרקע הוא לוגו ה-FJ, כמו במסך
+     הפתיחה של האפליקציה. */
+  const ACT_LEVELS = [
+    ['sedentary', 'יושבני — כמעט בלי פעילות'],
+    ['light',     'קל — 1-2 אימונים בשבוע'],
+    ['moderate',  'בינוני — 3-4 אימונים'],
+    ['high',      'גבוה — 5-6 אימונים'],
+    ['athlete',   'ספורטאי — פעמיים ביום'],
+  ];
+  const GOALS = [
+    ['mass', 'מסה'], ['cut', 'חיטוב'], ['recomp', 'ריקומפוזיציה'],
+    ['powerlifting', 'פאוורליפטינג'],
+  ];
+  const ENHANCE = [
+    ['natural', 'טבעי'], ['enhanced', 'לא טבעי'], ['peptides', 'פפטידים'],
+  ];
+
+  function _profBox() {
+    let el = document.getElementById('profile-modal');
+    if (el) return el;
+    el = document.createElement('div');
+    el.id = 'profile-modal';
+    el.style.cssText = 'position:fixed;inset:0;z-index:900;display:none;overflow-y:auto;' +
+      'align-items:flex-start;justify-content:center;background:#0a0a0a;' +
+      'padding:calc(16px + var(--sat,0px)) 14px calc(16px + var(--sab,0px));';
+    document.body.appendChild(el);
+    return el;
+  }
+  function closeProfile() { const e = document.getElementById('profile-modal'); if (e) e.style.display = 'none'; }
+
+  function openProfile() {
+    const c = clientData || {};
+    const box = _profBox();
+    box.style.display = 'flex';
+
+    const fld = (id, label, val, type, extra) =>
+      '<label style="display:block;margin-bottom:10px;">' +
+      '<span style="display:block;font-size:0.74rem;color:#8a8f95;margin-bottom:4px;">' + label + '</span>' +
+      '<input id="' + id + '" type="' + (type || 'text') + '" ' + (extra || '') +
+      ' value="' + String(val == null ? '' : val).replace(/"/g, '&quot;') + '" ' +
+      'style="width:100%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.14);' +
+      'border-radius:9px;padding:9px 11px;color:#fff;font-family:Heebo,sans-serif;font-size:0.9rem;"></label>';
+
+    const sel = (id, label, opts, cur) =>
+      '<label style="display:block;margin-bottom:10px;">' +
+      '<span style="display:block;font-size:0.74rem;color:#8a8f95;margin-bottom:4px;">' + label + '</span>' +
+      '<select id="' + id + '" style="width:100%;background:rgba(255,255,255,0.06);' +
+      'border:1px solid rgba(255,255,255,0.14);border-radius:9px;padding:9px 11px;color:#fff;' +
+      'font-family:Heebo,sans-serif;font-size:0.9rem;">' +
+      '<option value="">— לא נבחר —</option>' +
+      opts.map(o => '<option value="' + o[0] + '"' + (o[0] === cur ? ' selected' : '') + '>' + o[1] + '</option>').join('') +
+      '</select></label>';
+
+    const sect = (title) =>
+      '<div style="font-size:0.76rem;font-weight:900;color:#FF6B00;margin:16px 0 8px;">' + title + '</div>';
+
+    box.innerHTML =
+      '<div style="width:100%;max-width:440px;margin:auto;position:relative;">' +
+        /* הרקע: לוגו FJ ענק ודהוי, כמו במסך הפתיחה */
+        '<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;' +
+        'pointer-events:none;z-index:0;"><div style="font-size:15rem;font-weight:900;color:#fff;' +
+        'opacity:0.03;letter-spacing:-8px;">FJ</div></div>' +
+        '<div style="position:relative;z-index:1;">' +
+          '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">' +
+            '<div style="font-size:1.15rem;font-weight:900;color:#fff;">הפרטים שלי</div>' +
+            '<button onclick="closeProfile()" style="background:none;border:none;color:#777;' +
+            'font-size:1.4rem;cursor:pointer;line-height:1;">✕</button>' +
+          '</div>' +
+          '<div style="font-size:0.76rem;color:#8a8f95;line-height:1.7;margin-bottom:6px;">' +
+          'ככל שהפרטים מדויקים יותר, התוכנית והתפריט שייבנו לך יהיו מדויקים יותר.</div>' +
+
+          sect('חשבון') +
+          fld('pf-name', 'שם מלא', c.name) +
+          fld('pf-phone', 'טלפון', c.phone, 'tel') +
+          '<div style="font-size:0.74rem;color:#8a8f95;margin-bottom:4px;">אימייל</div>' +
+          '<div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);' +
+          'border-radius:9px;padding:9px 11px;color:#777;font-size:0.86rem;margin-bottom:10px;">' +
+          esc(currentEmail || '') + '</div>' +
+
+          sect('גוף') +
+          fld('pf-age', 'גיל', c.age, 'number', 'min="10" max="99"') +
+          fld('pf-height', 'גובה (ס\"מ)', c.height, 'number', 'min="100" max="230"') +
+          fld('pf-weight', 'משקל (ק\"ג)', c.current_weight, 'number', 'step="0.1" min="25"') +
+          fld('pf-fat', 'אחוז שומן (אם ידוע)', c.body_fat, 'number', 'step="0.1" min="1" max="70"') +
+
+          sect('אימון') +
+          sel('pf-goal', 'מטרה', GOALS, c.goal) +
+          sel('pf-act', 'רמת פעילות', ACT_LEVELS, c.activity_level) +
+          sel('pf-enh', 'מצב אימוני', ENHANCE, c.enhancement_status) +
+
+          sect('תזונה') +
+          fld('pf-cal', 'קלוריות יעד', c.target_calories, 'number', 'min="800" max="6000"') +
+          fld('pf-prot', 'חלבון יעד (גרם)', c.target_protein, 'number', 'min="20" max="400"') +
+
+          '<div id="pf-status" style="font-size:0.78rem;color:#8a8f95;margin:10px 0;min-height:18px;"></div>' +
+          '<button onclick="saveProfile()" style="width:100%;background:#FF6B00;color:#fff;border:0;' +
+          'border-radius:11px;padding:12px;font-family:Heebo,sans-serif;font-weight:900;font-size:0.95rem;' +
+          'cursor:pointer;">שמור</button>' +
+        '</div>' +
+      '</div>';
+  }
+
+  async function saveProfile() {
+    const v = (id) => (document.getElementById(id) || {}).value;
+    const num = (id) => { const n = parseFloat(v(id)); return isFinite(n) ? n : null; };
+    const st = document.getElementById('pf-status');
+
+    const patch = {
+      name:            (v('pf-name') || '').trim() || null,
+      phone:           (v('pf-phone') || '').trim() || null,
+      age:             num('pf-age'),
+      height:          num('pf-height'),
+      current_weight:  num('pf-weight'),
+      body_fat:        num('pf-fat'),
+      goal:            v('pf-goal') || null,
+      activity_level:  v('pf-act') || null,
+      enhancement_status: v('pf-enh') || null,
+      target_calories: num('pf-cal'),
+      target_protein:  num('pf-prot'),
+    };
+
+    /* שדה ריק נשמר כ-null ולא כאפס: אפס הוא ערך אמיתי שמעוות
+       חישובים, וריק פירושו "לא ידוע". */
+    if (st) { st.style.color = '#8a8f95'; st.textContent = 'שומר...'; }
+    const { error } = await sb.from('clients').update(patch).eq('email', currentEmail);
+    if (error) {
+      if (st) { st.style.color = '#f87171'; st.textContent = 'לא נשמר: ' + error.message; }
+      return;
+    }
+    Object.assign(clientData, patch);
+    if (st) { st.style.color = '#4ade80'; st.textContent = 'נשמר ✓'; }
+    setTimeout(closeProfile, 700);
+  }
+
   /* ── דילאוד מנוהל ──
      המצב נשמר על המתאמן: תאריך הפעלה + צילום משקלי שיא לכל תרגיל.
      השבוע מחושב מהתאריך בזמן קריאה — בלי משימה מתוזמנת, ובלי תלות
@@ -4442,6 +4577,7 @@
     const extraEl = document.getElementById('hl-extra');
     if (extraEl) {
       const shortcuts = [
+        ['openProfile()', '👤 הפרטים שלי'],
         ['openGuide()', '📖 איך זה עובד'],
         ["goDetail('measurements')", '📏 מדידות'],
         ["goDetail('history')", '📊 היסטוריה'],

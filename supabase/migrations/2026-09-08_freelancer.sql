@@ -28,7 +28,13 @@ ALTER TABLE clients
   ADD COLUMN IF NOT EXISTS waiver_signed_at   timestamptz,
   ADD COLUMN IF NOT EXISTS waiver_version     text,
   ADD COLUMN IF NOT EXISTS pending_since      date,        -- יום הגשת הבקשה
-  ADD COLUMN IF NOT EXISTS freelancer_status  text;        -- pending|active|expired|rejected
+  ADD COLUMN IF NOT EXISTS freelancer_status  text,        -- pending|active|expired|rejected
+  -- שדות הפרופיל האישי. חסרו במסד, ובלעדיהם הבינה מייצרת תוכנית
+  -- ותפריט גנריים — הרגע השביר ביותר אצל מתאמן שאין לו מאמן.
+  ADD COLUMN IF NOT EXISTS height             int,         -- ס"מ
+  ADD COLUMN IF NOT EXISTS age                int,
+  ADD COLUMN IF NOT EXISTS body_fat           numeric,     -- אחוז
+  ADD COLUMN IF NOT EXISTS activity_level     text;        -- sedentary|light|moderate|high|athlete
 
 COMMENT ON COLUMN clients.client_type    IS 'freelancer = בונה לעצמו, בלי מאמן. NULL = מתאמן רגיל.';
 COMMENT ON COLUMN clients.access_until   IS 'סוף הגישה. הטוקנים שורדים אותו ונשארים כרזרבה.';
