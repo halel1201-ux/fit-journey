@@ -3061,6 +3061,26 @@
         </div>
         <div class="ai-box">
           <div class="ai-box-title">✨ בנה תוכנית עם AI</div>
+          <!-- זהה לפאנל המאמן: דגש ותדירות בבחירה, לא בניחוש מטקסט -->
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:9px;">
+            <div style="flex:1;min-width:145px;">
+              <label style="display:block;font-size:0.72rem;color:var(--muted);margin-bottom:3px;">דגש</label>
+              <select id="plan-focus" class="ai-textarea" style="min-height:0;padding:7px 9px;font-size:0.82rem;">
+                <option value="">ללא דגש</option>
+                <option value="chest">חזה</option>
+                <option value="back">גב</option>
+                <option value="legs">רגליים</option>
+                <option value="glutes">ישבן</option>
+                <option value="shoulders">כתפיים</option>
+                <option value="arms">ידיים</option>
+                <option value="arms_chest">ידיים + חזה</option>
+              </select>
+            </div>
+            <div style="flex:1;min-width:145px;">
+              <label style="display:block;font-size:0.72rem;color:var(--muted);margin-bottom:3px;">אימונים בשבוע</label>
+              <select id="plan-days" class="ai-textarea" style="min-height:0;padding:7px 9px;font-size:0.82rem;"></select>
+            </div>
+          </div>
           <textarea class="ai-textarea" id="ai-prompt" placeholder="תאר את התוכנית: ימי אימון, מטרה, ציוד, רמה, מוקד שרירים...&#10;דוגמה: 4 ימי אימון PUSH/PULL/LEGS/UPPER, חדר כושר מלא, מטרת מסה, רמת ביניים"></textarea>
           <div class="ai-attach-row">
             <input type="file" id="plan-file" accept=".pdf,image/jpeg,image/png,image/webp,image/gif" style="display:none;" onchange="attachPlanFile()"/>
@@ -3118,6 +3138,8 @@
     renderTrainingEditor();
     renderNutritionEditor();
     loadDefaultTemplate();
+    /* "מומלץ" תלוי במגדר המתאמן — נבנה בכל פתיחת כרטיס */
+    if (typeof renderPlanDaysOptions === 'function') renderPlanDaysOptions();
     loadClientLogs(client.email);
   }
 
@@ -3390,6 +3412,33 @@
     return /PUSH|PULL|UPPER|LOWER|יום א|יום ב|יום ג|יום ד|PPL|A\/B/i.test(prompt) && prompt.length > 80;
   }
 
+  /* ── "מומלץ" לפי מגדר: 4 לגבר, 3 לאישה ── */
+  function renderPlanDaysOptions() {
+    const sel = document.getElementById('plan-days');
+    if (!sel) return;
+    const c = clients.find(x => x.email === activeEmail) || {};
+    const female = String(c.gender || '').indexOf('נק') === 0 ||
+      ['female', 'f', 'woman', 'אישה'].indexOf(String(c.gender || '').toLowerCase()) >= 0;
+    const best = female ? 3 : 4;
+    const keep = sel.value;
+    sel.innerHTML = [2, 3, 4, 5, 6].map(n =>
+      '<option value="' + n + '"' + (String(n) === keep ? ' selected' : (!keep && n === best ? ' selected' : '')) + '>' +
+      n + ' אימונים' + (n === best ? ' — מומלץ' : '') + '</option>').join('');
+  }
+
+  const FOCUS_HE = {
+    chest: 'חזה', back: 'גב', legs: 'רגליים', glutes: 'ישבן',
+    shoulders: 'כתפיים', arms: 'ידיים', arms_chest: 'ידיים וחזה',
+  };
+  function planPickerLine() {
+    const f = (document.getElementById('plan-focus') || {}).value || '';
+    const d = (document.getElementById('plan-days') || {}).value || '';
+    const parts = [];
+    if (d) parts.push(d + ' אימונים בשבוע');
+    parts.push(f ? 'דגש ' + (FOCUS_HE[f] || f) : 'ללא דגש לקבוצת שריר מסוימת');
+    return parts.join(' · ');
+  }
+
   async function generatePlanWithAI() {
     const prompt = document.getElementById('ai-prompt').value.trim();
     const statusEl = document.getElementById('ai-status');
@@ -3414,7 +3463,10 @@
 המערכת מבוססת על שיטת HF הייחודית. עליך לפעול לפיה בלבד — לא לפי שיטות כושר גנריות.
 
 ## בקשת המאמן:
-"${prompt}"${templateSection}
+"${prompt}"
+
+## נבחר בחלוניות (גובר על ניחוש מהטקסט):
+${planPickerLine()}${templateSection}
 
 ## ═══ חוקי ברזל — חובה לעמוד בכולם ═══
 
@@ -3539,6 +3591,42 @@
 ### מקרבים (מכונה/כבל): מכונת מקרבים, קירוב רגל בכבל
 ### שוקיים: תאומים בעמידה, תאומים בישיבה, תאומים בלג פרס
 ### ליבה: כפיפות בטן, כפיפות בטן בכבל, הרמת רגליים במתח, פלאנק, גלגל בטן
+
+## ═══ בחירת מבנה השבוע — לפני הכל ═══
+**הדגש קובע כמה פעמים בשבוע חוזר סוג האימון — לא איזה שריר נדחס
+לכל אימון.** דגש חזה פירושו שני אימוני PUSH בשבוע, ולא חזה בכל
+אימון. זו הטעות הנפוצה ביותר, ואסור לעשות אותה.
+
+### גברים — 4 אימונים
+| דגש | מבנה השבוע |
+|---|---|
+| ללא דגש | PUSH · PULL · LEGS · UPPER |
+| חזה | PUSH · LEGS · PULL · PUSH |
+| גב | PULL · PUSH · LEGS · PULL |
+| רגליים | LEGS · PUSH · PULL · LEGS |
+| ידיים + חזה | PUSH · PULL · LEGS · אימון 4 = חזה וידיים |
+
+בכמות אימונים אחרת — שמור על אותו עיקרון: סוג האימון של הדגש
+חוזר פעמיים, והשאר מתחלק שווה.
+
+### נשים — 3 אימונים
+- **שניים מתוך השלושה הם פלג גוף תחתון.** זה קבוע.
+- ללא דגש: אימון רגליים אחד בפוקוס 4 ראשי, ואחד בפוקוס ישבן.
+- דגש ישבן: שני אימוני הרגליים **פותחים בתרגיל ישבן**.
+- **מרחיקי ירך בשני אימוני הרגליים**, תמיד.
+
+#### האימון העליון לנשים — הרכב מחייב
+- **גב:** שני תרגילים של 4 סטים, או שלושה תרגילים של 3 סטים.
+  המבחר: פולי עליון אחד · וריאציית חתירה אחת · וריאציית פול-אובר אחת.
+- **חזה:** רק פרפר במכונה או לחיצה לחזה עליון. לא לחיצת חזה שטוחה.
+- **כתפיים:** הרחקות · לחיצות · פייס פול · הרחקה אופקית במכונה · כפיפת כתף.
+- **יד אחורית:** שני תרגילים של 3 סטים.
+- **יד קדמית:** תרגיל אחד של 3 סטים, או תרגיל של 4 סטים בסופר-סט
+  עם תרגיל יד קדמית נוסף. העדפה: כפיפה במשקולות יד או פטישים.
+
+### כשלא נבחר דגש
+אין דגש לקבוצת שריר מסוימת — אלא אם הבקשה החופשית מציינת זאת
+במפורש. אל תמציא דגש שלא התבקש.
 
 ## ═══ חוקי חלוקה לפי ימים ═══
 PUSH: 3 חזה (מורכב ראשון + מכונה + מבודד) + 2 כתפיים (לחיצה + צידית) + 2 יד אחורית (מורכב + מבודד)
