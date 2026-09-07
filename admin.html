@@ -1784,6 +1784,12 @@
         </div>
         <div id="studio-dlc-wrap"><div style="font-size:0.8rem;color:#555;">טוען...</div></div>
       </div>
+      <div class="sec-card" style="margin-bottom:16px;">
+        <div class="sec-card-title">🧍 מתאמנים עצמאיים
+          <button class="btn-sm btn-outline" onclick="loadFreelancers()" style="font-size:0.72rem;">רענן</button>
+        </div>
+        <div id="freelancers-wrap"><div style="font-size:0.8rem;color:#555;">טוען...</div></div>
+      </div>
       <div class="sec-card">
         <div class="sec-card-title">👥 ניהול מאמנים
           <button class="btn-sm btn-orange" onclick="openAddCoachModal()">+ הוסף מאמן</button>
@@ -1794,6 +1800,7 @@
     renderTokenRequestsSection();
     renderCoachesTable();
     loadStudioDlcRequests();
+    loadFreelancers();
   }
 
   /* ══════════════════════════════════════════════════════
@@ -2689,6 +2696,127 @@
     const { data } = await sb.from('coach_tokens').select('coach_email,balance');
     coachTokensCache = {};
     (data || []).forEach(r => { coachTokensCache[r.coach_email] = r.balance; });
+  }
+
+  /* ── מתאמנים עצמאיים ──
+     כל פעולה עוברת דרך RPC: הדפדפן שולח מייל וכמות בלבד, והמסד
+     קובע תאריכים ויתרות. */
+  let freelancersCache = [];
+
+  async function loadFreelancers() {
+    const wrap = document.getElementById('freelancers-wrap');
+    if (!wrap) return;
+    const { data, error } = await sb.from('clients')
+      .select('email,name,phone,client_type,freelancer_status,pending_since,freelancer_since,access_until,tokens_balance,waiver_signed_at,waiver_version')
+      .or('client_type.eq.freelancer,freelancer_status.not.is.null')
+      .order('pending_since', { ascending: false });
+    if (error) {
+      wrap.innerHTML = '<div style="color:#f87171;font-size:0.8rem;">לא נטען: ' + esc(error.message) + '</div>';
+      return;
+    }
+    freelancersCache = data || [];
+    renderFreelancers();
+  }
+
+  /* ימי עסקים — אותו חישוב כמו במסד, כדי שהמספר שמוצג יהיה
+     המספר שלפיו הבקשה תיפוג. שישי ושבת אינם נספרים. */
+  function bizDaysLeft(fromISO, total) {
+    if (!fromISO) return null;
+    const d = new Date(fromISO + 'T12:00:00');
+    if (isNaN(d)) return null;
+    let left = total;
+    while (left > 0) {
+      d.setDate(d.getDate() + 1);
+      const w = d.getDay();
+      if (w !== 5 && w !== 6) left--;
+    }
+    const today = new Date(new Date().toISOString().slice(0, 10) + 'T12:00:00');
+    return Math.round((d - today) / 86400000);
+  }
+
+  function renderFreelancers() {
+    const wrap = document.getElementById('freelancers-wrap');
+    if (!wrap) return;
+    if (!freelancersCache.length) {
+      wrap.innerHTML = '<div style="color:#444;font-size:0.85rem;padding:8px 0;">אין מתאמנים עצמאיים עדיין</div>';
+      return;
+    }
+    const today = new Date().toISOString().slice(0, 10);
+    wrap.innerHTML = freelancersCache.map(c => {
+      const st = String(c.freelancer_status || '');
+      const active = c.client_type === 'freelancer' && c.access_until && c.access_until >= today;
+      const daysLeft = active
+        ? Math.round((new Date(c.access_until + 'T12:00:00') - new Date(today + 'T12:00:00')) / 86400000) : 0;
+      const bl = st === 'pending' ? bizDaysLeft(c.pending_since, 3) : null;
+
+      const badge = active
+        ? ['✅ פעיל · ' + daysLeft + ' ימים נותרו', '#4ade80']
+        : st === 'pending'
+          ? (bl !== null && bl < 0 ? ['⌛ פג — הבקשה מתבטלת', '#f87171']
+                                   : ['⏳ ממתין לאישור · ' + bl + ' ימי עסקים', '#facc15'])
+          : st === 'expired' ? ['⌛ פג', '#f87171']
+          : c.client_type === 'freelancer' ? ['🔒 הגישה הסתיימה', '#94a3b8']
+          : ['—', '#888'];
+
+      return '<div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.09);' +
+        'border-radius:11px;padding:11px 13px;margin-bottom:8px;">' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">' +
+          '<div style="min-width:0;">' +
+            '<div style="font-size:0.88rem;font-weight:800;color:#eee;">' + esc(c.name || c.email.split('@')[0]) +
+            ' <span style="color:#777;font-weight:400;font-size:0.74rem;">' + esc(c.email) + '</span></div>' +
+            '<div style="font-size:0.74rem;color:var(--muted);margin-top:2px;">' +
+            '🎟️ ' + (c.tokens_balance || 0) + ' טוקנים' +
+            (c.phone ? ' · ' + esc(c.phone) : '') +
+            (c.waiver_signed_at ? ' · ✓ תקנון ' + esc(c.waiver_version || '') : ' · ⚠️ ללא תקנון') +
+            '</div>' +
+          '</div>' +
+          '<div style="font-size:0.72rem;font-weight:800;color:' + badge[1] + ';white-space:nowrap;">' + badge[0] + '</div>' +
+        '</div>' +
+        '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:9px;">' +
+          '<button onclick="approveFreelancer(\'' + c.email + '\')" style="background:rgba(74,222,128,0.15);' +
+          'border:1px solid rgba(74,222,128,0.45);color:#4ade80;border-radius:7px;padding:4px 10px;' +
+          'font-size:0.72rem;font-weight:800;cursor:pointer;font-family:Heebo,sans-serif;">' +
+          (active ? '↻ חדש 3 חודשים' : '✓ אשר והפעל') + '</button>' +
+          '<button onclick="grantFreelancerTokens(\'' + c.email + '\')" style="background:rgba(255,255,255,0.06);' +
+          'border:1px solid rgba(255,255,255,0.15);color:#ccc;border-radius:7px;padding:4px 10px;' +
+          'font-size:0.72rem;font-weight:700;cursor:pointer;font-family:Heebo,sans-serif;">🎟️ טען טוקנים</button>' +
+        '</div></div>';
+    }).join('') +
+      '<button onclick="expireStaleFreelancers()" style="margin-top:6px;background:none;' +
+      'border:1px solid rgba(255,255,255,0.15);color:#888;border-radius:8px;padding:6px 12px;' +
+      'font-size:0.72rem;font-weight:700;cursor:pointer;font-family:Heebo,sans-serif;">' +
+      'סמן בקשות שפג תוקפן</button>';
+  }
+
+  async function approveFreelancer(email) {
+    const c = freelancersCache.find(x => x.email === email) || {};
+    const renew = c.client_type === 'freelancer';
+    if (!confirm((renew ? 'לחדש ל-' : 'לאשר גישה ל-') + email + '?\n\n' +
+      '· 3 חודשים מהיום' + (renew ? ' (או מסוף התקופה הנוכחית)' : '') + '\n' +
+      '· 500 טוקנים מתווספים ליתרה הקיימת\n' +
+      '· הספירה מתחילה עכשיו')) return;
+    const { data, error } = await sb.rpc('approve_freelancer', { p_client: email });
+    if (error) { toast('נכשל: ' + error.message, 'err'); return; }
+    toast('הופעל עד ' + ((data && data.until) || '—') + ' · ' + ((data && data.balance) || 0) + ' טוקנים', 'ok');
+    loadFreelancers();
+  }
+
+  async function grantFreelancerTokens(email) {
+    const n = prompt('כמה טוקנים להוסיף ל-' + email + '?', '500');
+    if (n === null) return;
+    const amt = parseInt(n, 10);
+    if (!(amt > 0)) { toast('כמות לא תקינה', 'err'); return; }
+    const { data, error } = await sb.rpc('grant_client_tokens', { p_client: email, p_tokens: amt });
+    if (error) { toast('נכשל: ' + error.message, 'err'); return; }
+    toast('נטענו ' + amt + ' · יתרה ' + data, 'ok');
+    loadFreelancers();
+  }
+
+  async function expireStaleFreelancers() {
+    const { data, error } = await sb.rpc('expire_freelancer_requests');
+    if (error) { toast('נכשל: ' + error.message, 'err'); return; }
+    toast(data ? data + ' בקשות סומנו כפגות' : 'אין בקשות שפג תוקפן', 'ok');
+    loadFreelancers();
   }
 
   async function loadTokenRequests() {
