@@ -1,0 +1,195 @@
+-- ══ שלב 1 — מסלול פרילנסר: מסד ══
+--
+-- מתאמן פרילנסר בונה לעצמו תוכנית ותפריט בלי מאמן אנושי.
+-- 200 ש"ח לשלושה חודשים, 500 טוקנים.
+--
+-- שלוש החלטות שנקבעו ומקודדות כאן:
+--   · הספירה מתחילה ברגע שהבעלים מאשר גישה — לא בהרשמה ולא בתשלום.
+--   · ביום ה-91 הגישה נסגרת, אבל הטוקנים נשמרים כרזרבה לחידוש.
+--   · מעבר למסלול עם מאמן הוא תשלום מלא, בלי זיכוי.
+--
+-- הפרילנסר אינו ישות נפרדת אלא שורה ב-clients שה-coach_email שלה
+-- הוא בעל הפלטפורמה. כך כל ה-RLS, הצ'אט והצ'ק-אין ממשיכים לעבוד
+-- בלי מסלול הרשאות שני, ובלי תנאי "מאמן ריק" שעלול להיפתח לרווחה.
+--
+-- כל העמודות nullable ובלי DEFAULT: אף שורה קיימת אינה נכתבת מחדש,
+-- ו-JS ישן מהמטמון ממשיך לרוץ נכון על הסכימה החדשה.
+--
+-- הרצה חוזרת בטוחה.
+
+ALTER TABLE clients
+  ADD COLUMN IF NOT EXISTS client_type        text,        -- NULL/'coached' | 'freelancer'
+  ADD COLUMN IF NOT EXISTS tokens_balance     int,
+  ADD COLUMN IF NOT EXISTS freelancer_since   date,        -- יום האישור
+  ADD COLUMN IF NOT EXISTS access_until       date,        -- freelancer_since + 90
+  ADD COLUMN IF NOT EXISTS enhancement_status text,        -- natural|enhanced|peptides|NULL
+  ADD COLUMN IF NOT EXISTS waiver_signed_at   timestamptz,
+  ADD COLUMN IF NOT EXISTS waiver_version     text;
+
+COMMENT ON COLUMN clients.client_type    IS 'freelancer = בונה לעצמו, בלי מאמן. NULL = מתאמן רגיל.';
+COMMENT ON COLUMN clients.access_until   IS 'סוף הגישה. הטוקנים שורדים אותו ונשארים כרזרבה.';
+COMMENT ON COLUMN clients.waiver_version IS 'גרסת נוסח כתב הוויתור שנחתמה. הנוסח משתנה — חתימה אינה רטרואקטיבית.';
+
+CREATE INDEX IF NOT EXISTS idx_clients_type ON clients(client_type) WHERE client_type IS NOT NULL;
+
+
+-- ── האם הגישה בתוקף ──
+-- מתאמן רגיל אינו מוגבל כאן. פרילנסר בלי תאריך נחשב לא פעיל.
+--
+-- הפונקציה מקבלת מייל כלשהו, ולכן היא אינה נפתחת למזוהים: היא
+-- משמשת רק בתוך spend_tokens, שרצה כבעלים ויכולה לקרוא לה. בלי
+-- ההגבלה הזאת כל משתמש מזוהה יכול היה לתשאל על אנשים אחרים.
+-- הממשק קורא את access_until מהשורה של עצמו, ואינו זקוק לה.
+CREATE OR REPLACE FUNCTION freelancer_active(p_client text)
+RETURNS boolean
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
+  SELECT COALESCE(
+    (SELECT c.access_until IS NOT NULL AND c.access_until >= current_date
+       FROM clients c WHERE c.email = p_client AND c.client_type = 'freelancer'),
+    false);
+$$;
+
+
+-- ══ מסלול כסף אחד ══
+-- הניכוי חושב עד היום בדפדפן ונכתב כיתרה מוחלטת: שתי לשוניות פתוחות
+-- יכלו לדרוס זו את זו, ומשתמש מזוהה יכול היה לכתוב לעצמו כל מספר.
+-- כאן החישוב בשרת, אטומי, ומשרת גם מאמן וגם פרילנסר — מסלול אחד
+-- לכסף במקום שניים.
+CREATE OR REPLACE FUNCTION spend_tokens(p_amount int, p_label text, p_kind text DEFAULT 'plan')
+RETURNS jsonb
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $fn$
+DECLARE
+  caller text := auth.jwt()->>'email';
+  v_bal  int;
+BEGIN
+  IF caller IS NULL THEN RAISE EXCEPTION 'לא מזוהה'; END IF;
+  IF p_amount IS NULL OR p_amount <= 0 THEN RAISE EXCEPTION 'סכום לא תקין'; END IF;
+
+  -- מאמן
+  IF EXISTS (SELECT 1 FROM coaches WHERE email = caller) THEN
+    UPDATE coach_tokens
+       SET balance = balance - p_amount, updated_at = now()
+     WHERE coach_email = caller AND balance >= p_amount
+    RETURNING balance INTO v_bal;
+    IF v_bal IS NULL THEN
+      RETURN jsonb_build_object('ok', false, 'reason', 'insufficient',
+        'balance', COALESCE((SELECT balance FROM coach_tokens WHERE coach_email = caller), 0));
+    END IF;
+    INSERT INTO token_usage (coach_email, amount, kind, label, balance_after)
+    VALUES (caller, p_amount, p_kind, p_label, v_bal);
+    RETURN jsonb_build_object('ok', true, 'balance', v_bal, 'actor', 'coach');
+  END IF;
+
+  -- פרילנסר
+  IF EXISTS (SELECT 1 FROM clients
+              WHERE email = caller AND client_type = 'freelancer') THEN
+    IF NOT freelancer_active(caller) THEN
+      RETURN jsonb_build_object('ok', false, 'reason', 'expired',
+        'balance', COALESCE((SELECT tokens_balance FROM clients WHERE email = caller), 0));
+    END IF;
+    UPDATE clients
+       SET tokens_balance = tokens_balance - p_amount
+     WHERE email = caller AND COALESCE(tokens_balance, 0) >= p_amount
+    RETURNING tokens_balance INTO v_bal;
+    IF v_bal IS NULL THEN
+      RETURN jsonb_build_object('ok', false, 'reason', 'insufficient',
+        'balance', COALESCE((SELECT tokens_balance FROM clients WHERE email = caller), 0));
+    END IF;
+    RETURN jsonb_build_object('ok', true, 'balance', v_bal, 'actor', 'freelancer');
+  END IF;
+
+  RAISE EXCEPTION 'אין ארנק לחשבון הזה';
+END
+$fn$;
+
+
+-- ══ אישור פרילנסר ══
+-- כאן מתחילה הספירה. הטוקנים מצטברים על מה שכבר יש — מי שחידש
+-- אחרי תפוגה נכנס עם הרזרבה שנשמרה לו.
+CREATE OR REPLACE FUNCTION approve_freelancer(p_client text, p_tokens int DEFAULT 500,
+                                              p_days int DEFAULT 90)
+RETURNS jsonb
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $fn$
+DECLARE
+  caller text := auth.jwt()->>'email';
+  v_from date;
+  r      record;
+BEGIN
+  IF caller IS NULL THEN RAISE EXCEPTION 'לא מזוהה'; END IF;
+  IF caller <> 'halel1201@gmail.com' THEN RAISE EXCEPTION 'רק בעל הפלטפורמה מאשר פרילנסר'; END IF;
+  IF NOT EXISTS (SELECT 1 FROM clients WHERE email = p_client) THEN
+    RAISE EXCEPTION 'המתאמן לא נמצא';
+  END IF;
+
+  -- חידוש בזמן שהגישה עוד בתוקף מאריך את הקיים; אחרת מתחיל מהיום.
+  SELECT GREATEST(COALESCE(access_until, current_date - 1), current_date - 1)
+    INTO v_from FROM clients WHERE email = p_client;
+
+  UPDATE clients
+     SET client_type      = 'freelancer',
+         freelancer_since = COALESCE(freelancer_since, current_date),
+         access_until     = v_from + p_days,
+         tokens_balance   = COALESCE(tokens_balance, 0) + COALESCE(p_tokens, 0)
+   WHERE email = p_client
+  RETURNING email, freelancer_since, access_until, tokens_balance INTO r;
+
+  RETURN jsonb_build_object('email', r.email, 'since', r.freelancer_since,
+                            'until', r.access_until, 'balance', r.tokens_balance);
+END
+$fn$;
+
+
+-- ══ טעינת טוקנים בלבד ══
+-- רכישת חבילה נוספת באמצע התקופה, בלי לגעת בתאריכים.
+CREATE OR REPLACE FUNCTION grant_client_tokens(p_client text, p_tokens int)
+RETURNS int
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $fn$
+DECLARE
+  caller text := auth.jwt()->>'email';
+  v_bal  int;
+BEGIN
+  IF caller IS NULL THEN RAISE EXCEPTION 'לא מזוהה'; END IF;
+  IF caller <> 'halel1201@gmail.com' THEN RAISE EXCEPTION 'רק בעל הפלטפורמה טוען טוקנים'; END IF;
+  IF p_tokens IS NULL OR p_tokens <= 0 THEN RAISE EXCEPTION 'כמות לא תקינה'; END IF;
+
+  UPDATE clients SET tokens_balance = COALESCE(tokens_balance, 0) + p_tokens
+   WHERE email = p_client RETURNING tokens_balance INTO v_bal;
+  IF v_bal IS NULL THEN RAISE EXCEPTION 'המתאמן לא נמצא'; END IF;
+  RETURN v_bal;
+END
+$fn$;
+
+
+-- ══ חתימה על כתב הוויתור ══
+-- נשמרת כרשומה עם חותמת זמן וגרסת נוסח, ולא כתיבת סימון: הנוסח
+-- ישתנה, ואי אפשר לחתום רטרואקטיבית על נוסח חדש.
+CREATE OR REPLACE FUNCTION sign_waiver(p_version text)
+RETURNS timestamptz
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $fn$
+DECLARE
+  caller text := auth.jwt()->>'email';
+  v_at   timestamptz;
+BEGIN
+  IF caller IS NULL THEN RAISE EXCEPTION 'לא מזוהה'; END IF;
+  IF p_version IS NULL OR btrim(p_version) = '' THEN RAISE EXCEPTION 'חסרה גרסת נוסח'; END IF;
+
+  UPDATE clients
+     SET waiver_signed_at = now(), waiver_version = p_version
+   WHERE email = caller
+  RETURNING waiver_signed_at INTO v_at;
+  IF v_at IS NULL THEN RAISE EXCEPTION 'לא נמצאה רשומת מתאמן'; END IF;
+  RETURN v_at;
+END
+$fn$;
+
+
+REVOKE ALL ON FUNCTION freelancer_active(text)         FROM public, anon, authenticated;
+REVOKE ALL ON FUNCTION spend_tokens(int, text, text)   FROM public, anon;
+REVOKE ALL ON FUNCTION approve_freelancer(text, int, int) FROM public, anon;
+REVOKE ALL ON FUNCTION grant_client_tokens(text, int)  FROM public, anon;
+REVOKE ALL ON FUNCTION sign_waiver(text)               FROM public, anon;
+
+GRANT EXECUTE ON FUNCTION spend_tokens(int, text, text)   TO authenticated;
+GRANT EXECUTE ON FUNCTION approve_freelancer(text, int, int) TO authenticated;
+GRANT EXECUTE ON FUNCTION grant_client_tokens(text, int)  TO authenticated;
+GRANT EXECUTE ON FUNCTION sign_waiver(text)               TO authenticated;
