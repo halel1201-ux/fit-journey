@@ -297,4 +297,51 @@ Bro Split: 6-8 תרגילים לשריר, דגש על מבודדים, ניתן 2
 }
 
 /* גם כמודול, אם ייטען כך בעתיד */
-if (typeof module !== 'undefined' && module.exports) module.exports = { buildPlanPrompt };
+
+/* ══ בונה מאגר התרגילים המורשה ══
+   מקבל את הספרייה כפרמטר ולא נשען על משתנה של פאנל מסוים, כדי
+   שגם המאמן וגם האדמין יאכפו את אותם שמות. פאנל בלי ספרייה
+   טעונה מקבל טקסט "טוען" ולא רשימה ריקה שנראית כמו מאגר ריק. */
+  const PROMPT_GROUP_HINTS = {
+'חזה':    /חזה|push|דחיפה/i,
+'גב':     /גב|pull|משיכה|מתח/i,
+'כתפיים': /כתפ|shoulder|push|דחיפה/i,
+'ידיים':  /יד |ידיים|ביceps|טרייספס|יד קדמית|יד אחורית|arms|push|pull/i,
+'רגליים': /רגל|רגליים|legs|סקוואט|squat|ישבן|גלוט|leg/i,
+'בטן':    /בטן|core|ליבה|abs/i,
+'צוואר':  /צוואר|neck/i,
+  };
+
+function buildExerciseList(library, userPrompt) {
+  library = Array.isArray(library) ? library : [];
+  if (!library.length) return '## מאגר תרגילים\n(טוען...)';
+  const req = String(userPrompt || '');
+
+  const groups = {};
+  library.forEach(ex => {
+    const g = ex.muscle_group || 'אחר';
+    (groups[g] = groups[g] || []).push(ex);
+  });
+
+  // אילו קבוצות המאמן ביקש במפורש
+  const asked = Object.keys(groups).filter(g => PROMPT_GROUP_HINTS[g] && PROMPT_GROUP_HINTS[g].test(req));
+  const FULL = 60, SLIM = 18;   // מכסה לקבוצה מבוקשת / שאר הקבוצות
+
+  const lines = [
+    '## ═══ מאגר תרגילים מורשה (שמות מדויקים בלבד) ═══',
+    '⚠️ השתמש אך ורק בשמות הבאים — בדיוק כפי שכתובים. אל תמציא שמות.',
+    '',
+  ];
+  for (const [g, list] of Object.entries(groups)) {
+    // עדיפות: יש הדגמה (וידאו/תמונה) → שם בעברית → השאר
+    const score = ex => (ex.video || ex.thumb ? 2 : 0) + (/[֐-׿]/.test(ex.name) ? 1 : 0);
+    const sorted = list.slice().sort((a, b) => score(b) - score(a));
+    const cap = (!asked.length || asked.includes(g)) ? FULL : SLIM;
+    lines.push(`### ${g}`);
+    lines.push(sorted.slice(0, cap).map(e => e.name).join(', '));
+    lines.push('');
+  }
+  return lines.join('\n');
+}
+
+if (typeof module !== 'undefined' && module.exports) module.exports = { buildPlanPrompt, buildExerciseList };

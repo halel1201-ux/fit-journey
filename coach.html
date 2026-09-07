@@ -9150,35 +9150,12 @@ ${buildFoodListForPrompt()}
     'בטן':    /בטן|core|ליבה|abs/i,
     'צוואר':  /צוואר|neck/i,
   };
+  /* הגוף עבר ל-plan-prompt.js כדי שהאדמין יאכוף את אותם שמות.
+     נשמר כאן שם קצר שכל הקריאות הקיימות ממשיכות להשתמש בו. */
   function buildExerciseListForPrompt(userPrompt) {
-    if (!exerciseLibrary.length) return '## מאגר תרגילים\n(טוען...)';
-    const req = String(userPrompt || '');
-
-    const groups = {};
-    exerciseLibrary.forEach(ex => {
-      const g = ex.muscle_group || 'אחר';
-      (groups[g] = groups[g] || []).push(ex);
-    });
-
-    // אילו קבוצות המאמן ביקש במפורש
-    const asked = Object.keys(groups).filter(g => PROMPT_GROUP_HINTS[g] && PROMPT_GROUP_HINTS[g].test(req));
-    const FULL = 60, SLIM = 18;   // מכסה לקבוצה מבוקשת / שאר הקבוצות
-
-    const lines = [
-      '## ═══ מאגר תרגילים מורשה (שמות מדויקים בלבד) ═══',
-      '⚠️ השתמש אך ורק בשמות הבאים — בדיוק כפי שכתובים. אל תמציא שמות.',
-      '',
-    ];
-    for (const [g, list] of Object.entries(groups)) {
-      // עדיפות: יש הדגמה (וידאו/תמונה) → שם בעברית → השאר
-      const score = ex => (ex.video || ex.thumb ? 2 : 0) + (/[֐-׿]/.test(ex.name) ? 1 : 0);
-      const sorted = list.slice().sort((a, b) => score(b) - score(a));
-      const cap = (!asked.length || asked.includes(g)) ? FULL : SLIM;
-      lines.push(`### ${g}`);
-      lines.push(sorted.slice(0, cap).map(e => e.name).join(', '));
-      lines.push('');
-    }
-    return lines.join('\n');
+    return typeof buildExerciseList === 'function'
+      ? buildExerciseList(exerciseLibrary, userPrompt)
+      : '## מאגר תרגילים\n(טוען...)';
   }
 
   /* ── EXERCISE AUTOCOMPLETE ── */
