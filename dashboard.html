@@ -20,7 +20,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;700;900&display=swap" rel="stylesheet"/>
   <!-- self-hosted: in the native app this loads from the bundle instead of
        making a blocking round trip to jsdelivr on every page switch -->
-  <script src="vendor/supabase.min.js"></script>
+  <script src="plan-prompt.js"></script>
+<script src="vendor/supabase.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js" defer></script>
   <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
   <style>
@@ -1936,6 +1937,7 @@
     trainingPlanLocal  = Array.isArray(tr?.plan) ? (tr.plan || []) : (tr?.plan?.active || []);
     nutritionPlanLocal = nu?.plan || [];
     renderTraining(trainingPlanLocal);
+    try { flRenderCard(); } catch (e) { }   // מוצג רק לפרילנסר
     queueLoad(loadExNoteKeys); // 📝 which exercises already have personal notes (for the dot)
     renderResumeBanner(); // אם יש אימון פעיל שנשמר — הצג באנר המשך (שוב, אחרי התוכנית)
     workoutLogs = logs || [];
@@ -2772,6 +2774,290 @@
             { reps_min: 8,  reps_max: 12, recommended_kg: 0, set_type: 'working' },
             { reps_min: 8,  reps_max: 12, recommended_kg: 0, set_type: 'working' },
             { reps_min: 8,  reps_max: 12, recommended_kg: 0, set_type: 'working' }];
+  }
+
+  /* ══ מתאמן עצמאי ══
+     בונה לעצמו עם אותו מנוע של המאמנים. הטוקנים יורדים בשרת,
+     והתוכנית נכתבת דרך RPC שכותב רק לשורה של הקורא. */
+  const FL_COST_PLAN = 150, FL_COST_NUTRI = 150;
+  let flLibrary = [];
+
+  function isFreelancer() {
+    return !!(clientData && clientData.client_type === 'freelancer');
+  }
+  function flDaysLeft() {
+    const u = clientData && clientData.access_until;
+    if (!u) return -1;
+    return Math.round((new Date(u + 'T12:00:00') - new Date(todayStr() + 'T12:00:00')) / 86400000);
+  }
+  function flActive() { return isFreelancer() && flDaysLeft() >= 0; }
+
+  /* מאגר התרגילים — אותו קובץ שהמאמן משתמש בו, כדי שהשמות
+     שהסוכן מחזיר יהיו קיימים גם אצל המתאמן. */
+  async function flLoadLibrary() {
+    if (flLibrary.length) return flLibrary;
+    try {
+      const res = await fetch('strength_exercises.json');
+      const raw = await res.json();
+      flLibrary = (raw || []).map(ex => {
+        const md = ex.muscle_details || [];
+        return {
+          name: ex.name, muscle_group: md[0] ? md[0].group : ((ex.muscle_groups || [])[0] || ''),
+          video: ex.video || '', thumb: ex.thumb || '',
+        };
+      });
+    } catch (e) { flLibrary = []; }
+    return flLibrary;
+  }
+
+  function flStatus(msg, kind) {
+    const el = document.getElementById('fl-status');
+    if (!el) return;
+    el.style.color = kind === 'err' ? '#f87171' : kind === 'ok' ? '#4ade80' : '#8a8f95';
+    el.textContent = msg;
+  }
+
+  /* ── בניית תוכנית ── */
+  async function flBuildPlan() {
+    if (!flActive()) { flStatus('הגישה אינה בתוקף', 'err'); return; }
+    if (typeof buildPlanPrompt !== 'function') {
+      flStatus('קובץ בניית התוכנית לא נטען — רענן את הדף', 'err'); return;
+    }
+    const req = (document.getElementById('fl-req') || {}).value || '';
+    const btn = document.getElementById('fl-plan-btn');
+
+    /* הניכוי קודם לבנייה ובשרת: כך אין מצב שנבנתה תוכנית בלי
+       חיוב, או שחויב בלי שנבנה. */
+    const { data: spend, error: sErr } = await sb.rpc('spend_tokens',
+      { p_amount: FL_COST_PLAN, p_label: 'תוכנית אימון', p_kind: 'plan' });
+    if (sErr) { flStatus('לא ניתן לחייב: ' + sErr.message, 'err'); return; }
+    if (!spend || !spend.ok) {
+      flStatus(spend && spend.reason === 'expired'
+        ? 'הגישה הסתיימה — הטוקנים שלך נשמרו לחידוש'
+        : 'אין מספיק טוקנים · יתרה ' + ((spend && spend.balance) || 0), 'err');
+      flRenderCard();
+      return;
+    }
+    clientData.tokens_balance = spend.balance;
+    flRenderCard();
+
+    if (btn) { btn.disabled = true; btn.textContent = '⏳ בונה...'; }
+    flStatus('בונה תוכנית... זה לוקח כחצי דקה');
+    try {
+      const lib = await flLoadLibrary();
+      const prompt = buildPlanPrompt({
+        prompt: req,
+        pickerLine: flPickerLine(),
+        templateSection: '',
+        exerciseList: typeof buildExerciseList === 'function' ? buildExerciseList(lib, req) : '',
+        hasFile: false,
+        isPL: (clientData.goal === 'powerlifting'),
+      });
+      const res = await aiFetch('', { body: JSON.stringify({
+        model: 'claude-sonnet-4-6', max_tokens: 4096,
+        messages: [{ role: 'user', content: prompt }],
+      }) });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const data = await res.json();
+      const text = (data.content && data.content[0] && data.content[0].text) || '';
+      const m = text.match(/\[[\s\S]*\]/);
+      if (!m) throw new Error('תשובה לא תקינה');
+      const plan = JSON.parse(m[0]);
+      if (!Array.isArray(plan) || !plan.length) throw new Error('תוכנית ריקה');
+
+      const { error: wErr } = await sb.rpc('save_own_plan', { p_kind: 'training', p_plan: plan });
+      if (wErr) throw new Error(wErr.message);
+      trainingPlanLocal = plan;
+      renderTraining(plan);
+      flStatus(plan.length + ' ימי אימון נבנו ✓', 'ok');
+    } catch (e) {
+      flStatus('הבנייה נכשלה: ' + (e.message || e) + ' · הטוקנים ירדו, נסה שוב', 'err');
+    }
+    if (btn) { btn.disabled = false; btn.textContent = '🏋️ בנה תוכנית אימונים'; }
+  }
+
+  function flPickerLine() {
+    const f = (document.getElementById('fl-focus') || {}).value || '';
+    const d = (document.getElementById('fl-days') || {}).value || '';
+    const parts = [];
+    if (d) parts.push(d + ' אימונים בשבוע');
+    parts.push(f ? 'דגש ' + f : 'ללא דגש לקבוצת שריר מסוימת');
+    const c = clientData || {};
+    const bio = [
+      c.gender ? 'מגדר: ' + c.gender : '',
+      c.age ? 'גיל ' + c.age : '',
+      c.height ? 'גובה ' + c.height + ' ס\"מ' : '',
+      c.current_weight ? 'משקל ' + c.current_weight + ' ק\"ג' : '',
+      c.activity_level ? 'רמת פעילות: ' + c.activity_level : '',
+    ].filter(Boolean).join(' · ');
+    return parts.join(' · ') + (bio ? '\n' + bio : '');
+  }
+
+  /* ── בניית תפריט ── */
+  async function flBuildNutrition() {
+    if (!flActive()) { flStatus('הגישה אינה בתוקף', 'err'); return; }
+    const btn = document.getElementById('fl-nutri-btn');
+    const { data: spend, error: sErr } = await sb.rpc('spend_tokens',
+      { p_amount: FL_COST_NUTRI, p_label: 'תפריט תזונה', p_kind: 'nutrition' });
+    if (sErr) { flStatus('לא ניתן לחייב: ' + sErr.message, 'err'); return; }
+    if (!spend || !spend.ok) {
+      flStatus('אין מספיק טוקנים · יתרה ' + ((spend && spend.balance) || 0), 'err');
+      flRenderCard(); return;
+    }
+    clientData.tokens_balance = spend.balance;
+    flRenderCard();
+
+    if (btn) { btn.disabled = true; btn.textContent = '⏳ בונה...'; }
+    flStatus('בונה תפריט...');
+    try {
+      const c = clientData || {};
+      const req = (document.getElementById('fl-req') || {}).value || '';
+      const goalHe = { mass: 'מסה', cut: 'חיטוב', recomp: 'ריקומפוזיציה' }[c.goal] || 'שמירה';
+      const p = [
+        'בנה תפריט תזונה יומי למתאמן.',
+        'מטרה: ' + goalHe + '.',
+        c.current_weight ? 'משקל: ' + c.current_weight + ' ק\"ג.' : '',
+        c.height ? 'גובה: ' + c.height + ' ס\"מ.' : '',
+        c.age ? 'גיל: ' + c.age + '.' : '',
+        c.target_calories ? 'יעד קלוריות: ' + c.target_calories + '.' : '',
+        c.target_protein ? 'יעד חלבון: ' + c.target_protein + ' גרם.' : '',
+        req ? 'העדפות ומגבלות: ' + req : '',
+        'החזר אך ורק JSON: מערך ארוחות, כל ארוחה { "meal": שם, "items": [{ "name", "grams", "cal", "protein", "carbs", "fat" }] }.',
+      ].filter(Boolean).join('\n');
+
+      const res = await aiFetch('', { body: JSON.stringify({
+        model: 'claude-sonnet-4-6', max_tokens: 4096,
+        messages: [{ role: 'user', content: p }],
+      }) });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const data = await res.json();
+      const text = (data.content && data.content[0] && data.content[0].text) || '';
+      const m = text.match(/\[[\s\S]*\]/);
+      if (!m) throw new Error('תשובה לא תקינה');
+      const plan = JSON.parse(m[0]);
+      if (!Array.isArray(plan) || !plan.length) throw new Error('תפריט ריק');
+      const { error: wErr } = await sb.rpc('save_own_plan', { p_kind: 'nutrition', p_plan: plan });
+      if (wErr) throw new Error(wErr.message);
+      nutritionPlanLocal = plan;
+      if (typeof renderNutriBody === 'function') renderNutriBody();
+      flStatus(plan.length + ' ארוחות נבנו ✓', 'ok');
+    } catch (e) {
+      flStatus('הבנייה נכשלה: ' + (e.message || e), 'err');
+    }
+    if (btn) { btn.disabled = false; btn.textContent = '🥗 בנה תפריט'; }
+  }
+
+  /* ── הכרטיס במסך הבית ──
+     מוצג רק לפרילנסר. מתאמן עם מאמן לא רואה אותו, ולכן אף מסך
+     קיים אינו משתנה. */
+  const FL_FOCUS = [
+    '', 'חזה', 'גב', 'רגליים', 'ישבן', 'כתפיים', 'ידיים', 'ידיים וחזה',
+  ];
+
+  function flRenderCard() {
+    let card = document.getElementById('fl-card');
+    if (!isFreelancer()) { if (card) card.remove(); return; }
+    if (!card) {
+      const host = document.getElementById('home-launcher');
+      if (!host) return;
+      card = document.createElement('div');
+      card.id = 'fl-card';
+      host.insertBefore(card, host.firstChild);
+    }
+
+    const bal = (clientData && clientData.tokens_balance) || 0;
+    const days = flDaysLeft();
+    const live = days >= 0;
+    const female = String((clientData || {}).gender || '').indexOf('נק') === 0;
+    const best = female ? 3 : 4;
+
+    card.style.cssText = 'background:linear-gradient(160deg,rgba(255,107,0,0.09),rgba(255,255,255,0.02));' +
+      'border:1px solid rgba(255,107,0,0.32);border-radius:16px;padding:14px 16px;margin-bottom:14px;';
+
+    card.innerHTML =
+      '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">' +
+        '<div style="font-size:0.95rem;font-weight:900;color:#FF6B00;">⚡ בנה לעצמך</div>' +
+        '<div style="font-size:0.76rem;font-weight:800;color:' + (live ? '#4ade80' : '#f87171') + ';">' +
+          (live ? '🎟️ ' + bal + ' טוקנים · ' + days + ' ימים' : '🔒 הגישה הסתיימה · ' + bal + ' טוקנים שמורים') +
+        '</div>' +
+      '</div>' +
+      (live
+        ? '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:11px;">' +
+            '<select id="fl-focus" style="flex:1;min-width:130px;background:rgba(255,255,255,0.06);' +
+            'border:1px solid rgba(255,255,255,0.14);border-radius:9px;padding:8px 10px;color:#fff;' +
+            'font-family:Heebo,sans-serif;font-size:0.84rem;">' +
+            FL_FOCUS.map(v => '<option value="' + v + '">' + (v ? 'דגש ' + v : 'ללא דגש') + '</option>').join('') +
+            '</select>' +
+            '<select id="fl-days" style="flex:1;min-width:130px;background:rgba(255,255,255,0.06);' +
+            'border:1px solid rgba(255,255,255,0.14);border-radius:9px;padding:8px 10px;color:#fff;' +
+            'font-family:Heebo,sans-serif;font-size:0.84rem;">' +
+            [2,3,4,5,6].map(n => '<option value="' + n + '"' + (n === best ? ' selected' : '') + '>' +
+              n + ' אימונים' + (n === best ? ' — מומלץ' : '') + '</option>').join('') +
+            '</select>' +
+          '</div>' +
+          '<textarea id="fl-req" rows="2" placeholder="משהו נוסף? פציעות, ציוד, העדפות מזון..." ' +
+          'style="width:100%;margin-top:8px;background:rgba(255,255,255,0.06);' +
+          'border:1px solid rgba(255,255,255,0.14);border-radius:9px;padding:9px 11px;color:#fff;' +
+          'font-family:Heebo,sans-serif;font-size:0.84rem;resize:vertical;"></textarea>' +
+          '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:9px;">' +
+            '<button id="fl-plan-btn" onclick="flBuildPlan()" style="flex:1;min-width:150px;' +
+            'background:#FF6B00;color:#fff;border:0;border-radius:10px;padding:10px;' +
+            'font-family:Heebo,sans-serif;font-weight:900;font-size:0.85rem;cursor:pointer;">' +
+            '🏋️ בנה תוכנית אימונים</button>' +
+            '<button id="fl-nutri-btn" onclick="flBuildNutrition()" style="flex:1;min-width:130px;' +
+            'background:rgba(74,222,128,0.16);border:1px solid rgba(74,222,128,0.45);color:#4ade80;' +
+            'border-radius:10px;padding:10px;font-family:Heebo,sans-serif;font-weight:900;' +
+            'font-size:0.85rem;cursor:pointer;">🥗 בנה תפריט</button>' +
+          '</div>' +
+          '<div style="font-size:0.7rem;color:#777;margin-top:6px;">' +
+          FL_COST_PLAN + ' טוקנים לתוכנית · ' + FL_COST_NUTRI + ' לתפריט</div>'
+        : '<div style="font-size:0.8rem;color:#aaa;margin-top:9px;line-height:1.7;">' +
+          'הטוקנים שלך נשמרו. חידוש המסלול יפתח את הגישה מחדש איתם.</div>') +
+      '<div id="fl-status" style="font-size:0.78rem;color:#8a8f95;margin-top:8px;min-height:17px;"></div>' +
+      '<button onclick="openRecommended()" style="margin-top:8px;background:none;' +
+      'border:1px solid rgba(255,255,255,0.16);color:#bbb;border-radius:9px;padding:7px 13px;' +
+      'font-family:Heebo,sans-serif;font-size:0.78rem;font-weight:700;cursor:pointer;">' +
+      '⭐ מאמנים מומלצים</button>';
+  }
+
+  /* ── מאמנים מומלצים ── */
+  async function openRecommended() {
+    let el = document.getElementById('rec-modal');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'rec-modal';
+      el.style.cssText = 'position:fixed;inset:0;z-index:880;display:none;overflow-y:auto;' +
+        'background:rgba(0,0,0,0.9);backdrop-filter:blur(5px);align-items:flex-start;' +
+        'justify-content:center;padding:calc(16px + var(--sat,0px)) 14px calc(16px + var(--sab,0px));';
+      el.onclick = (e) => { if (e.target === el) el.style.display = 'none'; };
+      document.body.appendChild(el);
+    }
+    el.style.display = 'flex';
+    el.innerHTML = '<div style="color:#888;padding:40px;">טוען...</div>';
+    const { data, error } = await sb.rpc('recommended_coaches');
+    const rows = data || [];
+    el.innerHTML = '<div style="width:100%;max-width:420px;margin:auto;">' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">' +
+      '<div style="font-size:1.1rem;font-weight:900;color:#fff;">מאמנים מומלצים</div>' +
+      '<button onclick="document.getElementById(\'rec-modal\').style.display=\'none\'" ' +
+      'style="background:none;border:none;color:#777;font-size:1.4rem;cursor:pointer;">✕</button></div>' +
+      (error
+        ? '<div style="color:#f87171;font-size:0.85rem;">לא נטען: ' + esc(error.message) + '</div>'
+        : !rows.length
+          ? '<div style="color:#777;font-size:0.85rem;">אין המלצות כרגע.</div>'
+          : rows.map(c =>
+            '<div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);' +
+            'border-radius:12px;padding:13px;margin-bottom:9px;">' +
+            '<div style="font-weight:900;color:#FFD700;font-size:0.95rem;">' + esc(c.name || '') + '</div>' +
+            (c.note ? '<div style="font-size:0.8rem;color:#bbb;margin-top:4px;line-height:1.6;">' +
+              esc(c.note) + '</div>' : '') +
+            (c.phone ? '<a href="https://wa.me/972' + String(c.phone).replace(/\D/g, '').replace(/^0/, '') +
+              '" target="_blank" rel="noopener" style="display:inline-block;margin-top:9px;' +
+              'background:#25D366;color:#fff;border-radius:8px;padding:7px 14px;font-size:0.8rem;' +
+              'font-weight:800;text-decoration:none;">📲 דבר איתו</a>' : '') +
+            '</div>').join('')) +
+      '<div style="font-size:0.74rem;color:#666;margin-top:10px;line-height:1.7;">' +
+      'מעבר לליווי עם מאמן הוא מסלול נפרד בתשלום מלא.</div></div>';
   }
 
   /* ══ פרופיל אישי ══

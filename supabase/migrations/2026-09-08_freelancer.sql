@@ -267,3 +267,56 @@ CREATE INDEX IF NOT EXISTS idx_coaches_recommended
 
 REVOKE ALL ON FUNCTION expire_freelancer_requests() FROM public, anon;
 GRANT EXECUTE ON FUNCTION expire_freelancer_requests() TO authenticated;
+
+
+-- ══ שמירת תוכנית עצמית ══
+-- מתאמן עצמאי בונה לעצמו, ולכן הוא צריך לכתוב ל-training_plans
+-- ול-nutrition_plans. במקום להוסיף מדיניות כתיבה על טבלאות שמאמנים
+-- חיים מהן — פונקציה אחת שכותבת רק לשורה של הקורא, ורק אם הוא
+-- פרילנסר עם גישה בתוקף. מדיניות קיימת אינה נוגעת.
+CREATE OR REPLACE FUNCTION save_own_plan(p_kind text, p_plan jsonb)
+RETURNS boolean
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $fn$
+DECLARE caller text := auth.jwt()->>'email';
+BEGIN
+  IF caller IS NULL THEN RAISE EXCEPTION 'לא מזוהה'; END IF;
+  IF p_kind NOT IN ('training', 'nutrition') THEN RAISE EXCEPTION 'סוג לא מוכר'; END IF;
+  IF p_plan IS NULL OR jsonb_typeof(p_plan) <> 'array' THEN RAISE EXCEPTION 'תוכנית לא תקינה'; END IF;
+
+  -- רק פרילנסר, ורק בזמן שהגישה בתוקף. מתאמן עם מאמן אינו כותב
+  -- לעצמו תוכנית — המאמן שלו כותב.
+  IF NOT freelancer_active(caller) THEN
+    RAISE EXCEPTION 'הגישה אינה בתוקף';
+  END IF;
+
+  IF p_kind = 'training' THEN
+    INSERT INTO training_plans (client_email, plan, updated_at)
+    VALUES (caller, p_plan, now())
+    ON CONFLICT (client_email) DO UPDATE SET plan = EXCLUDED.plan, updated_at = now();
+  ELSE
+    INSERT INTO nutrition_plans (client_email, plan, updated_at)
+    VALUES (caller, p_plan, now())
+    ON CONFLICT (client_email) DO UPDATE SET plan = EXCLUDED.plan, updated_at = now();
+  END IF;
+  RETURN true;
+END
+$fn$;
+
+REVOKE ALL ON FUNCTION save_own_plan(text, jsonb) FROM public, anon;
+GRANT EXECUTE ON FUNCTION save_own_plan(text, jsonb) TO authenticated;
+
+
+-- ══ מאמנים מומלצים לפרילנסר ══
+-- מחזירה רק את מי שסומן ידנית, ורק שדות ציבוריים. בלי הפונקציה
+-- הזאת היה צריך לפתוח לפרילנסר קריאה על טבלת המאמנים כולה.
+CREATE OR REPLACE FUNCTION recommended_coaches()
+RETURNS TABLE (name text, email text, phone text, note text, rank int)
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
+  SELECT c.name, c.email, c.phone, c.recommended_note, c.recommended_rank
+    FROM coaches c
+   WHERE c.recommended_rank IS NOT NULL
+   ORDER BY c.recommended_rank, c.name;
+$$;
+
+REVOKE ALL ON FUNCTION recommended_coaches() FROM public, anon;
+GRANT EXECUTE ON FUNCTION recommended_coaches() TO authenticated;
