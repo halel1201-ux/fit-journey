@@ -7,6 +7,8 @@
 --   · הספירה מתחילה ברגע שהבעלים מאשר גישה — לא בהרשמה ולא בתשלום.
 --   · ביום ה-91 הגישה נסגרת, אבל הטוקנים נשמרים כרזרבה לחידוש.
 --   · מעבר למסלול עם מאמן הוא תשלום מלא, בלי זיכוי.
+--   · בקשה שלא אושרה תוך שלושה ימי עסקים מתבטלת. אין מסלול החזר:
+--     בקשת הביט אינה מאושרת ידנית, ולכן הכסף כלל אינו עובר.
 --
 -- הפרילנסר אינו ישות נפרדת אלא שורה ב-clients שה-coach_email שלה
 -- הוא בעל הפלטפורמה. כך כל ה-RLS, הצ'אט והצ'ק-אין ממשיכים לעבוד
@@ -24,7 +26,9 @@ ALTER TABLE clients
   ADD COLUMN IF NOT EXISTS access_until       date,        -- freelancer_since + 90
   ADD COLUMN IF NOT EXISTS enhancement_status text,        -- natural|enhanced|peptides|NULL
   ADD COLUMN IF NOT EXISTS waiver_signed_at   timestamptz,
-  ADD COLUMN IF NOT EXISTS waiver_version     text;
+  ADD COLUMN IF NOT EXISTS waiver_version     text,
+  ADD COLUMN IF NOT EXISTS pending_since      date,        -- יום הגשת הבקשה
+  ADD COLUMN IF NOT EXISTS freelancer_status  text;        -- pending|active|expired|rejected
 
 COMMENT ON COLUMN clients.client_type    IS 'freelancer = בונה לעצמו, בלי מאמן. NULL = מתאמן רגיל.';
 COMMENT ON COLUMN clients.access_until   IS 'סוף הגישה. הטוקנים שורדים אותו ונשארים כרזרבה.';
@@ -193,3 +197,67 @@ GRANT EXECUTE ON FUNCTION spend_tokens(int, text, text)   TO authenticated;
 GRANT EXECUTE ON FUNCTION approve_freelancer(text, int, int) TO authenticated;
 GRANT EXECUTE ON FUNCTION grant_client_tokens(text, int)  TO authenticated;
 GRANT EXECUTE ON FUNCTION sign_waiver(text)               TO authenticated;
+
+
+-- ══ ימי עסקים ══
+-- בישראל שבוע העבודה הוא ראשון עד חמישי. EXTRACT(DOW) מחזיר
+-- 0 לראשון ו-5,6 לשישי ושבת — אלה הימים שמדלגים עליהם.
+CREATE OR REPLACE FUNCTION add_business_days(p_from date, p_days int)
+RETURNS date
+LANGUAGE plpgsql IMMUTABLE AS $fn$
+DECLARE d date := p_from; left_ int := GREATEST(COALESCE(p_days, 0), 0);
+BEGIN
+  WHILE left_ > 0 LOOP
+    d := d + 1;
+    IF EXTRACT(DOW FROM d) NOT IN (5, 6) THEN left_ := left_ - 1; END IF;
+  END LOOP;
+  RETURN d;
+END
+$fn$;
+
+COMMENT ON FUNCTION add_business_days(date, int) IS
+  'מוסיף ימי עסקים ומדלג על שישי ושבת.';
+
+
+-- ══ תפוגת בקשות ══
+-- בקשה שלא אושרה תוך שלושה ימי עסקים מתבטלת. אין כאן פעולה כספית:
+-- אם הבעלים לא אישר את המתאמן הוא גם לא אישר את בקשת הביט, והכסף
+-- מעולם לא עבר. הפונקציה רק מסמנת, כדי שהרשימה לא תתמלא בבקשות
+-- מתות ושיהיה ברור מה כבר לא רלוונטי.
+CREATE OR REPLACE FUNCTION expire_freelancer_requests()
+RETURNS int
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $fn$
+DECLARE
+  caller text := auth.jwt()->>'email';
+  n int;
+BEGIN
+  IF caller IS NULL THEN RAISE EXCEPTION 'לא מזוהה'; END IF;
+  IF caller <> 'halel1201@gmail.com' THEN RAISE EXCEPTION 'רק בעל הפלטפורמה'; END IF;
+
+  UPDATE clients
+     SET freelancer_status = 'expired'
+   WHERE freelancer_status = 'pending'
+     AND pending_since IS NOT NULL
+     AND add_business_days(pending_since, 3) < current_date;
+  GET DIAGNOSTICS n = ROW_COUNT;
+  RETURN n;
+END
+$fn$;
+
+
+-- ══ מאמנים מומלצים ══
+-- הדירוג נקבע ידנית ע"י בעל הפלטפורמה ואינו מגיע ממתאמנים: אין
+-- טבלת דירוגים, אין ממוצעים, ואין מה לתחזק. מספר נמוך = מופיע
+-- קודם; NULL = אינו מוצג ברשימה.
+ALTER TABLE coaches
+  ADD COLUMN IF NOT EXISTS recommended_rank  int,
+  ADD COLUMN IF NOT EXISTS recommended_note  text;
+
+COMMENT ON COLUMN coaches.recommended_rank IS
+  'סדר הופעה ברשימת המאמנים המומלצים. נקבע ידנית. NULL = אינו מוצג.';
+
+CREATE INDEX IF NOT EXISTS idx_coaches_recommended
+  ON coaches(recommended_rank) WHERE recommended_rank IS NOT NULL;
+
+REVOKE ALL ON FUNCTION expire_freelancer_requests() FROM public, anon;
+GRANT EXECUTE ON FUNCTION expire_freelancer_requests() TO authenticated;
