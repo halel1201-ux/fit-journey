@@ -1,0 +1,191 @@
+<!doctype html>
+<html dir="rtl" lang="he">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>מסלול עצמאי — Fit Journey</title>
+<link rel="icon" href="favicon.png">
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;700;800;900&display=swap" rel="stylesheet">
+<script>/* נפתח כקובץ מקומי — קופצים לאתר החי, כמו בשאר הדפים */
+if (location.protocol === 'file:') location.href = 'https://fit-journey1.vercel.app/join.html';</script>
+<style>
+  :root { --orange:#FF6B00; --gold:#FFD700; --muted:#8a8f95; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:#0a0a0a; color:#fff; font-family:Heebo,Arial,sans-serif;
+         min-height:100vh; padding:calc(20px + env(safe-area-inset-top,0px)) 16px
+         calc(24px + env(safe-area-inset-bottom,0px)); }
+  .wrap { max-width:430px; margin:0 auto; position:relative; }
+  .fj { position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+        pointer-events:none; z-index:0; }
+  .fj span { font-size:15rem; font-weight:900; opacity:0.03; letter-spacing:-8px; }
+  .in { position:relative; z-index:1; }
+  .logo { font-size:1.5rem; font-weight:900; letter-spacing:.5px; }
+  .logo b { color:var(--orange); }
+  h1 { font-size:1.35rem; font-weight:900; margin:18px 0 4px; }
+  .sub { color:var(--muted); font-size:0.88rem; line-height:1.7; }
+  .card { background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.1);
+          border-radius:15px; padding:15px; margin-top:16px; }
+  .price { display:flex; align-items:baseline; gap:8px; }
+  .price b { font-size:2rem; font-weight:900; color:var(--orange); }
+  .price span { color:var(--muted); font-size:0.85rem; }
+  ul { margin:11px 0 0; padding-inline-start:19px; }
+  li { margin:5px 0; font-size:0.86rem; line-height:1.6; }
+  label { display:block; margin-bottom:11px; }
+  label span { display:block; font-size:0.76rem; color:var(--muted); margin-bottom:4px; }
+  input, select, textarea { width:100%; background:rgba(255,255,255,0.06);
+    border:1px solid rgba(255,255,255,0.14); border-radius:10px; padding:11px 12px;
+    color:#fff; font-family:Heebo,sans-serif; font-size:0.95rem; }
+  input:focus, select:focus { outline:none; border-color:var(--orange); }
+  .terms { background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.1);
+           border-radius:11px; padding:12px; max-height:190px; overflow-y:auto;
+           font-size:0.78rem; color:#bbb; line-height:1.75; }
+  .terms h3 { color:var(--gold); font-size:0.84rem; margin:0 0 7px; }
+  .terms p { margin:0 0 8px; }
+  .chk { display:flex; gap:9px; align-items:flex-start; margin-top:11px; font-size:0.84rem;
+         line-height:1.6; cursor:pointer; }
+  .chk input { width:19px; height:19px; flex:none; margin-top:2px; accent-color:var(--orange); }
+  .btn { width:100%; background:var(--orange); color:#fff; border:0; border-radius:12px;
+         padding:14px; font-family:Heebo,sans-serif; font-weight:900; font-size:1rem;
+         cursor:pointer; margin-top:14px; }
+  .btn:disabled { opacity:.5; cursor:not-allowed; }
+  .status { font-size:0.85rem; margin-top:11px; min-height:20px; line-height:1.6; }
+  .done { text-align:center; padding:26px 10px; }
+  .done .v { font-size:3rem; }
+  .foot { color:#666; font-size:0.74rem; text-align:center; margin-top:20px; line-height:1.7; }
+  a { color:var(--orange); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="fj"><span>FJ</span></div>
+  <div class="in" id="app">
+    <div class="logo">FIT <b>JOURNEY</b></div>
+    <h1>מסלול עצמאי</h1>
+    <div class="sub">בונה לעצמך תוכנית אימונים ותפריט עם אותו מנוע שהמאמנים שלנו עובדים איתו.
+      בלי מאמן אישי — באחריותך.</div>
+
+    <div class="card">
+      <div class="price"><b>200 ₪</b><span>לשלושה חודשים</span></div>
+      <ul>
+        <li>🏋️ בניית תוכנית אימונים מותאמת</li>
+        <li>🥗 בניית תפריט תזונה</li>
+        <li>📊 מעקב התקדמות, שיאים וגרפים</li>
+        <li>🎟️ 500 טוקנים — מספיק לכ-3 תוכניות ו-3 תפריטים</li>
+      </ul>
+      <div style="font-size:0.78rem;color:var(--muted);margin-top:10px;line-height:1.7;">
+        <b style="color:#f0b429;">מה לא כלול:</b> אין מאמן אישי, אין מעקב שוטף ואין התאמות
+        אישיות. לזה יש <a href="index.html#pricing">מסלולי ליווי</a> נפרדים.
+      </div>
+    </div>
+
+    <div class="card">
+      <label><span>שם מלא</span><input id="j-name" type="text" autocomplete="name"></label>
+      <label><span>אימייל — לשם יישלח קוד הכניסה</span>
+        <input id="j-email" type="email" autocomplete="email" inputmode="email"></label>
+      <label><span>טלפון</span><input id="j-phone" type="tel" autocomplete="tel"></label>
+      <label><span>מצב אימוני</span>
+        <select id="j-enh">
+          <option value="">אגדיר מאוחר יותר</option>
+          <option value="natural">טבעי</option>
+          <option value="enhanced">לא טבעי</option>
+          <option value="peptides">פפטידים</option>
+        </select></label>
+    </div>
+
+    <div class="card">
+      <div class="terms" id="j-terms"></div>
+      <label class="chk"><input type="checkbox" id="j-agree">
+        <span style="margin:0;color:#ddd;">קראתי את התקנון ואת הצהרת האחריות, ואני מאשר/ת
+          שהאחריות על השימוש בתוכניות היא שלי בלבד.</span></label>
+      <button class="btn" id="j-btn" onclick="submitJoin()">שלח בקשה</button>
+      <div class="status" id="j-status"></div>
+    </div>
+
+    <div class="foot">
+      אחרי השליחה תקבל/י הוראות תשלום בביט.<br>
+      הגישה נפתחת אחרי אימות התשלום — <b>עד 3 ימי עסקים</b>.
+    </div>
+  </div>
+</div>
+
+<script src="vendor/supabase.min.js"></script>
+<script>
+  const URL_ = 'https://luwknflmhvcxgifzxgrk.supabase.co';
+  const KEY  = 'sb_publishable_k3M7SfBeiBGs3rTKewBzWQ_7RHRskB9';
+  const sb = supabase.createClient(URL_, KEY);
+
+  /* גרסת הנוסח נשמרת עם החתימה. הנוסח ישתנה עם הזמן, ואי אפשר
+     לחתום רטרואקטיבית על נוסח חדש — לכן מה שנחתם הוא גרסה מזוהה
+     ולא "כן". */
+  const WAIVER_VERSION = 'fl-2026-09-08';
+  const WAIVER_TEXT = [
+    ['תקנון המסלול העצמאי',
+      'המסלול מקנה גישה לכלים לבניית תוכנית אימונים ותפריט תזונה למשך שלושה חודשים ' +
+      'מיום אישור הגישה. הגישה נסגרת בתום התקופה; טוקנים שלא נוצלו נשמרים לחידוש.'],
+    ['אין ליווי אישי',
+      'במסלול זה אין מאמן אנושי, אין מעקב שוטף ואין התאמות אישיות. התוכניות נבנות ' +
+      'אוטומטית על סמך הפרטים שתזין/י.'],
+    ['הצהרת בריאות ואחריות',
+      'הנני מצהיר/ה כי אני בגיר/ה, במצב בריאותי המאפשר פעילות גופנית, וכי התייעצתי ' +
+      'עם גורם רפואי במידת הצורך. אני מבין/ה שפעילות גופנית ושינוי תזונתי כרוכים ' +
+      'בסיכון, ונוטל/ת על עצמי את מלוא האחריות לשימוש בתוכניות. Fit Journey ומפעיליה ' +
+      'אינם נושאים באחריות לנזק כלשהו הנובע מהשימוש בשירות.'],
+    ['ייעוץ רפואי',
+      'השירות אינו מהווה ייעוץ רפואי, אבחון או טיפול, ואינו תחליף לייעוץ מקצועי.'],
+    ['תשלום וביטול',
+      'התשלום מתבצע בביט. בקשה שלא אושרה תוך שלושה ימי עסקים מתבטלת, ובקשת התשלום ' +
+      'אינה נגבית.'],
+  ];
+  document.getElementById('j-terms').innerHTML =
+    WAIVER_TEXT.map(([h, p]) => '<h3>' + h + '</h3><p>' + p + '</p>').join('') +
+    '<p style="color:#666;">גרסה ' + WAIVER_VERSION + '</p>';
+
+  function st(msg, kind) {
+    const el = document.getElementById('j-status');
+    el.style.color = kind === 'err' ? '#f87171' : kind === 'ok' ? '#4ade80' : '#8a8f95';
+    el.textContent = msg;
+  }
+
+  async function submitJoin() {
+    const name  = document.getElementById('j-name').value.trim();
+    const email = document.getElementById('j-email').value.trim().toLowerCase();
+    const phone = document.getElementById('j-phone').value.trim();
+    const enh   = document.getElementById('j-enh').value;
+    const btn   = document.getElementById('j-btn');
+
+    if (!name)  { st('חסר שם', 'err'); return; }
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { st('כתובת מייל לא תקינה', 'err'); return; }
+    if (!document.getElementById('j-agree').checked) {
+      st('צריך לאשר את התקנון כדי להמשיך', 'err'); return;
+    }
+
+    btn.disabled = true; st('שולח...');
+    const { error } = await sb.rpc('request_freelancer', {
+      p_name: name, p_email: email, p_phone: phone,
+      p_enhancement: enh || null, p_waiver_version: WAIVER_VERSION,
+    });
+    if (error) { btn.disabled = false; st('לא נשלח: ' + error.message, 'err'); return; }
+
+    /* מסך אישור ולא הודעה קטנה: מי ששלח טופס ולא קיבל תשובה ברורה
+       מניח שנפל, ומנסה שוב או נוטש. */
+    document.getElementById('app').innerHTML =
+      '<div class="done"><div class="v">✅</div>' +
+      '<h1 style="margin-top:10px;">הבקשה התקבלה</h1>' +
+      '<div class="sub">עכשיו נשאר לשלם, ונפתח לך את הגישה.</div>' +
+      '<div class="card" style="text-align:right;">' +
+        '<div style="font-weight:900;color:var(--gold);margin-bottom:8px;">התשלום — 200 ₪ בביט</div>' +
+        '<div style="font-size:1.15rem;font-weight:900;letter-spacing:1px;">058-693-1163</div>' +
+        '<div style="font-size:0.82rem;color:var(--muted);margin-top:9px;line-height:1.7;">' +
+        'אחרי התשלום שלח/י לנו הודעה בוואטסאפ כדי שנאמת ונפתח.</div>' +
+        '<a href="https://wa.me/972586931163" target="_blank" rel="noopener" ' +
+        'style="display:block;margin-top:11px;background:#25D366;color:#fff;text-align:center;' +
+        'border-radius:11px;padding:12px;font-weight:900;text-decoration:none;">' +
+        '📲 שלח הודעה בוואטסאפ</a>' +
+      '</div>' +
+      '<div class="foot">הגישה נפתחת עד <b>3 ימי עסקים</b>.<br>' +
+      'כשנאשר — יישלח למייל <b>' + email.replace(/</g, '&lt;') + '</b> קוד כניסה חד-פעמי.</div>' +
+      '</div>';
+  }
+</script>
+</body>
+</html>

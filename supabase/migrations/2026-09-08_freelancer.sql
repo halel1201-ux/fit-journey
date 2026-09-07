@@ -320,3 +320,58 @@ $$;
 
 REVOKE ALL ON FUNCTION recommended_coaches() FROM public, anon;
 GRANT EXECUTE ON FUNCTION recommended_coaches() TO authenticated;
+
+
+-- ══ הרשמה עצמית ══
+-- נקראת מדף הרשמה ציבורי, לפני שיש משתמש מזוהה. זו הפונקציה
+-- היחידה כאן שפתוחה ל-anon, ולכן היא מוגבלת בכוונה:
+--   · יוצרת אך ורק שורה ממתינה. בלי גישה, בלי טוקנים, בלי תאריכים.
+--   · מייל שכבר קיים כלקוח אינו נדרס — מוחזרת תשובה ולא שגיאה,
+--     כדי שלא יהיה אפשר לגלות דרכה מי רשום ומי לא.
+--   · הבעלים משויך כמאמן, כך שכל ה-RLS הקיים ממשיך לעבוד.
+--
+-- ההגנה האמיתית היא שאין כאן שום דבר בעל ערך: בקשה ממתינה שווה
+-- כלום עד שהבעלים מאשר אותה ידנית.
+CREATE OR REPLACE FUNCTION request_freelancer(
+  p_name text, p_email text, p_phone text,
+  p_enhancement text DEFAULT NULL, p_waiver_version text DEFAULT NULL)
+RETURNS jsonb
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $fn$
+DECLARE
+  v_email text := lower(btrim(COALESCE(p_email, '')));
+  v_exists boolean;
+BEGIN
+  IF v_email !~ '^[^@\s]+@[^@\s]+\.[^@\s]+$' THEN
+    RAISE EXCEPTION 'כתובת מייל לא תקינה';
+  END IF;
+  IF btrim(COALESCE(p_name, '')) = '' THEN
+    RAISE EXCEPTION 'חסר שם';
+  END IF;
+  IF p_waiver_version IS NULL OR btrim(p_waiver_version) = '' THEN
+    RAISE EXCEPTION 'לא נחתם התקנון';
+  END IF;
+
+  SELECT EXISTS (SELECT 1 FROM clients WHERE email = v_email) INTO v_exists;
+
+  IF v_exists THEN
+    -- לא נוגעים בשורה קיימת. מתאמן פעיל לא יאבד את המאמן או את
+    -- התוכנית שלו בגלל טופס, ולא ניתן לברר דרך התשובה מי רשום.
+    RETURN jsonb_build_object('ok', true, 'status', 'received');
+  END IF;
+
+  INSERT INTO clients (email, name, phone, coach_email,
+                       freelancer_status, pending_since,
+                       enhancement_status, waiver_signed_at, waiver_version)
+  VALUES (v_email, btrim(p_name), NULLIF(btrim(COALESCE(p_phone, '')), ''),
+          'halel1201@gmail.com', 'pending', current_date,
+          NULLIF(btrim(COALESCE(p_enhancement, '')), ''), now(), p_waiver_version);
+
+  RETURN jsonb_build_object('ok', true, 'status', 'received');
+END
+$fn$;
+
+COMMENT ON FUNCTION request_freelancer(text, text, text, text, text) IS
+  'הרשמה עצמית למסלול העצמאי. יוצרת בקשה ממתינה בלבד — בלי גישה ובלי טוקנים.';
+
+REVOKE ALL ON FUNCTION request_freelancer(text, text, text, text, text) FROM public;
+GRANT EXECUTE ON FUNCTION request_freelancer(text, text, text, text, text) TO anon, authenticated;

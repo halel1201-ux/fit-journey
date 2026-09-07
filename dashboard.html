@@ -3140,6 +3140,10 @@
           'border-radius:9px;padding:9px 11px;color:#777;font-size:0.86rem;margin-bottom:10px;">' +
           esc(currentEmail || '') + '</div>' +
 
+          /* השדה ריק תמיד — סיסמה קיימת אינה נקראת ואינה מוצגת. */
+          fld('pf-pass', 'סיסמה חדשה (השאר ריק כדי לא לשנות)', '', 'password',
+            'autocomplete="new-password" minlength="6"') +
+
           sect('גוף') +
           fld('pf-age', 'גיל', c.age, 'number', 'min="10" max="99"') +
           fld('pf-height', 'גובה (ס\"מ)', c.height, 'number', 'min="100" max="230"') +
@@ -3185,6 +3189,23 @@
     /* שדה ריק נשמר כ-null ולא כאפס: אפס הוא ערך אמיתי שמעוות
        חישובים, וריק פירושו "לא ידוע". */
     if (st) { st.style.color = '#8a8f95'; st.textContent = 'שומר...'; }
+
+    /* הסיסמה עוברת דרך שירות ההזדהות ולא דרך טבלת הלקוחות.
+       נכשלת? עוצרים לפני שמירת השאר, כדי שלא ייווצר מצב שחציו
+       נשמר וחציו לא. */
+    const newPass = (v('pf-pass') || '').trim();
+    if (newPass) {
+      if (newPass.length < 6) {
+        if (st) { st.style.color = '#f87171'; st.textContent = 'סיסמה קצרה מדי — לפחות 6 תווים'; }
+        return;
+      }
+      const { error: pErr } = await sb.auth.updateUser({ password: newPass });
+      if (pErr) {
+        if (st) { st.style.color = '#f87171'; st.textContent = 'הסיסמה לא נשמרה: ' + pErr.message; }
+        return;
+      }
+    }
+
     const { error } = await sb.from('clients').update(patch).eq('email', currentEmail);
     if (error) {
       if (st) { st.style.color = '#f87171'; st.textContent = 'לא נשמר: ' + error.message; }
