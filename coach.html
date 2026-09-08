@@ -9141,15 +9141,9 @@ ${buildFoodListForPrompt()}
   }
 
   /* ── NUTRITION EDITOR ── */
-  const PROMPT_GROUP_HINTS = {
-    'חזה':    /חזה|push|דחיפה/i,
-    'גב':     /גב|pull|משיכה|מתח/i,
-    'כתפיים': /כתפ|shoulder|push|דחיפה/i,
-    'ידיים':  /יד |ידיים|ביceps|טרייספס|יד קדמית|יד אחורית|arms|push|pull/i,
-    'רגליים': /רגל|רגליים|legs|סקוואט|squat|ישבן|גלוט|leg/i,
-    'בטן':    /בטן|core|ליבה|abs/i,
-    'צוואר':  /צוואר|neck/i,
-  };
+  /* PROMPT_GROUP_HINTS עבר ל-plan-prompt.js יחד עם buildExerciseList,
+     שהוא המקום היחיד שהשתמש בו. השארתו כאן יצרה הצהרה כפולה
+     ב-scope הגלובלי — SyntaxError ששיתק את כל הפאנל. */
   /* הגוף עבר ל-plan-prompt.js כדי שהאדמין יאכוף את אותם שמות.
      נשמר כאן שם קצר שכל הקריאות הקיימות ממשיכות להשתמש בו. */
   function buildExerciseListForPrompt(userPrompt) {
