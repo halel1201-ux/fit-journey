@@ -21,6 +21,7 @@
   <!-- self-hosted: in the native app this loads from the bundle instead of
        making a blocking round trip to jsdelivr on every page switch -->
   <script src="plan-prompt.js"></script>
+  <script src="freelancer-terms.js"></script>
 <script src="vendor/supabase.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js" defer></script>
   <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
@@ -2779,7 +2780,6 @@
   /* ══ מתאמן עצמאי ══
      בונה לעצמו עם אותו מנוע של המאמנים. הטוקנים יורדים בשרת,
      והתוכנית נכתבת דרך RPC שכותב רק לשורה של הקורא. */
-  const FL_COST_PLAN = 150, FL_COST_NUTRI = 150;
   let flLibrary = [];
 
   function isFreelancer() {
@@ -3017,7 +3017,26 @@
       '<button onclick="openRecommended()" style="margin-top:8px;background:none;' +
       'border:1px solid rgba(255,255,255,0.16);color:#bbb;border-radius:9px;padding:7px 13px;' +
       'font-family:Heebo,sans-serif;font-size:0.78rem;font-weight:700;cursor:pointer;">' +
-      '⭐ מאמנים מומלצים</button>';
+      '⭐ מאמנים מומלצים</button>' +
+      '<button onclick="flAskTokens()" style="margin-top:8px;margin-inline-start:6px;background:none;' +
+      'border:1px solid rgba(255,107,0,0.4);color:#FF6B00;border-radius:9px;padding:7px 13px;' +
+      'font-family:Heebo,sans-serif;font-size:0.78rem;font-weight:700;cursor:pointer;">' +
+      '🎟️ בקש טוקנים</button>';
+  }
+
+  /* ── בקשת טוקנים נוספים ──
+     הכמות והמחיר נקבעים בשרת (request_client_tokens); כאן נבחר
+     מספר חבילות בלבד, כדי שלא ייווצר מחיר שהמבקש קבע לעצמו. */
+  async function flAskTokens() {
+    const n = prompt('כמה חבילות טוקנים? (חבילה = ' + FL_PACK_TOKENS +
+      ' טוקנים ב-' + FL_PACK_PRICE + ' ש"ח)', '1');
+    if (n === null) return;
+    const packs = parseInt(n, 10);
+    if (!(packs > 0)) { flStatus('כמות לא תקינה', 'err'); return; }
+    const { data, error } = await sb.rpc('request_client_tokens', { p_packs: packs });
+    if (error) { flStatus('הבקשה לא נשלחה: ' + error.message, 'err'); return; }
+    flStatus('הבקשה נשלחה — ' + data.tokens + ' טוקנים, ' + data.price +
+          ' ש"ח. שלח/י את התשלום בביט ונאשר.', 'ok');
   }
 
   /* ── מאמנים מומלצים ── */

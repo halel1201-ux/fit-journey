@@ -51,6 +51,27 @@ if (location.protocol === 'file:') location.href = 'https://fit-journey1.vercel.
   .tag { display:inline-block; background:var(--gold); color:#111; font-size:0.62rem;
          font-weight:900; border-radius:5px; padding:1px 5px; margin-inline-start:5px;
          vertical-align:middle; }
+  /* תצוגה מקדימה — דוגמה אמיתית של הפלט, לא צילום מסך */
+  .pvtabs { display:flex; gap:6px; margin-bottom:11px; }
+  .pvtab { flex:1; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12);
+           color:#bbb; border-radius:9px; padding:8px 6px; font-family:Heebo,sans-serif;
+           font-weight:800; font-size:0.79rem; cursor:pointer; }
+  .pvtab[aria-selected="true"] { border-color:var(--orange); background:rgba(255,107,0,0.1); color:#fff; }
+  .screen { background:#0f0f0f; border:1px solid rgba(255,255,255,0.1); border-radius:13px;
+            padding:12px; position:relative; overflow:hidden; }
+  .screen::after { content:'דוגמה'; position:absolute; top:9px; left:9px; font-size:0.6rem;
+            font-weight:900; color:#666; border:1px solid #333; border-radius:5px; padding:1px 5px; }
+  .scr-h { font-size:0.86rem; font-weight:900; color:var(--orange); margin-bottom:2px; }
+  .scr-s { font-size:0.71rem; color:var(--muted); margin-bottom:10px; }
+  .row { display:flex; justify-content:space-between; align-items:baseline; gap:8px;
+         padding:7px 0; border-top:1px solid rgba(255,255,255,0.06); font-size:0.8rem; }
+  .row:first-of-type { border-top:0; }
+  .row b { font-weight:700; color:#eee; }
+  .row span { flex:none; color:var(--gold); font-size:0.72rem; font-weight:800; white-space:nowrap; }
+  .row i { display:block; font-style:normal; font-size:0.68rem; color:#7a7f85; margin-top:1px; }
+  .chips { display:flex; gap:5px; flex-wrap:wrap; margin-top:10px; }
+  .chip { background:rgba(255,107,0,0.12); border:1px solid rgba(255,107,0,0.3); color:#ffb27a;
+          border-radius:20px; padding:3px 9px; font-size:0.68rem; font-weight:800; }
   ul { margin:11px 0 0; padding-inline-start:19px; }
   li { margin:5px 0; font-size:0.86rem; line-height:1.6; }
   label { display:block; margin-bottom:11px; }
@@ -104,6 +125,21 @@ if (location.protocol === 'file:') location.href = 'https://fit-journey1.vercel.
     </div>
 
     <div class="card">
+      <div style="font-size:0.8rem;color:var(--muted);margin-bottom:9px;">
+        ככה זה נראה — דוגמה מהמערכת</div>
+      <div class="pvtabs" role="tablist">
+        <button class="pvtab" role="tab" aria-selected="true"
+                onclick="showPreview('plan')">🏋️ תוכנית אימונים</button>
+        <button class="pvtab" role="tab" aria-selected="false"
+                onclick="showPreview('nutri')">🥗 תפריט תזונה</button>
+      </div>
+      <div class="screen" id="j-preview"></div>
+      <div style="font-size:0.71rem;color:#666;margin-top:9px;line-height:1.6;">
+        הדוגמה מקוצרת. התוכנית שתיבנה לך מותאמת למטרה, לרמה, לציוד ולזמינות שתזין/י.
+      </div>
+    </div>
+
+    <div class="card">
       <div style="font-size:0.8rem;color:var(--muted);margin-bottom:9px;">בחר/י מסלול</div>
       <div class="plans" id="j-plans" role="radiogroup" aria-label="מסלול"></div>
     </div>
@@ -148,6 +184,46 @@ if (location.protocol === 'file:') location.href = 'https://fit-journey1.vercel.
   const KEY  = 'sb_publishable_k3M7SfBeiBGs3rTKewBzWQ_7RHRskB9';
   const sb = supabase.createClient(URL_, KEY);
 
+  /* ── תצוגה מקדימה ──
+     דוגמה קצרה של הפלט האמיתי. מי שלא ראה מה הוא קונה לא קונה,
+     ולכן הדוגמה מסומנת "דוגמה" ולא מתחזה לתוכנית שנבנתה עבורו. */
+  const PREVIEW = {
+    plan: {
+      h: 'יום א׳ · חזה וכתפיים',
+      s: 'מתאים לחדר כושר · 5 תרגילים · כ-55 דקות',
+      rows: [
+        ['לחיצת חזה במוט', '4 סטים · 8 חזרות', 'מנוחה 90 שנ׳ · העלאת משקל כשמשלימים 8 בכל הסטים'],
+        ['לחיצת חזה בשיפוע — משקולות', '3 סטים · 10 חזרות', 'מנוחה 75 שנ׳ · ירידה מבוקרת'],
+        ['פרפר במכונה', '3 סטים · 12 חזרות', 'מנוחה 60 שנ׳ · עצירה קצרה בכיווץ'],
+        ['לחיצת כתפיים בישיבה', '3 סטים · 10 חזרות', 'מנוחה 75 שנ׳'],
+        ['הרחקות צד', '4 סטים · 15 חזרות', 'מנוחה 45 שנ׳ · משקל קל, טווח מלא'],
+      ],
+      chips: ['נפח: 17 סטים', 'דגש: חזה', 'רמה: מתקדם מתחיל'],
+    },
+    nutri: {
+      h: 'יום אימון · 2,400 קק״ל',
+      s: 'מבוסס על מאגר התזונה הלאומי · 4 ארוחות',
+      rows: [
+        ['ארוחת בוקר', '620 קק״ל', '4 ביצים · 80ג שיבולת שועל · בננה'],
+        ['צהריים', '780 קק״ל', '200ג חזה עוף · 150ג אורז · סלט ירקות'],
+        ['לפני אימון', '320 קק״ל', '2 פרוסות לחם מלא · גבינה 5% · תפוח'],
+        ['ערב', '680 קק״ל', '200ג סלמון · בטטה אפויה · ברוקולי'],
+      ],
+      chips: ['חלבון 180ג', 'פחמימות 240ג', 'שומן 70ג'],
+    },
+  };
+
+  function showPreview(kind) {
+    const d = PREVIEW[kind] || PREVIEW.plan;
+    document.querySelectorAll('.pvtab').forEach((b, i) =>
+      b.setAttribute('aria-selected', String((i === 0) === (kind !== 'nutri'))));
+    document.getElementById('j-preview').innerHTML =
+      '<div class="scr-h">' + d.h + '</div><div class="scr-s">' + d.s + '</div>' +
+      d.rows.map(([a, b, c]) =>
+        '<div class="row"><b>' + a + '<i>' + c + '</i></b><span>' + b + '</span></div>').join('') +
+      '<div class="chips">' + d.chips.map(c => '<div class="chip">' + c + '</div>').join('') + '</div>';
+  }
+
   /* המסלול הנבחר. משנה שלושה דברים: המחיר, מספר הטוקנים, ותקנון
      המסלול — שלושת התקנונים זהים למעט סעיף התקופה. */
   let planKey = FL_DEFAULT_PLAN;
@@ -159,7 +235,7 @@ if (location.protocol === 'file:') location.href = 'https://fit-journey1.vercel.
       '<span class="dot"></span>' +
       '<span class="nm"><b>' + p.label +
         (p.was ? '<span class="tag">מבצע</span>' : '') + '</b>' +
-        '<i>' + p.tokens + ' טוקנים · ' + p.plans + '</i></span>' +
+        '<i>' + flBlurb(p.key) + '</i></span>' +
       '<span class="pr">' + (p.was ? '<s>' + p.was + ' ₪</s>' : '') +
         '<b>' + p.price + ' ₪</b></span>' +
       '</button>').join('');
@@ -187,6 +263,7 @@ if (location.protocol === 'file:') location.href = 'https://fit-journey1.vercel.
     st('');
   }
 
+  showPreview('plan');
   renderPlans();
   renderTerms();
 

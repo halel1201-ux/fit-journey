@@ -313,6 +313,7 @@
   </div>
   <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
     <button class="btn-mob-menu" onclick="toggleMobileSidebar()">☰ לקוחות</button>
+    <button class="btn-sm btn-outline" id="btn-req-view" onclick="openRequestsView()" style="border-color:rgba(255,107,0,0.5);color:var(--orange);" title="כל מה שממתין לאישור: מסלולים עצמאיים ובקשות טוקנים">📥 בקשות<span id="req-badge"></span></button>
     <button class="btn-sm btn-outline" id="btn-ex-view" onclick="toggleExView()" style="border-color:rgba(255,215,0,0.35);color:#FFD700;">💪 תרגילים</button>
     <button class="btn-sm btn-outline" id="btn-rc-view" onclick="toggleRecipeView()" style="border-color:rgba(255,215,0,0.35);color:#FFD700;">🍳 מתכונים</button>
     <button class="btn-sm btn-outline" id="btn-fi-view" onclick="toggleFoodView()" style="border-color:rgba(74,222,128,0.35);color:#4ade80;">🥦 מזון</button>
@@ -1104,6 +1105,10 @@
     }
     await Promise.all([loadClients(), loadCoaches(), loadExerciseLibrary(), loadFoodItems()]);
     document.getElementById('loader').style.display = 'none';
+    /* המונה על כפתור הבקשות נטען ברקע: בלעדיו צריך לנחש שיש
+       משהו ממתין ולהיכנס לבדוק. כישלון כאן לא עוצר את הפאנל. */
+    Promise.all([loadTokenRequests(), loadFreelancers()])
+      .then(refreshRequestsBadge).catch(() => {});
   }
 
   /* ── מחיקת התראות (אדמין) ──
@@ -2706,18 +2711,33 @@
   let freelancersCache = [];
 
   async function loadFreelancers() {
+    /* נטען גם כשאין לאן לצייר: המונה על כפתור הבקשות צריך את
+       הנתונים לפני שנפתח מסך כלשהו. */
     const wrap = document.getElementById('freelancers-wrap');
-    if (!wrap) return;
     const { data, error } = await sb.from('clients')
       .select('email,name,phone,client_type,freelancer_status,pending_since,freelancer_since,access_until,tokens_balance,waiver_signed_at,waiver_version,freelancer_plan')
       .or('client_type.eq.freelancer,freelancer_status.not.is.null')
       .order('pending_since', { ascending: false });
     if (error) {
-      wrap.innerHTML = '<div style="color:#f87171;font-size:0.8rem;">לא נטען: ' + esc(error.message) + '</div>';
+      if (wrap) wrap.innerHTML = '<div style="color:#f87171;font-size:0.8rem;">לא נטען: ' + esc(error.message) + '</div>';
       return;
     }
     freelancersCache = data || [];
     renderFreelancers();
+    refreshRequestsBadge();
+  }
+
+  /* כמה דברים ממתינים לאישור, על הכפתור בסרגל. בלי המספר הזה
+     בקשה יכולה לשבת ימים בלי שאיש ייכנס למסך שבו היא מוצגת. */
+  function refreshRequestsBadge() {
+    const el = document.getElementById('req-badge');
+    if (!el) return;
+    const n = freelancersCache.filter(c => c.freelancer_status === 'pending').length +
+              tokenRequestsCache.length;
+    el.textContent = n ? ' ' + n : '';
+    el.style.cssText = n
+      ? 'background:var(--orange);color:#fff;border-radius:9px;padding:0 5px;margin-inline-start:4px;font-size:0.66rem;font-weight:900;'
+      : '';
   }
 
   /* ימי עסקים — אותו חישוב כמו במסד, כדי שהמספר שמוצג יהיה
@@ -2906,11 +2926,19 @@
     renderCoachesTable();
   }
 
-  async function approveTokenRequest(reqId, email, tokens) {
-    await grantCoachTokens(email, tokens);
+  /* פרילנסר אינו מאמן: הטוקנים שלו יושבים על שורת הלקוח ולא
+     בארנק המאמנים, ולכן הטעינה עוברת דרך RPC אחר. */
+  async function approveTokenRequest(reqId, email, tokens, isFreelancer) {
+    if (isFreelancer) {
+      const { error } = await sb.rpc('grant_client_tokens', { p_client: email, p_tokens: tokens });
+      if (error) { toast('נכשל: ' + error.message, 'err'); return; }
+    } else {
+      await grantCoachTokens(email, tokens);
+    }
     await sb.from('token_requests').update({ status: 'approved' }).eq('id', reqId);
     tokenRequestsCache = tokenRequestsCache.filter(r => r.id !== reqId);
     renderTokenRequestsSection();
+    if (isFreelancer) loadFreelancers();
     toast(`✓ ${tokens} טוקנים נוספו ואושרו`, 'ok');
   }
 
@@ -2921,21 +2949,61 @@
     toast('בקשה נדחתה', 'ok');
   }
 
-  function renderTokenRequestsSection() {
-    const wrap = document.getElementById('token-requests-wrap');
+  /* בקשות מאמן ובקשות פרילנסר יושבות באותה טבלה אבל נטענות
+     לארנקים שונים — coach_tokens מול clients.tokens_balance —
+     ולכן הן מופרדות כאן ומאושרות במסלול אחר. */
+  function isFlRequest(r) { return r.requester_kind === 'freelancer'; }
+
+  function paintTokenRequests(id, rows) {
+    const wrap = document.getElementById(id);
     if (!wrap) return;
-    if (!tokenRequestsCache.length) { wrap.innerHTML = '<div style="font-size:0.8rem;color:#555;">אין בקשות ממתינות</div>'; return; }
-    wrap.innerHTML = tokenRequestsCache.map(r => `
+    if (!rows.length) { wrap.innerHTML = '<div style="font-size:0.8rem;color:#555;">אין בקשות ממתינות</div>'; return; }
+    wrap.innerHTML = rows.map(r => `
       <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 12px;border-radius:8px;background:rgba(255,107,0,0.05);border:1px solid rgba(255,107,0,0.2);margin-bottom:6px;flex-wrap:wrap;">
         <div>
           <div style="font-size:0.85rem;font-weight:700;">${esc(r.coach_name||r.coach_email)}</div>
           <div style="font-size:0.72rem;color:var(--muted);">${r.tokens.toLocaleString()} טוקנים · ${r.price} ₪ · ${new Date(r.created_at).toLocaleDateString('he-IL')}</div>
         </div>
         <div style="display:flex;gap:6px;">
-          <button class="btn-sm btn-orange" style="font-size:0.72rem;" onclick="approveTokenRequest(${r.id},'${r.coach_email}',${r.tokens})">✓ אשר</button>
+          <button class="btn-sm btn-orange" style="font-size:0.72rem;" onclick="approveTokenRequest(${r.id},'${r.coach_email}',${r.tokens},${isFlRequest(r)})">✓ אשר</button>
           <button class="btn-sm btn-red"    style="font-size:0.72rem;" onclick="rejectTokenRequest(${r.id})">✕ דחה</button>
         </div>
       </div>`).join('');
+  }
+
+  function renderTokenRequestsSection() {
+    paintTokenRequests('token-requests-wrap', tokenRequestsCache.filter(r => !isFlRequest(r)));
+    paintTokenRequests('fl-token-requests-wrap', tokenRequestsCache.filter(isFlRequest));
+    refreshRequestsBadge();
+  }
+
+  /* ── מסך אחד לכל מה שממתין לאישור ── */
+  async function openRequestsView() {
+    activeEmail = null;
+    if (typeof exercisesMode !== 'undefined') exercisesMode = false;
+    if (typeof recipesMode !== 'undefined') recipesMode = false;
+    renderSidebar();
+    document.getElementById('main-area').innerHTML = `
+      <div class="sec-card" style="margin-bottom:16px;">
+        <div class="sec-card-title">🧍 בקשות מסלול עצמאי
+          <button class="btn-sm btn-outline" onclick="loadFreelancers()" style="font-size:0.72rem;">רענן</button>
+        </div>
+        <div id="freelancers-wrap"><div style="font-size:0.8rem;color:#555;">טוען...</div></div>
+      </div>
+      <div class="sec-card" style="margin-bottom:16px;">
+        <div class="sec-card-title">🎟️ בקשות טוקנים — מאמנים
+          <button class="btn-sm btn-outline" onclick="loadTokenRequests().then(renderTokenRequestsSection)" style="font-size:0.72rem;">רענן</button>
+        </div>
+        <div id="token-requests-wrap"><div style="font-size:0.8rem;color:#555;">טוען...</div></div>
+      </div>
+      <div class="sec-card">
+        <div class="sec-card-title">🎟️ בקשות טוקנים — מתאמנים עצמאיים
+          <button class="btn-sm btn-outline" onclick="loadTokenRequests().then(renderTokenRequestsSection)" style="font-size:0.72rem;">רענן</button>
+        </div>
+        <div id="fl-token-requests-wrap"><div style="font-size:0.8rem;color:#555;">טוען...</div></div>
+      </div>`;
+    await Promise.all([loadTokenRequests(), loadFreelancers()]);
+    renderTokenRequestsSection();
   }
 
   /* סדר א-ב לפי שם. localeCompare עם 'he' מסדר עברית נכון —
