@@ -5,146 +5,377 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>מסלול עצמאי — Fit Journey</title>
 <link rel="icon" href="favicon.png">
-<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;700;800;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;700;800;900&display=swap" rel="stylesheet">
 <script>/* נפתח כקובץ מקומי — קופצים לאתר החי, כמו בשאר הדפים */
 if (location.protocol === 'file:') location.href = 'https://fit-journey1.vercel.app/join.html';</script>
 <style>
-  :root { --orange:#FF6B00; --gold:#FFD700; --muted:#8a8f95; }
+  :root { --orange:#FF6B00; --orange2:#FF8C00; --gold:#FFD700; --muted:#8a8f95;
+          --line:rgba(255,255,255,0.1); }
   * { box-sizing:border-box; }
+  html { scroll-behavior:smooth; }
   body { margin:0; background:#0a0a0a; color:#fff; font-family:Heebo,Arial,sans-serif;
-         min-height:100vh; padding:calc(20px + env(safe-area-inset-top,0px)) 16px
-         calc(24px + env(safe-area-inset-bottom,0px)); }
-  .wrap { max-width:430px; margin:0 auto; position:relative; }
+         overflow-x:hidden; }
+  .wrap { max-width:940px; margin:0 auto; padding:0 16px; position:relative; }
+  .in { position:relative; z-index:1; }
+  a { color:var(--orange); }
+
+  /* ── סרגל ── */
+  .nav { position:sticky; top:0; z-index:60; background:rgba(10,10,10,0.9);
+         backdrop-filter:blur(10px); border-bottom:1px solid var(--line);
+         padding:calc(11px + env(safe-area-inset-top,0px)) 0 11px; }
+  .nav .wrap { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+  .logo { font-size:1.15rem; font-weight:900; letter-spacing:.5px; }
+  .logo b { color:var(--orange); }
+  .nav .cta { background:linear-gradient(135deg,var(--orange),var(--orange2)); color:#fff;
+        border:0; border-radius:10px; padding:9px 17px; font-family:Heebo,sans-serif;
+        font-weight:900; font-size:0.83rem; cursor:pointer; text-decoration:none;
+        box-shadow:0 4px 18px rgba(255,107,0,0.32); white-space:nowrap; }
+
+  /* ── גיבור ── */
+  .hero { position:relative; padding:58px 0 46px; text-align:center; overflow:hidden; }
+  .hero::before { content:''; position:absolute; inset:-40% -20% 20% -20%;
+        background:radial-gradient(ellipse at 50% 100%, rgba(255,107,0,0.26), transparent 62%);
+        pointer-events:none; }
   .fj { position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
         pointer-events:none; z-index:0; }
-  .fj span { font-size:15rem; font-weight:900; opacity:0.03; letter-spacing:-8px; }
-  .in { position:relative; z-index:1; }
-  .logo { font-size:1.5rem; font-weight:900; letter-spacing:.5px; }
-  .logo b { color:var(--orange); }
-  h1 { font-size:1.35rem; font-weight:900; margin:18px 0 4px; }
-  .sub { color:var(--muted); font-size:0.88rem; line-height:1.7; }
-  .card { background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.1);
-          border-radius:15px; padding:15px; margin-top:16px; }
-  .price { display:flex; align-items:baseline; gap:8px; }
-  .price b { font-size:2rem; font-weight:900; color:var(--orange); }
-  .price span { color:var(--muted); font-size:0.85rem; }
-  /* בחירת מסלול — כפתורים ולא select, כדי שהמחיר והתקופה יהיו
-     גלויים בלי לפתוח רשימה */
-  .plans { display:flex; flex-direction:column; gap:8px; }
-  .plan { display:flex; align-items:center; gap:11px; width:100%; text-align:right;
-          background:rgba(255,255,255,0.04); border:1.5px solid rgba(255,255,255,0.12);
-          border-radius:12px; padding:11px 13px; cursor:pointer; color:#fff;
-          font-family:Heebo,sans-serif; transition:border-color .15s, background .15s; }
-  .plan:hover { border-color:rgba(255,107,0,0.5); }
-  .plan[aria-checked="true"] { border-color:var(--orange); background:rgba(255,107,0,0.08); }
-  .plan .dot { width:18px; height:18px; flex:none; border-radius:50%;
-               border:2px solid rgba(255,255,255,0.3); position:relative; }
-  .plan[aria-checked="true"] .dot { border-color:var(--orange); }
-  .plan[aria-checked="true"] .dot::after { content:''; position:absolute; inset:3px;
-               border-radius:50%; background:var(--orange); }
-  .plan .nm { flex:1; min-width:0; }
-  .plan .nm b { display:block; font-size:0.95rem; font-weight:800; }
-  .plan .nm i { display:block; font-style:normal; font-size:0.74rem; color:var(--muted); margin-top:1px; }
-  .plan .pr { flex:none; text-align:left; }
-  .plan .pr b { font-size:1.25rem; font-weight:900; color:var(--orange); }
-  .plan .pr s { display:block; font-size:0.74rem; color:#777; }
-  .tag { display:inline-block; background:var(--gold); color:#111; font-size:0.62rem;
-         font-weight:900; border-radius:5px; padding:1px 5px; margin-inline-start:5px;
-         vertical-align:middle; }
-  /* תצוגה מקדימה — דוגמה אמיתית של הפלט, לא צילום מסך */
-  .pvtabs { display:flex; gap:6px; margin-bottom:11px; }
-  .pvtab { flex:1; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12);
-           color:#bbb; border-radius:9px; padding:8px 6px; font-family:Heebo,sans-serif;
-           font-weight:800; font-size:0.79rem; cursor:pointer; }
-  .pvtab[aria-selected="true"] { border-color:var(--orange); background:rgba(255,107,0,0.1); color:#fff; }
-  .screen { background:#0f0f0f; border:1px solid rgba(255,255,255,0.1); border-radius:13px;
-            padding:12px; position:relative; overflow:hidden; }
-  .screen::after { content:'דוגמה'; position:absolute; top:9px; left:9px; font-size:0.6rem;
-            font-weight:900; color:#666; border:1px solid #333; border-radius:5px; padding:1px 5px; }
-  .scr-h { font-size:0.86rem; font-weight:900; color:var(--orange); margin-bottom:2px; }
-  .scr-s { font-size:0.71rem; color:var(--muted); margin-bottom:10px; }
-  .row { display:flex; justify-content:space-between; align-items:baseline; gap:8px;
-         padding:7px 0; border-top:1px solid rgba(255,255,255,0.06); font-size:0.8rem; }
+  .fj span { font-size:22rem; font-weight:900; opacity:0.025; letter-spacing:-14px;
+        line-height:1; white-space:nowrap; }
+  .eyebrow { display:inline-block; border:1px solid rgba(255,107,0,0.4);
+        background:rgba(255,107,0,0.09); color:#ffb27a; border-radius:20px;
+        padding:5px 14px; font-size:0.76rem; font-weight:800; margin-bottom:18px; }
+  h1 { font-size:2.6rem; font-weight:900; margin:0 0 14px; line-height:1.15; }
+  h1 em { font-style:normal; background:linear-gradient(90deg,var(--orange),var(--gold));
+          -webkit-background-clip:text; background-clip:text; color:transparent; }
+  .lead { color:#b8bdc2; font-size:1.05rem; line-height:1.75; max-width:560px;
+          margin:0 auto 24px; }
+  .btn-row { display:flex; gap:11px; justify-content:center; flex-wrap:wrap; }
+  .btn-primary { background:linear-gradient(135deg,var(--orange),var(--orange2)); color:#fff;
+        border:0; border-radius:13px; padding:15px 30px; font-family:Heebo,sans-serif;
+        font-weight:900; font-size:1rem; cursor:pointer; text-decoration:none;
+        box-shadow:0 6px 26px rgba(255,107,0,0.36); display:inline-block; }
+  .btn-ghost { background:none; border:1.5px solid rgba(255,255,255,0.22); color:#ddd;
+        border-radius:13px; padding:14px 26px; font-family:Heebo,sans-serif;
+        font-weight:800; font-size:0.95rem; cursor:pointer; text-decoration:none;
+        display:inline-block; }
+  .trust { display:flex; gap:20px; justify-content:center; flex-wrap:wrap; margin-top:26px;
+        color:#6e7479; font-size:0.79rem; }
+  .trust b { color:#aeb4b9; font-weight:700; }
+
+  /* ── מקטעים ── */
+  section { padding:46px 0; border-top:1px solid var(--line); }
+  .kicker { color:var(--orange); font-size:0.78rem; font-weight:900; letter-spacing:1.5px;
+            margin-bottom:7px; }
+  h2 { font-size:1.75rem; font-weight:900; margin:0 0 9px; line-height:1.25; }
+  .sub { color:var(--muted); font-size:0.94rem; line-height:1.75; max-width:620px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(215px,1fr)); gap:13px;
+          margin-top:26px; }
+  .card { background:rgba(255,255,255,0.04); border:1px solid var(--line);
+          border-radius:15px; padding:17px; }
+  .card .ic { font-size:1.6rem; margin-bottom:8px; display:block; }
+  .card h3 { font-size:1rem; font-weight:900; margin:0 0 5px; color:var(--gold); }
+  .card p { margin:0; font-size:0.85rem; color:#a8aeb3; line-height:1.65; }
+
+  /* ── איך זה עובד ── */
+  .steps { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:13px;
+           margin-top:26px; counter-reset:s; }
+  .step { background:rgba(255,255,255,0.03); border:1px solid var(--line);
+          border-radius:15px; padding:19px 17px; position:relative; }
+  .step::before { counter-increment:s; content:counter(s);
+          position:absolute; top:-13px; inset-inline-end:15px; width:30px; height:30px;
+          border-radius:50%; background:linear-gradient(135deg,var(--orange),var(--orange2));
+          color:#fff; font-weight:900; font-size:0.9rem; display:flex; align-items:center;
+          justify-content:center; box-shadow:0 4px 14px rgba(255,107,0,0.35); }
+  .step h3 { font-size:0.98rem; font-weight:900; margin:6px 0 5px; }
+  .step p { margin:0; font-size:0.84rem; color:#a8aeb3; line-height:1.65; }
+
+  /* ── תצוגה מקדימה ── */
+  .pvtabs { display:flex; gap:7px; margin:26px 0 13px; flex-wrap:wrap; }
+  .pvtab { background:rgba(255,255,255,0.05); border:1px solid var(--line);
+           color:#bbb; border-radius:11px; padding:10px 18px; font-family:Heebo,sans-serif;
+           font-weight:800; font-size:0.87rem; cursor:pointer; }
+  .pvtab[aria-selected="true"] { border-color:var(--orange); background:rgba(255,107,0,0.1);
+           color:#fff; box-shadow:0 4px 18px rgba(255,107,0,0.14); }
+  .screen { background:linear-gradient(180deg,#131313,#0d0d0d); border:1px solid var(--line);
+            border-radius:17px; padding:19px; position:relative; overflow:hidden;
+            box-shadow:0 18px 50px rgba(0,0,0,0.5); }
+  .screen::after { content:'דוגמה'; position:absolute; top:14px; left:14px; font-size:0.63rem;
+            font-weight:900; color:#6e7479; border:1px solid #333; border-radius:6px;
+            padding:2px 7px; letter-spacing:.5px; }
+  .scr-h { font-size:1.1rem; font-weight:900; color:var(--orange); margin-bottom:3px; }
+  .scr-s { font-size:0.79rem; color:var(--muted); margin-bottom:15px; }
+  .week { display:flex; gap:5px; margin-bottom:15px; flex-wrap:wrap; }
+  .wd { flex:1; min-width:52px; text-align:center; border:1px solid var(--line);
+        border-radius:9px; padding:7px 3px; font-size:0.68rem; color:#7a7f85;
+        background:rgba(255,255,255,0.02); }
+  .wd b { display:block; font-size:0.8rem; color:#ccc; font-weight:800; margin-bottom:2px; }
+  .wd.on { border-color:rgba(255,107,0,0.5); background:rgba(255,107,0,0.09); color:#ffb27a; }
+  .wd.on b { color:var(--orange); }
+  .row { display:flex; justify-content:space-between; align-items:baseline; gap:11px;
+         padding:10px 0; border-top:1px solid rgba(255,255,255,0.06); }
   .row:first-of-type { border-top:0; }
-  .row b { font-weight:700; color:#eee; }
-  .row span { flex:none; color:var(--gold); font-size:0.72rem; font-weight:800; white-space:nowrap; }
-  .row i { display:block; font-style:normal; font-size:0.68rem; color:#7a7f85; margin-top:1px; }
-  .chips { display:flex; gap:5px; flex-wrap:wrap; margin-top:10px; }
-  .chip { background:rgba(255,107,0,0.12); border:1px solid rgba(255,107,0,0.3); color:#ffb27a;
-          border-radius:20px; padding:3px 9px; font-size:0.68rem; font-weight:800; }
-  ul { margin:11px 0 0; padding-inline-start:19px; }
-  li { margin:5px 0; font-size:0.86rem; line-height:1.6; }
-  label { display:block; margin-bottom:11px; }
-  label span { display:block; font-size:0.76rem; color:var(--muted); margin-bottom:4px; }
+  .row b { font-weight:800; color:#eee; font-size:0.92rem; }
+  .row span { flex:none; color:var(--gold); font-size:0.8rem; font-weight:800;
+         white-space:nowrap; }
+  .row i { display:block; font-style:normal; font-size:0.75rem; color:#7a7f85;
+         margin-top:2px; font-weight:400; }
+  .chips { display:flex; gap:6px; flex-wrap:wrap; margin-top:15px;
+         padding-top:13px; border-top:1px solid rgba(255,255,255,0.06); }
+  .chip { background:rgba(255,107,0,0.12); border:1px solid rgba(255,107,0,0.3);
+          color:#ffb27a; border-radius:20px; padding:4px 12px; font-size:0.74rem;
+          font-weight:800; }
+  .pv-note { font-size:0.79rem; color:#6e7479; margin-top:13px; line-height:1.7; }
+
+  /* ── למי מתאים ── */
+  .fit { display:grid; grid-template-columns:repeat(auto-fit,minmax(270px,1fr)); gap:13px;
+         margin-top:26px; }
+  .fit > div { border:1px solid var(--line); border-radius:15px; padding:18px;
+         background:rgba(255,255,255,0.03); }
+  .fit h3 { font-size:1rem; font-weight:900; margin:0 0 11px; }
+  .fit.ok h3 { color:#4ade80; }
+  .fit ul { margin:0; padding:0; list-style:none; }
+  .fit li { font-size:0.87rem; line-height:1.6; margin-bottom:9px; padding-inline-start:24px;
+         position:relative; color:#c3c8cd; }
+  .fit li::before { position:absolute; inset-inline-start:0; top:0; font-weight:900; }
+  .yes li::before { content:'✓'; color:#4ade80; }
+  .no  li::before { content:'✕'; color:#f87171; }
+  .no h3 { color:#f87171; }
+
+  /* ── מסלולים ── */
+  .plans { display:grid; grid-template-columns:repeat(auto-fit,minmax(235px,1fr)); gap:14px;
+           margin-top:28px; }
+  .plan { text-align:right; background:rgba(255,255,255,0.04); border:1.5px solid var(--line);
+          border-radius:17px; padding:22px 19px 19px; cursor:pointer; color:#fff;
+          font-family:Heebo,sans-serif; position:relative;
+          transition:border-color .15s, background .15s, transform .15s; }
+  .plan:hover { border-color:rgba(255,107,0,0.5); transform:translateY(-3px); }
+  .plan[aria-checked="true"] { border-color:var(--orange); background:rgba(255,107,0,0.08);
+          box-shadow:0 12px 36px rgba(255,107,0,0.16); }
+  .plan .nm { font-size:1.15rem; font-weight:900; display:block; margin-bottom:3px; }
+  .plan .pr { display:flex; align-items:baseline; gap:8px; margin:11px 0 3px; }
+  .plan .pr b { font-size:2.5rem; font-weight:900; color:var(--orange); line-height:1; }
+  .plan .pr s { color:#6e7479; font-size:0.95rem; }
+  .plan .per { display:block; color:var(--muted); font-size:0.8rem; }
+  .plan .tk { display:block; margin-top:13px; padding-top:13px; border-top:1px solid rgba(255,255,255,0.08);
+          font-size:0.85rem; color:#c3c8cd; line-height:1.6; }
+  .plan .pick { display:block; margin-top:15px; text-align:center; border-radius:10px; padding:10px;
+          font-weight:900; font-size:0.87rem; border:1.5px solid rgba(255,255,255,0.2);
+          color:#ddd; }
+  .plan[aria-checked="true"] .pick { background:linear-gradient(135deg,var(--orange),var(--orange2));
+          border-color:transparent; color:#fff; }
+  .tag { position:absolute; top:-11px; inset-inline-start:17px; background:var(--gold);
+         color:#111; font-size:0.68rem; font-weight:900; border-radius:6px; padding:3px 10px; }
+
+  /* ── שאלות ── */
+  details { border:1px solid var(--line); border-radius:12px; margin-top:9px;
+            background:rgba(255,255,255,0.03); }
+  summary { padding:14px 17px; font-weight:800; font-size:0.92rem; cursor:pointer;
+            list-style:none; display:flex; justify-content:space-between; gap:11px; }
+  summary::-webkit-details-marker { display:none; }
+  summary::after { content:'+'; color:var(--orange); font-weight:900; font-size:1.2rem;
+            line-height:1; }
+  details[open] summary::after { content:'−'; }
+  details p { margin:0; padding:0 17px 15px; font-size:0.87rem; color:#a8aeb3;
+            line-height:1.75; }
+
+  /* ── טופס ── */
+  .form-card { background:rgba(255,255,255,0.04); border:1px solid var(--line);
+          border-radius:17px; padding:22px; margin-top:26px; max-width:520px; }
+  .chosen { background:rgba(255,107,0,0.09); border:1px solid rgba(255,107,0,0.3);
+          border-radius:11px; padding:11px 14px; font-size:0.88rem; margin-bottom:18px;
+          display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap; }
+  .chosen b { color:var(--gold); }
+  label { display:block; margin-bottom:13px; }
+  label > span { display:block; font-size:0.78rem; color:var(--muted); margin-bottom:5px; }
   /* רשימת ה-option מרונדרת ע"י מערכת ההפעלה ואינה יורשת מה-select */
   select { color-scheme: dark; }
   select option, select optgroup { background-color:#1a1a1a; color:#ffffff; }
   input, select, textarea { width:100%; background:rgba(255,255,255,0.06);
-    border:1px solid rgba(255,255,255,0.14); border-radius:10px; padding:11px 12px;
+    border:1px solid rgba(255,255,255,0.14); border-radius:10px; padding:12px 13px;
     color:#fff; font-family:Heebo,sans-serif; font-size:0.95rem; }
   input:focus, select:focus { outline:none; border-color:var(--orange); }
-  .terms { background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.1);
-           border-radius:11px; padding:12px; max-height:190px; overflow-y:auto;
-           font-size:0.78rem; color:#bbb; line-height:1.75; }
-  .terms h3 { color:var(--gold); font-size:0.84rem; margin:0 0 7px; }
-  .terms p { margin:0 0 8px; }
-  .chk { display:flex; gap:9px; align-items:flex-start; margin-top:11px; font-size:0.84rem;
+  .terms { background:rgba(255,255,255,0.03); border:1px solid var(--line);
+           border-radius:11px; padding:13px; max-height:200px; overflow-y:auto;
+           font-size:0.79rem; color:#b0b6bb; line-height:1.75; }
+  .terms h3 { color:var(--gold); font-size:0.85rem; margin:0 0 7px; }
+  .terms p { margin:0 0 9px; }
+  .chk { display:flex; gap:10px; align-items:flex-start; margin-top:13px; font-size:0.85rem;
          line-height:1.6; cursor:pointer; }
-  .chk input { width:19px; height:19px; flex:none; margin-top:2px; accent-color:var(--orange); }
-  .btn { width:100%; background:var(--orange); color:#fff; border:0; border-radius:12px;
-         padding:14px; font-family:Heebo,sans-serif; font-weight:900; font-size:1rem;
-         cursor:pointer; margin-top:14px; }
-  .btn:disabled { opacity:.5; cursor:not-allowed; }
-  .status { font-size:0.85rem; margin-top:11px; min-height:20px; line-height:1.6; }
-  .done { text-align:center; padding:26px 10px; }
-  .done .v { font-size:3rem; }
-  .foot { color:#666; font-size:0.74rem; text-align:center; margin-top:20px; line-height:1.7; }
-  a { color:var(--orange); }
+  .chk input { width:20px; height:20px; flex:none; margin-top:2px; accent-color:var(--orange); }
+  .btn { width:100%; background:linear-gradient(135deg,var(--orange),var(--orange2));
+         color:#fff; border:0; border-radius:13px; padding:15px; font-family:Heebo,sans-serif;
+         font-weight:900; font-size:1.02rem; cursor:pointer; margin-top:16px;
+         box-shadow:0 6px 24px rgba(255,107,0,0.3); }
+  .btn:disabled { opacity:.5; cursor:not-allowed; box-shadow:none; }
+  .status { font-size:0.86rem; margin-top:12px; min-height:20px; line-height:1.6; }
+  .done { text-align:center; padding:50px 10px; max-width:470px; margin:0 auto; }
+  .done .v { font-size:3.4rem; }
+  .foot { color:#5c6166; font-size:0.77rem; text-align:center; padding:30px 0
+          calc(34px + env(safe-area-inset-bottom,0px)); line-height:1.8;
+          border-top:1px solid var(--line); }
+
+  @media (max-width:600px) {
+    h1 { font-size:2rem; }
+    h2 { font-size:1.4rem; }
+    .hero { padding:40px 0 34px; }
+    section { padding:36px 0; }
+    .fj span { font-size:13rem; }
+  }
 </style>
 </head>
 <body>
-<div class="wrap">
-  <div class="fj"><span>FJ</span></div>
-  <div class="in" id="app">
-    <div class="logo">FIT <b>JOURNEY</b></div>
-    <h1>מסלול עצמאי</h1>
-    <div class="sub">בונה לעצמך תוכנית אימונים ותפריט עם אותו מנוע שהמאמנים שלנו עובדים איתו.
-      בלי מאמן אישי — באחריותך.</div>
 
-    <div class="card">
-      <ul>
-        <li>🏋️ בניית תוכנית אימונים מותאמת</li>
-        <li>🥗 בניית תפריט תזונה</li>
-        <li>📊 מעקב התקדמות, שיאים וגרפים</li>
-        <li>🎟️ טוקנים לפי המסלול — לבניית תוכניות ותפריטים</li>
-      </ul>
-      <div style="font-size:0.78rem;color:var(--muted);margin-top:10px;line-height:1.7;">
-        <b style="color:#f0b429;">מה לא כלול:</b> אין מאמן אישי, אין מעקב שוטף ואין התאמות
-        אישיות. לזה יש <a href="index.html#pricing">מסלולי ליווי</a> נפרדים.
+<div class="nav"><div class="wrap">
+  <div class="logo">FIT <b>JOURNEY</b></div>
+  <a href="#buy" class="cta">קח את המסלול</a>
+</div></div>
+
+<div id="app">
+
+  <!-- ══ גיבור ══ -->
+  <div class="hero">
+    <div class="fj"><span>FJ</span></div>
+    <div class="wrap in">
+      <div class="eyebrow">מסלול עצמאי · בלי מאמן</div>
+      <h1>המנוע שהמאמנים שלנו עובדים איתו,<br><em>עכשיו בידיים שלך</em></h1>
+      <div class="lead">בונה לעצמך תוכנית אימונים ותפריט תזונה מותאמים — לפי המטרה,
+        הרמה, הציוד והזמן שיש לך. אותה מערכת, בלי ליווי אישי, במחיר אחר לגמרי.</div>
+      <div class="btn-row">
+        <a href="#buy" class="btn-primary">מ-100 ₪ · בחר מסלול</a>
+        <a href="#preview" class="btn-ghost">קודם תראה לי דוגמה</a>
+      </div>
+      <div class="trust">
+        <div>🎯 <b>מותאם אישית</b> — לא תבנית קבועה</div>
+        <div>🥗 <b>מאגר התזונה הלאומי</b></div>
+        <div>📱 <b>אפליקציה מלאה</b> למעקב</div>
       </div>
     </div>
+  </div>
 
-    <div class="card">
-      <div style="font-size:0.8rem;color:var(--muted);margin-bottom:9px;">
-        ככה זה נראה — דוגמה מהמערכת</div>
-      <div class="pvtabs" role="tablist">
-        <button class="pvtab" role="tab" aria-selected="true"
-                onclick="showPreview('plan')">🏋️ תוכנית אימונים</button>
-        <button class="pvtab" role="tab" aria-selected="false"
-                onclick="showPreview('nutri')">🥗 תפריט תזונה</button>
-      </div>
-      <div class="screen" id="j-preview"></div>
-      <div style="font-size:0.71rem;color:#666;margin-top:9px;line-height:1.6;">
-        הדוגמה מקוצרת. התוכנית שתיבנה לך מותאמת למטרה, לרמה, לציוד ולזמינות שתזין/י.
-      </div>
+  <!-- ══ מה מקבלים ══ -->
+  <section><div class="wrap">
+    <div class="kicker">מה נכלל</div>
+    <h2>ארבעה כלים, חשבון אחד</h2>
+    <div class="sub">אותם כלים שמאמן משתמש בהם כדי לבנות ללקוח שלו — רק שכאן
+      אתה מפעיל אותם בעצמך.</div>
+    <div class="grid">
+      <div class="card"><span class="ic">🏋️</span><h3>בניית תוכנית אימונים</h3>
+        <p>מספר אימונים בשבוע, פיצול לפי המטרה, תרגילים עם סטים, חזרות, זמני מנוחה
+          ודגשי ביצוע — וסרטון לכל תרגיל.</p></div>
+      <div class="card"><span class="ic">🥗</span><h3>בניית תפריט תזונה</h3>
+        <p>קלוריות ומאקרו לפי הנתונים שלך, מחולק לארוחות, מבוסס על מאגר התזונה
+          הלאומי ולא על הערכות.</p></div>
+      <div class="card"><span class="ic">📊</span><h3>מעקב, שיאים וגרפים</h3>
+        <p>מבצע אימון עם טיימר, רושם משקלים וחזרות, ורואה שיאים אישיים והתקדמות
+          לאורך זמן.</p></div>
+      <div class="card"><span class="ic">🔄</span><h3>בונה שוב מתי שרוצה</h3>
+        <p>השתנתה המטרה, נגמר הציוד, נמאס מהתפריט — בונה גרסה חדשה. כל בנייה
+          יורדת מהטוקנים שלך.</p></div>
     </div>
+  </div></section>
 
-    <div class="card">
-      <div style="font-size:0.8rem;color:var(--muted);margin-bottom:9px;">בחר/י מסלול</div>
-      <div class="plans" id="j-plans" role="radiogroup" aria-label="מסלול"></div>
+  <!-- ══ תצוגה מקדימה ══ -->
+  <section id="preview"><div class="wrap">
+    <div class="kicker">ככה זה נראה</div>
+    <h2>לא הבטחה — הפלט עצמו</h2>
+    <div class="sub">זו דוגמה מקוצרת מתוך תוכנית ותפריט אמיתיים שהמערכת מייצרת.
+      מה שתקבל ייראה כך, עם התוכן שמתאים לך.</div>
+
+    <div class="pvtabs" role="tablist">
+      <button class="pvtab" role="tab" aria-selected="true"
+              onclick="showPreview('plan')">🏋️ תוכנית אימונים</button>
+      <button class="pvtab" role="tab" aria-selected="false"
+              onclick="showPreview('nutri')">🥗 תפריט תזונה</button>
     </div>
+    <div class="screen" id="j-preview"></div>
+    <div class="pv-note">הדוגמה מקוצרת. התוכנית שתיבנה לך מותאמת למטרה, לרמה, לציוד
+      ולזמינות שתזין/י — כולל פציעות והעדפות מזון.</div>
+  </div></section>
 
-    <div class="card">
+  <!-- ══ איך זה עובד ══ -->
+  <section><div class="wrap">
+    <div class="kicker">התהליך</div>
+    <h2>מהרשמה לתוכנית — באותו יום</h2>
+    <div class="steps">
+      <div class="step"><h3>ממלא פרטים</h3>
+        <p>שם, מייל וטלפון. שולח בקשה ומקבל הוראות תשלום בביט.</p></div>
+      <div class="step"><h3>מאמתים ופותחים</h3>
+        <p>אנחנו מאמתים את התשלום ופותחים לך גישה — עד 3 ימי עסקים. קוד כניסה
+          נשלח למייל.</p></div>
+      <div class="step"><h3>בונה ומתחיל</h3>
+        <p>עונה על כמה שאלות, לוחץ «בנה», ומקבל תוכנית ותפריט מוכנים לביצוע.</p></div>
+    </div>
+  </div></section>
+
+  <!-- ══ למי מתאים ══ -->
+  <section><div class="wrap">
+    <div class="kicker">בכנות</div>
+    <h2>למי זה מתאים — ולמי לא</h2>
+    <div class="sub">עדיף שתדע לפני שתשלם. אם אתה בעמודה הימנית, המסלול הזה יחסוך
+      לך הרבה כסף. אם אתה בשמאלית, הוא יבזבז לך אותו.</div>
+    <div class="fit">
+      <div class="ok yes"><h3>מתאים לך אם</h3><ul>
+        <li>אתה כבר מתאמן ויודע לבצע תרגילים נכון</li>
+        <li>אתה רוצה מסגרת מסודרת בלי לשלם על ליווי אישי</li>
+        <li>אתה מסתדר לבד ולא צריך שידחפו אותך</li>
+        <li>נמאס לך לחפש תוכניות אקראיות ברשת</li>
+        <li>אתה רוצה תפריט שמבוסס על נתונים ולא על ניחוש</li>
+      </ul></div>
+      <div class="no"><h3>לא מתאים לך אם</h3><ul>
+        <li>אתה מתחיל לגמרי ולא מכיר טכניקת ביצוע</li>
+        <li>יש לך פציעה פעילה או מגבלה רפואית שדורשת ליווי</li>
+        <li>אתה צריך מישהו שיעקוב אחריך ויתקן תוך כדי</li>
+        <li>אתה רוצה מענה אישי לשאלות לאורך הדרך</li>
+      </ul></div>
+    </div>
+    <div class="sub" style="margin-top:18px;">
+      במסלול הזה <b>אין מאמן אישי</b>, אין מעקב שוטף ואין התאמות אישיות לאורך הדרך.
+      לזה יש <a href="index.html#pricing">מסלולי ליווי</a> נפרדים — ואפשר לעבור אליהם
+      בכל שלב.
+    </div>
+  </div></section>
+
+  <!-- ══ מסלולים ══ -->
+  <section id="buy"><div class="wrap">
+    <div class="kicker">המסלולים</div>
+    <h2>בחר תקופה</h2>
+    <div class="sub">ההבדל היחיד בין המסלולים הוא כמה זמן הגישה פתוחה וכמה טוקנים
+      נכללים. הכלים זהים בשלושתם.</div>
+    <div class="plans" id="j-plans" role="radiogroup" aria-label="מסלול"></div>
+  </div></section>
+
+  <!-- ══ שאלות ══ -->
+  <section><div class="wrap">
+    <div class="kicker">שאלות נפוצות</div>
+    <h2>מה שאנשים שואלים לפני שהם קונים</h2>
+    <div style="margin-top:24px;max-width:680px;">
+      <details><summary>מה זה טוקן ולמה אני צריך אותם?</summary>
+        <p>טוקן הוא יחידת שימוש. כל בניית תוכנית אימונים או תפריט תזונה עולה טוקנים
+          מהיתרה שלך. הצפייה בתוכנית, ביצוע האימונים, המעקב והשיאים — לא עולים כלום.
+          כלומר אתה משלם על בנייה, לא על שימוש.</p></details>
+      <details><summary>מה קורה בסוף התקופה?</summary>
+        <p>הגישה לכלי הבנייה נסגרת. טוקנים שלא ניצלת נשמרים בחשבון וממתינים לך —
+          אם תחדש, תמשיך איתם מאיפה שהפסקת.</p></details>
+      <details><summary>מתי מתחילה הספירה?</summary>
+        <p>מהיום שאנחנו מאשרים לך את הגישה, לא מיום ההרשמה ולא מיום התשלום.
+          לא תפסיד ימים בזמן שאנחנו מאמתים.</p></details>
+      <details><summary>אפשר לעבור אחר כך למסלול עם מאמן?</summary>
+        <p>בהחלט. מסלולי הליווי הם שירות נפרד בתמחור נפרד, ואפשר לעבור אליהם בכל
+          שלב. בדף ההרשמה תמצא גם רשימת מאמנים מומלצים.</p></details>
+      <details><summary>ואם אני מבקש החזר?</summary>
+        <p>יש לך זכות ביטול בתוך 14 ימים מהעסקה, כמו בכל עסקה מרחוק. הפרטים
+          המלאים בתקנון המסלול, שאפשר לקרוא במלואו לפני שמאשרים.</p></details>
+      <details><summary>לא אושרתי — מה עם הכסף?</summary>
+        <p>בקשה שלא אושרה תוך שלושה ימי עסקים מתבטלת, ובקשת התשלום אינה נגבית.
+          לא נגבה ממך כסף לפני שהגישה נפתחה.</p></details>
+    </div>
+  </div></section>
+
+  <!-- ══ טופס ══ -->
+  <section id="signup"><div class="wrap">
+    <div class="kicker">הרשמה</div>
+    <h2>שלושה שדות ואתה בפנים</h2>
+    <div class="form-card">
+      <div class="chosen" id="j-chosen"></div>
       <label><span>שם מלא</span><input id="j-name" type="text" autocomplete="name"></label>
       <label><span>אימייל — לשם יישלח קוד הכניסה</span>
         <input id="j-email" type="email" autocomplete="email" inputmode="email"></label>
@@ -156,11 +387,9 @@ if (location.protocol === 'file:') location.href = 'https://fit-journey1.vercel.
           <option value="enhanced">לא טבעי</option>
           <option value="peptides">פפטידים</option>
         </select></label>
-    </div>
 
-    <div class="card">
       <div class="terms" id="j-terms"></div>
-      <div style="font-size:0.74rem;margin-top:8px;">
+      <div style="font-size:0.76rem;margin-top:9px;">
         <a id="j-terms-link" href="terms-freelancer.html" target="_blank" rel="noopener">
           פתיחת התקנון המלא בעמוד נפרד ↗</a></div>
       <label class="chk"><input type="checkbox" id="j-agree">
@@ -169,11 +398,11 @@ if (location.protocol === 'file:') location.href = 'https://fit-journey1.vercel.
       <button class="btn" id="j-btn" onclick="submitJoin()">שלח בקשה</button>
       <div class="status" id="j-status"></div>
     </div>
+  </div></section>
 
-    <div class="foot">
-      אחרי השליחה תקבל/י הוראות תשלום בביט.<br>
-      הגישה נפתחת אחרי אימות התשלום — <b>עד 3 ימי עסקים</b>.
-    </div>
+  <div class="foot">
+    אחרי השליחה תקבל/י הוראות תשלום בביט.<br>
+    הגישה נפתחת אחרי אימות התשלום — <b>עד 3 ימי עסקים</b>.
   </div>
 </div>
 
@@ -185,31 +414,34 @@ if (location.protocol === 'file:') location.href = 'https://fit-journey1.vercel.
   const sb = supabase.createClient(URL_, KEY);
 
   /* ── תצוגה מקדימה ──
-     דוגמה קצרה של הפלט האמיתי. מי שלא ראה מה הוא קונה לא קונה,
-     ולכן הדוגמה מסומנת "דוגמה" ולא מתחזה לתוכנית שנבנתה עבורו. */
+     דוגמה של הפלט האמיתי. מי שלא ראה מה הוא קונה לא קונה, ולכן
+     הדוגמה מסומנת "דוגמה" ואינה מתחזה לתוכנית שנבנתה עבורו. */
   const PREVIEW = {
     plan: {
       h: 'יום א׳ · חזה וכתפיים',
-      s: 'מתאים לחדר כושר · 5 תרגילים · כ-55 דקות',
+      s: 'פיצול 4 אימונים בשבוע · חדר כושר · כ-55 דקות',
+      week: [['א׳', 'חזה/כתף', 1], ['ב׳', 'גב/יד אח׳', 1], ['ג׳', 'מנוחה', 0],
+             ['ד׳', 'רגליים', 1], ['ה׳', 'מנוחה', 0], ['ו׳', 'ידיים', 1], ['ש׳', 'מנוחה', 0]],
       rows: [
         ['לחיצת חזה במוט', '4 סטים · 8 חזרות', 'מנוחה 90 שנ׳ · העלאת משקל כשמשלימים 8 בכל הסטים'],
-        ['לחיצת חזה בשיפוע — משקולות', '3 סטים · 10 חזרות', 'מנוחה 75 שנ׳ · ירידה מבוקרת'],
+        ['לחיצת חזה בשיפוע — משקולות', '3 סטים · 10 חזרות', 'מנוחה 75 שנ׳ · ירידה מבוקרת, בלי נעילת מרפקים'],
         ['פרפר במכונה', '3 סטים · 12 חזרות', 'מנוחה 60 שנ׳ · עצירה קצרה בכיווץ'],
-        ['לחיצת כתפיים בישיבה', '3 סטים · 10 חזרות', 'מנוחה 75 שנ׳'],
+        ['לחיצת כתפיים בישיבה', '3 סטים · 10 חזרות', 'מנוחה 75 שנ׳ · גב צמוד למשענת'],
         ['הרחקות צד', '4 סטים · 15 חזרות', 'מנוחה 45 שנ׳ · משקל קל, טווח מלא'],
       ],
-      chips: ['נפח: 17 סטים', 'דגש: חזה', 'רמה: מתקדם מתחיל'],
+      chips: ['נפח: 17 סטים', 'דגש: חזה', 'רמה: מתקדם מתחיל', 'סרטון לכל תרגיל'],
     },
     nutri: {
       h: 'יום אימון · 2,400 קק״ל',
       s: 'מבוסס על מאגר התזונה הלאומי · 4 ארוחות',
+      week: [['יום אימון', '2,400', 1], ['יום מנוחה', '2,100', 0], ['יום שריר מטרה', '2,600', 0]],
       rows: [
         ['ארוחת בוקר', '620 קק״ל', '4 ביצים · 80ג שיבולת שועל · בננה'],
-        ['צהריים', '780 קק״ל', '200ג חזה עוף · 150ג אורז · סלט ירקות'],
+        ['צהריים', '780 קק״ל', '200ג חזה עוף · 150ג אורז · סלט ירקות עם שמן זית'],
         ['לפני אימון', '320 קק״ל', '2 פרוסות לחם מלא · גבינה 5% · תפוח'],
-        ['ערב', '680 קק״ל', '200ג סלמון · בטטה אפויה · ברוקולי'],
+        ['ערב', '680 קק״ל', '200ג סלמון · בטטה אפויה · ברוקולי מאודה'],
       ],
-      chips: ['חלבון 180ג', 'פחמימות 240ג', 'שומן 70ג'],
+      chips: ['חלבון 180ג', 'פחמימות 240ג', 'שומן 70ג', 'החלפות לכל מאכל'],
     },
   };
 
@@ -219,6 +451,8 @@ if (location.protocol === 'file:') location.href = 'https://fit-journey1.vercel.
       b.setAttribute('aria-selected', String((i === 0) === (kind !== 'nutri'))));
     document.getElementById('j-preview').innerHTML =
       '<div class="scr-h">' + d.h + '</div><div class="scr-s">' + d.s + '</div>' +
+      '<div class="week">' + d.week.map(([a, b, on]) =>
+        '<div class="wd' + (on ? ' on' : '') + '"><b>' + a + '</b>' + b + '</div>').join('') + '</div>' +
       d.rows.map(([a, b, c]) =>
         '<div class="row"><b>' + a + '<i>' + c + '</i></b><span>' + b + '</span></div>').join('') +
       '<div class="chips">' + d.chips.map(c => '<div class="chip">' + c + '</div>').join('') + '</div>';
@@ -232,12 +466,13 @@ if (location.protocol === 'file:') location.href = 'https://fit-journey1.vercel.
     document.getElementById('j-plans').innerHTML = FL_PLANS.map(p =>
       '<button type="button" class="plan" role="radio" data-k="' + p.key + '" ' +
       'aria-checked="' + (p.key === planKey) + '" onclick="pickPlan(\'' + p.key + '\')">' +
-      '<span class="dot"></span>' +
-      '<span class="nm"><b>' + p.label +
-        (p.was ? '<span class="tag">מבצע</span>' : '') + '</b>' +
-        '<i>' + flBlurb(p.key) + '</i></span>' +
-      '<span class="pr">' + (p.was ? '<s>' + p.was + ' ₪</s>' : '') +
-        '<b>' + p.price + ' ₪</b></span>' +
+      (p.was ? '<span class="tag">מבצע</span>' : '') +
+      '<span class="nm">' + p.label + '</span>' +
+      '<span class="per">' + p.period + ' · גישה מלאה</span>' +
+      '<span class="pr"><b>' + p.price + ' ₪</b>' +
+        (p.was ? '<s>' + p.was + ' ₪</s>' : '') + '</span>' +
+      '<span class="tk">🎟️ ' + flBlurb(p.key) + '</span>' +
+      '<span class="pick">' + (p.key === planKey ? '✓ נבחר' : 'בחר מסלול זה') + '</span>' +
       '</button>').join('');
   }
 
@@ -252,6 +487,13 @@ if (location.protocol === 'file:') location.href = 'https://fit-journey1.vercel.
     document.getElementById('j-terms-link').href = 'terms-freelancer.html?plan=' + planKey;
   }
 
+  function renderChosen() {
+    const p = flPlan(planKey);
+    document.getElementById('j-chosen').innerHTML =
+      '<span>המסלול שנבחר: <b>' + p.label + '</b></span>' +
+      '<span><b>' + p.price + ' ₪</b> · ' + p.tokens + ' טוקנים</span>';
+  }
+
   /* החלפת מסלול מבטלת אישור קודם: מי שאישר את תקנון החודש לא אישר
      את תקנון חצי השנה, גם אם רק סעיף אחד שונה ביניהם. */
   function pickPlan(k) {
@@ -259,13 +501,16 @@ if (location.protocol === 'file:') location.href = 'https://fit-journey1.vercel.
     document.getElementById('j-agree').checked = false;
     renderPlans();
     renderTerms();
+    renderChosen();
     document.getElementById('j-terms').scrollTop = 0;
     st('');
+    document.getElementById('signup').scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
   showPreview('plan');
   renderPlans();
   renderTerms();
+  renderChosen();
 
   function st(msg, kind) {
     const el = document.getElementById('j-status');
@@ -299,22 +544,22 @@ if (location.protocol === 'file:') location.href = 'https://fit-journey1.vercel.
        מניח שנפל, ומנסה שוב או נוטש. */
     document.getElementById('app').innerHTML =
       '<div class="done"><div class="v">✅</div>' +
-      '<h1 style="margin-top:10px;">הבקשה התקבלה</h1>' +
-      '<div class="sub">עכשיו נשאר לשלם, ונפתח לך את הגישה.</div>' +
-      '<div class="card" style="text-align:right;">' +
+      '<h1 style="margin-top:10px;font-size:1.7rem;">הבקשה התקבלה</h1>' +
+      '<div class="lead">עכשיו נשאר לשלם, ונפתח לך את הגישה.</div>' +
+      '<div class="form-card" style="text-align:right;margin:0 auto;">' +
         '<div style="font-weight:900;color:var(--gold);margin-bottom:8px;">התשלום — ' +
         plan.price + ' ₪ בביט</div>' +
-        '<div style="font-size:0.8rem;color:var(--muted);margin-bottom:9px;">מסלול ' +
+        '<div style="font-size:0.85rem;color:var(--muted);margin-bottom:11px;">מסלול ' +
         plan.label + ' · ' + plan.tokens + ' טוקנים</div>' +
-        '<div style="font-size:1.15rem;font-weight:900;letter-spacing:1px;">058-693-1163</div>' +
-        '<div style="font-size:0.82rem;color:var(--muted);margin-top:9px;line-height:1.7;">' +
+        '<div style="font-size:1.3rem;font-weight:900;letter-spacing:1px;">058-693-1163</div>' +
+        '<div style="font-size:0.84rem;color:var(--muted);margin-top:10px;line-height:1.7;">' +
         'אחרי התשלום שלח/י לנו הודעה בוואטסאפ כדי שנאמת ונפתח.</div>' +
         '<a href="https://wa.me/972586931163" target="_blank" rel="noopener" ' +
-        'style="display:block;margin-top:11px;background:#25D366;color:#fff;text-align:center;' +
-        'border-radius:11px;padding:12px;font-weight:900;text-decoration:none;">' +
+        'style="display:block;margin-top:13px;background:#25D366;color:#fff;text-align:center;' +
+        'border-radius:11px;padding:13px;font-weight:900;text-decoration:none;">' +
         '📲 שלח הודעה בוואטסאפ</a>' +
       '</div>' +
-      '<div class="foot">הגישה נפתחת עד <b>3 ימי עסקים</b>.<br>' +
+      '<div class="foot" style="border:0;">הגישה נפתחת עד <b>3 ימי עסקים</b>.<br>' +
       'כשנאשר — יישלח למייל <b>' + email.replace(/</g, '&lt;') + '</b> קוד כניסה חד-פעמי.</div>' +
       '</div>';
   }
