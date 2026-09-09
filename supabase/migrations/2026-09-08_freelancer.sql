@@ -375,3 +375,12 @@ COMMENT ON FUNCTION request_freelancer(text, text, text, text, text) IS
 
 REVOKE ALL ON FUNCTION request_freelancer(text, text, text, text, text) FROM public;
 GRANT EXECUTE ON FUNCTION request_freelancer(text, text, text, text, text) TO anon, authenticated;
+
+
+-- ══ תיקון: add_business_days נשארה ציבורית ══
+-- פונקציה בלי REVOKE מפורש נשארת EXECUTE ל-PUBLIC כברירת מחדל
+-- של Postgres. כאן זה חישוב תאריכים טהור בלי גישה לנתונים, ולכן
+-- לא הייתה חשיפה — אבל זו הרשאה שלא התכוונו לתת, והדפוס עצמו
+-- מסוכן: הוא חוזר על כל פונקציה שנשכח לנטרל.
+REVOKE ALL ON FUNCTION add_business_days(date, int) FROM public, anon;
+GRANT EXECUTE ON FUNCTION add_business_days(date, int) TO authenticated;
