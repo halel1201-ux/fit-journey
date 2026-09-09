@@ -3,7 +3,7 @@
 // (שני SW-ים נפרדים על "/" גורמים לבעיות הרשמה ל-Push, בעיקר ב-iOS Safari)
 importScripts('https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js');
 
-const CACHE = 'hf-v32'; // bumped: תצוגה מקדימה, מסך בקשות, טוקנים מעודכנים
+const CACHE = 'hf-v33'; // bumped: יעדי קלוריות לפי סוג יום
 
 // relative paths — work from root AND from a subpath like /fit-journey/
 const STATIC = [

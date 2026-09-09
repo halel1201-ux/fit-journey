@@ -4519,7 +4519,7 @@
     // background load has finished — it runs concurrently with these queries
     const [{ data: tr }, { data: nu }, { data: pkg }, { data: debtTxns }] = await Promise.all([
       sb.from('training_plans').select('plan').eq('client_email', email).single(),
-      sb.from('nutrition_plans').select('plan,archive').eq('client_email', email).single(),
+      sb.from('nutrition_plans').select('plan,archive,day_targets').eq('client_email', email).single(),
       sb.from('client_packages').select('*').eq('client_email', email).eq('coach_email', coachEmail).order('created_at', { ascending: false }).limit(1).maybeSingle(),
       sb.from('client_debt_transactions').select('*').eq('client_email', email).eq('coach_email', coachEmail).order('txn_date', { ascending: false }).order('created_at', { ascending: false }),
       ensureLibs(),
@@ -4541,6 +4541,7 @@
        דרסה את התפריט הקודם לתמיד; הוא נשמר מזה זמן מה, אבל לא
        הייתה שום דרך להחזיר אותו. */
     nutritionArchive = Array.isArray(nu?.archive) ? nu.archive : [];
+    nutritionDayTargets = nu?.day_targets || null;
     renderNutriArchive();
     currentPackage = pkg || null;
     // מסתיר את הלובי בזמן צפייה במתאמן
@@ -9045,7 +9046,7 @@ ${(hasFile || preserveMode) ? '' : `4. התאם כמויות וערכים מדו
 יד) שער תזונה: ברירת מחדל אומניבור כשר. טופו/סייטן/קטניות כחלבון עיקרי — רק אם צוין במפורש "צמחוני/טבעוני" בבקשה.
 טו) איכות חלבון: העדף חלבון מלא עתיר-לאוצין וזמינות ביולוגית גבוהה; נתחים רזים (מודעות לשומן רווי). חלבון צמחי רק לצמחוני, ואז שילוב מקורות להשלמה.
 טז) ירקות/סיבים + מים כבסיס בארוחות עיקריות (ירק ירוקי חופשי).
-יז) לכל ארוחה הוסף שדה "day_type": "any" (ברירת מחדל — מוצג בכל יום) · "training" (ארוחות לפני/אחרי אימון — יום אימון בלבד) · "rest" (יום מנוחה) · "target" (יום שריר-מטרה לריקומפ).
+יז) סוגי יום — בנה תפריט בסיס אחד ועליו הפרשים, לא שלושה תפריטים נפרדים. רוב הארוחות מקבלות "day_type":"any" ומוצגות בכל יום. סמן "training" רק לארוחות שקיימות ביום אימון בלבד (לפני/אחרי אימון) — בדרך כלל 1-3 ארוחות. סמן "rest" רק לארוחה שמחליפה אותן ביום מנוחה, אם יש כזאת. "target" = יום מסה, רק אם התבקש במפורש. יום אימון חייב לצאת גבוה יותר בקלוריות מיום מנוחה, וההפרש נוצר מהארוחות המסומנות — לא מהקטנת הבסיס.
 `}
 ${wantVariants ? `
 ## 🔀 אופציות מלאות לכל ארוחה — חובה
@@ -10658,7 +10659,7 @@ ${buildFoodListForPrompt()}
         }
         return true;
       }
-      const { data } = await sb.from('nutrition_plans').select('plan,archive')
+      const { data } = await sb.from('nutrition_plans').select('plan,archive,day_targets')
         .eq('client_email', p.client_email).maybeSingle();
       const cur = data && data.plan;
       if (!Array.isArray(cur) || !cur.length) return [];    // אין מה לארכב

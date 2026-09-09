@@ -24,6 +24,60 @@
      הסינון לפי שם ולא לפי תוכן, כי לפעמים השורה כן נושאת פריטים
      (סכומי היום כאילו היו מזון) ובדיקת "יש פריטים" לא תופסת אותה.
      מוחל גם בטעינה, כך שתפריטים שכבר נשמרו מתנקים בשמירה הבאה. */
+  /* ── יעדי קלוריות לפי סוג יום ──
+     המסד סיפר מה קורה בפועל: מתוך 18 תפריטים מתויגים, 15 מתייגים
+     רק ארוחות של יום אימון ואפס משתמשים ב-target. כלומר אף מאמן
+     לא בונה שלושה ימים נפרדים — הוא בונה בסיס ומוסיף ארוחות לימי
+     אימון. לכן היעד כאן הוא הצהרה בלבד, והמספר שהמתאמן רואה
+     ממשיך להיגזר מהארוחות עצמן ואינו יכול לסתור אותן. */
+  let nutritionDayTargets = null;
+  const DAY_KINDS = [['training', '🏋️ יום אימון'], ['rest', '😴 יום מנוחה'], ['target', '🎯 יום מסה']];
+
+  /* אותו חישוב בדיוק כמו בצד המתאמן: המשותף ועוד של אותו יום. */
+  function dayKcal(dt) {
+    return Math.round((nutritionPlan || []).reduce((sum, m) => {
+      const t = m.day_type || 'any';
+      if (t !== 'any' && t !== dt) return sum;
+      return sum + (m.items || []).reduce((a, i) => a + (+i.calories || 0), 0);
+    }, 0));
+  }
+
+  function setDayTarget(dt, val) {
+    const n = parseInt(val, 10);
+    nutritionDayTargets = nutritionDayTargets || {};
+    if (n > 0) nutritionDayTargets[dt] = n; else delete nutritionDayTargets[dt];
+    if (!Object.keys(nutritionDayTargets).length) nutritionDayTargets = null;
+    nutriTouched();
+    renderNutritionEditor();
+  }
+
+  /* מוצג רק כשיש ארוחות מתויגות. תפריט קבוע לא רואה כלום — לא
+     שורה ריקה ולא שדות מיותרים. */
+  function dayTargetsBar() {
+    const used = DAY_KINDS.filter(k => (nutritionPlan || []).some(m => m.day_type === k[0]));
+    if (!used.length) return '';
+    const tg = nutritionDayTargets || {};
+    const cells = used.map(function (kv) {
+      const k = kv[0], sum = dayKcal(k), t = +tg[k] || 0;
+      const gap = t ? Math.abs(t - sum) : 0;
+      return '<div style="flex:1;min-width:150px;">' +
+        '<label style="display:block;font-size:0.72rem;color:#aaa;margin-bottom:3px;">' + kv[1] + '</label>' +
+        '<input type="number" min="0" step="50" value="' + (t || '') + '" placeholder="' + sum + '" ' +
+        'onchange="setDayTarget(\'' + k + '\', this.value)" ' +
+        'style="width:100%;padding:6px 9px;background:rgba(255,255,255,0.06);' +
+        'border:1px solid rgba(255,255,255,0.14);border-radius:7px;color:#fff;' +
+        'font-family:\'Heebo\',sans-serif;font-size:0.85rem;"/>' +
+        '<div style="font-size:0.68rem;margin-top:3px;color:' + (gap > 100 ? '#f0b429' : '#6e7479') + ';">' +
+        'בתפריט: ' + sum.toLocaleString() + ' קק"ל' +
+        (gap > 100 ? ' · פער ' + gap.toLocaleString() : '') + '</div></div>';
+    }).join('');
+    return '<div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.1);' +
+      'border-radius:10px;padding:10px 12px;margin-bottom:10px;">' +
+      '<div style="font-size:0.76rem;color:var(--muted);margin-bottom:8px;">' +
+      '🎯 יעד קלוריות לכל סוג יום — לא חובה. ריק = המתאמן רואה את סכום הארוחות.</div>' +
+      '<div style="display:flex;gap:10px;flex-wrap:wrap;">' + cells + '</div></div>';
+  }
+
   const NON_MEAL_RE = /^\s*(?:סיכום|סה["'״׳]?כ|סך[\s-]?הכל|total|summary|סיכום יומי)/i;
   function stripNonMeals(plan) {
     if (!Array.isArray(plan)) return { plan: [], dropped: 0 };
@@ -86,7 +140,7 @@
         return `<span style="margin-inline-start:auto;display:flex;align-items:center;gap:6px;"><select id="merge-kind-sel" style="padding:4px 8px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,215,0,0.4);border-radius:6px;color:#fff;font-family:'Heebo',sans-serif;font-size:0.72rem;cursor:pointer;">${ks.map(k => `<option value="${k}">${lbl(k)}</option>`).join('')}</select><button class="btn-sm btn-outline" style="font-size:0.72rem;border-color:rgba(255,215,0,0.5);color:var(--gold);" title="מאחד את האופציות של סוג הארוחה שנבחר בלבד" onclick="autoMergeOptions(document.getElementById('merge-kind-sel').value)">🔀 אחד אופציות</button></span>`; })()}
       <button class="btn-sm btn-outline" style="${canAutoMerge() ? '' : 'margin-inline-start:auto;'}font-size:0.72rem;border-color:rgba(255,215,0,0.4);color:var(--gold);" onclick="openFoodAdd('')">➕ מוצר למאגר שלי</button>
     </div>`;
-    el.innerHTML = macroBar + vmSwitch + nutritionPlan.map((meal,mi)=>`
+    el.innerHTML = macroBar + dayTargetsBar() + vmSwitch + nutritionPlan.map((meal,mi)=>`
       <div class="meal-block${collapsedMeals.has(mi)?' meal-collapsed':''}">
         <div class="meal-block-head">
           <button class="block-toggle" onclick="toggleMealCollapse(${mi})" title="הצג/הסתר ארוחה">▼</button>
@@ -96,7 +150,7 @@
             ${MEAL_KINDS.map(([v,l]) => `<option value="${v}" ${mealKind(meal)===v?'selected':''}>${l}</option>`).join('')}
           </select>
           <select onchange="nutritionPlan[${mi}].day_type=this.value;nutriTouched()" title="סוג יום — נקבע איזה יום הארוחה מוצגת למתאמן" style="padding:4px 6px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.14);border-radius:6px;color:#fff;font-family:'Heebo',sans-serif;font-size:0.72rem;cursor:pointer;flex-shrink:0;">
-            ${[['any','כל יום'],['training','🏋️ יום אימון'],['rest','😴 יום מנוחה'],['target','🎯 שריר מטרה']].map(([v,l])=>`<option value="${v}" ${(meal.day_type||'any')===v?'selected':''}>${l}</option>`).join('')}
+            ${[['any','כל יום']].concat(DAY_KINDS).map(([v,l])=>`<option value="${v}" ${(meal.day_type||'any')===v?'selected':''}>${l}</option>`).join('')}
           </select>
           <div style="display:flex;gap:5px;">
             ${mi < nutritionPlan.length - 1 ? `<button class="btn-sm btn-outline" style="padding:4px 9px;font-size:0.75rem;border-color:rgba(255,215,0,0.45);color:var(--gold);" title="מזג את הארוחה הבאה לכאן כאופציה — המתאמן יבחר אחת" onclick="mergeMealDown(${mi})">🔗 מזג כאופציה</button>` : ''}
@@ -742,7 +796,7 @@
       return proposeChange('nutrition_plan', plan,
         `${(plan || []).length} ארוחות`, false);
     }
-    const { error } = await sb.from('nutrition_plans').upsert({client_email:email,plan:plan,updated_at:new Date().toISOString()},{onConflict:'client_email'});
+    const { error } = await sb.from('nutrition_plans').upsert({client_email:email,plan:plan,day_targets:nutritionDayTargets,updated_at:new Date().toISOString()},{onConflict:'client_email'});
     if (!silent) error ? toast('שגיאה בשמירה','err') : toast('תפריט נשמר ✓','ok');
     return !error;
   }
