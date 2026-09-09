@@ -566,6 +566,7 @@
 <!-- עורך התזונה משותף עם פאנל המאמן: כל פיצ׳ר שנוסף שם מופיע גם כאן. -->
 <script src="plan-prompt.js"></script>
 <script src="nutrition-editor.js"></script>
+<script src="freelancer-terms.js"></script>
 <script>
   /* השמות שהעורך המשותף מצפה להם ואינם קיימים בפאנל האדמין.
      האדמין תמיד רשאי לערוך, ואינו סגן — ולכן אין כאן זרימת אישורים. */
@@ -2708,7 +2709,7 @@
     const wrap = document.getElementById('freelancers-wrap');
     if (!wrap) return;
     const { data, error } = await sb.from('clients')
-      .select('email,name,phone,client_type,freelancer_status,pending_since,freelancer_since,access_until,tokens_balance,waiver_signed_at,waiver_version')
+      .select('email,name,phone,client_type,freelancer_status,pending_since,freelancer_since,access_until,tokens_balance,waiver_signed_at,waiver_version,freelancer_plan')
       .or('client_type.eq.freelancer,freelancer_status.not.is.null')
       .order('pending_since', { ascending: false });
     if (error) {
@@ -2766,6 +2767,7 @@
             '<div style="font-size:0.88rem;font-weight:800;color:#eee;">' + esc(c.name || c.email.split('@')[0]) +
             ' <span style="color:#777;font-weight:400;font-size:0.74rem;">' + esc(c.email) + '</span></div>' +
             '<div style="font-size:0.74rem;color:var(--muted);margin-top:2px;">' +
+            '🎫 ' + flPlan(c.freelancer_plan).label + ' · ' +
             '🎟️ ' + (c.tokens_balance || 0) + ' טוקנים' +
             (c.phone ? ' · ' + esc(c.phone) : '') +
             (c.waiver_signed_at ? ' · ✓ תקנון ' + esc(c.waiver_version || '') : ' · ⚠️ ללא תקנון') +
@@ -2777,7 +2779,7 @@
           '<button onclick="approveFreelancer(\'' + c.email + '\')" style="background:rgba(74,222,128,0.15);' +
           'border:1px solid rgba(74,222,128,0.45);color:#4ade80;border-radius:7px;padding:4px 10px;' +
           'font-size:0.72rem;font-weight:800;cursor:pointer;font-family:Heebo,sans-serif;">' +
-          (active ? '↻ חדש 3 חודשים' : '✓ אשר והפעל') + '</button>' +
+          (active ? '↻ חדש ' + flPlan(c.freelancer_plan).label : '✓ אשר והפעל') + '</button>' +
           '<button onclick="grantFreelancerTokens(\'' + c.email + '\')" style="background:rgba(255,255,255,0.06);' +
           'border:1px solid rgba(255,255,255,0.15);color:#ccc;border-radius:7px;padding:4px 10px;' +
           'font-size:0.72rem;font-weight:700;cursor:pointer;font-family:Heebo,sans-serif;">🎟️ טען טוקנים</button>' +
@@ -2792,9 +2794,10 @@
   async function approveFreelancer(email) {
     const c = freelancersCache.find(x => x.email === email) || {};
     const renew = c.client_type === 'freelancer';
+    const pl = flPlan(c.freelancer_plan);
     if (!confirm((renew ? 'לחדש ל-' : 'לאשר גישה ל-') + email + '?\n\n' +
-      '· 3 חודשים מהיום' + (renew ? ' (או מסוף התקופה הנוכחית)' : '') + '\n' +
-      '· 500 טוקנים מתווספים ליתרה הקיימת\n' +
+      '· מסלול ' + pl.label + ' — ' + pl.days + ' ימים מהיום' + (renew ? ' (או מסוף התקופה הנוכחית)' : '') + '\n' +
+      '· ' + pl.tokens + ' טוקנים מתווספים ליתרה הקיימת\n' +
       '· הספירה מתחילה עכשיו')) return;
     const { data, error } = await sb.rpc('approve_freelancer', { p_client: email });
     if (error) { toast('נכשל: ' + error.message, 'err'); return; }

@@ -3,7 +3,7 @@
 // (שני SW-ים נפרדים על "/" גורמים לבעיות הרשמה ל-Push, בעיקר ב-iOS Safari)
 importScripts('https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js');
 
-const CACHE = 'hf-v30'; // bumped: בחירה כהה בדף ההרשמה
+const CACHE = 'hf-v31'; // bumped: שלושה מסלולים עצמאיים + תקנון לכל מסלול
 
 // relative paths — work from root AND from a subpath like /fit-journey/
 const STATIC = [
@@ -14,6 +14,8 @@ const STATIC = [
   './dashboard.html',
   './food.html',
   './join.html',
+  './terms-freelancer.html',
+  './freelancer-terms.js',
   './plan-prompt.js',
   './nutrition-editor.js',   // עורך התזונה המשותף — נטען בכל אחד משני הפאנלים
   './manifest.json',

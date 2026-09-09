@@ -1,0 +1,92 @@
+<!doctype html>
+<html dir="rtl" lang="he">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>תקנון המסלול העצמאי — Fit Journey</title>
+<link rel="icon" href="favicon.png">
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;700;800;900&display=swap" rel="stylesheet">
+<script>/* נפתח כקובץ מקומי — קופצים לאתר החי, כמו בשאר הדפים */
+if (location.protocol === 'file:') location.href = 'https://fit-journey1.vercel.app/terms-freelancer.html';</script>
+<style>
+  :root { --orange:#FF6B00; --gold:#FFD700; --muted:#8a8f95; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:#0a0a0a; color:#fff; font-family:Heebo,Arial,sans-serif;
+         padding:calc(20px + env(safe-area-inset-top,0px)) 16px
+                 calc(30px + env(safe-area-inset-bottom,0px)); }
+  .wrap { max-width:760px; margin:0 auto; }
+  .logo { font-size:1.4rem; font-weight:900; }
+  .logo b { color:var(--orange); }
+  h1 { font-size:1.4rem; font-weight:900; margin:16px 0 6px; }
+  .sub { color:var(--muted); font-size:0.86rem; line-height:1.7; }
+  .tabs { display:flex; gap:8px; margin:18px 0 14px; flex-wrap:wrap; }
+  .tab { background:rgba(255,255,255,0.05); border:1.5px solid rgba(255,255,255,0.12);
+         color:#ddd; border-radius:11px; padding:9px 15px; font-family:Heebo,sans-serif;
+         font-weight:800; font-size:0.87rem; cursor:pointer; transition:border-color .15s; }
+  .tab:hover { border-color:rgba(255,107,0,0.5); }
+  .tab[aria-selected="true"] { border-color:var(--orange); background:rgba(255,107,0,0.1);
+         color:#fff; }
+  .doc { background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.1);
+         border-radius:14px; padding:20px 18px; line-height:1.85; font-size:0.9rem;
+         color:#ccc; }
+  .doc h2 { color:var(--gold); font-size:1rem; margin:20px 0 6px; }
+  .doc h2:first-child { margin-top:0; }
+  .doc p { margin:0; }
+  .ver { color:#666; font-size:0.78rem; margin-top:22px;
+         border-top:1px solid rgba(255,255,255,0.08); padding-top:12px; }
+  .foot { color:#666; font-size:0.78rem; text-align:center; margin-top:22px; line-height:1.8; }
+  a { color:var(--orange); }
+  @media print {
+    body { background:#fff; color:#000; padding:0; }
+    .tabs, .foot, .logo { display:none; }
+    .doc { background:none; border:0; color:#000; padding:0; }
+    .doc h2 { color:#000; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="logo">FIT <b>JOURNEY</b></div>
+  <h1>תקנון המסלול העצמאי</h1>
+  <div class="sub">לכל מסלול תקנון נפרד. הנוסח זהה בשלושתם, למעט סעיף 1 — תקופת המסלול,
+    מספר הטוקנים והמחיר.</div>
+
+  <div class="tabs" id="tabs" role="tablist"></div>
+  <div class="doc" id="doc" role="tabpanel"></div>
+
+  <div class="foot">
+    <a href="join.html">חזרה לדף ההצטרפות</a> · <a href="index.html">לאתר</a>
+  </div>
+</div>
+
+<script src="freelancer-terms.js"></script>
+<script>
+  /* המסלול נבחר מהכתובת (terms-freelancer.html?plan=m6), כדי
+     שאפשר יהיה להפנות ישירות לתקנון של מסלול מסוים. */
+  const qp = new URLSearchParams(location.search).get('plan');
+  let cur = flPlan(qp || FL_DEFAULT_PLAN).key;
+
+  function esc(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  function render() {
+    document.getElementById('tabs').innerHTML = FL_PLANS.map(p =>
+      '<button class="tab" role="tab" aria-selected="' + (p.key === cur) + '" ' +
+      'onclick="show(\'' + p.key + '\')">' + p.label + ' · ' + p.price + ' ₪</button>').join('');
+
+    document.getElementById('doc').innerHTML =
+      flTerms(cur).map(([h, t]) => '<h2>' + esc(h) + '</h2><p>' + esc(t) + '</p>').join('') +
+      '<div class="ver">גרסת נוסח: ' + esc(flTermsVersion(cur)) + '</div>';
+  }
+
+  function show(k) {
+    cur = flPlan(k).key;
+    history.replaceState(null, '', 'terms-freelancer.html?plan=' + cur);
+    render();
+  }
+
+  render();
+</script>
+</body>
+</html>

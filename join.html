@@ -28,6 +28,29 @@ if (location.protocol === 'file:') location.href = 'https://fit-journey1.vercel.
   .price { display:flex; align-items:baseline; gap:8px; }
   .price b { font-size:2rem; font-weight:900; color:var(--orange); }
   .price span { color:var(--muted); font-size:0.85rem; }
+  /* בחירת מסלול — כפתורים ולא select, כדי שהמחיר והתקופה יהיו
+     גלויים בלי לפתוח רשימה */
+  .plans { display:flex; flex-direction:column; gap:8px; }
+  .plan { display:flex; align-items:center; gap:11px; width:100%; text-align:right;
+          background:rgba(255,255,255,0.04); border:1.5px solid rgba(255,255,255,0.12);
+          border-radius:12px; padding:11px 13px; cursor:pointer; color:#fff;
+          font-family:Heebo,sans-serif; transition:border-color .15s, background .15s; }
+  .plan:hover { border-color:rgba(255,107,0,0.5); }
+  .plan[aria-checked="true"] { border-color:var(--orange); background:rgba(255,107,0,0.08); }
+  .plan .dot { width:18px; height:18px; flex:none; border-radius:50%;
+               border:2px solid rgba(255,255,255,0.3); position:relative; }
+  .plan[aria-checked="true"] .dot { border-color:var(--orange); }
+  .plan[aria-checked="true"] .dot::after { content:''; position:absolute; inset:3px;
+               border-radius:50%; background:var(--orange); }
+  .plan .nm { flex:1; min-width:0; }
+  .plan .nm b { display:block; font-size:0.95rem; font-weight:800; }
+  .plan .nm i { display:block; font-style:normal; font-size:0.74rem; color:var(--muted); margin-top:1px; }
+  .plan .pr { flex:none; text-align:left; }
+  .plan .pr b { font-size:1.25rem; font-weight:900; color:var(--orange); }
+  .plan .pr s { display:block; font-size:0.74rem; color:#777; }
+  .tag { display:inline-block; background:var(--gold); color:#111; font-size:0.62rem;
+         font-weight:900; border-radius:5px; padding:1px 5px; margin-inline-start:5px;
+         vertical-align:middle; }
   ul { margin:11px 0 0; padding-inline-start:19px; }
   li { margin:5px 0; font-size:0.86rem; line-height:1.6; }
   label { display:block; margin-bottom:11px; }
@@ -68,17 +91,21 @@ if (location.protocol === 'file:') location.href = 'https://fit-journey1.vercel.
       בלי מאמן אישי — באחריותך.</div>
 
     <div class="card">
-      <div class="price"><b>200 ₪</b><span>לשלושה חודשים</span></div>
       <ul>
         <li>🏋️ בניית תוכנית אימונים מותאמת</li>
         <li>🥗 בניית תפריט תזונה</li>
         <li>📊 מעקב התקדמות, שיאים וגרפים</li>
-        <li>🎟️ 500 טוקנים — מספיק לכ-3 תוכניות ו-3 תפריטים</li>
+        <li>🎟️ טוקנים לפי המסלול — לבניית תוכניות ותפריטים</li>
       </ul>
       <div style="font-size:0.78rem;color:var(--muted);margin-top:10px;line-height:1.7;">
         <b style="color:#f0b429;">מה לא כלול:</b> אין מאמן אישי, אין מעקב שוטף ואין התאמות
         אישיות. לזה יש <a href="index.html#pricing">מסלולי ליווי</a> נפרדים.
       </div>
+    </div>
+
+    <div class="card">
+      <div style="font-size:0.8rem;color:var(--muted);margin-bottom:9px;">בחר/י מסלול</div>
+      <div class="plans" id="j-plans" role="radiogroup" aria-label="מסלול"></div>
     </div>
 
     <div class="card">
@@ -97,9 +124,12 @@ if (location.protocol === 'file:') location.href = 'https://fit-journey1.vercel.
 
     <div class="card">
       <div class="terms" id="j-terms"></div>
+      <div style="font-size:0.74rem;margin-top:8px;">
+        <a id="j-terms-link" href="terms-freelancer.html" target="_blank" rel="noopener">
+          פתיחת התקנון המלא בעמוד נפרד ↗</a></div>
       <label class="chk"><input type="checkbox" id="j-agree">
-        <span style="margin:0;color:#ddd;">קראתי את התקנון ואת הצהרת האחריות, ואני מאשר/ת
-          שהאחריות על השימוש בתוכניות היא שלי בלבד.</span></label>
+        <span style="margin:0;color:#ddd;">קראתי את התקנון של המסלול שבחרתי ואת הצהרת
+          הבריאות, ואני מאשר/ת אותם.</span></label>
       <button class="btn" id="j-btn" onclick="submitJoin()">שלח בקשה</button>
       <div class="status" id="j-status"></div>
     </div>
@@ -112,36 +142,53 @@ if (location.protocol === 'file:') location.href = 'https://fit-journey1.vercel.
 </div>
 
 <script src="vendor/supabase.min.js"></script>
+<script src="freelancer-terms.js"></script>
 <script>
   const URL_ = 'https://luwknflmhvcxgifzxgrk.supabase.co';
   const KEY  = 'sb_publishable_k3M7SfBeiBGs3rTKewBzWQ_7RHRskB9';
   const sb = supabase.createClient(URL_, KEY);
 
+  /* המסלול הנבחר. משנה שלושה דברים: המחיר, מספר הטוקנים, ותקנון
+     המסלול — שלושת התקנונים זהים למעט סעיף התקופה. */
+  let planKey = FL_DEFAULT_PLAN;
+
+  function renderPlans() {
+    document.getElementById('j-plans').innerHTML = FL_PLANS.map(p =>
+      '<button type="button" class="plan" role="radio" data-k="' + p.key + '" ' +
+      'aria-checked="' + (p.key === planKey) + '" onclick="pickPlan(\'' + p.key + '\')">' +
+      '<span class="dot"></span>' +
+      '<span class="nm"><b>' + p.label +
+        (p.was ? '<span class="tag">מבצע</span>' : '') + '</b>' +
+        '<i>' + p.tokens + ' טוקנים · ' + p.plans + '</i></span>' +
+      '<span class="pr">' + (p.was ? '<s>' + p.was + ' ₪</s>' : '') +
+        '<b>' + p.price + ' ₪</b></span>' +
+      '</button>').join('');
+  }
+
   /* גרסת הנוסח נשמרת עם החתימה. הנוסח ישתנה עם הזמן, ואי אפשר
      לחתום רטרואקטיבית על נוסח חדש — לכן מה שנחתם הוא גרסה מזוהה
-     ולא "כן". */
-  const WAIVER_VERSION = 'fl-2026-09-08';
-  const WAIVER_TEXT = [
-    ['תקנון המסלול העצמאי',
-      'המסלול מקנה גישה לכלים לבניית תוכנית אימונים ותפריט תזונה למשך שלושה חודשים ' +
-      'מיום אישור הגישה. הגישה נסגרת בתום התקופה; טוקנים שלא נוצלו נשמרים לחידוש.'],
-    ['אין ליווי אישי',
-      'במסלול זה אין מאמן אנושי, אין מעקב שוטף ואין התאמות אישיות. התוכניות נבנות ' +
-      'אוטומטית על סמך הפרטים שתזין/י.'],
-    ['הצהרת בריאות ואחריות',
-      'הנני מצהיר/ה כי אני בגיר/ה, במצב בריאותי המאפשר פעילות גופנית, וכי התייעצתי ' +
-      'עם גורם רפואי במידת הצורך. אני מבין/ה שפעילות גופנית ושינוי תזונתי כרוכים ' +
-      'בסיכון, ונוטל/ת על עצמי את מלוא האחריות לשימוש בתוכניות. Fit Journey ומפעיליה ' +
-      'אינם נושאים באחריות לנזק כלשהו הנובע מהשימוש בשירות.'],
-    ['ייעוץ רפואי',
-      'השירות אינו מהווה ייעוץ רפואי, אבחון או טיפול, ואינו תחליף לייעוץ מקצועי.'],
-    ['תשלום וביטול',
-      'התשלום מתבצע בביט. בקשה שלא אושרה תוך שלושה ימי עסקים מתבטלת, ובקשת התשלום ' +
-      'אינה נגבית.'],
-  ];
-  document.getElementById('j-terms').innerHTML =
-    WAIVER_TEXT.map(([h, p]) => '<h3>' + h + '</h3><p>' + p + '</p>').join('') +
-    '<p style="color:#666;">גרסה ' + WAIVER_VERSION + '</p>';
+     ולא "כן". מפתח המסלול נכלל בגרסה, כי כל מסלול הוא מסמך אחר. */
+  function renderTerms() {
+    document.getElementById('j-terms').innerHTML =
+      '<h3 style="font-size:0.9rem;">תקנון המסלול העצמאי — ' + flPlan(planKey).label + '</h3>' +
+      flTerms(planKey).map(([h, p]) => '<h3>' + h + '</h3><p>' + p + '</p>').join('') +
+      '<p style="color:#666;">גרסה ' + flTermsVersion(planKey) + '</p>';
+    document.getElementById('j-terms-link').href = 'terms-freelancer.html?plan=' + planKey;
+  }
+
+  /* החלפת מסלול מבטלת אישור קודם: מי שאישר את תקנון החודש לא אישר
+     את תקנון חצי השנה, גם אם רק סעיף אחד שונה ביניהם. */
+  function pickPlan(k) {
+    planKey = flPlan(k).key;
+    document.getElementById('j-agree').checked = false;
+    renderPlans();
+    renderTerms();
+    document.getElementById('j-terms').scrollTop = 0;
+    st('');
+  }
+
+  renderPlans();
+  renderTerms();
 
   function st(msg, kind) {
     const el = document.getElementById('j-status');
@@ -163,9 +210,11 @@ if (location.protocol === 'file:') location.href = 'https://fit-journey1.vercel.
     }
 
     btn.disabled = true; st('שולח...');
+    const plan = flPlan(planKey);
     const { error } = await sb.rpc('request_freelancer', {
       p_name: name, p_email: email, p_phone: phone,
-      p_enhancement: enh || null, p_waiver_version: WAIVER_VERSION,
+      p_enhancement: enh || null, p_waiver_version: flTermsVersion(planKey),
+      p_plan: plan.key,
     });
     if (error) { btn.disabled = false; st('לא נשלח: ' + error.message, 'err'); return; }
 
@@ -176,7 +225,10 @@ if (location.protocol === 'file:') location.href = 'https://fit-journey1.vercel.
       '<h1 style="margin-top:10px;">הבקשה התקבלה</h1>' +
       '<div class="sub">עכשיו נשאר לשלם, ונפתח לך את הגישה.</div>' +
       '<div class="card" style="text-align:right;">' +
-        '<div style="font-weight:900;color:var(--gold);margin-bottom:8px;">התשלום — 200 ₪ בביט</div>' +
+        '<div style="font-weight:900;color:var(--gold);margin-bottom:8px;">התשלום — ' +
+        plan.price + ' ₪ בביט</div>' +
+        '<div style="font-size:0.8rem;color:var(--muted);margin-bottom:9px;">מסלול ' +
+        plan.label + ' · ' + plan.tokens + ' טוקנים</div>' +
         '<div style="font-size:1.15rem;font-weight:900;letter-spacing:1px;">058-693-1163</div>' +
         '<div style="font-size:0.82rem;color:var(--muted);margin-top:9px;line-height:1.7;">' +
         'אחרי התשלום שלח/י לנו הודעה בוואטסאפ כדי שנאמת ונפתח.</div>' +
