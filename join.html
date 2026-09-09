@@ -32,6 +32,9 @@ if (location.protocol === 'file:') location.href = 'https://fit-journey1.vercel.
   li { margin:5px 0; font-size:0.86rem; line-height:1.6; }
   label { display:block; margin-bottom:11px; }
   label span { display:block; font-size:0.76rem; color:var(--muted); margin-bottom:4px; }
+  /* רשימת ה-option מרונדרת ע"י מערכת ההפעלה ואינה יורשת מה-select */
+  select { color-scheme: dark; }
+  select option, select optgroup { background-color:#1a1a1a; color:#ffffff; }
   input, select, textarea { width:100%; background:rgba(255,255,255,0.06);
     border:1px solid rgba(255,255,255,0.14); border-radius:10px; padding:11px 12px;
     color:#fff; font-family:Heebo,sans-serif; font-size:0.95rem; }
