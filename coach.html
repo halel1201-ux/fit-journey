@@ -460,6 +460,9 @@
     .meas-chart-ctrl { display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap; }
     .meas-chart-ctrl label { font-size:0.75rem;color:var(--muted);font-weight:700; }
     .meas-chart-ctrl select { padding:5px 10px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:7px;color:var(--white);font-family:'Heebo',sans-serif;font-size:0.8rem;cursor:pointer; }
+  /* סוג האימון המחושב מוצג כטקסט רקע: נראה לעין, אך אינו נשמר
+     ואינו הופך את השיבוץ לידני בטעות. */
+  input.auto-wk::placeholder { color:#ffb27a; opacity:1; }
   </style>
 </head>
 <body>
@@ -1489,7 +1492,39 @@
       s._bookings = (bk || []).filter(b => b.slot_id === s.id);
       s._waitlist = (wl || []).filter(w => w.slot_id === s.id);
     });
-    await loadStudioPeople([...(bk || []), ...(wl || [])].map(b => b.client_email));
+    await Promise.all([
+      loadStudioPeople([...(bk || []), ...(wl || [])].map(b => b.client_email)),
+      loadSplitLabels(fromDate, toDate),
+    ]);
+  }
+
+  /* ── מספר אימון וסוג אימון לכל שיבוץ ──
+     המתאמן בוחר לעצמו את היום והשעה, ולכן אין מה להציג עד שהוא
+     משתבץ בפועל. ברגע שיש שיבוץ, המספר נגזר ממקומו בשבוע.
+
+     החישוב נעשה במסד ולא כאן: בשיעור יושבים גם מתאמנים של מאמנים
+     אחרים, ותוכנית האימונים שלהם סגורה בפני בעל הסטודיו — ונכון
+     שתישאר סגורה. מה שחוזר הוא התווית בלבד, לא התוכנית.
+
+     המספר אינו נשמר בשום מקום ומחושב בכל טעינה, ולכן ביטול של
+     שיבוץ מוקדם יותר מרנמר מאליו את אלה שאחריו. */
+  let splitLabels = {};
+  async function loadSplitLabels(fromDate, toDate) {
+    splitLabels = {};
+    if (!isStudioOwner) return;          // רק בעל הסטודיו, לא מאמן אורח
+    const { data, error } = await sb.rpc('studio_week_workouts', {
+      p_from: new Date(fromDate).toISOString(),
+      p_to: new Date(new Date(toDate).getTime() + 864e5).toISOString(),
+    });
+    if (error) return;                   // כשל כאן לא שובר את הלוח
+    (data || []).forEach(r => { splitLabels[r.booking_id] = r; });
+  }
+
+  /* "אימון 2: גב, יד קדמית" — ובלי תוכנית, ריק. */
+  function splitText(bookingId) {
+    const r = splitLabels[bookingId];
+    if (!r || !r.label) return '';
+    return 'אימון ' + r.seq + ': ' + r.label;
   }
 
   /* ── פרטי המשובצים בשיעורים ──
@@ -1845,9 +1880,18 @@
       /* השם הוא הכפתור: פותח כרטיס קשר מהיר לבדיקת הגעה/עיכוב */
       return `<div style="display:flex;align-items:center;gap:6px;padding:5px 0;font-size:0.76rem;border-bottom:1px solid rgba(255,255,255,0.04);flex-wrap:wrap;">
         ${personButton(b.client_email, b.id, 'row', true, b.attended === false)}
-        ${editable ? `<input id="bwk-${b.id}" value="${esc(b.workout||'')}" placeholder="סוג אימון..." style="flex:1;min-width:0;padding:3px 8px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:6px;color:#fff;font-family:'Heebo';font-size:0.72rem;"/>
-          <button class="btn-sm btn-orange" style="font-size:0.62rem;padding:3px 8px;" onclick="setBookingWorkout(${b.id})">✓</button>`
-          : `<span style="flex:1;color:#888;">🏋️ ${esc(b.workout||'—')}</span>`}
+        ${(() => {
+          /* מה שהמאמן הקליד ידנית גובר תמיד ולעולם אינו נדרס.
+             החישוב מוצג כטקסט רקע בשדה — נראה לעין, אך אינו נשמר
+             ואינו הופך את השיבוץ ל"ידני" בטעות. */
+          const auto = splitText(b.id);
+          if (!editable) {
+            const shown = b.workout || auto;
+            return `<span style="flex:1;color:${b.workout ? '#8ee7ac' : (auto ? '#ffb27a' : '#888')};">🏋️ ${esc(shown || '—')}</span>`;
+          }
+          return `<input id="bwk-${b.id}" class="${auto && !b.workout ? 'auto-wk' : ''}" value="${esc(b.workout||'')}" placeholder="${esc(auto || 'סוג אימון...')}" title="${auto ? 'מחושב מהפיצול של המתאמן — הקלדה כאן גוברת' : 'סוג אימון'}" style="flex:1;min-width:0;padding:3px 8px;background:rgba(255,255,255,0.05);border:1px solid ${auto && !b.workout ? 'rgba(255,107,0,0.3)' : 'rgba(255,255,255,0.12)'};border-radius:6px;color:#fff;font-family:'Heebo';font-size:0.72rem;"/>
+          <button class="btn-sm btn-orange" style="font-size:0.62rem;padding:3px 8px;" onclick="setBookingWorkout(${b.id})">✓</button>`;
+        })()}
         ${happened ? attBtns(b) : ''}
       </div>`;
     }).join('') || '<div style="color:#666;font-size:0.76rem;padding:6px 0;">אין מתאמנים משובצים</div>';
