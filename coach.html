@@ -3485,8 +3485,20 @@
     return an.localeCompare(bn, 'he', { numeric: true, sensitivity: 'base' });
   }
   
+  /* כשל טעינה אינו "אין מתאמנים".
+     זה בדיוק מה ששבר ב-08/2026: הקריאה החזירה 401, השגיאה נזרקה,
+     ו-`data || []` צויר כרשימה ריקה — המאמן היה בטוח שכל המתאמנים
+     שלו נמחקו. הרשימה הקיימת לא נדרסת, והקוד מוצג על המסך. */
+  let clientsLoadError = null;
   async function loadClients() {
-    const { data } = await sb.from('clients').select('*').eq('coach_email', coachEmail).order('created_at');
+    const { data, error } = await sb.from('clients').select('*').eq('coach_email', coachEmail).order('created_at');
+    if (error) {
+      clientsLoadError = error;
+      renderSidebar();
+      toast('רשימת המתאמנים לא נטענה: ' + (error.code || error.message), 'err');
+      return;
+    }
+    clientsLoadError = null;
     clients = data || [];
 
     /* ── לקוחות שהבכיר הנגיש לי כסגן ──
@@ -4452,6 +4464,13 @@
 
   function renderSidebar() {
     const el = document.getElementById('client-list');
+    if (clientsLoadError) {
+      el.innerHTML = '<div style="padding:16px;color:#f87171;font-size:0.8rem;text-align:center;line-height:1.7;">' +
+        '⚠️ הרשימה לא נטענה<br><span style="color:#888;font-size:0.72rem;">' +
+        esc(clientsLoadError.code || '') + ' ' + esc(clientsLoadError.message || '') + '</span><br>' +
+        '<button onclick="loadClients()" style="margin-top:8px;background:rgba(255,107,0,0.15);border:1px solid rgba(255,107,0,0.4);color:var(--orange);border-radius:7px;padding:5px 12px;font-family:Heebo,sans-serif;font-size:0.75rem;font-weight:800;cursor:pointer;">נסה שוב</button></div>';
+      return;
+    }
     if (!clients.length) { el.innerHTML = '<div style="padding:16px;color:#444;font-size:0.82rem;text-align:center;">אין מתאמנים עדיין</div>'; return; }
     const q = (document.getElementById('client-search')?.value || '').trim().toLowerCase();
     const visible = q ? clients.filter(c => c.name?.toLowerCase().includes(q) || c.email?.toLowerCase().includes(q)) : clients;
