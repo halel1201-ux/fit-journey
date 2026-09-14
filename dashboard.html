@@ -1079,8 +1079,13 @@
     <div class="section" id="cycle-section" style="display:none;margin-bottom:20px;">
       <div class="sec-title"><span class="icon">🔄</span> הסייקל שלי</div>
       <div class="cycle-card">
-        <div id="cycle-status-wrap" style="margin-bottom:10px;"></div>
-        <div id="cycle-goal-wrap"></div>
+        <div style="display:flex;gap:18px;flex-wrap:wrap;">
+          <div id="cycle-status-wrap"></div>
+          <div id="cycle-goal-wrap"></div>
+          <div id="cycle-when-wrap"></div>
+        </div>
+        <div id="cycle-compounds-wrap"></div>
+        <div id="cycle-notes-wrap"></div>
       </div>
     </div>
 
@@ -8275,12 +8280,28 @@ ${foodList || 'אין פריטים'}
     best_condition:'בסט קונדישן', general:'כללי',
   };
 
+  /* עד 09/2026 נשלפו כאן שתי עמודות בלבד, ולכן המתאמן ראה סטטוס
+     ומטרה — ולא את מה שהמאמן באמת מילא: התרכובות, המינונים,
+     חלוקת הזריקות, תאריך ההתחלה וההערות. ההרשאות תמיד התירו לו
+     לקרוא את השורה שלו; פשוט לא ביקשו את השדות. */
   async function loadCycle() {
     try {
-      const { data } = await sb.from('cycles').select('status,goal').eq('client_email', currentEmail).single();
+      const { data } = await sb.from('cycles')
+        .select('status,goal,details,start_date,compounds,updated_at')
+        .eq('client_email', currentEmail).single();
       cycleData = data;
     } catch(e) { cycleData = null; }
     renderCycle();
+  }
+
+  /* כמה שבועות מתחילת הסייקל. תאריך בלבד, בלי שעה — todayStr
+     מקומי, כדי שלא ייווצר הפרש יום בגלל אזור זמן. */
+  function cycleWeek(startISO) {
+    if (!startISO) return null;
+    const a = new Date(startISO + 'T12:00:00'), b = new Date(todayStr() + 'T12:00:00');
+    if (isNaN(a)) return null;
+    const days = Math.floor((b - a) / 86400000);
+    return days < 0 ? null : Math.floor(days / 7) + 1;
   }
 
   function renderCycle() {
@@ -8289,12 +8310,54 @@ ${foodList || 'אין פריטים'}
     sec.style.display = 'block';
     const s = CYCLE_STATUS_STYLES[cycleData.status] || { label: cycleData.status, color:'#aaa', bg:'rgba(255,255,255,0.06)', border:'rgba(255,255,255,0.15)' };
     const goalLabel = CYCLE_GOAL_LABELS[cycleData.goal] || cycleData.goal || 'לא הוגדר';
-    document.getElementById('cycle-status-wrap').innerHTML = `
-      <div style="font-size:0.7rem;font-weight:700;color:var(--muted);margin-bottom:5px;">סטטוס</div>
-      <span class="cycle-status-badge" style="color:${s.color};background:${s.bg};border:1px solid ${s.border};">● ${s.label}</span>`;
-    document.getElementById('cycle-goal-wrap').innerHTML = `
-      <div style="font-size:0.7rem;font-weight:700;color:var(--muted);margin-bottom:5px;">מטרה</div>
-      <span style="font-size:0.92rem;font-weight:700;color:var(--white);">${goalLabel}</span>`;
+    const fld = (label, html) =>
+      '<div style="font-size:0.7rem;font-weight:700;color:var(--muted);margin-bottom:5px;">' + label + '</div>' + html;
+
+    document.getElementById('cycle-status-wrap').innerHTML = fld('סטטוס',
+      `<span class="cycle-status-badge" style="color:${s.color};background:${s.bg};border:1px solid ${s.border};">● ${s.label}</span>`);
+    document.getElementById('cycle-goal-wrap').innerHTML = fld('מטרה',
+      `<span style="font-size:0.92rem;font-weight:700;color:var(--white);">${esc(goalLabel)}</span>`);
+
+    const wk = cycleWeek(cycleData.start_date);
+    document.getElementById('cycle-when-wrap').innerHTML = cycleData.start_date
+      ? fld('מתחילת הסייקל', '<span style="font-size:0.92rem;font-weight:700;color:var(--white);white-space:nowrap;">' +
+          (wk ? 'שבוע ' + wk : 'מתחיל') +
+          ' <span style="font-size:0.7rem;font-weight:400;color:#6e7479;">· ' +
+          new Date(cycleData.start_date + 'T12:00:00').toLocaleDateString('he-IL') + '</span></span>')
+      : '';
+
+    /* טבלת התרכובות — אותם שדות שהמאמן מילא, קריאה בלבד.
+       עמודת הזריקות היא מה שהמתאמן צריך בפועל כדי לבצע. */
+    const cps = Array.isArray(cycleData.compounds) ? cycleData.compounds.filter(c => c && (c.name || '').trim()) : [];
+    const totalInj = cps.reduce((n, c) => n + (parseInt(c.inj_per_week, 10) || 0), 0);
+    document.getElementById('cycle-compounds-wrap').innerHTML = cps.length ? `
+      <div style="margin-top:16px;padding-top:14px;border-top:1px solid rgba(255,255,255,0.08);">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px;margin-bottom:9px;">
+          <div style="font-size:0.7rem;font-weight:700;color:var(--muted);">הפרוטוקול שלי</div>
+          ${totalInj ? `<div style="font-size:0.72rem;font-weight:800;color:#ffb27a;">💉 ${totalInj} זריקות בשבוע</div>` : ''}
+        </div>
+        <div style="overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;font-size:0.85rem;min-width:280px;">
+          <thead><tr style="color:var(--muted);font-size:0.7rem;font-weight:700;">
+            <th style="text-align:right;padding:0 0 7px;">חומר</th>
+            <th style="text-align:center;padding:0 0 7px;width:26%;">מינון</th>
+            <th style="text-align:center;padding:0 0 7px;width:26%;">זריקות/שבוע</th>
+          </tr></thead>
+          <tbody>${cps.map(c => `
+            <tr style="border-top:1px solid rgba(255,255,255,0.06);">
+              <td style="padding:8px 0;font-weight:700;color:var(--white);">${esc(c.name || '')}</td>
+              <td style="padding:8px 0;text-align:center;color:var(--gold);font-weight:800;">${esc(c.dose || '—')}</td>
+              <td style="padding:8px 0;text-align:center;color:#ffb27a;font-weight:800;">${esc(String(c.inj_per_week || '—'))}</td>
+            </tr>`).join('')}</tbody>
+        </table></div>
+      </div>` : '';
+
+    const notes = (cycleData.details || '').trim();
+    document.getElementById('cycle-notes-wrap').innerHTML = notes ? `
+      <div style="margin-top:14px;padding:11px 13px;background:rgba(255,107,0,0.06);border:1px solid rgba(255,107,0,0.22);border-radius:10px;">
+        <div style="font-size:0.7rem;font-weight:700;color:var(--muted);margin-bottom:5px;">📝 הערות מהמאמן</div>
+        <div style="font-size:0.85rem;color:#ddd;line-height:1.7;white-space:pre-wrap;">${esc(notes)}</div>
+      </div>` : '';
   }
 
   /* ══════════════════════════════════════
