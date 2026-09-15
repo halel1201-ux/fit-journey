@@ -3,7 +3,7 @@
 // (שני SW-ים נפרדים על "/" גורמים לבעיות הרשמה ל-Push, בעיקר ב-iOS Safari)
 importScripts('https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js');
 
-const CACHE = 'hf-v36'; // bumped: המתאמן רואה את הסייקל המלא
+const CACHE = 'hf-v37'; // bumped: קבלה והדפסה עובדות גם באפליקציה
 
 // relative paths — work from root AND from a subpath like /fit-journey/
 const STATIC = [
