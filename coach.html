@@ -6785,6 +6785,12 @@ ${exLines || 'אין'}
 
   function closeReceiptModal() {
     document.getElementById('receipt-modal').style.display = 'none';
+    /* הכפתור נשאר נעול אחרי הנפקה מוצלחת, ולכן משוחרר כאן —
+       אחרת הפתיחה הבאה הייתה מציגה חלון שאי אפשר להנפיק ממנו. */
+    const btn = document.getElementById('rec-gen-btn');
+    if (btn) { btn.disabled = false; btn.textContent = '🖨 הנפק והדפס'; }
+    const st = document.getElementById('rec-status');
+    if (st) st.textContent = '';
   }
 
   async function generateReceipt() {
@@ -6861,13 +6867,23 @@ ${exLines || 'אין'}
         debtMsg = ' · קוזז מהחוב';
       } catch (e) { /* debt deduction is best-effort */ }
 
-      btn.disabled = false; btn.textContent = '🖨 הנפק והדפס';
+      /* הכפתור נשאר נעול עד שהחלון נסגר: הקבלה כבר במסד, ולחיצה
+         נוספת בשנייה וחצי שנותרו הייתה מנפיקה עוד אחת. */
+      btn.textContent = `✓ קבלה ${receiptNumber}`;
       statusEl.style.color = '#4ade80'; statusEl.textContent = `✓ קבלה ${receiptNumber} נשמרה${debtMsg}`;
 
       const newRow = { ...receiptRow, id: (existing?.[0]?.id ?? 0) + 1, receipt_number: receiptNumber };
       clientReceiptsList.unshift(newRow);
       renderReceiptsList();
-      printReceipt(newRow);
+      /* ההדפסה אינה חלק מההנפקה.
+         עד 09/2026 היא נקראה כאן חשופה: הקבלה כבר נשמרה, ההדפסה
+         נפלה באפליקציה, ה-catch החיצוני דרס את "✓ נשמרה" ב"שגיאה",
+         וה-setTimeout שסוגר את החלון מעולם לא רץ. המאמן ראה שגיאה
+         מול חלון פתוח, לחץ שוב — ונוצרה קבלה שנייה עם מספר חדש,
+         ועוד זיכוי חוב. זה קרה בפועל ליותר ממתאמן אחד.
+         מכאן: כשל הדפסה נשאר כשל הדפסה בלבד. */
+      try { printReceipt(newRow); }
+      catch (e) { toast('הקבלה נשמרה. ההדפסה לא נפתחה — אפשר להדפיס מהרשימה', 'err'); }
       setTimeout(() => closeReceiptModal(), 1800);
     } catch(e) {
       btn.disabled = false; btn.textContent = '🖨 הנפק והדפס';
