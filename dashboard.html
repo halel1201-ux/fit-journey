@@ -383,6 +383,15 @@
     .sets-head span { font-size: 0.7rem; font-weight: 700; color: var(--muted); text-align: center; }
     .sets-head span:first-child { text-align: right; }
     .s-row { display: grid; grid-template-columns: 52px 1fr 1fr 40px; gap: 8px; align-items: center; margin-bottom: 6px; padding: 6px 8px; border-radius: 8px; background: rgba(255,255,255,0.03); border: 1px solid transparent; transition: background 0.2s, border-color 0.2s; }
+    /* רק שורה עם טיימר מקבלת עמודת תווית רחבה יותר — שורה רגילה
+       נשארת בדיוק כפי שהייתה */
+    .s-row.timed { grid-template-columns: 68px 1fr 1fr 40px; }
+    .s-timer { margin-top:3px; background:rgba(74,222,128,0.14); border:1px solid rgba(74,222,128,0.45);
+      color:#4ade80; border-radius:7px; padding:3px 6px; font-family:'Heebo',sans-serif;
+      font-size:0.62rem; font-weight:800; cursor:pointer; white-space:nowrap; line-height:1.2;
+      min-height:22px; }
+    .s-timer.run { background:rgba(255,107,0,0.16); border-color:rgba(255,107,0,0.5); color:var(--orange); }
+    .s-timer.fin { background:rgba(74,222,128,0.22); border-color:#4ade80; }
     .s-row.done { background: rgba(60,210,60,0.07); border-color: rgba(60,210,60,0.2); }
     .s-label { font-size: 0.8rem; font-weight: 700; color: var(--muted); }
     .s-row.done .s-label { color: #4ade80; }
@@ -2604,6 +2613,9 @@
               reps_min: s.reps_min || 0,
               reps_max: s.reps_max || 0,
               set_type: setType,
+              /* נשמר ליומן כדי שההיסטוריה תדע שהסט היה על זמן —
+                 בלי זה "8 חזרות" ו"8 חזרות ב-90 שניות" נראים זהים */
+              work_seconds: parseInt(s.work_seconds, 10) || 0,
               // fields start EMPTY — last session shows as a faint watermark (placeholder) the trainee writes over
               weight: '',
               suggested_kg:  sugKg || s.recommended_kg || 0,
@@ -4217,8 +4229,39 @@
     return SET_TYPE_ALIAS[v] || v;
   }
 
-  const SET_TYPE_LABEL = { warm_up: 'חמ׳', working: '', failure: 'כשל', drop: 'דרופ סט' };
-  const SET_TYPE_COLOR = { warm_up: '#64b4ff', working: '', failure: 'var(--orange)', drop: '#b478ff' };
+  const SET_TYPE_LABEL = { warm_up: 'חמ׳', working: '', failure: 'כשל', drop: 'דרופ סט', timed: 'זמן' };
+  const SET_TYPE_COLOR = { warm_up: '#64b4ff', working: '', failure: 'var(--orange)', drop: '#b478ff', timed: '#4ade80' };
+
+  /* ── צליל סיום ──
+     iOS חוסם אודיו עד מחוות משתמש, ולכן ההקשר נפתח בלחיצה הראשונה
+     על סט ולא בטעינת הדף. אוסילטור ולא קובץ: אין מה להוריד, אין מה
+     לשמור במטמון, ואין תלות ברשת. הרטט הוא גיבוי למי שמתאמן עם
+     מוזיקה באוזניות או עם מתג השתקה דלוק. */
+  let _actx = null;
+  function fjAudioUnlock() {
+    try {
+      if (!_actx) _actx = new (window.AudioContext || window.webkitAudioContext)();
+      if (_actx.state === 'suspended') _actx.resume();
+    } catch (e) { _actx = null; }
+  }
+  function fjBeep(times) {
+    try { if (navigator.vibrate) navigator.vibrate(times > 1 ? [120, 90, 120] : 160); } catch (e) {}
+    if (!_actx) return;
+    try {
+      const n = times || 1;
+      for (let i = 0; i < n; i++) {
+        const t0 = _actx.currentTime + i * 0.26;
+        const osc = _actx.createOscillator(), g = _actx.createGain();
+        osc.type = 'sine'; osc.frequency.value = 880;
+        /* עלייה וירידה רכות — קפיצה חדה נשמעת כנקישה ומבהילה */
+        g.gain.setValueAtTime(0.0001, t0);
+        g.gain.exponentialRampToValueAtTime(0.35, t0 + 0.02);
+        g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.20);
+        osc.connect(g); g.connect(_actx.destination);
+        osc.start(t0); osc.stop(t0 + 0.22);
+      }
+    } catch (e) {}
+  }
 
   /* מספור סטים: רגיל = שלם, דרופ = הסט שלפניו + .5/.6/... */
   function computeSetNumbers(sets) {
@@ -4250,10 +4293,21 @@
     const typeColor = SET_TYPE_COLOR[_st] || '';
     const typeBadge = typeLabel
       ? `<div style="font-size:0.58rem;font-weight:700;color:${typeColor};text-align:center;margin-top:1px;">${typeLabel}</div>` : '';
-    return `<div class="s-row${s.completed ? ' done' : ''}" id="sr-${ei}-${si}">
+    /* ── סט על זמן ──
+       המאמן קובע כמה שניות; המתאמן לוחץ "התחל", מבצע כמה שיוכל,
+       ובסוף רושם משקל וחזרות כרגיל. השניות הן מגבלה ולא יחידת
+       מדידה — ולכן נפח, שיאים והצעות ההתקדמות ממשיכים לעבוד בדיוק
+       כמו קודם, בלי שום סינון מיוחד.
+       הטיימר יושב בעמודת התווית ולא מוסיף עמודה, כדי שהרשת
+       במובייל תישאר כפי שהיא. */
+    const workSec = parseInt(s.work_seconds, 10) || 0;
+    const timerHtml = workSec > 0 ? `<button class="s-timer" id="wt-${ei}-${si}"
+        onclick="startWorkTimer(${ei},${si},${workSec})">▶ ${workSec}שנ׳</button>` : '';
+    return `<div class="s-row${s.completed ? ' done' : ''}${workSec > 0 ? ' timed' : ''}" id="sr-${ei}-${si}">
       <div style="display:flex;flex-direction:column;align-items:center;">
         <span class="s-label">סט ${dispNum != null ? dispNum : si + 1}</span>
         ${typeBadge}
+        ${timerHtml}
         ${(s.prev_weight > 0 || s.prev_reps > 0) ? `<div style="font-size:0.56rem;color:#666;text-align:center;margin-top:1px;white-space:nowrap;">קודם: ${s.prev_weight || 0}×${s.prev_reps || 0}</div>` : ''}
       </div>
       <div style="display:flex;flex-direction:column;align-items:center;">
@@ -4273,6 +4327,7 @@
 
   function toggleSet(ei, si) {
     if (!workoutSession) return;
+    fjAudioUnlock();   // מחוות המשתמש שפותחת את האודיו לטיימר המנוחה
     const set = workoutSession.exercises[ei].sets[si];
     set.completed = !set.completed;
     const row = document.getElementById(`sr-${ei}-${si}`);
@@ -4293,6 +4348,39 @@
     return r ? `${m}:${r.toString().padStart(2, '0')} דק׳` : m + ' דק׳';
   }
 
+  /* ── טיימר העבודה של סט על זמן ──
+     מבוסס שעון־קיר כמו טיימר המנוחה: מעבר לוואטסאפ באמצע הסט לא
+     מקפיא אותו, וכשחוזרים הזמן שנותר מדויק. לחיצה נוספת מבטלת. */
+  const workTimers = {};
+  function startWorkTimer(ei, si, seconds) {
+    fjAudioUnlock();                       // המחווה שפותחת את האודיו ב-iOS
+    const key = ei + '-' + si;
+    const btn = document.getElementById('wt-' + key);
+    if (!btn) return;
+    if (workTimers[key]) {                 // כבר רץ — עצירה
+      clearInterval(workTimers[key].iv); delete workTimers[key];
+      btn.classList.remove('run');
+      btn.textContent = '▶ ' + seconds + 'שנ׳';
+      return;
+    }
+    const endsAt = Date.now() + seconds * 1000;
+    btn.classList.add('run');
+    const tick = () => {
+      const left = Math.max(0, Math.round((endsAt - Date.now()) / 1000));
+      btn.textContent = left + 'שנ׳';
+      if (left <= 0) {
+        clearInterval(workTimers[key].iv); delete workTimers[key];
+        btn.classList.remove('run'); btn.classList.add('fin');
+        btn.textContent = '✓ נגמר';
+        fjBeep(2);
+        /* לא מסמנים את הסט אוטומטית: המתאמן עוד צריך לרשום כמה
+           חזרות יצאו לו ובאיזה משקל. */
+      }
+    };
+    workTimers[key] = { iv: setInterval(tick, 250) };
+    tick();
+  }
+
   function startRest(seconds) {
     if (!workoutSession) return;
     clearInterval(workoutSession.restInterval);
@@ -4308,6 +4396,7 @@
       updateRestBanner();
       if (workoutSession.restRemaining <= 0) {
         clearInterval(workoutSession.restInterval);
+        fjBeep(2);                          // עד כה המנוחה הסתיימה בשקט
         const b = document.getElementById('rest-banner');
         b.style.background = 'rgba(60,210,60,0.18)';
         setTimeout(() => {

@@ -156,6 +156,7 @@
     .set-type-sel.type-warm { border-color:rgba(100,180,255,0.4); color:#64b4ff; }
     .set-type-sel.type-failure { border-color:rgba(255,107,0,0.4); color:var(--orange); }
     .set-type-sel.type-drop { border-color:rgba(180,120,255,0.45); color:#b478ff; }
+    .set-type-sel.type-timed { border-color:rgba(74,222,128,0.45); color:#4ade80; }
     .sets-coach-row input { background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); border-radius:5px; color:#fff; font-family:'Heebo',sans-serif; font-size:0.82rem; padding:4px 6px; outline:none; width:100%; text-align:center; }
     .sets-coach-row input:focus { border-color:var(--orange); }
     .sets-coach-range { display:flex; align-items:center; gap:4px; }
@@ -7888,7 +7889,7 @@ ${exLines || 'אין'}
           /* תוכנית ישנה נושאת warmup; בלי הנרמול הבורר היה נופל
              ל"עב׳" ומוחק את סימון החימום ברגע שהמאמן נגע בשורה. */
           const st = SET_TYPE_ALIAS[s.set_type] || s.set_type || 'working';
-          const stClass = st === 'warm_up' ? 'type-warm' : st === 'failure' ? 'type-failure' : st === 'drop' ? 'type-drop' : '';
+          const stClass = st === 'warm_up' ? 'type-warm' : st === 'failure' ? 'type-failure' : st === 'drop' ? 'type-drop' : st === 'timed' ? 'type-timed' : '';
           return `
           <div class="sets-coach-row">
             <span style="font-size:0.8rem;font-weight:700;color:var(--muted);text-align:center;">${coachSetLabel(sets, si)}</span>
@@ -7897,13 +7898,17 @@ ${exLines || 'אין'}
               <option value="working" ${st==='working'?'selected':''}>עב׳</option>
               <option value="failure" ${st==='failure'?'selected':''}>כשל</option>
               <option value="drop" ${st==='drop'?'selected':''}>דרופ</option>
+              <option value="timed" ${st==='timed'?'selected':''}>זמן</option>
             </select>
             <input type="number" step="0.5" min="0" value="${s.recommended_kg||0}" oninput="updateCoachSet(${di},${ei},${si},'recommended_kg',this.value)" placeholder="0"/>
-            <div class="sets-coach-range">
+            ${st === 'timed' ? `<div class="sets-coach-range">
+              <input type="number" min="5" step="5" value="${s.work_seconds||60}" oninput="updateCoachSet(${di},${ei},${si},'work_seconds',this.value)" title="שניות עבודה"/>
+              <span>שנ׳</span>
+            </div>` : `<div class="sets-coach-range">
               <input type="number" min="1" value="${s.reps_min||8}" oninput="updateCoachSet(${di},${ei},${si},'reps_min',this.value)"/>
               <span>עד</span>
               <input type="number" min="1" value="${s.reps_max||12}" oninput="updateCoachSet(${di},${ei},${si},'reps_max',this.value)"/>
-            </div>
+            </div>`}
             <button onclick="removeCoachSet(${di},${ei},${si})" style="background:none;border:none;color:#555;cursor:pointer;font-size:0.9rem;padding:0;line-height:1;">✕</button>
           </div>`;
         }).join('')}
