@@ -11,11 +11,11 @@
    ניתנים בפועל הוא המסד (freelancer_plan_spec), ולא הדפדפן. */
 
 const FL_PLANS = [
-  { key: 'm1', days: 30,  tokens: 250,  price: 100, was: null,
+  { key: 'm1', days: 30,  tokens: 250,  price: 60,  was: null,
     label: 'חודש',         dur: 'חודש אחד',     period: 'לחודש' },
-  { key: 'm3', days: 90,  tokens: 750,  price: 200, was: 250,
+  { key: 'm3', days: 90,  tokens: 750,  price: 150, was: null,
     label: 'שלושה חודשים', dur: 'שלושה חודשים', period: 'ל-3 חודשים' },
-  { key: 'm6', days: 180, tokens: 1500, price: 350, was: 500,
+  { key: 'm6', days: 180, tokens: 1500, price: 250, was: null,
     label: 'חצי שנה',      dur: 'שישה חודשים',  period: 'ל-6 חודשים' },
 ];
 
@@ -23,28 +23,30 @@ const FL_DEFAULT_PLAN = 'm3';
 
 /* מחיר בנייה בטוקנים. היה מוצהר בדשבורד בלבד, ואז הדף מכר
    "3 תוכניות ו-3 תפריטים" בלי שאיש בדק אם היתרה מספיקה. */
-const FL_COST_PLAN = 150, FL_COST_NUTRI = 150;
+const FL_COST_PLAN = 100, FL_COST_NUTRI = 150;
 
 /* חבילת טוקנים נוספת לפרילנסר. חייב להתאים ל-request_client_tokens
    במסד — שם המחיר נקבע בפועל, וכאן רק מוצג. */
 const FL_PACK_TOKENS = 250, FL_PACK_PRICE = 100;
 
-/* כמה בניות אפשר לעשות ביתרה. בנייה = תוכנית אימונים או תפריט. */
+/* כמה זוגות של תוכנית + תפריט היתרה קונה. נספר בזוגות ולא בבניות
+   בודדות: עם עלויות שונות (100 מול 150), "2 בניות" על 250 טוקנים
+   היה נכון לשתי תוכניות ושקרי לשני תפריטים. */
 function flBuilds(tokens) {
-  return Math.floor((tokens || 0) / Math.min(FL_COST_PLAN, FL_COST_NUTRI));
+  return Math.floor((tokens || 0) / (FL_COST_PLAN + FL_COST_NUTRI));
 }
 
 function flBlurb(key) {
   const p = flPlan(key);
   const n = flBuilds(p.tokens);
   return p.tokens + ' טוקנים · ' +
-         (n === 1 ? 'בנייה אחת' : n + ' בניות') + ' של תוכנית או תפריט';
+         (n === 1 ? 'תוכנית ותפריט' : n + ' תוכניות ו-' + n + ' תפריטים');
 }
 
 /* גרסת הנוסח נשמרת עם החתימה, ומפתח המסלול נכלל בה: מי שחתם על
    תקנון חצי השנה חתם על מסמך אחר ממי שחתם על תקנון החודש, גם אם
    רק סעיף אחד שונה. */
-const FL_TERMS_VERSION = 'fl-2026-09-09';
+const FL_TERMS_VERSION = 'fl-2026-09-25';
 
 function flPlan(key) {
   return FL_PLANS.filter(function (p) { return p.key === key; })[0] ||

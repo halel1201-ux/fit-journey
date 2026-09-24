@@ -1098,6 +1098,12 @@
       </div>
     </div>
 
+    <!-- CYCLE HISTORY — סייקלים קודמים, קריאה בלבד -->
+    <div class="section" id="cycle-history-section" style="display:none;margin-bottom:20px;">
+      <div class="sec-title"><span class="icon">🗂️</span> סייקלים קודמים</div>
+      <div id="cycle-history-wrap"></div>
+    </div>
+
     <!-- CHECKIN SECTION -->
     <div class="section" id="checkin-section" style="display:none;">
       <div class="sec-title"><span class="icon">📋</span> צ'ק-אין שבועי</div>
@@ -1970,7 +1976,7 @@
     renderHabitsCard();
     renderCommunity();
     await loadWaterData();
-    await Promise.all([loadCycle, loadProgressEntries,
+    await Promise.all([loadCycle, loadCycleHistory, loadProgressEntries,
                        () => loadCoachBranding(client.coach_email),
                        loadMessages, loadCheckin].map(queueLoad));
     queueLoad(loadCardio);     // ❤️ שעון אירובי — מוצג רק אם המאמן הגדיר יעד
@@ -4758,7 +4764,7 @@
         everything (used whenever a normal tab is opened). ── */
   const WORKOUT_SECTIONS = ['deload-banner','week-summary-card','today-card','health-decl-banner',
     'steps-card','cardio-card','studio-section','habits-card','community-card','referral-card','injury-ai-section',
-    'progress-photos-section','cycle-section','checkin-section','renewal-section','plan-training-section'];
+    'progress-photos-section','cycle-section','cycle-history-section','checkin-section','renewal-section','plan-training-section'];
   let _workoutScope = null;
 
   function clearWorkoutScope() {
@@ -4803,8 +4809,9 @@
   // 🔄 הסייקל שלי — cycle only; locked for natural athletes
   function goCycle() {
     goDetail('workouts');
-    scopeWorkouts(['cycle-section']);
+    scopeWorkouts(['cycle-section', 'cycle-history-section']);
     renderCycleLock();
+    renderCycleHistory();   // הסינון מציג כל מקטע שנשמר — גם ריק; כאן מוחלט אם יש מה להראות
     window.scrollTo({ top: 0, behavior: 'instant' });
   }
 
@@ -8447,6 +8454,75 @@ ${foodList || 'אין פריטים'}
         <div style="font-size:0.7rem;font-weight:700;color:var(--muted);margin-bottom:5px;">📝 הערות מהמאמן</div>
         <div style="font-size:0.85rem;color:#ddd;line-height:1.7;white-space:pre-wrap;">${esc(notes)}</div>
       </div>` : '';
+  }
+
+  /* ── סייקלים קודמים ──
+     המדיניות תמיד התירה למתאמן לקרוא את ההיסטוריה שלו (ch_own_sel),
+     ולא היה לה שום ממשק. קריאה בלבד, באותו עיצוב של הסייקל הנוכחי.
+
+     תקופה "טבעית" אינה סייקל: כשמאמן משנה סטטוס, הסטטוס הקודם
+     מתועד — גם אם היה "טבעי" בלי שום חומר. שורות כאלה מסוננות,
+     אחרת הרשימה מתמלאת ב"טבעי · כללי" ריק. */
+  let cycleHistory = [];
+  async function loadCycleHistory() {
+    const { data, error } = await sb.from('cycle_history')
+      .select('status,goal,details,start_date,end_date,compounds')
+      .eq('client_email', currentEmail)
+      .order('end_date', { ascending: false }).limit(20);
+    if (error) { cycleHistory = []; renderCycleHistory(); return; }   // היסטוריה אינה חוסמת את המסך
+    cycleHistory = (data || []).filter(h => {
+      const cps = Array.isArray(h.compounds) ? h.compounds.filter(c => c && (c.name || '').trim()) : [];
+      return h.status !== 'natural' || cps.length || (h.details || '').trim();
+    });
+    renderCycleHistory();
+  }
+
+  function renderCycleHistory() {
+    const sec = document.getElementById('cycle-history-section');
+    const wrap = document.getElementById('cycle-history-wrap');
+    if (!sec || !wrap) return;
+    if (!cycleHistory.length) { sec.style.display = 'none'; return; }
+    sec.style.display = 'block';
+    const fmtD = d => d ? new Date(String(d).slice(0, 10) + 'T12:00:00').toLocaleDateString('he-IL') : '—';
+    const weeks = (a, b) => {
+      if (!a || !b) return '';
+      const n = Math.round((new Date(String(b).slice(0, 10) + 'T12:00:00') -
+                            new Date(String(a).slice(0, 10) + 'T12:00:00')) / (7 * 86400000));
+      return n > 0 ? ' · ' + n + ' שבועות' : '';
+    };
+    wrap.innerHTML = cycleHistory.map(h => {
+      const s = CYCLE_STATUS_STYLES[h.status] || { label: h.status || '—', color: '#aaa',
+        bg: 'rgba(255,255,255,0.06)', border: 'rgba(255,255,255,0.15)' };
+      const goal = CYCLE_GOAL_LABELS[h.goal] || h.goal || '';
+      const cps = Array.isArray(h.compounds) ? h.compounds.filter(c => c && (c.name || '').trim()) : [];
+      const inj = cps.reduce((n, c) => n + (parseInt(c.inj_per_week, 10) || 0), 0);
+      const notes = (h.details || '').trim();
+      const body = (cps.length || notes) ? `
+        <details style="margin-top:9px;">
+          <summary style="cursor:pointer;font-size:0.76rem;font-weight:700;color:var(--muted);">
+            הפרוטוקול${cps.length ? ' · ' + cps.length + ' חומרים' : ''}${inj ? ' · 💉 ' + inj + '/שבוע' : ''}</summary>
+          ${cps.length ? `<table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin-top:7px;">
+            <thead><tr style="color:var(--muted);font-size:0.68rem;">
+              <th style="text-align:right;padding:0 0 5px;">חומר</th>
+              <th style="text-align:center;padding:0 0 5px;width:26%;">מינון</th>
+              <th style="text-align:center;padding:0 0 5px;width:26%;">זריקות/שבוע</th></tr></thead>
+            <tbody>${cps.map(c => `<tr style="border-top:1px solid rgba(255,255,255,0.06);">
+              <td style="padding:6px 0;font-weight:700;color:var(--white);">${esc(c.name || '')}</td>
+              <td style="padding:6px 0;text-align:center;color:var(--gold);font-weight:800;">${esc(c.dose || '—')}</td>
+              <td style="padding:6px 0;text-align:center;color:#ffb27a;font-weight:800;">${esc(String(c.inj_per_week || '—'))}</td>
+            </tr>`).join('')}</tbody></table>` : ''}
+          ${notes ? `<div style="font-size:0.8rem;color:#ccc;line-height:1.65;white-space:pre-wrap;margin-top:8px;">📝 ${esc(notes)}</div>` : ''}
+        </details>` : '';
+      return `<div class="cycle-card" style="margin-bottom:10px;">
+        <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap;">
+          <span class="cycle-status-badge" style="color:${s.color};background:${s.bg};border:1px solid ${s.border};">● ${esc(s.label)}</span>
+          ${goal ? `<span style="font-size:0.86rem;font-weight:700;color:var(--white);">${esc(goal)}</span>` : ''}
+        </div>
+        <div style="font-size:0.74rem;color:#6e7479;margin-top:6px;">
+          ${fmtD(h.start_date)} ← ${fmtD(h.end_date)}${weeks(h.start_date, h.end_date)}</div>
+        ${body}
+      </div>`;
+    }).join('');
   }
 
   /* ══════════════════════════════════════

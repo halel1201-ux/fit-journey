@@ -12351,10 +12351,13 @@ ${buildFoodListForPrompt()}
 
     // Archive if status/goal changed
     if (clientCycle && (clientCycle.status!==status||clientCycle.goal!==goal)) {
+      /* החומרים נשמרים גם כאן — בלי זה, סייקל שהסטטוס שלו שונה
+         נכנס להיסטוריה בלי הפרוטוקול, והמתאמן רואה בלאסט ריק */
       await sb.from('cycle_history').insert({
         client_email:email, coach_email:coachEmail,
         status:clientCycle.status, goal:clientCycle.goal,
         details:clientCycle.details, start_date:clientCycle.start_date,
+        compounds:clientCycle.compounds||null,
       });
     }
 
