@@ -13,7 +13,7 @@ const SUPABASE_URL   = Deno.env.get('SUPABASE_URL')!
 const SERVICE_KEY    = Deno.env.get('ADMIN_DB_KEY')!
 const ANON_KEY       = 'sb_publishable_k3M7SfBeiBGs3rTKewBzWQ_7RHRskB9'
 const ONESIGNAL_APP_ID = 'fe16a494-b8de-47e9-8a29-de052e048ec8'
-const ONESIGNAL_REST   = 'os_v2_app_7ylkjffy3zd6tcrj3ycs4beozaggpy5dukfe45efqruamrlljsrgz4rncsssvzvsbpt2df3zts2vdwcl2qg6zowamqntfmprxzppmjq'
+const ONESIGNAL_REST   = Deno.env.get('ONESIGNAL_REST_KEY') || ''   // ב-Secrets בלבד — היה קשיח בריפו ציבורי
 const ADMIN_EMAIL    = 'halel1201@gmail.com'
 
 const admin = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } })
