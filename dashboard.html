@@ -22,6 +22,7 @@
        making a blocking round trip to jsdelivr on every page switch -->
   <script src="plan-prompt.js"></script>
   <script src="freelancer-terms.js"></script>
+  <script src="meetings.js"></script>
 <script src="vendor/supabase.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js" defer></script>
   <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
@@ -842,6 +843,8 @@
     </div>
     <!-- ⚖️ תזכורת עדכון שבועי — מופיעה רק ביום שהמאמן קבע ועד שנשלח -->
     <div id="hl-checkin-due" style="display:none;margin-bottom:10px;"></div>
+    <!-- 📅 פגישות עם המאמן + סנכרון ליומן (meetings.js) -->
+    <div id="hl-meetings" style="display:none;margin-bottom:10px;"></div>
     <!-- ⚖️ שקילה יומית — מעל האירובי, כי היא הדבר הראשון בבוקר -->
     <div id="hl-weigh" style="margin-bottom:10px;"></div>
     <div id="guide-modal" style="display:none;"></div>
@@ -1833,6 +1836,7 @@
     sb.rpc('update_own_last_seen').then(() => {});
     checkHealthDecl();
     loadStepsToday();
+    if (window.FJMeet) FJMeet.initTrainee();   // 📅 פגישות + סנכרון יומן
     if (_healthPlugin()) setTimeout(() => syncHealthActivity(true), 1500); // auto-sync from Health Connect in the app
 
     document.getElementById('loader').style.opacity = '0';
@@ -3845,7 +3849,7 @@
     if (slot && (slot.booked_count || 0) >= slot.max_trainees) { showDashToast('השעה מלאה 😕'); renderStudioClient(); return; }
     const { error } = await sb.from('studio_bookings').insert({ slot_id: slotId, owner_email: clientData.studio_owner_email, client_email: currentEmail, coach_email: coachEmail || null, status: 'booked', punched: false });
     if (error) { showDashToast(error.message.includes('duplicate') ? 'כבר שובצת לשעה' : 'שגיאה בשיבוץ'); return; }
-    renderStudioClient(); renderTodayCard();
+    renderStudioClient(); renderTodayCard(); if (window.FJMeet) FJMeet.syncCalendar();
     showDashToast('שובצת ✓ · האימון יינוקב 24 שעות לפני');
   }
 
@@ -3868,7 +3872,7 @@
     if (!confirm(punched ? 'לבטל? האימון כבר נוקב (בתוך 24 שעות) ולא יוחזר.' : 'לבטל את השיבוץ? האימון עדיין לא נוקב — לא יגרע מהכרטיסייה.')) return;
     await sb.from('studio_bookings').update({ status: 'cancelled', cancelled_at: new Date().toISOString() }).eq('id', bookingId).eq('client_email', currentEmail);
     showDashToast(punched ? 'בוטל · האימון נשרף (נוקב בתוך 24 שעות)' : 'בוטל · לא נגרע מהכרטיסייה ✓');
-    renderStudioClient(); renderTodayCard();
+    renderStudioClient(); renderTodayCard(); if (window.FJMeet) FJMeet.syncCalendar();
   }
 
   /* ── "היום שלי" — כרטיס פתיחה שמרכז הכל מנתונים קיימים ── */

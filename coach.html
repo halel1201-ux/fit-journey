@@ -1176,6 +1176,7 @@
 <!-- עורך התזונה משותף עם פאנל האדמין. נטען לפני הסקריפט הראשי. -->
 <script src="plan-prompt.js"></script>
 <script src="nutrition-editor.js"></script>
+<script src="meetings.js"></script>
 <script>
   const URL_ = 'https://luwknflmhvcxgifzxgrk.supabase.co';
   const KEY  = 'sb_publishable_k3M7SfBeiBGs3rTKewBzWQ_7RHRskB9';
@@ -5388,6 +5389,11 @@ ${exLines || 'אין'}
         <div class="sec-card-title">📋 צ'ק-אינים שבועיים</div>
         <div id="checkin-editor"><div style="color:#444;font-size:0.85rem;padding:10px 0;">טוען...</div></div>
       </div>
+
+      <div class="sec-card" id="sec-meetings">
+        <div class="sec-card-title">📅 פגישות</div>
+        <div id="meetings-editor"><div style="color:#444;font-size:0.85rem;padding:10px 0;">טוען...</div></div>
+      </div>
     `;
     renderTrainingEditor();
     renderArchiveList();
@@ -5402,6 +5408,7 @@ ${exLines || 'אין'}
     loadBodyAlbum(client.email);
     loadMessagesForClient(client.email);
     loadCheckinsForClient(client.email);
+    if (window.FJMeet) FJMeet.renderCoach(client.email);   // 📅 פגישות
     loadCardioForClient(client.email);   // ❤️ אירובי + יומן שנה
     _mergeUndo = null;                   // ביטול איחוד תקף למתאמן הנוכחי בלבד
   }
