@@ -5119,6 +5119,20 @@ ${exLines || 'אין'}
               <span style="font-size:0.78rem;color:#bbb;">בסיום התקופה המנוי מתארך והסכום נכנס לחוב</span>
             </label>
           </div>
+          <!-- ⚖️ עדכון שבועי: יום קבוע לתזכורת אוטומטית + שליחה ידנית -->
+          <div class="f-group">
+            <label>⚖️ יום עדכון שבועי</label>
+            <div style="display:flex;gap:7px;align-items:center;">
+              <select id="e-checkin-day" onchange="setCheckinDay(this.value, this)" ${isDep ? 'disabled' : ''} style="flex:1;">
+                <option value="" ${client.checkin_day == null ? 'selected' : ''}>בלי תזכורת אוטומטית</option>
+                ${['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'].map((d, i) =>
+                  `<option value="${i}" ${client.checkin_day === i ? 'selected' : ''}>כל יום ${d}</option>`).join('')}
+              </select>
+              <button type="button" class="btn-sm btn-outline" onclick="sendCheckinReminder(this)"
+                style="white-space:nowrap;min-height:40px;" title="שולח עכשיו התראה למתאמן לעדכן משקל ולשלוח עדכון">📲 שלח עכשיו</button>
+            </div>
+            <span style="font-size:0.72rem;color:#888;">ביום שנבחר המתאמן מקבל התראה לשקילה, תמונות ועדכון קצר אליך</span>
+          </div>
           ${myDeputies.length && !isDep ? `
           <div class="f-group">
             <label>סגן מטפל</label>
@@ -7768,8 +7782,12 @@ ${exLines || 'אין'}
   function updateCoachSet(di, ei, si, field, val) {
     if (!Array.isArray(trainingPlan[di].exercises[ei].sets))
       trainingPlan[di].exercises[ei].sets = parseSetsToArray(trainingPlan[di].exercises[ei].sets);
-    const numFields = ['reps_min', 'reps_max', 'recommended_kg'];
-    trainingPlan[di].exercises[ei].sets[si][field] = numFields.includes(field) ? +val : val;
+    const numFields = ['reps_min', 'reps_max', 'recommended_kg', 'work_seconds'];
+    const set = trainingPlan[di].exercises[ei].sets[si];
+    set[field] = numFields.includes(field) ? +val : val;
+    /* בחירת "זמן" שומרת מיד את ברירת המחדל. עד עכשיו השדה *הציג* 60
+       אבל שמר רק אחרי הקלדה — ובלי work_seconds המתאמן לא קיבל טיימר. */
+    if (field === 'set_type' && val === 'timed' && !(+set.work_seconds > 0)) set.work_seconds = 60;
   }
 
   /* מספור סטים: סט רגיל = מספר שלם, דרופ = מספר הסט שלפניו + .5/.6/... */
@@ -10619,6 +10637,37 @@ ${buildFoodListForPrompt()}
     recordSettlement(deputyEmail, Number(v), direction, 'תשלום חלקי');
   }
 
+  /* ── ⚖️ עדכון שבועי ──
+     היום נשמר מיד ולא דרך "שמור" של הטופס, כמו בחירת הסגן — הגדרה
+     של תזכורת אינה חלק מפרטי הלקוח, ושמירה שלה לא צריכה לחכות. */
+  async function setCheckinDay(val, sel) {
+    if (!requireEdit()) return;
+    const day = val === '' ? null : parseInt(val, 10);
+    const { error } = await sb.from('clients').update({ checkin_day: day }).eq('email', activeEmail);
+    if (error) { toast('שגיאה: ' + error.message, 'err'); return; }
+    const c = clients.find(x => x.email === activeEmail);
+    if (c) c.checkin_day = day;
+    toast(day == null ? 'התזכורת האוטומטית כובתה' :
+      '✓ תזכורת כל יום ' + ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][day], 'ok');
+  }
+
+  /* השליחה עוברת דרך השרת: מפתח ההתראות נמצא שם בלבד, ושם גם נבדק
+     שהמתאמן באמת שלך */
+  async function sendCheckinReminder(btn) {
+    if (!activeEmail) return;
+    const prev = btn ? btn.textContent : '';
+    if (btn) { btn.disabled = true; btn.textContent = 'שולח...'; }
+    try {
+      const { data, error } = await sb.functions.invoke('checkin-reminder', { body: { client_email: activeEmail } });
+      if (error) throw new Error((data && data.error) || error.message);
+      if (data && data.reason === 'already_today') toast('כבר נשלחה לו תזכורת היום', 'err');
+      else if (data && data.ok) toast(data.via === 'push' ? '📲 התראה נשלחה למתאמן' : '💬 אין לו התראות — נשלח בצ׳אט', 'ok');
+      else throw new Error((data && data.error) || 'לא נשלח');
+    } catch (e) {
+      toast('לא נשלח: ' + e.message, 'err');
+    }
+    if (btn) { btn.disabled = false; btn.textContent = prev; }
+  }
 
   async function setClientDeputy(deputyEmail, sel) {
     if (!requireEdit()) return;

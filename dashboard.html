@@ -840,6 +840,8 @@
         <span style="font-size:0.7rem;font-weight:600;opacity:0.75;">צעדים</span>
       </span>
     </div>
+    <!-- ⚖️ תזכורת עדכון שבועי — מופיעה רק ביום שהמאמן קבע ועד שנשלח -->
+    <div id="hl-checkin-due" style="display:none;margin-bottom:10px;"></div>
     <!-- ⚖️ שקילה יומית — מעל האירובי, כי היא הדבר הראשון בבוקר -->
     <div id="hl-weigh" style="margin-bottom:10px;"></div>
     <div id="guide-modal" style="display:none;"></div>
@@ -1142,8 +1144,9 @@
 
   <!-- TAB: תזונה -->
   <div class="tab-page" id="tab-nutrition">
-    <!-- Food Library -->
-    <a href="food.html" class="lib-banner">
+    <div class="nutri-body" id="nutri-body"></div>
+    <!-- Food Library — למטה: סיכום היום עלה לראש המסך במקומו -->
+    <a href="food.html" class="lib-banner" style="margin:22px 0 32px;">
       <div class="lib-icon">🥗</div>
       <div class="lib-text">
         <div class="lib-title">מאגר מזון</div>
@@ -1151,7 +1154,6 @@
       </div>
       <div class="lib-arrow">←</div>
     </a>
-    <div class="nutri-body" id="nutri-body"></div>
   </div>
 
   <!-- TAB: מדידות -->
@@ -2621,7 +2623,8 @@
               set_type: setType,
               /* נשמר ליומן כדי שההיסטוריה תדע שהסט היה על זמן —
                  בלי זה "8 חזרות" ו"8 חזרות ב-90 שניות" נראים זהים */
-              work_seconds: parseInt(s.work_seconds, 10) || 0,
+              work_seconds: parseInt(s.work_seconds, 10) || (setType === 'timed' ? 60 : 0),
+              recommended_kg: +s.recommended_kg || 0,   // המשקל שהמאמן קבע — מוצג בטיימר
               // fields start EMPTY — last session shows as a faint watermark (placeholder) the trainee writes over
               weight: '',
               suggested_kg:  sugKg || s.recommended_kg || 0,
@@ -2678,8 +2681,8 @@
      כאן מוצג הפירוט: סוג לכל סט, טווח חזרות, משקל מומלץ אם נקבע,
      זמן מנוחה והטכניקה. סט עבודה מסומן גם הוא במפורש — "מה חימום
      ומה עבודה" היא בדיוק השאלה שהתצוגה לא ענתה עליה. */
-  const PLAN_SET_LABEL = { warm_up: 'חימום', working: 'עבודה', failure: 'כשל', drop: 'דרופ' };
-  const PLAN_SET_COLOR = { warm_up: '#64b4ff', working: '#9aa0a6', failure: 'var(--orange)', drop: '#b478ff' };
+  const PLAN_SET_LABEL = { warm_up: 'חימום', working: 'עבודה', failure: 'כשל', drop: 'דרופ', timed: 'זמן' };
+  const PLAN_SET_COLOR = { warm_up: '#64b4ff', working: '#9aa0a6', failure: 'var(--orange)', drop: '#b478ff', timed: '#4ade80' };
 
   function setBreakdownHtml(ex) {
     const sets = Array.isArray(ex.sets) ? ex.sets : null;
@@ -2691,14 +2694,16 @@
       const st = setTypeOf(s);
       const lbl = PLAN_SET_LABEL[st] || st;
       const col = PLAN_SET_COLOR[st] || '#9aa0a6';
-      const reps = s.reps_min && s.reps_max && s.reps_min !== s.reps_max
+      /* סט על זמן מוצג בשניות — טווח החזרות שנשאר בנתונים לא רלוונטי לו */
+      const timedSec = st === 'timed' ? (parseInt(s.work_seconds, 10) || 60) : 0;
+      const reps = timedSec ? '' : (s.reps_min && s.reps_max && s.reps_min !== s.reps_max
         ? `${s.reps_min}–${s.reps_max}`
-        : (s.reps_max || s.reps_min || s.reps || '');
+        : (s.reps_max || s.reps_min || s.reps || ''));
       const kg = (+s.recommended_kg > 0) ? ` · ${s.recommended_kg} ק"ג` : '';
       return `<span style="display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:999px;
         background:${col}14;border:1px solid ${col}55;font-size:0.68rem;white-space:nowrap;">
         <b style="color:${col};">${lbl}</b>
-        <span style="color:#bbb;">${reps ? reps + ' חז׳' : ''}${kg}</span>
+        <span style="color:#bbb;">${timedSec ? '⏱ ' + timedSec + ' שנ׳' : (reps ? reps + ' חז׳' : '')}${kg}</span>
       </span>`;
     }).join('');
 
@@ -2718,6 +2723,7 @@
     if (typeof sets === 'number') return sets + ' סטים';
     if (Array.isArray(sets)) {
       const count = sets.length;
+      if (setTypeOf(sets[0] || {}) === 'timed') return `${count}×${parseInt(sets[0].work_seconds, 10) || 60}שנ׳`;
       const r = sets[0]?.reps_min || sets[0]?.reps_max || sets[0]?.reps || '';
       return r ? `${count}×${r}` : `${count} סטים`;
     }
@@ -4286,7 +4292,10 @@
   }
 
   function sRowHtml(ei, si, s, dispNum) {
-    const hasRange = s.reps_min > 0 || s.reps_max > 0;
+    /* בסט על זמן אין יעד חזרות — המתאמן מדווח כמה יצא לו בזמן שהוגדר.
+       טווח החזרות שנשאר בנתונים מהסוג הקודם של הסט לא מוצג. */
+    const _isTimed = setTypeOf(s) === 'timed';
+    const hasRange = !_isTimed && (s.reps_min > 0 || s.reps_max > 0);
     const rangeDisplay = hasRange ? `${s.reps_min}–${s.reps_max}` : '';
     const progHigh = s.suggested_high || 0;
     const progLow  = s.suggested_kg  || 0;
@@ -4306,7 +4315,9 @@
        כמו קודם, בלי שום סינון מיוחד.
        הטיימר יושב בעמודת התווית ולא מוסיף עמודה, כדי שהרשת
        במובייל תישאר כפי שהיא. */
-    const workSec = parseInt(s.work_seconds, 10) || 0;
+    /* 60 כברירת מחדל: תוכניות שנשמרו לפני התיקון בעורך המאמן נושאות
+       סט 'זמן' בלי שניות — המאמן ראה 60 על המסך, אז זה מה שהוא התכוון */
+    const workSec = parseInt(s.work_seconds, 10) || (_isTimed ? 60 : 0);
     const timerHtml = workSec > 0 ? `<button class="s-timer" id="wt-${ei}-${si}"
         onclick="startWorkTimer(${ei},${si},${workSec})">▶ ${workSec}שנ׳</button>` : '';
     return `<div class="s-row${s.completed ? ' done' : ''}${workSec > 0 ? ' timed' : ''}" id="sr-${ei}-${si}">
@@ -4355,36 +4366,143 @@
   }
 
   /* ── טיימר העבודה של סט על זמן ──
+     נפתח כמסך מלא: השניות והמשקל שהמאמן קבע, וספירה לאחור גדולה.
+     בסיום — צלצול ורטט, והמסך עובר לשאלה "כמה חזרות עשית?". השמירה
+     כותבת לשורת הסט ומסמנת אותו, וטיימר המנוחה מתחיל כרגיל.
+
      מבוסס שעון־קיר כמו טיימר המנוחה: מעבר לוואטסאפ באמצע הסט לא
-     מקפיא אותו, וכשחוזרים הזמן שנותר מדויק. לחיצה נוספת מבטלת. */
-  const workTimers = {};
+     מקפיא אותו, וכשחוזרים הזמן שנותר מדויק. */
+  let _wt = null;   // { ei, si, seconds, endsAt, iv, lock }
+
+  /* המשקל להצגה: מה שהמתאמן כבר הקליד, אחרת מה שהמאמן קבע */
+  function _wtKg(set) {
+    return +set.weight || +set.recommended_kg || +set.suggested_kg || +set.prev_weight || 0;
+  }
+  function _wtFmt(sec) {
+    const m = Math.floor(sec / 60), s = sec % 60;
+    return m > 0 ? m + ':' + String(s).padStart(2, '0') : String(s);
+  }
+  function _wtClose() {
+    if (_wt) {
+      clearInterval(_wt.iv);
+      try { if (_wt.lock) _wt.lock.release(); } catch (e) {}
+    }
+    _wt = null;
+    const m = document.getElementById('wt-modal');
+    if (m) m.remove();
+  }
+
   function startWorkTimer(ei, si, seconds) {
+    if (!workoutSession) return;
     fjAudioUnlock();                       // המחווה שפותחת את האודיו ב-iOS
-    const key = ei + '-' + si;
-    const btn = document.getElementById('wt-' + key);
-    if (!btn) return;
-    if (workTimers[key]) {                 // כבר רץ — עצירה
-      clearInterval(workTimers[key].iv); delete workTimers[key];
-      btn.classList.remove('run');
-      btn.textContent = '▶ ' + seconds + 'שנ׳';
+    _wtClose();
+    const ex = workoutSession.exercises[ei], set = ex.sets[si];
+    const kg = _wtKg(set);
+    const setNo = (typeof computeSetNumbers === 'function' ? computeSetNumbers(ex.sets)[si] : null) || (si + 1);
+
+    const m = document.createElement('div');
+    m.id = 'wt-modal';
+    m.style.cssText = 'position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,0.94);' +
+      'display:flex;align-items:center;justify-content:center;padding:calc(18px + var(--sat,0px)) 18px calc(18px + var(--sab,0px));';
+    m.innerHTML = `<div class="wt-card" style="width:100%;max-width:380px;text-align:center;font-family:'Heebo',sans-serif;">
+      <div style="font-size:0.86rem;color:#aaa;font-weight:700;">${esc(ex.name || '')} · סט ${setNo}</div>
+      <div style="display:inline-block;margin-top:8px;font-size:0.72rem;font-weight:800;color:#4ade80;
+        border:1px solid rgba(74,222,128,0.45);background:rgba(74,222,128,0.1);border-radius:20px;padding:3px 12px;">⏱ סט על זמן · ${_wtFmt(seconds)} שנ׳</div>
+      <div id="wt-left" style="font-size:5.4rem;font-weight:900;color:#fff;line-height:1.1;margin:22px 0 10px;
+        font-variant-numeric:tabular-nums;">${_wtFmt(seconds)}</div>
+      <div style="height:8px;background:rgba(255,255,255,0.08);border-radius:5px;overflow:hidden;margin:0 6px;">
+        <div id="wt-bar" style="height:100%;width:0%;background:linear-gradient(90deg,var(--orange),#FFD700);transition:width .2s linear;"></div>
+      </div>
+      ${kg ? `<div style="margin-top:22px;font-size:0.8rem;color:#888;">המשקל לסט</div>
+      <div style="font-size:1.9rem;font-weight:900;color:#FFD700;">${kg} ק״ג</div>` : ''}
+      <div style="display:flex;gap:10px;margin-top:28px;">
+        <button onclick="_wtClose()" style="flex:1;padding:14px;border-radius:12px;background:none;
+          border:1px solid rgba(255,255,255,0.2);color:#ccc;font-family:'Heebo',sans-serif;font-weight:800;font-size:0.95rem;cursor:pointer;">ביטול</button>
+        <button onclick="wtFinishNow()" style="flex:1;padding:14px;border-radius:12px;background:rgba(255,107,0,0.15);
+          border:1px solid rgba(255,107,0,0.5);color:var(--orange);font-family:'Heebo',sans-serif;font-weight:900;font-size:0.95rem;cursor:pointer;">סיימתי</button>
+      </div>
+    </div>`;
+    document.body.appendChild(m);
+
+    _wt = { ei, si, seconds, endsAt: Date.now() + seconds * 1000, iv: null, lock: null };
+    /* המסך לא יכבה באמצע סט של 90 שניות — אחרת המתאמן מפספס את הסוף */
+    try {
+      if (navigator.wakeLock) navigator.wakeLock.request('screen')
+        .then(l => { if (_wt) _wt.lock = l; else l.release(); }).catch(() => {});
+    } catch (e) {}
+
+    const tick = () => {
+      if (!_wt) return;
+      const leftMs = Math.max(0, _wt.endsAt - Date.now());
+      const el = document.getElementById('wt-left'), bar = document.getElementById('wt-bar');
+      if (el) el.textContent = _wtFmt(Math.ceil(leftMs / 1000));
+      if (bar) bar.style.width = Math.min(100, (1 - leftMs / (_wt.seconds * 1000)) * 100) + '%';
+      if (leftMs <= 0) { clearInterval(_wt.iv); fjBeep(2); _wtAsk(); }
+    };
+    _wt.iv = setInterval(tick, 200);
+    tick();
+  }
+
+  function wtFinishNow() {
+    if (!_wt) return;
+    clearInterval(_wt.iv);
+    _wtAsk();
+  }
+
+  /* סוף הזמן: המתאמן רושם כמה חזרות יצאו לו. המשקל ממולא מראש
+     במה שהמאמן קבע, וניתן לשינוי אם עבד במשקל אחר. */
+  function _wtAsk() {
+    const m = document.getElementById('wt-modal');
+    if (!m || !_wt) return;
+    const set = workoutSession.exercises[_wt.ei].sets[_wt.si];
+    const kg = _wtKg(set);
+    const inp = 'width:100%;padding:14px;border-radius:12px;background:rgba(255,255,255,0.06);' +
+      'border:1px solid rgba(255,255,255,0.18);color:#fff;font-family:\'Heebo\',sans-serif;' +
+      'font-weight:900;text-align:center;outline:none;';
+    m.querySelector('.wt-card').innerHTML = `
+      <div style="font-size:3rem;line-height:1;">✅</div>
+      <div style="font-size:1.35rem;font-weight:900;color:#fff;margin-top:10px;">הזמן נגמר!</div>
+      <div style="font-size:0.9rem;color:#aaa;margin-top:4px;">כמה חזרות עשית?</div>
+      <input id="wt-reps" type="number" inputmode="numeric" min="0" placeholder="0"
+        style="${inp}font-size:2.6rem;margin-top:16px;border-color:rgba(255,107,0,0.55);"
+        onkeydown="if(event.key==='Enter')wtSave()"/>
+      <div style="font-size:0.78rem;color:#888;margin-top:16px;">משקל (ק״ג)</div>
+      <input id="wt-kg" type="number" inputmode="decimal" min="0" step="0.5" value="${kg || ''}"
+        style="${inp}font-size:1.3rem;margin-top:5px;"/>
+      <div id="wt-err" style="font-size:0.8rem;color:#f87171;min-height:20px;margin-top:8px;"></div>
+      <button onclick="wtSave()" style="width:100%;padding:15px;border-radius:12px;border:0;margin-top:4px;
+        background:linear-gradient(135deg,var(--orange),#FF8C00);color:#fff;font-family:'Heebo',sans-serif;
+        font-weight:900;font-size:1rem;cursor:pointer;">שמור וסמן סט ✓</button>
+      <button onclick="_wtClose()" style="width:100%;padding:11px;border-radius:12px;background:none;border:0;
+        margin-top:6px;color:#888;font-family:'Heebo',sans-serif;font-size:0.85rem;cursor:pointer;">אמלא אחר כך</button>`;
+    setTimeout(() => { const r = document.getElementById('wt-reps'); if (r) r.focus(); }, 80);
+  }
+
+  function wtSave() {
+    if (!_wt || !workoutSession) return;
+    const rEl = document.getElementById('wt-reps'), kEl = document.getElementById('wt-kg');
+    const reps = parseInt(rEl && rEl.value, 10);
+    if (!(reps >= 0) || rEl.value === '') {
+      document.getElementById('wt-err').textContent = 'צריך לרשום כמה חזרות יצאו לך';
+      if (rEl) rEl.focus();
       return;
     }
-    const endsAt = Date.now() + seconds * 1000;
-    btn.classList.add('run');
-    const tick = () => {
-      const left = Math.max(0, Math.round((endsAt - Date.now()) / 1000));
-      btn.textContent = left + 'שנ׳';
-      if (left <= 0) {
-        clearInterval(workTimers[key].iv); delete workTimers[key];
-        btn.classList.remove('run'); btn.classList.add('fin');
-        btn.textContent = '✓ נגמר';
-        fjBeep(2);
-        /* לא מסמנים את הסט אוטומטית: המתאמן עוד צריך לרשום כמה
-           חזרות יצאו לו ובאיזה משקל. */
-      }
-    };
-    workTimers[key] = { iv: setInterval(tick, 250) };
-    tick();
+    const kg = kEl ? kEl.value : '';
+    const { ei, si } = _wt;
+    const set = workoutSession.exercises[ei].sets[si];
+    set.reps = String(reps);
+    set.weight = kg;
+    /* השורה כבר מרונדרת — מעדכנים את שני השדות שלה במקום, בלי לרנדר
+       את כל האימון מחדש ולאבד מיקום גלילה */
+    const row = document.getElementById(`sr-${ei}-${si}`);
+    if (row) {
+      const ins = row.querySelectorAll('.s-inp');
+      if (ins[0]) ins[0].value = kg;
+      if (ins[1]) ins[1].value = reps;
+    }
+    _wtClose();
+    if (!set.completed) toggleSet(ei, si);   // מסמן ומפעיל את טיימר המנוחה
+    else persistWorkout();
   }
 
   function startRest(seconds) {
@@ -5692,7 +5810,7 @@ ${foodList || 'אין פריטים'}
       }, 0);
 
       const summary = _mealShown.length ? (
-        '<div style="margin-top:16px;padding:13px 14px;border-radius:14px;' +
+        '<div style="margin-bottom:14px;padding:13px 14px;border-radius:14px;' +
         'background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);">' +
         '<div style="font-size:0.72rem;color:#999;margin-bottom:10px;">סיכום היום — מה שסומן כנאכל</div>' +
         '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">' +
@@ -5717,9 +5835,11 @@ ${foodList || 'אין פריטים'}
         '</div></div>'
       ) : '';
 
-      body.innerHTML = tabs + daySelector +
+      /* סיכום היום בראש המסך — מה שנשאר לאכול הוא השאלה הראשונה, ולא
+         מה יש במאגר. המאגר ירד לתחתית הלשונית. */
+      body.innerHTML = (planHtml.trim() ? summary : '') + tabs + daySelector +
         (planHtml.trim()
-          ? '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">' + planHtml + shareTileHtml() + '</div>' + summary
+          ? '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">' + planHtml + shareTileHtml() + '</div>'
           : '<div class="empty">אין ארוחות מוגדרות ליום זה 🥗</div>') +
         mealOptionsModal();
       return;
@@ -8148,6 +8268,13 @@ ${foodList || 'אין פריטים'}
       checkinData = data;
     } catch(e) { checkinData = null; }
     renderCheckinForm();
+    renderCheckinDue();
+    coachWaNumber();   // ברקע — כפתור הוואטסאפ לא יחכה לו
+    /* לחיצה על ההתראה פותחת את הדשבורד עם ?go=checkin */
+    if (new URLSearchParams(location.search).get('go') === 'checkin') {
+      try { history.replaceState(null, '', location.pathname); } catch (e) {}
+      goCheckin();
+    }
   }
 
   function getMonday(d) {
@@ -8169,6 +8296,11 @@ ${foodList || 'אין פריטים'}
           <div style="font-weight:900;font-size:1rem;margin-bottom:3px;">צ'ק-אין שבועי נשלח!</div>
           <div style="font-size:0.82rem;color:var(--muted);">שבוע ${getMonday(new Date()).toLocaleDateString('he-IL')} — כל הכבוד!</div>
         </div>
+        ${(+checkinData.weight > 0 || +checkinData.photo_count > 0) ? `
+        <div style="display:flex;gap:8px;justify-content:center;margin-bottom:10px;flex-wrap:wrap;">
+          ${+checkinData.weight > 0 ? `<span style="background:rgba(255,215,0,0.1);border:1px solid rgba(255,215,0,0.35);color:var(--gold);border-radius:20px;padding:4px 12px;font-size:0.8rem;font-weight:800;">⚖️ ${checkinData.weight} ק״ג</span>` : ''}
+          ${+checkinData.photo_count > 0 ? `<span style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.14);color:#ccc;border-radius:20px;padding:4px 12px;font-size:0.8rem;font-weight:700;">📸 ${checkinData.photo_count} תמונות</span>` : ''}
+        </div>` : ''}
         <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:12px;">
           ${items.map(([l,v,c])=>`
             <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);border-radius:8px;padding:10px;text-align:center;">
@@ -8181,8 +8313,25 @@ ${foodList || 'אין פריטים'}
     }
     const monday = getMonday(new Date()).toLocaleDateString('he-IL');
     const fields = [['energy_level','⚡ אנרגיה','var(--orange)'],['sleep_quality','😴 שינה','#60a5fa'],['motivation','🔥 מוטיבציה','#4ade80'],['adherence','✅ עמידה בתכנית','var(--gold)']];
+    /* המשקל האחרון שנרשם — מוצג כסימן מים, כדי שהמתאמן יראה ממה הוא בא */
+    const lastW = (typeof progressEntries !== 'undefined' && Array.isArray(progressEntries))
+      ? ((progressEntries.find(e => +e.weight > 0) || {}).weight || '') : '';
+    const inBox = 'width:100%;padding:11px 12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);' +
+      'border-radius:8px;color:var(--white);font-family:\'Heebo\',sans-serif;font-size:0.95rem;outline:none;';
     wrap.innerHTML = `
       <div style="font-size:0.88rem;font-weight:700;margin-bottom:16px;color:var(--gold);">📋 איך הייתה השבוע? (${monday})</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;">
+        <label style="display:block;">
+          <div style="font-size:0.78rem;font-weight:700;color:var(--muted);margin-bottom:6px;">⚖️ משקל (ק״ג)</div>
+          <input id="ci-weight" type="number" inputmode="decimal" min="0" step="0.1" placeholder="${lastW}" style="${inBox}text-align:center;font-weight:800;"/>
+        </label>
+        <label style="display:block;cursor:pointer;">
+          <div style="font-size:0.78rem;font-weight:700;color:var(--muted);margin-bottom:6px;">📸 תמונות (לא חובה)</div>
+          <input id="ci-photos" type="file" accept="image/*" multiple style="display:none;"
+            onchange="document.getElementById('ci-photos-lbl').textContent = this.files.length ? this.files.length + ' נבחרו ✓' : 'בחר תמונות'"/>
+          <div id="ci-photos-lbl" style="${inBox}text-align:center;color:#bbb;font-size:0.85rem;">בחר תמונות</div>
+        </label>
+      </div>
       ${fields.map(([id,lbl,c])=>`
         <div class="slider-row">
           <div class="slider-label"><span>${lbl}</span><strong id="ci-${id}-val" style="color:${c};">5</strong></div>
@@ -8194,10 +8343,54 @@ ${foodList || 'אין פריטים'}
         <div style="font-size:0.78rem;font-weight:700;color:var(--muted);margin-bottom:6px;">💬 הערות / שאלות למאמן</div>
         <textarea id="ci-notes" style="width:100%;padding:10px 12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:var(--white);font-family:'Heebo',sans-serif;font-size:0.88rem;resize:vertical;min-height:66px;outline:none;line-height:1.6;transition:border-color 0.2s;" placeholder="שתף את המאמן בחוויות, קשיים, שאלות או הצלחות מהשבוע..."></textarea>
       </div>
-      <button onclick="submitCheckin()" style="width:100%;padding:12px;background:linear-gradient(135deg,var(--gold),#FFC200);color:#000;font-family:'Heebo',sans-serif;font-size:0.97rem;font-weight:700;border:none;border-radius:8px;cursor:pointer;transition:opacity 0.2s;">שלח צ'ק-אין 📤</button>`;
+      <button id="ci-send" onclick="submitCheckin()" style="width:100%;padding:12px;background:linear-gradient(135deg,var(--gold),#FFC200);color:#000;font-family:'Heebo',sans-serif;font-size:0.97rem;font-weight:700;border:none;border-radius:8px;cursor:pointer;transition:opacity 0.2s;">שלח למאמן באפליקציה 📤</button>
+      <button onclick="submitCheckin('whatsapp')" style="width:100%;padding:11px;margin-top:8px;background:rgba(37,211,102,0.12);border:1px solid rgba(37,211,102,0.5);color:#25D366;font-family:'Heebo',sans-serif;font-size:0.92rem;font-weight:800;border-radius:8px;cursor:pointer;">🟢 שלח בוואטסאפ <span style="font-weight:400;font-size:0.74rem;opacity:0.8;">(נשמר גם באפליקציה)</span></button>`;
   }
 
-  async function submitCheckin() {
+  /* ── תזכורת עדכון שבועי בדף הבית ──
+     מופיעה מהיום שהמאמן קבע ועד סוף שבוע הצ'ק-אין, רק כל עוד לא נשלח
+     עדכון. עובדת גם בלי התראת push — מי שלא אישר התראות עדיין רואה. */
+  function checkinIsDue() {
+    const d = clientData && clientData.checkin_day;
+    if (d == null || checkinData || !clientData.coach_email) return false;
+    const pos = x => (x + 6) % 7;             // שבוע הצ'ק-אין מתחיל ביום שני (getMonday)
+    return pos(new Date().getDay()) >= pos(d);
+  }
+  function renderCheckinDue() {
+    const el = document.getElementById('hl-checkin-due');
+    if (!el) return;
+    if (!checkinIsDue()) { el.style.display = 'none'; el.innerHTML = ''; return; }
+    el.style.display = 'block';
+    el.innerHTML = `<button onclick="goCheckin()" style="width:100%;display:flex;align-items:center;gap:11px;text-align:right;
+      background:linear-gradient(135deg,rgba(255,215,0,0.16),rgba(255,107,0,0.08));border:1px solid rgba(255,215,0,0.5);
+      border-radius:14px;padding:12px 14px;cursor:pointer;color:#fff;font-family:'Heebo',sans-serif;">
+      <span style="font-size:1.6rem;">⚖️</span>
+      <span style="flex:1;"><b style="display:block;font-size:0.92rem;">הגיע הזמן לעדכון השבועי</b>
+        <span style="font-size:0.74rem;color:#ccc;">שקילה, תמונות ועדכון קצר למאמן — דקה אחת</span></span>
+      <span style="color:var(--gold);font-weight:900;font-size:1.1rem;">←</span></button>`;
+  }
+  function goCheckin() {
+    goCommunity();
+    const s = document.getElementById('checkin-section');
+    if (s) setTimeout(() => s.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
+  }
+
+  /* טלפון המאמן לשליחה בוואטסאפ, בפורמט בינלאומי. בלי מספר — וואטסאפ
+     נפתח עם בחירת איש קשר. */
+  let _coachWa = undefined;
+  async function coachWaNumber() {
+    if (_coachWa !== undefined) return _coachWa;
+    _coachWa = '';
+    try {
+      const { data } = await sb.from('coaches').select('phone,whatsapp_number').eq('email', clientData.coach_email).maybeSingle();
+      let p = String((data && (data.whatsapp_number || data.phone)) || '').replace(/\D/g, '');
+      if (p.startsWith('0')) p = '972' + p.slice(1);
+      _coachWa = p.length >= 11 ? p : '';
+    } catch (e) {}
+    return _coachWa;
+  }
+
+  async function submitCheckin(via) {
     if (await coachFreezeBlockedAsync()) return;
     const monday = getMonday(new Date()).toISOString().split('T')[0];
     const energy    = parseInt(document.getElementById('ci-energy_level').value);
@@ -8205,6 +8398,35 @@ ${foodList || 'אין פריטים'}
     const motiv     = parseInt(document.getElementById('ci-motivation').value);
     const adh       = parseInt(document.getElementById('ci-adherence').value);
     const notes     = document.getElementById('ci-notes').value.trim();
+    const wEl       = document.getElementById('ci-weight');
+    const weight    = wEl ? parseFloat(wEl.value) || 0 : 0;
+    const pEl       = document.getElementById('ci-photos');
+    const photos    = pEl && pEl.files ? Array.from(pEl.files).slice(0, 6) : [];
+
+    const lines = `⚡ אנרגיה: ${energy}/10 | 😴 שינה: ${sleep}/10 | 🔥 מוטיבציה: ${motiv}/10 | ✅ עמידה: ${adh}/10` +
+      (weight ? `\n⚖️ משקל: ${weight} ק״ג` : '');
+
+    /* וואטסאפ נפתח *לפני* השמירה: iOS מאפשר חלון שיתוף רק מתוך לחיצה,
+       וההרשאה הזאת פגה אחרי ההעלאות. עם שיתוף קבצים התמונות מצורפות
+       להודעה; בלעדיו נפתח צ'אט עם הטקסט, והתמונות נשמרות באפליקציה. */
+    if (via === 'whatsapp') {
+      const text = `📋 צ'ק-אין שבועי — ${clientData.name || ''}\n${lines}${notes ? '\n\n' + notes : ''}`;
+      let shared = false;
+      try {
+        if (photos.length && navigator.canShare && navigator.canShare({ files: photos })) {
+          navigator.share({ files: photos, text }).catch(() => {});
+          shared = true;
+        }
+      } catch (e) {}
+      if (!shared) {
+        const num = _coachWa || '';          // נטען ברקע מראש, כדי לא לחכות כאן
+        window.open('https://wa.me/' + num + '?text=' + encodeURIComponent(text +
+          (photos.length ? '\n📸 התמונות נשלחו באפליקציה' : '')), '_blank');
+      }
+    }
+
+    const btn = document.getElementById('ci-send');
+    if (btn) { btn.disabled = true; btn.textContent = 'שולח...'; }
 
     const { error } = await sb.from('checkins').insert({
       client_email:  currentEmail,
@@ -8215,17 +8437,54 @@ ${foodList || 'אין פריטים'}
       motivation:    motiv,
       adherence:     adh,
       notes:         notes || null,
+      weight:        weight || null,
+      photo_count:   photos.length || null,
     });
-    if (error) { toast('שגיאה בשליחה — ' + error.message, 'err'); return; }
-    checkinData = { energy_level:energy, sleep_quality:sleep, motivation:motiv, adherence:adh, notes };
+    if (error) {
+      if (btn) { btn.disabled = false; btn.textContent = 'שלח למאמן באפליקציה 📤'; }
+      toast('שגיאה בשליחה — ' + error.message, 'err'); return;
+    }
+
+    /* המשקל נכנס גם לגרף המשקל. עדכון-ואז-הוספה ולא upsert חלקי —
+       upsert היה מוחק את ההיקפים ואחוז השומן של אותו יום. */
+    if (weight > 0) {
+      const today = todayStr();
+      const { data: up } = await sb.from('progress_entries').update({ weight })
+        .eq('client_email', currentEmail).eq('date', today).select('date');
+      if (!up || !up.length) {
+        await sb.from('progress_entries').insert({ client_email: currentEmail,
+          coach_email: clientData.coach_email || '', date: today, weight });
+      }
+    }
+
+    /* התמונות נכנסות לתמונות ההתקדמות — אותו מקום שבו המאמן כבר רואה אותן */
+    let upN = 0;
+    if (photos.length) {
+      const paths = [], ts = Date.now();
+      for (let i = 0; i < photos.length; i++) {
+        const f = photos[i];
+        const ext = ((f.type || '').split('/')[1] || 'jpg').replace('jpeg', 'jpg');
+        const path = `${currentEmail}/${ts}_ci${i}.${ext}`;
+        const { error: upErr } = await sb.storage.from('body-photos').upload(path, f, { upsert: true, contentType: f.type });
+        if (!upErr) paths.push(path);
+      }
+      if (paths.length) {
+        await sb.from('body_photos').insert({ client_email: currentEmail,
+          coach_email: clientData.coach_email || null, photo_paths: paths, source: 'checkin' });
+        upN = paths.length;
+      }
+    }
+
+    checkinData = { energy_level:energy, sleep_quality:sleep, motivation:motiv, adherence:adh, notes, weight, photo_count: upN };
     renderCheckinForm();
-    toast('✓ צ\'ק-אין נשלח למאמן!', 'ok');
-    // Send summary message to coach
+    renderCheckinDue();
+    toast('✓ העדכון נשלח למאמן!', 'ok');
     await sb.from('messages').insert({
       coach_email:  clientData.coach_email,
       client_email: currentEmail,
       sender_email: currentEmail,
-      content: `📋 *צ'ק-אין שבועי — ${new Date(monday).toLocaleDateString('he-IL')}*\n⚡ אנרגיה: ${energy}/10 | 😴 שינה: ${sleep}/10 | 🔥 מוטיבציה: ${motiv}/10 | ✅ עמידה: ${adh}/10${notes?'\n\n'+notes:''}`,
+      content: `📋 *צ'ק-אין שבועי — ${new Date(monday).toLocaleDateString('he-IL')}*\n${lines}` +
+        (upN ? `\n📸 ${upN} תמונות — בתמונות ההתקדמות` : '') + (notes ? '\n\n' + notes : ''),
     });
   }
 

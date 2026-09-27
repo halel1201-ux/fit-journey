@@ -202,11 +202,18 @@
     .lib-tab:hover { color:var(--white); border-color:rgba(255,107,0,0.5); }
     .lib-tab.active { background:linear-gradient(135deg,var(--orange),#FF8C00); border-color:transparent; color:var(--white); }
     .sets-coach-wrap { margin:8px 0; }
-    .sets-coach-head { display:grid; grid-template-columns:28px 72px 1fr 22px; gap:6px; padding:3px 8px; font-size:0.68rem; font-weight:700; color:var(--muted); }
-    .sets-coach-row { display:grid; grid-template-columns:28px 72px 1fr 22px; gap:6px; align-items:center; padding:4px 8px; background:rgba(255,255,255,0.02); border-radius:6px; margin-bottom:3px; }
+    .sets-coach-head { display:grid; grid-template-columns:28px 64px 72px 1fr 22px; gap:6px; padding:3px 8px; font-size:0.68rem; font-weight:700; color:var(--muted); }
+    .sets-coach-row { display:grid; grid-template-columns:28px 64px 72px 1fr 22px; gap:6px; align-items:center; padding:4px 8px; background:rgba(255,255,255,0.02); border-radius:6px; margin-bottom:3px; }
     .sets-coach-row input { background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); border-radius:5px; color:#fff; font-family:'Heebo',sans-serif; font-size:0.82rem; padding:4px 6px; outline:none; width:100%; text-align:center; }
     .sets-coach-row input:focus { border-color:var(--orange); }
     .sets-coach-range { display:flex; align-items:center; gap:4px; }
+    /* בורר סוג הסט — זהה לפאנל המאמן */
+    .set-type-sel { background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); border-radius:5px; color:#aaa; font-family:'Heebo',sans-serif; font-size:0.75rem; padding:3px 2px; outline:none; width:100%; cursor:pointer; text-align:center; }
+    .set-type-sel:focus { border-color:var(--orange); }
+    .set-type-sel.type-warm { border-color:rgba(100,180,255,0.4); color:#64b4ff; }
+    .set-type-sel.type-failure { border-color:rgba(255,107,0,0.4); color:var(--orange); }
+    .set-type-sel.type-drop { border-color:rgba(180,120,255,0.45); color:#b478ff; }
+    .set-type-sel.type-timed { border-color:rgba(74,222,128,0.45); color:#4ade80; }
     .sets-coach-range input { width:44px !important; }
     .sets-coach-range span { color:var(--muted); font-size:0.75rem; white-space:nowrap; }
     .btn-add-set { font-size:0.75rem; color:var(--orange); background:none; border:1px dashed rgba(255,107,0,0.3); border-radius:6px; padding:4px 12px; cursor:pointer; margin-top:4px; font-family:'Heebo',sans-serif; }
@@ -274,8 +281,8 @@
       .nutri-header { display:none; }
 
       /* Sets coach grid: tighter columns */
-      .sets-coach-head { grid-template-columns:22px 62px 1fr 20px; gap:4px; font-size:0.62rem; }
-      .sets-coach-row  { grid-template-columns:22px 62px 1fr 20px; gap:4px; }
+      .sets-coach-head { grid-template-columns:22px 56px 62px 1fr 20px; gap:4px; font-size:0.62rem; }
+      .sets-coach-row  { grid-template-columns:22px 56px 62px 1fr 20px; gap:4px; }
       .sets-coach-row input { font-size:0.78rem; padding:3px 4px; }
       .sets-coach-range input { width:38px !important; }
 
@@ -3086,6 +3093,32 @@
     renderNutriArchive();
   }
 
+  /* ── ⚖️ עדכון שבועי — זהה לפאנל המאמן ── */
+  async function setCheckinDay(val) {
+    const day = val === '' ? null : parseInt(val, 10);
+    const { error } = await sb.from('clients').update({ checkin_day: day }).eq('email', activeEmail);
+    if (error) { toast('שגיאה: ' + error.message, 'err'); return; }
+    const c = clients.find(x => x.email === activeEmail);
+    if (c) c.checkin_day = day;
+    toast(day == null ? 'התזכורת האוטומטית כובתה' :
+      '✓ תזכורת כל יום ' + ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][day], 'ok');
+  }
+  async function sendCheckinReminder(btn) {
+    if (!activeEmail) return;
+    const prev = btn ? btn.textContent : '';
+    if (btn) { btn.disabled = true; btn.textContent = 'שולח...'; }
+    try {
+      const { data, error } = await sb.functions.invoke('checkin-reminder', { body: { client_email: activeEmail } });
+      if (error) throw new Error((data && data.error) || error.message);
+      if (data && data.reason === 'already_today') toast('כבר נשלחה לו תזכורת היום', 'err');
+      else if (data && data.ok) toast(data.via === 'push' ? '📲 התראה נשלחה למתאמן' : '💬 אין לו התראות — נשלח בצ׳אט', 'ok');
+      else throw new Error((data && data.error) || 'לא נשלח');
+    } catch (e) {
+      toast('לא נשלח: ' + e.message, 'err');
+    }
+    if (btn) { btn.disabled = false; btn.textContent = prev; }
+  }
+
   /* הצמדת סגן ללקוח. האחסון תומך בכמה סגנים ללקוח, והבחירה כאן
      יחידה — ולכן בחירה חדשה מוחקת קודם את הקיימות, אחרת סגן קודם
      היה ממשיך לראות אותו בלי שזה נראה בשום מקום.
@@ -3207,6 +3240,20 @@
                 style="width:19px;height:19px;accent-color:var(--orange);cursor:pointer;"/>
               <span style="font-size:0.78rem;color:#bbb;">בסיום התקופה המנוי מתארך והסכום נכנס לחוב</span>
             </label>
+          </div>
+          <!-- ⚖️ עדכון שבועי — זהה לפאנל המאמן -->
+          <div class="f-group">
+            <label>⚖️ יום עדכון שבועי</label>
+            <div style="display:flex;gap:7px;align-items:center;">
+              <select id="e-checkin-day" onchange="setCheckinDay(this.value, this)" style="flex:1;">
+                <option value="" ${client.checkin_day == null ? 'selected' : ''}>בלי תזכורת אוטומטית</option>
+                ${['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'].map((d, i) =>
+                  `<option value="${i}" ${client.checkin_day === i ? 'selected' : ''}>כל יום ${d}</option>`).join('')}
+              </select>
+              <button type="button" class="btn-sm btn-outline" onclick="sendCheckinReminder(this)"
+                style="white-space:nowrap;min-height:40px;" title="שולח עכשיו התראה למתאמן לעדכן משקל ולשלוח עדכון">📲 שלח עכשיו</button>
+            </div>
+            <span style="font-size:0.72rem;color:#888;">ביום שנבחר המתאמן מקבל התראה לשקילה, תמונות ועדכון קצר למאמן</span>
           </div>
           ${_clientDeputies.length ? `
           <div class="f-group">
@@ -3437,18 +3484,34 @@
         <button class="btn-sm btn-red" onclick="removeExercise(${di},${ei})">✕</button>
       </div>
       <div class="sets-coach-wrap">
-        <div class="sets-coach-head"><span>סט</span><span style="text-align:center;">ק"ג מומלץ</span><span>טווח חזרות</span><span></span></div>
-        ${sets.map((s, si) => `
+        <div class="sets-coach-head"><span>סט</span><span style="text-align:center;">סוג</span><span style="text-align:center;">ק"ג מומלץ</span><span>טווח חזרות</span><span></span></div>
+        ${sets.map((s, si) => {
+          /* אותו בורר כמו בפאנל המאמן. עד עכשיו האדמין לא יכל לקבוע סוג
+             סט בכלל — לא חימום, לא דרופ ולא זמן. */
+          const ALIAS = { warmup: 'warm_up', warm: 'warm_up', drop_set: 'drop', fail: 'failure' };
+          const st = ALIAS[s.set_type] || s.set_type || 'working';
+          const stClass = st === 'warm_up' ? 'type-warm' : st === 'failure' ? 'type-failure' : st === 'drop' ? 'type-drop' : st === 'timed' ? 'type-timed' : '';
+          return `
           <div class="sets-coach-row">
             <span style="font-size:0.8rem;font-weight:700;color:var(--muted);text-align:center;">${si+1}</span>
+            <select class="set-type-sel ${stClass}" onchange="updateCoachSet(${di},${ei},${si},'set_type',this.value);renderTrainingEditor()">
+              <option value="warm_up" ${st==='warm_up'?'selected':''}>חמ׳</option>
+              <option value="working" ${st==='working'?'selected':''}>עב׳</option>
+              <option value="failure" ${st==='failure'?'selected':''}>כשל</option>
+              <option value="drop" ${st==='drop'?'selected':''}>דרופ</option>
+              <option value="timed" ${st==='timed'?'selected':''}>זמן</option>
+            </select>
             <input type="number" step="0.5" min="0" value="${s.recommended_kg||0}" oninput="updateCoachSet(${di},${ei},${si},'recommended_kg',this.value)" placeholder="0"/>
-            <div class="sets-coach-range">
+            ${st === 'timed' ? `<div class="sets-coach-range">
+              <input type="number" min="5" step="5" value="${s.work_seconds||60}" oninput="updateCoachSet(${di},${ei},${si},'work_seconds',this.value)" title="שניות עבודה"/>
+              <span>שנ׳</span>
+            </div>` : `<div class="sets-coach-range">
               <input type="number" min="1" value="${s.reps_min||8}" oninput="updateCoachSet(${di},${ei},${si},'reps_min',this.value)"/>
               <span>עד</span>
               <input type="number" min="1" value="${s.reps_max||12}" oninput="updateCoachSet(${di},${ei},${si},'reps_max',this.value)"/>
-            </div>
+            </div>`}
             <button onclick="removeCoachSet(${di},${ei},${si})" style="background:none;border:none;color:#555;cursor:pointer;font-size:0.9rem;padding:0;line-height:1;">✕</button>
-          </div>`).join('')}
+          </div>`; }).join('')}
         <button class="btn-add-set" onclick="addCoachSet(${di},${ei})">+ הוסף סט</button>
       </div>
       <div style="display:flex;gap:16px;margin-top:10px;flex-wrap:wrap;">
@@ -3574,7 +3637,11 @@
   function updateCoachSet(di, ei, si, field, val) {
     if (!Array.isArray(trainingPlan[di].exercises[ei].sets))
       trainingPlan[di].exercises[ei].sets = parseSetsToArray(trainingPlan[di].exercises[ei].sets);
-    trainingPlan[di].exercises[ei].sets[si][field] = +val;
+    /* set_type הוא טקסט — קודם כל ערך הומר למספר, ולכן לא היה אפשר
+       להוסיף בורר סוג סט לאדמין בלי להפוך אותו ל-NaN */
+    const set = trainingPlan[di].exercises[ei].sets[si];
+    set[field] = field === 'set_type' ? val : +val;
+    if (field === 'set_type' && val === 'timed' && !(+set.work_seconds > 0)) set.work_seconds = 60;
   }
 
   function addCoachSet(di, ei) {
