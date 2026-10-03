@@ -2906,10 +2906,52 @@
       renderTraining(plan);
       flStatus(plan.length + ' ימי אימון נבנו ✓', 'ok');
     } catch (e) {
-      flStatus('הבנייה נכשלה: ' + (e.message || e) + ' · הטוקנים ירדו, נסה שוב', 'err');
+      /* הבנייה נכשלה — הניכוי מוחזר בשרת (רק ניכוי אמיתי, פעם אחת) */
+      let back = null;
+      if (spend.spend_id) {
+        const r = await sb.rpc('refund_own_tokens', { p_spend_id: spend.spend_id });
+        if (!r.error && r.data && r.data.ok) back = r.data.balance;
+      }
+      if (back !== null) { clientData.tokens_balance = back; flRenderCard(); }
+      flStatus('הבנייה נכשלה: ' + (e.message || e) +
+        (back !== null ? ' · הטוקנים הוחזרו, נסה שוב' : ' · הטוקנים ירדו, נסה שוב'), 'err');
     }
     if (btn) { btn.disabled = false; btn.textContent = '🏋️ בנה תוכנית אימונים'; }
   }
+
+  /* ── מתג מטרה לתפריט ──
+     נבחר לפי המטרה בפרופיל. כמו אצל המאמן: הבחירה קובעת את הבנייה
+     הזו בלבד ואינה משנה את הפרופיל. */
+  const FL_GOALS = [['cut', '🔥 חיטוב'], ['mass', '💪 מסה'], ['recomp', '⚖️ ריקומפוזיציה']];
+  const FL_GOAL_HE = { cut: 'חיטוב', mass: 'מסה', recomp: 'ריקומפוזיציה' };
+  let flNutriGoal = null;
+  function flProfileGoal() { return (clientData && clientData.goal) || ''; }
+  function flGoalHtml() {
+    const prof = flProfileGoal();
+    if (flNutriGoal === null) flNutriGoal = FL_GOALS.some(g => g[0] === prof) ? prof : '';
+    const chip = g => '<button type="button" onclick="flSetGoal(\'' + g[0] + '\')" style="flex:1;padding:8px 4px;' +
+      'border-radius:9px;font-family:Heebo,sans-serif;font-size:0.8rem;font-weight:800;cursor:pointer;white-space:nowrap;' +
+      (g[0] === flNutriGoal
+        ? 'background:rgba(255,107,0,0.16);border:1px solid #FF6B00;color:#FF6B00;'
+        : 'background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.14);color:#9aa0a6;') +
+      '">' + g[1] + '</button>';
+    let hint = 'בחר מטרה לתפריט', color = '#8a8f95';
+    if (flNutriGoal && flNutriGoal === prof) { hint = '✓ לפי הפרופיל שלך'; color = '#4ade80'; }
+    else if (flNutriGoal && FL_GOAL_HE[prof]) {
+      hint = '⚠️ בפרופיל: ' + FL_GOAL_HE[prof] + ' · התפריט הזה ייבנה ל' + FL_GOAL_HE[flNutriGoal]; color = '#fbbf24';
+    }
+    else if (flNutriGoal) hint = 'התפריט ייבנה ל' + FL_GOAL_HE[flNutriGoal];
+    return '<div style="font-size:0.72rem;font-weight:700;color:#9aa0a6;margin-bottom:5px;">🎯 מטרה לתפריט</div>' +
+      '<div style="display:flex;gap:6px;">' + FL_GOALS.map(chip).join('') + '</div>' +
+      '<div style="font-size:0.7rem;color:' + color + ';margin-top:5px;">' + hint + '</div>';
+  }
+  /* עדכון במקום — בלי לצייר את הכרטיס מחדש, כדי לא למחוק מה שהוקלד */
+  function flSetGoal(g) {
+    flNutriGoal = g;
+    const el = document.getElementById('fl-goal');
+    if (el) el.innerHTML = flGoalHtml();
+  }
+  function flOpenEditor() { location.href = 'coach.html?self=1'; }
 
   function flPickerLine() {
     const f = (document.getElementById('fl-focus') || {}).value || '';
@@ -2928,58 +2970,21 @@
     return parts.join(' · ') + (bio ? '\n' + bio : '');
   }
 
-  /* ── בניית תפריט ── */
-  async function flBuildNutrition() {
+  /* ── בניית תפריט ──
+     עובר לעורך ובונה שם עם אותו סוכן של המאמנים — חוקי התזונה של HF,
+     חלופות, סוגי יום — והתפריט נוחת ישר בעורך לבדיקה ולתיקון.
+     קודם היה כאן סוכן מקוצר שהחזיר שדות בשמות אחרים (grams/cal)
+     ממה שמסך התפריט קורא (quantity/calories), ולכן כמויות וקלוריות
+     לא הוצגו. הניכוי עצמו קורה בעורך, דרך אותה פעולה בשרת. */
+  function flBuildNutrition() {
     if (!flActive()) { flStatus('הגישה אינה בתוקף', 'err'); return; }
-    const btn = document.getElementById('fl-nutri-btn');
-    const { data: spend, error: sErr } = await sb.rpc('spend_tokens',
-      { p_amount: FL_COST_NUTRI, p_label: 'תפריט תזונה', p_kind: 'nutrition' });
-    if (sErr) { flStatus('לא ניתן לחייב: ' + sErr.message, 'err'); return; }
-    if (!spend || !spend.ok) {
-      flStatus('אין מספיק טוקנים · יתרה ' + ((spend && spend.balance) || 0), 'err');
-      flRenderCard(); return;
-    }
-    clientData.tokens_balance = spend.balance;
-    flRenderCard();
-
-    if (btn) { btn.disabled = true; btn.textContent = '⏳ בונה...'; }
-    flStatus('בונה תפריט...');
-    try {
-      const c = clientData || {};
-      const req = (document.getElementById('fl-req') || {}).value || '';
-      const goalHe = { mass: 'מסה', cut: 'חיטוב', recomp: 'ריקומפוזיציה' }[c.goal] || 'שמירה';
-      const p = [
-        'בנה תפריט תזונה יומי למתאמן.',
-        'מטרה: ' + goalHe + '.',
-        c.current_weight ? 'משקל: ' + c.current_weight + ' ק\"ג.' : '',
-        c.height ? 'גובה: ' + c.height + ' ס\"מ.' : '',
-        c.age ? 'גיל: ' + c.age + '.' : '',
-        c.target_calories ? 'יעד קלוריות: ' + c.target_calories + '.' : '',
-        c.target_protein ? 'יעד חלבון: ' + c.target_protein + ' גרם.' : '',
-        req ? 'העדפות ומגבלות: ' + req : '',
-        'החזר אך ורק JSON: מערך ארוחות, כל ארוחה { "meal": שם, "items": [{ "name", "grams", "cal", "protein", "carbs", "fat" }] }.',
-      ].filter(Boolean).join('\n');
-
-      const res = await aiFetch('', { body: JSON.stringify({
-        model: 'claude-sonnet-4-6', max_tokens: 4096,
-        messages: [{ role: 'user', content: p }],
-      }) });
-      if (!res.ok) throw new Error('HTTP ' + res.status);
-      const data = await res.json();
-      const text = (data.content && data.content[0] && data.content[0].text) || '';
-      const m = text.match(/\[[\s\S]*\]/);
-      if (!m) throw new Error('תשובה לא תקינה');
-      const plan = JSON.parse(m[0]);
-      if (!Array.isArray(plan) || !plan.length) throw new Error('תפריט ריק');
-      const { error: wErr } = await sb.rpc('save_own_plan', { p_kind: 'nutrition', p_plan: plan });
-      if (wErr) throw new Error(wErr.message);
-      nutritionPlanLocal = plan;
-      if (typeof renderNutriBody === 'function') renderNutriBody();
-      flStatus(plan.length + ' ארוחות נבנו ✓', 'ok');
-    } catch (e) {
-      flStatus('הבנייה נכשלה: ' + (e.message || e), 'err');
-    }
-    if (btn) { btn.disabled = false; btn.textContent = '🥗 בנה תפריט'; }
+    if (!flNutriGoal) { flStatus('בחר מטרה לתפריט', 'err'); return; }
+    const bal = (clientData && clientData.tokens_balance) || 0;
+    if (bal < FL_COST_NUTRI) { flStatus('אין מספיק טוקנים · יתרה ' + bal, 'err'); return; }
+    const req = ((document.getElementById('fl-req') || {}).value || '').trim();
+    const q = new URLSearchParams({ self: '1', build: 'nutrition', goal: flNutriGoal });
+    if (req) q.set('req', req);
+    location.href = 'coach.html?' + q.toString();
   }
 
   /* ── הכרטיס במסך הבית ──
@@ -3030,6 +3035,7 @@
               n + ' אימונים' + (n === best ? ' — מומלץ' : '') + '</option>').join('') +
             '</select>' +
           '</div>' +
+          '<div id="fl-goal" style="margin-top:9px;">' + flGoalHtml() + '</div>' +
           '<textarea id="fl-req" rows="2" placeholder="משהו נוסף? פציעות, ציוד, העדפות מזון..." ' +
           'style="width:100%;margin-top:8px;background:rgba(255,255,255,0.06);' +
           'border:1px solid rgba(255,255,255,0.14);border-radius:9px;padding:9px 11px;color:#fff;' +
@@ -3045,7 +3051,14 @@
             'font-size:0.85rem;cursor:pointer;">🥗 בנה תפריט</button>' +
           '</div>' +
           '<div style="font-size:0.7rem;color:#777;margin-top:6px;">' +
-          FL_COST_PLAN + ' טוקנים לתוכנית · ' + FL_COST_NUTRI + ' לתפריט</div>'
+          FL_COST_PLAN + ' טוקנים לתוכנית · ' + FL_COST_NUTRI + ' לתפריט</div>' +
+          /* העורך המלא — אותו עורך של המאמן הבכיר, בלי טוקנים */
+          '<button onclick="flOpenEditor()" style="display:block;width:100%;margin-top:10px;' +
+          'background:rgba(255,255,255,0.04);border:1px solid rgba(255,107,0,0.5);color:#FF6B00;' +
+          'border-radius:10px;padding:11px;font-family:Heebo,sans-serif;font-weight:900;font-size:0.88rem;cursor:pointer;">' +
+          '✏️ פתח את העורך — בנה ותקן בעצמך' +
+          '<div style="font-size:0.7rem;font-weight:700;color:#9aa0a6;margin-top:2px;">ידני · בלי טוקנים · גם עריכה של מה שהסוכן בנה</div>' +
+          '</button>'
         : '<div style="font-size:0.8rem;color:#aaa;margin-top:9px;line-height:1.7;">' +
           'הטוקנים שלך נשמרו. חידוש המסלול יפתח את הגישה מחדש איתם.</div>') +
       '<div id="fl-status" style="font-size:0.78rem;color:#8a8f95;margin-top:8px;min-height:17px;"></div>' +
@@ -3053,10 +3066,17 @@
       'border:1px solid rgba(255,255,255,0.16);color:#bbb;border-radius:9px;padding:7px 13px;' +
       'font-family:Heebo,sans-serif;font-size:0.78rem;font-weight:700;cursor:pointer;">' +
       '⭐ מאמנים מומלצים</button>' +
+      /* בתוך האפליקציה אין רכישה: כללי Apple אוסרים להפנות לתשלום חיצוני
+         על תוכן דיגיטלי. באתר הכפתור נשאר כמו שהיה. */
+      (flInNativeApp() ? '' :
       '<button onclick="flAskTokens()" style="margin-top:8px;margin-inline-start:6px;background:none;' +
       'border:1px solid rgba(255,107,0,0.4);color:#FF6B00;border-radius:9px;padding:7px 13px;' +
       'font-family:Heebo,sans-serif;font-size:0.78rem;font-weight:700;cursor:pointer;">' +
-      '🎟️ בקש טוקנים</button>';
+      '🎟️ בקש טוקנים</button>');
+  }
+  function flInNativeApp() {
+    try { return !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()); }
+    catch (e) { return false; }
   }
 
   /* ── בקשת טוקנים נוספים ──

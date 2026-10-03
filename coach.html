@@ -437,6 +437,22 @@
     body.nav-hidden #nav-toggle-btn { bottom:calc(18px + var(--sab,0px)); }
     @media (max-width: 768px) { #nav-toggle-btn { display:flex; } }
     #scroll-top-btn:hover { background:rgba(255,107,0,0.3); }
+    /* ── מצב עצמאי (coach.html?self=1): רק שני העורכים ── */
+    body.self-mode .topnav, body.self-mode #sidebar, body.self-mode .bottom-nav, body.self-mode #coach-chat-fab,
+    body.self-mode #scroll-top-btn, body.self-mode #nav-toggle-btn { display:none !important; }
+    body.self-mode .main { max-width:900px; margin:0 auto; padding-top:0; }
+    body.self-mode #self-head { position:sticky; top:0; z-index:20; background:#0a0a0a; border-bottom:1px solid rgba(255,107,0,0.25);
+      padding:calc(12px + var(--sat,0px)) 14px 10px; margin:0 -14px 14px; }
+    body.self-mode .self-back { background:none; border:1px solid rgba(255,255,255,0.16); color:#ccc; border-radius:9px; padding:6px 11px;
+      font-family:'Heebo',sans-serif; font-weight:800; font-size:0.8rem; cursor:pointer; flex-shrink:0; }
+    body.self-mode .self-lock { margin-top:10px; padding:8px 11px; border-radius:9px; font-size:0.78rem; font-weight:700;
+      background:rgba(248,113,113,0.08); border:1px solid rgba(248,113,113,0.35); color:#fca5a5; }
+    /* מה ששייך לניהול לקוחות ולא לעצמאי */
+    body.self-mode #main-area [onclick^="saveAsTemplate"], body.self-mode #main-area [onclick^="openTemplates"],
+    body.self-mode #main-area [onclick^="archiveCurrentPlan"], body.self-mode #main-area [onclick^="copyPlan"],
+    body.self-mode #btn-paste-plan, body.self-mode #main-area [onclick^="copyNutriDay"], body.self-mode #btn-paste-nutri-day,
+    body.self-mode #main-area [onclick^="syncMenuToClientTargets"], body.self-mode #main-area [onclick^="openExNotesCoach"],
+    body.self-mode #main-area [onclick^="pickExerciseVideo"], body.self-mode #nutrition-archive-list { display:none !important; }
     /* MEASUREMENTS */
     .meas-modal-overlay { position:fixed;inset:0;z-index:400;background:rgba(0,0,0,0.82);backdrop-filter:blur(6px);display:none;align-items:flex-start;justify-content:center;padding:calc(16px + var(--sat,0px)) 16px calc(16px + var(--sab,0px));overflow-y:auto; }
     .meas-modal-overlay.open { display:flex; }
@@ -2437,6 +2453,7 @@
   }
 
   async function deductTokens(amount, label, kind = 'plan') {
+    if (selfMode) return selfSpendTokens(amount, label, kind);
     if (coachTokens < amount) {
       if (confirm(`אין מספיק טוקנים לבניית ${label}.\nנדרש: ${amount} | נותר: ${coachTokens}\n\nלחץ אישור לרכישת טוקנים`))
         openTokenShop();
@@ -2803,8 +2820,22 @@
   let isPremium  = false;   // premium subscription → instant generator unlocked
   let studioData = null;    // studios row for a studio owner
   let canEdit    = false;   // senior/admin/studio_owner עורכים · regular צופה בלבד
+  /* ── מצב עצמאי — coach.html?self=1 ──
+     מתאמן עצמאי בונה ועורך לעצמו עם אותו עורך בדיוק של המאמן הבכיר,
+     כך שכל שיפור בעורך מגיע לשניהם. מה שאינו שייך לו (לקוחות, ניהול,
+     תבניות, ארכיון) מוסתר, והשמירה והטוקנים עוברים דרך פעולות בשרת
+     שכותבות רק לשורה של הקורא. */
+  let selfMode = false;
+  let selfRow  = null;
+  let selfLoadFailed = false;   // כשל טעינה ≠ תוכנית ריקה: אסור לשמור מעליה
+  let _selfSpend = null;        // { id, amount } — הניכוי האחרון, להחזר אם הבנייה נכשלה
+  let _selfTrainSnap = null;    // התוכנית כפי שנשמרה — לזיהוי שינוי שלא נשמר
   function requireEdit() {
     if (canEdit) return true;
+    if (selfMode) {
+      toast(selfLoadFailed ? 'הטעינה לא הושלמה — רענן לפני עריכה' : 'הגישה הסתיימה — חידוש המסלול יפתח את העריכה', 'err');
+      return false;
+    }
     /* לסגן יש role רגיל ולכן canEdit שלו כבוי — והשער הזה חסם אותו
        *לפני* ש-saveTraining ו-saveNutrition הספיקו לנתב אותו
        ל-proposeChange. כלומר מנגנון ההצעות היה בנוי ומת: הסגן לחץ
@@ -3264,6 +3295,7 @@
       });
     }
     if (!session) { window.location.href = 'login.html'; return; }
+    if (new URLSearchParams(location.search).get('self') === '1') return initSelfMode(session);
     /* The coach row and the "is this coach also a trainee?" lookup are
        independent, and used to cost two round trips in a row. Fire both now;
        the second is read further down. */
@@ -3469,6 +3501,216 @@
     caTrack('tracker_start', { clients: (clients || []).length });
     caInitGuards();
     setInterval(() => caTrack('heartbeat', {}), 5 * 60 * 1000);
+  }
+
+  /* ══ מצב עצמאי ══ */
+  function selfDaysLeft() {
+    const u = selfRow && selfRow.access_until;
+    if (!u) return -1;
+    return Math.round((new Date(u + 'T12:00:00') - new Date(todayStr() + 'T12:00:00')) / 86400000);
+  }
+
+  async function initSelfMode(session) {
+    const me = session.user.email;
+    const { data: row, error } = await sb.from('clients').select('*').eq('email', me).maybeSingle();
+    if (error) {
+      document.body.innerHTML = '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;' +
+        'padding:24px;background:#0a0a0a;color:#fff;font-family:Heebo,sans-serif;direction:rtl;text-align:center;"><div>' +
+        '<div style="font-size:2rem;">⚠️</div><div style="font-weight:900;margin:10px 0 6px;">הטעינה לא הושלמה</div>' +
+        '<div style="font-size:0.85rem;color:#aaa;margin-bottom:14px;">תקלה זמנית — התוכנית שלך שמורה.</div>' +
+        '<button onclick="location.reload()" style="background:#FF6B00;color:#fff;border:0;border-radius:10px;padding:10px 18px;' +
+        'font-weight:900;cursor:pointer;">נסה שוב</button>' +
+        '<div style="margin-top:12px;font-size:0.7rem;color:#666;direction:ltr;">' + esc((error.code || '') + ' ' + (error.message || '')) + '</div></div></div>';
+      return;
+    }
+    /* רק מתאמן עצמאי. מתאמן עם מאמן — התוכנית שלו בידי המאמן. */
+    if (!row || row.client_type !== 'freelancer') { location.href = 'dashboard.html'; return; }
+    selfMode   = true;
+    selfRow    = row;
+    coachEmail = me;
+    coachName  = row.name || '';
+    coachRole  = 'self';
+    canEdit    = selfDaysLeft() >= 0;
+    clients    = [row];
+    document.body.classList.add('self-mode');
+    _libsReady = Promise.all([loadExerciseLibrary(), loadFoodItems()]);
+    await selectSelf();
+    document.getElementById('loader').style.display = 'none';
+    selfAutoBuild();
+  }
+
+  async function selectSelf() {
+    const me = selfRow.email;
+    activeEmail = me;
+    const [tr, nu] = await Promise.all([
+      sb.from('training_plans').select('plan').eq('client_email', me).maybeSingle(),
+      sb.from('nutrition_plans').select('plan,day_targets').eq('client_email', me).maybeSingle(),
+      ensureLibs(),
+    ]);
+    /* שגיאת טעינה אינה "אין תוכנית" — בלי החסימה הזו, שמירה הייתה
+       דורסת תוכנית קיימת בריקה. */
+    if (tr.error || nu.error) { selfLoadFailed = true; canEdit = false; }
+    const raw = tr.data && tr.data.plan;
+    const activeDays = Array.isArray(raw) ? raw : ((raw && raw.active) || []);
+    trainingArchive = [];
+    trainingPlan = activeDays.map(d => {
+      if (d.name !== undefined && !d.day) d.day = d.name;
+      if (d.name !== undefined) { const { name, ...rest } = d; return rest; }
+      return d;
+    });
+    const nuPlan = (nu.data && nu.data.plan) || [];
+    nutritionPlan = typeof stripNonMeals === 'function' ? stripNonMeals(nuPlan).plan : nuPlan;
+    nutritionArchive = [];
+    nutritionDayTargets = (nu.data && nu.data.day_targets) || null;
+    clientDebtTxns = [];
+    currentPackage = null;
+    renderMain(selfRow);
+    renderSelfHead();
+    if (selfLoadFailed) toast('הטעינה לא הושלמה — רענן את העמוד', 'err');
+  }
+
+  /* הכותרת: חזרה · שם המסך · יתרה, ומתחת קפיצה לאימון / לתזונה.
+     הכפתורים הם אותם כפתורים של פאנל המאמן, באותו עיצוב. */
+  function renderSelfHead() {
+    const main = document.getElementById('main-area');
+    if (!main) return;
+    let head = document.getElementById('self-head');
+    if (!head) {
+      head = document.createElement('div');
+      head.id = 'self-head';
+      main.insertBefore(head, main.firstChild);
+    }
+    const days = selfDaysLeft(), live = days >= 0;
+    head.innerHTML =
+      '<div style="display:flex;align-items:center;gap:10px;">' +
+        '<button class="self-back" onclick="selfBack()">→ חזרה</button>' +
+        '<div style="flex:1;min-width:0;"><div style="font-weight:900;color:var(--orange);font-size:1.05rem;">✏️ התוכנית שלי</div>' +
+        '<div style="font-size:0.7rem;color:#8a8f95;">עריכה ידנית בחינם · הסוכן בטוקנים</div></div>' +
+        '<div id="self-balance" style="font-size:0.74rem;font-weight:800;text-align:left;line-height:1.3;"></div>' +
+      '</div>' +
+      '<div id="self-pills" style="display:flex;gap:6px;margin-top:10px;"></div>' +
+      (selfLoadFailed
+        ? '<div class="self-lock">⚠️ הטעינה לא הושלמה — <a href="javascript:location.reload()" style="color:inherit;">רענן</a> לפני עריכה.</div>'
+        : live ? '' : '<div class="self-lock">🔒 הגישה הסתיימה — התוכנית שלך שמורה וגלויה. חידוש המסלול יפתח את העריכה.</div>');
+    updateSelfBalance();
+    /* כפתורי הקפיצה: משוכפלים מסרגל המאמן, לעצמאי רק אימון ותזונה */
+    const pills = document.getElementById('self-pills');
+    [...main.querySelectorAll('button')].filter(b => /#training-editor|#nutrition-editor/.test(b.getAttribute('onclick') || ''))
+      .slice(0, 2).forEach(b => {
+        const c = b.cloneNode(true);
+        c.setAttribute('onclick', "selfJump('" + (/training/.test(b.getAttribute('onclick')) ? 'training' : 'nutrition') + "')");
+        pills.appendChild(c);
+      });
+    /* כל מה שאינו שני העורכים — מוסתר. בדיקה בקוד ולא ב-:has, שלא כל
+       מכשיר מכיר. */
+    [...main.children].forEach(c => {
+      if (c === head) return;
+      const keep = c.querySelector && (c.querySelector('#training-editor') || c.querySelector('#nutrition-editor'));
+      c.style.display = keep ? '' : 'none';
+    });
+    const dt = document.getElementById('default-template');
+    if (dt) (dt.closest('.ai-box') || dt.parentElement).style.display = 'none';
+    const photo = main.querySelector('[onclick="openPhotoPlanModal()"]');
+    if (photo) photo.parentElement.style.display = 'none';
+    const tArch = document.getElementById('training-archive-list');
+    if (tArch) tArch.parentElement.style.display = 'none';
+  }
+
+  function updateSelfBalance() {
+    const el = document.getElementById('self-balance');
+    if (!el || !selfRow) return;
+    const days = selfDaysLeft(), bal = selfRow.tokens_balance || 0;
+    el.innerHTML = days >= 0
+      ? '<span style="color:#4ade80;">🎟️ ' + bal + ' טוקנים</span><br><span style="color:#8a8f95;font-weight:700;">' + days + ' ימים</span>'
+      : '<span style="color:#f87171;">🔒 הגישה הסתיימה</span><br><span style="color:#8a8f95;font-weight:700;">' + bal + ' טוקנים שמורים</span>';
+  }
+
+  function selfJump(which) {
+    const el = document.getElementById(which === 'training' ? 'training-editor' : 'nutrition-editor');
+    const card = el && el.closest('.sec-card');
+    if (!card) return;
+    const head = document.getElementById('self-head');
+    const y = card.getBoundingClientRect().top + window.scrollY - ((head && head.offsetHeight) || 0) - 8;
+    window.scrollTo({ top: y, behavior: 'smooth' });
+    const m = document.getElementById('main-area');    // במחשב הגלילה היא בתוך האזור הראשי
+    if (m && m.scrollHeight > m.clientHeight + 4) m.scrollTo({ top: card.offsetTop - ((head && head.offsetHeight) || 0) - 8, behavior: 'smooth' });
+  }
+
+  /* יציאה: התפריט נשמר אוטומטית, האימון — רק בלחיצה על שמור. כאן
+     לא נותנים לשינוי באימון ללכת לאיבוד בשקט. */
+  async function selfBack() {
+    try { if (typeof flushNutriSave === 'function') await flushNutriSave(); } catch (e) { }
+    if (canEdit && _selfTrainSnap !== null && JSON.stringify(trainingPlan) !== _selfTrainSnap) {
+      if (confirm('יש שינויים באימון שעוד לא נשמרו. לשמור לפני היציאה?')) {
+        const ok = await saveTraining(true);
+        if (!ok) { toast('השמירה נכשלה — השינויים עדיין על המסך', 'err'); return; }
+      }
+    }
+    location.href = 'dashboard.html';
+  }
+
+  async function selfSaveTraining(plan, silent) {
+    if (!canEdit) { if (!silent) requireEdit(); return false; }
+    const { error } = await sb.rpc('save_own_plan', { p_kind: 'training', p_plan: plan || [] });
+    if (!error) _selfTrainSnap = JSON.stringify(trainingPlan);
+    if (silent) return !error;
+    error ? toast('שגיאה בשמירה: ' + error.message, 'err') : toast('תוכנית נשמרה ✓', 'ok');
+    return !error;
+  }
+
+  async function selfSaveNutrition(plan, silent) {
+    if (!canEdit) return false;
+    let { error } = await sb.rpc('save_own_plan', { p_kind: 'nutrition', p_plan: plan || [] });
+    if (!error) ({ error } = await sb.rpc('save_own_day_targets', { p_targets: nutritionDayTargets || null }));
+    if (!silent) error ? toast('שגיאה בשמירה: ' + error.message, 'err') : toast('תפריט נשמר ✓', 'ok');
+    return !error;
+  }
+
+  /* הניכוי בשרת, מהארנק של העצמאי. בלי הפניה לתשלום מכאן — רק יתרה. */
+  async function selfSpendTokens(amount, label, kind) {
+    const { data, error } = await sb.rpc('spend_tokens', { p_amount: amount, p_label: label, p_kind: kind });
+    if (error) { toast('לא ניתן לחייב: ' + error.message, 'err'); return false; }
+    if (!data || !data.ok) {
+      toast(data && data.reason === 'expired'
+        ? 'הגישה הסתיימה — הטוקנים שלך שמורים לחידוש'
+        : 'אין מספיק טוקנים ל' + label + ' · יתרה ' + ((data && data.balance) || 0), 'err');
+      return false;
+    }
+    selfRow.tokens_balance = data.balance;
+    _selfSpend = data.spend_id ? { id: data.spend_id, amount } : null;
+    updateSelfBalance();
+    return true;
+  }
+
+  async function selfRefundTokens(amount, label) {
+    const s = _selfSpend; _selfSpend = null;
+    const fail = () => toast(label + ' לא נוצר — הטוקנים לא הוחזרו אוטומטית, פנה אלינו ונסדר', 'err');
+    if (!s || s.amount !== amount) return fail();
+    const { data, error } = await sb.rpc('refund_own_tokens', { p_spend_id: s.id });
+    if (error || !data || !data.ok) return fail();
+    selfRow.tokens_balance = data.balance;
+    updateSelfBalance();
+    toast(amount + ' טוקנים הוחזרו — ' + label + ' לא נוצר', 'ok');
+  }
+
+  /* כפתור "בנה תפריט" שבמסך הבית מגיע לכאן ובונה עם אותו סוכן של
+     המאמנים. הכתובת מתנקה לפני הבנייה, כך שרענון לא יחייב שוב. */
+  function selfAutoBuild() {
+    const q = new URLSearchParams(location.search);
+    if (q.get('build') !== 'nutrition') return;
+    history.replaceState(null, '', location.pathname + '?self=1');
+    if (!canEdit) return;
+    const g = q.get('goal');
+    if (['cut', 'mass', 'recomp'].includes(g) && typeof setNutriGoal === 'function') setNutriGoal(g);
+    const inp = document.getElementById('nutri-ai-prompt');
+    if (!inp) return;
+    inp.value = (q.get('req') || '').trim() || 'בנה לי תפריט תזונה יומי מלא';
+    selfJump('nutrition');
+    setTimeout(() => {
+      const box = inp.closest('.ai-box');
+      if (box) box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      generateNutritionWithAI();
+    }, 400);
   }
 
   /* סדר א-ב לפי שם. localeCompare עם 'he' מסדר עברית נכון —
@@ -5324,6 +5566,7 @@ ${exLines || 'אין'}
         <div id="nutrition-archive-list"></div>
         <div class="ai-box" style="margin-top:14px;">
           <div class="ai-box-title">✨ בניית תפריט עם AI</div>
+          <div class="goal-switch-wrap" id="nutri-goal-wrap"></div>
           <textarea class="ai-textarea" id="nutri-ai-prompt" placeholder='תאר את המטרה: לדוגמה "בניית מסה לגבר 3 ארוחות ביום" — הבינה תבנה תפריט מלא עם חלופות למקורות חלבון, פחמימה ושומן בכל ארוחה'></textarea>
           <div class="ai-attach-row">
             <input type="file" id="nutri-file" accept=".pdf,image/jpeg,image/png,image/webp,image/gif" multiple style="display:none;" onchange="attachNutriFile()"/>
@@ -5399,6 +5642,8 @@ ${exLines || 'אין'}
     renderArchiveList();
     renderNutritionEditor();
     syncClipboardButtons();
+    /* מתאמן עצמאי: רק שני העורכים. שאר הטעינות שייכות לניהול לקוח. */
+    if (selfMode) { _selfTrainSnap = JSON.stringify(trainingPlan); return; }
     loadDefaultTemplate();
     loadCoachExNoteKeys(client.email); // 📝 which exercises have client notes (dot)
     loadClientLogs(client.email);
@@ -6681,6 +6926,7 @@ ${exLines || 'אין'}
     const pwCard  = document.getElementById('peak-week-card');
     if (pwDates) pwDates.style.display = val === 'peak_week' ? 'block' : 'none';
     if (pwCard)  pwCard.style.display  = val === 'peak_week' ? 'block' : 'none';
+    if (typeof nutriGoalFromCard === 'function') nutriGoalFromCard();   // מתג המטרה של סוכן התפריט עוקב מיד
   }
 
   function makePwDay(i, pwStart, stageDate) {
@@ -8147,6 +8393,7 @@ ${exLines || 'אין'}
     if (isDeputyFor(activeEmail))
       return proposeChange('training_plan', planData,
         `${(planData.active || []).length} ימי אימון`, silent);
+    if (selfMode) return selfSaveTraining(planData.active, silent);
     const { error } = await sb.from('training_plans').upsert({client_email:activeEmail,plan:planData,updated_at:new Date().toISOString()},{onConflict:'client_email'});
     if (silent) return !error;
     error ? toast('שגיאה בשמירה','err') : toast('תוכנית נשמרה ✓','ok');
@@ -9089,6 +9336,7 @@ ${JSON.stringify(plan)}` }]
      זה כישלון של המודל היה עולה למאמן כאילו קיבל תוצאה. */
   async function refundTokens(amount, label) {
     if (!amount) return;
+    if (selfMode) return selfRefundTokens(amount, label);
     const newBal = coachTokens + amount;
     const { error } = await sb.from('coach_tokens')
       .upsert({ coach_email: coachEmail, balance: newBal, updated_at: new Date().toISOString() });
@@ -9117,7 +9365,8 @@ ${JSON.stringify(plan)}` }]
     const weightLine = clientWeight ? `משקל המתאמן: ${clientWeight} ק"ג` : '';
     const macrosLine = (targetCal||targetProt||targetCarb||targetFat)
       ? `יעדי מאקרו: ${targetCal||'—'} קל׳ | חלבון ${targetProt||'—'}ג׳ | פחמימה ${targetCarb||'—'}ג׳ | שומן ${targetFat||'—'}ג׳` : '';
-    const _goalSel = document.getElementById('e-goal')?.value || null;
+    /* המתג שליד הסוכן קובע; בלי בחירה בו — המטרה שבכרטיס, כמו קודם */
+    const _goalSel = (typeof nutriGoalForBuild === 'function' && nutriGoalForBuild()) || document.getElementById('e-goal')?.value || null;
     const goalLine = _goalSel ? `מטרת המתאמן: ${({cut:'חיטוב',mass:'מסה',recomp:'ריקומפוזיציה',peak_week:'פייק וויק'}[_goalSel]||_goalSel)}` : '';
     btn.disabled = true; btn.textContent = '⏳ בונה...';
     statusEl.style.color = 'var(--muted)'; statusEl.textContent = 'Claude בונה תפריט...';

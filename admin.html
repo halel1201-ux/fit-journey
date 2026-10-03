@@ -3297,6 +3297,18 @@
               <label>משקל עדכני (ק"ג)</label>
               <input id="e-weight" type="number" step="0.1" min="20" max="400" value="${client.current_weight||''}" placeholder="—"/>
             </div>
+            <!-- מטרה — כמו בכרטיס של פאנל המאמן. בלעדיה סוכן התפריט כאן לא קיבל מטרה בכלל -->
+            <div class="f-group">
+              <label>מצב נוכחי / מטרה</label>
+              <select id="e-goal" onchange="if (typeof nutriGoalFromCard === 'function') nutriGoalFromCard()">
+                <option value="" ${!client.goal?'selected':''}>— לא הוגדר —</option>
+                <option value="mass"      ${client.goal==='mass'     ?'selected':''}>💪 מסה</option>
+                <option value="cut"       ${client.goal==='cut'      ?'selected':''}>🔥 חיטוב</option>
+                <option value="recomp"    ${client.goal==='recomp'   ?'selected':''}>⚖️ ריקומפוזיציה</option>
+                <option value="peak_week" ${client.goal==='peak_week'?'selected':''}>🏆 פייק וויק</option>
+                <option value="powerlifting" ${client.goal==='powerlifting'?'selected':''}>🏋️ פאוורליפטינג</option>
+              </select>
+            </div>
           </div>
         </div>
         <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
@@ -3378,6 +3390,7 @@
         <div id="nutrition-archive-list"></div>
         <div class="ai-box" style="margin-top:14px;">
           <div class="ai-box-title">✨ בניית תפריט עם AI</div>
+          <div class="goal-switch-wrap" id="nutri-goal-wrap"></div>
           <textarea class="ai-textarea" id="nutri-ai-prompt" placeholder='תאר את המטרה: לדוגמה "בניית מסה לגבר 3 ארוחות ביום" — הבינה תבנה תפריט מלא עם חלופות למקורות חלבון, פחמימה ושומן בכל ארוחה'></textarea>
           <div class="ai-attach-row">
             <input type="file" id="nutri-file" accept=".pdf,image/jpeg,image/png,image/webp,image/gif" style="display:none;" onchange="attachNutriFile()"/>
@@ -3807,7 +3820,8 @@
     const weightLine = clientWeight ? `משקל המתאמן: ${clientWeight} ק"ג` : '';
     const macrosLine = (targetCal||targetProt||targetCarb||targetFat)
       ? `יעדי מאקרו: ${targetCal||'—'} קל׳ | חלבון ${targetProt||'—'}ג׳ | פחמימה ${targetCarb||'—'}ג׳ | שומן ${targetFat||'—'}ג׳` : '';
-    const _goalSel = document.getElementById('e-goal')?.value || null;
+    /* המתג שליד הסוכן קובע; בלי בחירה בו — המטרה שבכרטיס */
+    const _goalSel = (typeof nutriGoalForBuild === 'function' && nutriGoalForBuild()) || document.getElementById('e-goal')?.value || null;
     const goalLine = _goalSel ? `מטרת המתאמן: ${({cut:'חיטוב',mass:'מסה',recomp:'ריקומפוזיציה',peak_week:'פייק וויק'}[_goalSel]||_goalSel)}` : '';
     const hasFile = !!_pendingNutriFile;
     btn.disabled = true; btn.textContent = '⏳ בונה...';
@@ -3974,6 +3988,7 @@ ${hasFile ? '' : `4. התאם כמויות וערכים מדויקים למשק�
     const fat    = parseInt(document.getElementById('e-fat').value)    || null;
     const water  = parseFloat(document.getElementById('e-water').value)  || null;
     const weight = parseFloat(document.getElementById('e-weight').value) || null;
+    const goalEl = document.getElementById('e-goal');
 
     /* שינוי מייל: מעדכן את כל הטבלאות (RPC) ואת משתמש ההתחברות (Auth).
        השדה היה readonly עד עכשיו — ולכן לאדמין לא הייתה דרך לשנות מייל של לקוח. */
@@ -4003,6 +4018,7 @@ ${hasFile ? '' : `4. התאם כמויות וערכים מדויקים למשק�
       .update({ name, phone, coach_email: coachEmail, coaching_start: start, coaching_end: end, plan_type: plan,
                 target_calories: cal, target_protein: prot, target_carbs: carb, target_fat: fat,
                 target_water: water, current_weight: weight,
+                ...(goalEl ? { goal: goalEl.value || null } : {}),
                 /* ריק = לפי המחירון ולכן NULL; אפס הוא מחיר אמיתי */
                 subscription_price: (document.getElementById('e-price')?.value.trim() || '') === ''
                   ? null : Number(document.getElementById('e-price').value),

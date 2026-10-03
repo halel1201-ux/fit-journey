@@ -42,6 +42,68 @@
     }, 0));
   }
 
+  /* ── מתג מטרה ליד סוכן התפריט ──
+     חיטוב / מסה / ריקומפוזיציה. נבחר לפי המטרה בכרטיס הלקוח (אצל
+     מתאמן עצמאי — בפרופיל שלו), ומה שמסומן בו הוא מה שהסוכן מקבל.
+     בחירה ששונה מהכרטיס אינה משנה את הכרטיס: הכרטיס הוא המקור ושאר
+     המערכת קוראת ממנו, ולכן כאן רק מוצגת אזהרה.
+     פיק וויק ופאוורליפטינג אינם מטרה תזונתית — המתג נשאר ריק,
+     והסוכן ממשיך לקבל את מה שבכרטיס, כמו קודם. */
+  const NUTRI_GOALS = [['cut', '🔥 חיטוב'], ['mass', '💪 מסה'], ['recomp', '⚖️ ריקומפוזיציה']];
+  const NUTRI_GOAL_HE = { cut: 'חיטוב', mass: 'מסה', recomp: 'ריקומפוזיציה', peak_week: 'פיק וויק', powerlifting: 'פאוורליפטינג' };
+  let nutriGoal = null;        // null = עוד לא נקבע למתאמן הזה, נלקח מהכרטיס
+  let _nutriGoalFor = null;    // המתאמן שהבחירה שייכת לו
+
+  function nutriCardGoal() { return (document.getElementById('e-goal') || {}).value || ''; }
+  function nutriGoalSource() { return (typeof selfMode !== 'undefined' && selfMode) ? 'הפרופיל שלך' : 'כרטיס הלקוח'; }
+
+  function ensureGoalSwitchCss() {
+    if (document.getElementById('goal-switch-css')) return;
+    const s = document.createElement('style');
+    s.id = 'goal-switch-css';
+    s.textContent =
+      '.goal-switch-wrap{margin-bottom:12px;}' +
+      '.goal-switch-label{font-size:0.75rem;font-weight:700;color:var(--muted);margin-bottom:6px;}' +
+      '.goal-switch{display:flex;gap:6px;}' +
+      '.goal-opt{flex:1;padding:9px 6px;border-radius:10px;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.03);' +
+        'color:var(--muted);font-family:\'Heebo\',sans-serif;font-size:0.84rem;font-weight:800;cursor:pointer;transition:all 0.15s;white-space:nowrap;}' +
+      '.goal-opt:hover{border-color:rgba(255,107,0,0.4);color:var(--white);}' +
+      '.goal-opt.on{background:rgba(255,107,0,0.15);border-color:var(--orange);color:var(--orange);}' +
+      '.goal-switch-hint{font-size:0.72rem;color:#8a8f95;margin-top:6px;min-height:16px;}' +
+      '.goal-switch-hint.src{color:#4ade80;}' +
+      '.goal-switch-hint.diff{color:#fbbf24;}';
+    document.head.appendChild(s);
+  }
+
+  function renderGoalSwitch() {
+    const wrap = document.getElementById('nutri-goal-wrap');
+    if (!wrap) return;
+    if (_nutriGoalFor !== activeEmail) { _nutriGoalFor = activeEmail; nutriGoal = null; }
+    const card = nutriCardGoal();
+    if (nutriGoal === null) nutriGoal = NUTRI_GOALS.some(g => g[0] === card) ? card : '';
+    ensureGoalSwitchCss();
+    const src = nutriGoalSource();
+    const cardHe = NUTRI_GOAL_HE[card] || '';
+    let hint, cls = '';
+    if (nutriGoal && nutriGoal === card) { cls = 'src'; hint = '✓ לפי ' + src; }
+    else if (nutriGoal && cardHe) {
+      cls = 'diff';
+      hint = '⚠️ ב' + (src === 'כרטיס הלקוח' ? 'כרטיס' : 'פרופיל') + ': ' + cardHe + ' · התפריט הזה ייבנה ל' + NUTRI_GOAL_HE[nutriGoal];
+    }
+    else if (nutriGoal) hint = 'אין מטרה ב' + src + ' — התפריט ייבנה ל' + NUTRI_GOAL_HE[nutriGoal];
+    else hint = cardHe ? 'ב' + src + ': ' + cardHe + ' — בחר מטרה לתפריט' : 'בחר מטרה לתפריט';
+    wrap.innerHTML = '<div class="goal-switch-label">🎯 מטרת התפריט</div>' +
+      '<div class="goal-switch">' + NUTRI_GOALS.map(g =>
+        '<button type="button" class="goal-opt' + (g[0] === nutriGoal ? ' on' : '') + '" data-goal="' + g[0] + '" ' +
+        'onclick="setNutriGoal(\'' + g[0] + '\')">' + g[1] + '</button>').join('') + '</div>' +
+      '<div class="goal-switch-hint ' + cls + '" id="nutri-goal-hint">' + hint + '</div>';
+  }
+  function setNutriGoal(g) { nutriGoal = g; renderGoalSwitch(); }
+  /* הכרטיס השתנה — המתג חוזר לעקוב אחריו */
+  function nutriGoalFromCard() { nutriGoal = null; renderGoalSwitch(); }
+  /* מה שהסוכן מקבל. ריק = אין בחירה במתג, והקורא נופל לכרטיס. */
+  function nutriGoalForBuild() { return nutriGoal || ''; }
+
   function setDayTarget(dt, val) {
     const n = parseInt(val, 10);
     nutritionDayTargets = nutritionDayTargets || {};
@@ -95,6 +157,7 @@
   }
 
   function renderNutritionEditor() {
+    renderGoalSwitch();   // לפני היציאה המוקדמת — גם לתפריט ריק יש סוכן
     syncVariableMenu();   // תפריט עם אופציות מדליק את הסוויץ' מעצמו
     const el = document.getElementById('nutrition-editor');
     if (!el) return;
@@ -796,6 +859,9 @@
       return proposeChange('nutrition_plan', plan,
         `${(plan || []).length} ארוחות`, false);
     }
+    /* מתאמן עצמאי בעורך שלו: אין לו הרשאת כתיבה לטבלה, והשמירה עוברת
+       דרך פעולות בשרת שכותבות רק לשורה של הקורא. */
+    if (typeof selfMode !== 'undefined' && selfMode) return selfSaveNutrition(plan, silent);
     const { error } = await sb.from('nutrition_plans').upsert({client_email:email,plan:plan,day_targets:nutritionDayTargets,updated_at:new Date().toISOString()},{onConflict:'client_email'});
     if (!silent) error ? toast('שגיאה בשמירה','err') : toast('תפריט נשמר ✓','ok');
     return !error;
