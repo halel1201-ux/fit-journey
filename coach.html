@@ -2719,29 +2719,31 @@
     const list = document.getElementById('sched-list');
     if (!list) return;
     list.innerHTML = '<div style="color:#444;font-size:0.82rem;text-align:center;padding:12px;">טוען...</div>';
-    const { data } = await sb.from('scheduled_messages').select('*').eq('coach_email', coachEmail).order('scheduled_time');
+    const { data, error } = await sb.from('scheduled_messages').select('*').eq('coach_email', coachEmail).order('scheduled_time');
+    /* כשל טעינה ≠ אין הודעות */
+    if (error) { list.innerHTML = '<div style="color:#f87171;font-size:0.8rem;text-align:center;padding:12px;">הטעינה נכשלה: ' + esc(error.message) + '</div>'; return; }
     if (!data || !data.length) {
       list.innerHTML = '<div style="color:#444;font-size:0.82rem;text-align:center;padding:20px 0;">אין הודעות מתוזמנות</div>';
       return;
     }
-    const todayStr = todayStr();
+    const today = todayStr();   // בשם todayStr היא הסתירה את הפונקציה ונפלה
     list.innerHTML = data.map(m => {
       if (m.recurring) {
-        const sentToday = m.last_sent_date === todayStr;
+        const sentToday = m.last_sent_date === today;
         return `<div class="sched-item">
-          <div class="sched-item-msg" title="${m.message}">${m.message}</div>
+          <div class="sched-item-msg" title="${esc(m.message)}">${esc(m.message)}</div>
           <div class="sched-item-time">🔁 כל יום ב-${m.time_of_day}</div>
           <div class="sched-badge recurring">${sentToday ? '✓ נשלח היום' : 'ממתין'}</div>
-          <button class="btn-del-sched" onclick="deleteScheduledMessage(${m.id})" title="מחק">✕</button>
+          <button class="btn-del-sched" onclick="deleteScheduledMessage('${m.id}')" title="מחק">✕</button>
         </div>`;
       }
       const dt = new Date(m.scheduled_time);
       const ts = dt.toLocaleString('he-IL', { day:'2-digit', month:'2-digit', year:'2-digit', hour:'2-digit', minute:'2-digit' });
       return `<div class="sched-item${m.sent ? ' sent' : ''}">
-        <div class="sched-item-msg" title="${m.message}">${m.message}</div>
+        <div class="sched-item-msg" title="${esc(m.message)}">${esc(m.message)}</div>
         <div class="sched-item-time">${ts}</div>
         <div class="sched-badge ${m.sent ? 'done' : 'pending'}">${m.sent ? '✓ נשלח' : 'ממתין'}</div>
-        <button class="btn-del-sched" onclick="deleteScheduledMessage(${m.id})" title="מחק">✕</button>
+        <button class="btn-del-sched" onclick="deleteScheduledMessage('${m.id}')" title="מחק">✕</button>
       </div>`;
     }).join('');
 
@@ -2750,7 +2752,7 @@
     const overdue = data.filter(m => !m.recurring && !m.sent && new Date(m.scheduled_time) <= now);
     // הודעות חזרה יומית שהשעה שלהן הגיעה והיום עוד לא נשלחו
     const nowTimeStr = now.toTimeString().slice(0, 5);
-    const dueRecurring = data.filter(m => m.recurring && m.time_of_day && m.last_sent_date !== todayStr && nowTimeStr >= m.time_of_day);
+    const dueRecurring = data.filter(m => m.recurring && m.time_of_day && m.last_sent_date !== today && nowTimeStr >= m.time_of_day);
 
     if (overdue.length || dueRecurring.length) {
       const emails = clients.map(c => c.email);
@@ -2764,7 +2766,7 @@
       }
       for (const m of dueRecurring) {
         if (ids.length) await sendPush(ids, `המאמן ${coachName}`, m.message);
-        await sb.from('scheduled_messages').update({ last_sent_date: todayStr }).eq('id', m.id);
+        await sb.from('scheduled_messages').update({ last_sent_date: today }).eq('id', m.id);
       }
       loadScheduledMessages();
     }
