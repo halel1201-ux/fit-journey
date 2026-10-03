@@ -19,6 +19,7 @@ const STATIC = [
   './freelancer-terms.js',
   './plan-prompt.js',
   './nutrition-editor.js',   // עורך התזונה המשותף — נטען בכל אחד משני הפאנלים
+  './meetings.js',           // פגישות + סנכרון יומן — נטען במאמן ובמתאמן
   './manifest.json',
   './icon-192.png',
   './icon-512.png',
