@@ -470,6 +470,33 @@
     .food-log-macros { font-size:0.75rem; color:var(--muted); margin-top:1px; }
     .btn-del-food { background:none; border:none; color:#555; cursor:pointer; font-size:0.85rem; padding:2px 6px; border-radius:4px; flex-shrink:0; }
     .btn-del-food:hover { color:#ff7070; background:rgba(255,60,60,0.1); }
+    /* ── פירוט תזונתי (מעקב "הערכים שלי") ── */
+    .nbd { background:#0c0d0f; border:1px solid rgba(255,107,0,0.55); border-radius:18px; margin:0 0 14px; overflow:hidden; }
+    .nbd-head { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:13px 14px 10px; background:rgba(255,255,255,0.025); border-bottom:1px solid rgba(255,255,255,0.06); }
+    .nbd-title { font-weight:900; font-size:0.92rem; color:#fff; }
+    .nbd-sub { font-size:0.7rem; color:#8a8f95; margin-top:1px; }
+    .nbd-fj { flex-shrink:0; font-family:'Arial Black','Heebo',sans-serif; font-weight:900; font-size:0.72rem; padding:4px 7px; border-radius:7px; border:1px solid; letter-spacing:0.5px; }
+    .nbd-logo-img { height:26px; max-width:80px; object-fit:contain; border-radius:6px; flex-shrink:0; }
+    .nbd-sum { display:flex; align-items:center; gap:12px; padding:12px 14px; border-bottom:1px solid rgba(255,255,255,0.06); }
+    .nbd-ring { position:relative; width:80px; height:80px; flex-shrink:0; }
+    .nbd-ring-c { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; line-height:1.1; }
+    .nbd-ring-c b { font-size:1.12rem; font-weight:900; color:#fff; }
+    .nbd-ring-c span { font-size:0.58rem; color:#8a8f95; }
+    .nbd-legs { flex:1; display:flex; justify-content:space-between; gap:6px; min-width:0; }
+    .nbd-leg { display:flex; gap:6px; align-items:stretch; min-width:0; }
+    .nbd-leg i { width:3px; border-radius:2px; flex-shrink:0; }
+    .nbd-leg b { display:block; font-size:0.92rem; font-weight:900; color:#fff; white-space:nowrap; }
+    .nbd-leg span { display:block; font-size:0.62rem; color:#8a8f95; white-space:nowrap; }
+    .nbd-tbl { width:100%; border-collapse:collapse; font-size:0.76rem; }
+    .nbd-tbl th { font-size:0.64rem; font-weight:800; padding:8px 4px; text-align:center; }
+    .nbd-tbl th:first-child, .nbd-tbl td:first-child { text-align:right; padding-right:14px; }
+    .nbd-tbl td { padding:8px 4px; text-align:center; color:#ddd; border-bottom:1px solid rgba(255,255,255,0.05); }
+    .nbd-tbl td:first-child b { display:block; font-weight:800; color:#fff; font-size:0.8rem; }
+    .nbd-tbl td:first-child span { display:block; font-size:0.66rem; color:#8a8f95; margin-top:1px; }
+    .nbd-tbl .nbd-p { font-weight:900; }
+    .nbd-tbl tfoot td { font-weight:900; color:#fff; border-bottom:0; padding-top:10px; padding-bottom:10px; }
+    .nbd-del { background:none; border:0; color:#666; font-size:0.8rem; cursor:pointer; padding:2px 4px; }
+    .nbd-del:hover { color:#f87171; }
 
     /* AI CHAT */
     .ai-chat-panel { position:fixed; inset:0; z-index:500; background:rgba(0,0,0,0.6); display:none; align-items:flex-end; justify-content:center; }
@@ -5593,6 +5620,118 @@ ${foodList || 'אין פריטים'}
     renderNutriBody();
   }
 
+  /* ══ פירוט תזונתי — כרטיס לכל ארוחה שנרשמה, ולסיכום היום ══
+     בעיצוב של חוברת המתכונים: טבעת קלוריות, חלוקת המאקרו באחוזים
+     וטבלת מרכיבים. הצבע הוא צבע המותג של המאמן (--orange, שהמיתוג
+     מחליף), ולכן כל מאמן רואה את הכרטיס בצבעים שלו. */
+  /* חלבון בצבע המאמן. פחמימות ושומן בצבע קבוע — אלא אם הוא קרוב מדי
+     לצבע המאמן (מאמן בכחול / בזהב), ואז עוברים לצבע חלופי כדי שהטבעת
+     תמיד תהיה קריאה. */
+  function nbdBrand() {
+    const raw = (getComputedStyle(document.documentElement).getPropertyValue('--orange') || '#FF6B00').trim();
+    let h = raw.replace('#', '');
+    if (h.length === 3) h = h.split('').map(x => x + x).join('');
+    let n = parseInt(h, 16);
+    if (isNaN(n) || h.length !== 6) { h = 'FF6B00'; n = 0xFF6B00; }
+    const r = (n >> 16) & 255, g = (n >> 8) & 255, bl = n & 255;
+    const mx = Math.max(r, g, bl), mn = Math.min(r, g, bl), d = mx - mn;
+    let hue = 0;
+    if (d) hue = mx === r ? ((g - bl) / d) % 6 : mx === g ? (bl - r) / d + 2 : (r - g) / d + 4;
+    hue = (hue * 60 + 360) % 360;
+    const near = (a, b, w) => Math.min(Math.abs(a - b), 360 - Math.abs(a - b)) < w;
+    return { hex: '#' + h, rgb: r + ',' + g + ',' + bl,
+      carb: near(hue, 190, 40) ? '#a78bfa' : '#22d3ee',
+      fat:  near(hue, 45, 16)  ? '#f472b6' : '#fbbf24' };
+  }
+  function nbdFmt(v) { const r = Math.round((+v || 0) * 10) / 10; return Number.isInteger(r) ? String(r) : r.toFixed(1); }
+  /* אחוזים מתוך הקלוריות של המאקרו (4/4/9), כך שהשלושה תמיד מסתכמים ל-100 */
+  function nbdPct(p, c, f) {
+    const k = [p * 4, c * 4, f * 9], s = k[0] + k[1] + k[2];
+    if (!s) return [0, 0, 0];
+    const r = k.map(x => Math.round(x / s * 100));
+    r[2] = 100 - r[0] - r[1];
+    return r;
+  }
+  function nbdDonut(p, c, f, kcal, brand) {
+    const R = 32, C = 2 * Math.PI * R, pct = nbdPct(p, c, f);
+    let off = 0;
+    const seg = (v, col) => {
+      if (!v) return '';
+      const len = C * v / 100, s = '<circle cx="40" cy="40" r="' + R + '" fill="none" stroke="' + col + '" stroke-width="9" ' +
+        'stroke-dasharray="' + len.toFixed(2) + ' ' + (C - len).toFixed(2) + '" stroke-dashoffset="' + (-off).toFixed(2) + '"/>';
+      off += len; return s;
+    };
+    return '<div class="nbd-ring"><svg viewBox="0 0 80 80" width="80" height="80" style="transform:rotate(-90deg)">' +
+      '<circle cx="40" cy="40" r="' + R + '" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="9"/>' +
+      seg(pct[0], brand.hex) + seg(pct[1], brand.carb) + seg(pct[2], brand.fat) + '</svg>' +
+      '<div class="nbd-ring-c"><b>' + Math.round(kcal) + '</b><span>קלוריות</span></div></div>';
+  }
+  /* rows: [{ name, qty, cal, p, c, f, id? }] · opts: { title, sub, totalLabel, del } */
+  function nbdCard(rows, opts) {
+    const b = nbdBrand();
+    const t = rows.reduce((a, r) => ({ cal: a.cal + (+r.cal || 0), p: a.p + (+r.p || 0), c: a.c + (+r.c || 0), f: a.f + (+r.f || 0) }),
+      { cal: 0, p: 0, c: 0, f: 0 });
+    const pct = nbdPct(t.p, t.c, t.f);
+    const leg = (v, lbl, pc, col) => '<div class="nbd-leg"><i style="background:' + col + '"></i><div><b>' + Math.round(v) +
+      ' ג׳</b><span>' + lbl + ' · ' + pc + '%</span></div></div>';
+    const logo = (typeof coachLogoUrl === 'string' && coachLogoUrl)
+      ? '<img src="' + esc(coachLogoUrl) + '" alt="" class="nbd-logo-img"/>'
+      : '<span class="nbd-fj" style="background:rgba(' + b.rgb + ',0.16);color:' + b.hex + ';border-color:rgba(' + b.rgb + ',0.45)">FJ</span>';
+    return '<div class="nbd" style="border-color:rgba(' + b.rgb + ',0.55);box-shadow:0 0 24px rgba(' + b.rgb + ',0.14)">' +
+      '<div class="nbd-head"><div><div class="nbd-title">' + opts.title + '</div>' +
+        (opts.sub ? '<div class="nbd-sub">' + opts.sub + '</div>' : '') + '</div>' + logo + '</div>' +
+      '<div class="nbd-sum">' + nbdDonut(t.p, t.c, t.f, t.cal, b) +
+        '<div class="nbd-legs">' + leg(t.p, 'חלבון', pct[0], b.hex) + leg(t.c, 'פחמימות', pct[1], b.carb) + leg(t.f, 'שומן', pct[2], b.fat) + '</div></div>' +
+      '<table class="nbd-tbl"><thead><tr style="color:' + b.hex + ';border-bottom:1px solid rgba(' + b.rgb + ',0.6)">' +
+        '<th>מרכיב</th><th>קלוריות</th><th>חלבון</th><th>פחמ׳</th><th>שומן</th>' + (opts.del ? '<th></th>' : '') + '</tr></thead><tbody>' +
+      rows.map(r => '<tr><td><b>' + esc(r.name) + '</b>' + (r.qty ? '<span>' + esc(r.qty) + '</span>' : '') + '</td>' +
+        '<td>' + Math.round(r.cal || 0) + '</td><td class="nbd-p" style="color:' + b.hex + '">' + nbdFmt(r.p) + '</td>' +
+        '<td>' + nbdFmt(r.c) + '</td><td>' + nbdFmt(r.f) + '</td>' +
+        (opts.del ? '<td>' + (r.id ? '<button class="nbd-del" onclick="deleteFoodLog(\'' + r.id + '\')" aria-label="מחק">✕</button>' : '') + '</td>' : '') +
+        '</tr>').join('') + '</tbody>' +
+      '<tfoot><tr style="background:rgba(' + b.rgb + ',0.08)"><td>' + (opts.totalLabel || 'סה״כ') + '</td><td>' + Math.round(t.cal) + '</td>' +
+        '<td style="color:' + b.hex + '">' + nbdFmt(t.p) + '</td><td>' + nbdFmt(t.c) + '</td><td>' + nbdFmt(t.f) + '</td>' + (opts.del ? '<td></td>' : '') +
+      '</tr></tfoot></table></div>';
+  }
+  /* הקבוצות במסך "הערכים שלי": סוגי הארוחה הרגילים לפי הסדר, ואחריהם
+     ארוחות שסומנו מהתפריט — בשם שלהן. קודם כל מה שאינו מ-MEAL_TYPES
+     (ורוב הרישומים הם ארוחות מהתפריט) נפל תחת "בוקר". */
+  function nbdGroups(logs) {
+    const groups = [], at = {};
+    const put = (key, title, fromPlan, l) => {
+      if (!(key in at)) { at[key] = groups.length; groups.push({ title, fromPlan, rows: [] }); }
+      groups[at[key]].rows.push(l);
+    };
+    const real = (logs || []).filter(l => l.meal_type !== 'מים');
+    MEAL_TYPES.forEach(m => real.filter(l => l.meal_type === m).forEach(l => put(m, m, false, l)));
+    real.forEach(l => {
+      if (MEAL_TYPES.includes(l.meal_type)) return;
+      const mt = l.meal_type || '';
+      const plan = mt.startsWith(PLAN_PREFIX);
+      put('k:' + mt, plan ? mt.slice(PLAN_PREFIX.length) : (mt || 'אחר'), plan, l);
+    });
+    return groups;
+  }
+  function nbdTrackHtml(logs) {
+    const groups = nbdGroups(logs);
+    if (!groups.length) return '';
+    const toRow = l => ({ id: l.id, name: l.food_name, qty: (+l.grams > 0 ? Math.round(l.grams) + ' גרם' : ''),
+      cal: l.calories, p: l.protein, c: l.carbs, f: l.fat });
+    const cards = groups.map(g => nbdCard(g.rows.map(toRow), {
+      title: 'פירוט תזונתי · ' + esc(g.title),
+      sub: g.rows.length + ' מרכיבים' + (g.fromPlan ? ' · מהתפריט' : ''),
+      totalLabel: 'סה״כ לארוחה', del: true,
+    })).join('');
+    if (groups.length < 2) return cards;
+    const sum = (rs, k) => rs.reduce((a, l) => a + (+l[k] || 0), 0);
+    const day = nbdCard(groups.map(g => ({ name: g.title, qty: g.rows.length + ' מרכיבים',
+      cal: sum(g.rows, 'calories'), p: sum(g.rows, 'protein'), c: sum(g.rows, 'carbs'), f: sum(g.rows, 'fat') })), {
+      title: 'סיכום היום', sub: groups.length + ' ארוחות · ' + new Date().toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit' }),
+      totalLabel: 'סה״כ היום', del: false,
+    });
+    return cards + day;
+  }
+
   function renderNutriBody() {
     const body = document.getElementById('nutri-body');
 
@@ -5885,23 +6024,7 @@ ${foodList || 'אין פריטים'}
       </div>`;
     };
 
-    const grouped = {};
-    MEAL_TYPES.forEach(m => grouped[m] = []);
-    (foodLogs||[]).forEach(l => { if (l.meal_type==='מים') return; const mt = MEAL_TYPES.includes(l.meal_type)?l.meal_type:'בוקר'; grouped[mt].push(l); });
-
     const today = new Date().toLocaleDateString('he-IL',{day:'2-digit',month:'2-digit',year:'numeric'});
-    const logHtml = MEAL_TYPES.filter(m=>grouped[m].length).map(m=>`
-      <div class="meal-section">
-        <div class="meal-section-title">${m}</div>
-        ${grouped[m].map(l=>`
-          <div class="food-log-item">
-            <div class="food-log-info">
-              <div class="food-log-name">${esc(l.food_name)} <span style="color:var(--muted);font-size:0.78rem;">${l.grams}g</span></div>
-              <div class="food-log-macros">${Math.round(l.calories)} קק"ל · P${Math.round(l.protein)}g · C${Math.round(l.carbs)}g · F${Math.round(l.fat)}g</div>
-            </div>
-            <button class="btn-del-food" onclick="deleteFoodLog('${l.id}')">✕</button>
-          </div>`).join('')}
-      </div>`).join('');
 
     const hasTargets = tgt.target_calories || tgt.target_protein;
     body.innerHTML = tabs +
@@ -5941,7 +6064,7 @@ ${foodList || 'אין פריטים'}
         <div id="mf-preview" style="font-size:0.8rem;color:var(--orange);font-weight:700;margin-bottom:10px;min-height:1em;"></div>
         <button class="btn-manual-add" id="btn-manual-add" onclick="addManualFood()">➕ הוסף למעקב היומי</button>
       </div>` : ''}
-      ${logHtml || '<div style="color:#444;font-size:0.85rem;text-align:center;padding:20px 0;">לא נרשם אוכל היום עדיין 🍽️</div>'}`;
+      ${nbdTrackHtml(foodLogs) || '<div style="color:#444;font-size:0.85rem;text-align:center;padding:20px 0;">לא נרשם אוכל היום עדיין 🍽️</div>'}`;
   }
 
   function setNutriMode(m) { nutriMode = m; openMealIdx = null; renderNutriBody(); }
@@ -8544,8 +8667,10 @@ ${foodList || 'אין פריטים'}
     } catch(e) { /* private mode / quota — branding just stays generic */ }
   }
 
+  let coachLogoUrl = '';   // לוגו המאמן לכרטיסי "פירוט תזונתי"
   function applyBranding(b) {
     if (!b) return;
+    coachLogoUrl = b.logo_url || '';
     cacheBrandingForEarlyScreens(b);
     const root = document.documentElement;
 
