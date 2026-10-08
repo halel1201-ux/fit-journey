@@ -3,7 +3,7 @@
 // (שני SW-ים נפרדים על "/" גורמים לבעיות הרשמה ל-Push, בעיקר ב-iOS Safari)
 importScripts('https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js');
 
-const CACHE = 'hf-v44'; // bumped: פירוט תזונתי בכרטיסים במסך הערכים שלי
+const CACHE = 'hf-v45'; // bumped: כפתור הורדה לאנדרואיד
 
 // relative paths — work from root AND from a subpath like /fit-journey/
 const STATIC = [
@@ -15,6 +15,7 @@ const STATIC = [
   './food.html',
   './join.html',
   './appstore-badge.svg',
+  './android-badge.svg',
   './terms-freelancer.html',
   './freelancer-terms.js',
   './plan-prompt.js',
@@ -63,6 +64,11 @@ self.addEventListener('fetch', e => {
      These are large, same-origin, and must always load fresh from network. Never route them
      through cache logic — a stale/faulty SW must not be able to break the exercise/food DB. */
   if (url.pathname.endsWith('.json') && url.origin === self.location.origin) {
+    return;
+  }
+
+  /* קובץ ההתקנה לאנדרואיד (~53MB) → ישר מהרשת. אסור שייכנס למטמון של הדפדפן. */
+  if (url.pathname.endsWith('.apk')) {
     return;
   }
 

@@ -2591,13 +2591,25 @@
 
     <!-- App Store — התג הרשמי מוגש מהאתר ולא מקושר חיצונית -->
     <div style="text-align:center;margin-top:26px;">
-      <div style="font-size:0.78rem;color:#666;margin-bottom:9px;">האפליקציה זמינה להורדה באייפון</div>
-      <a href="https://apps.apple.com/il/app/hfitjourney/id6795736567?l=he"
-         target="_blank" rel="noopener" aria-label="הורדה מ-App Store"
-         style="display:inline-block;line-height:0;">
-        <img src="appstore-badge.svg" alt="הורדה מ-App Store" width="168" height="58"
-             style="display:block;height:58px;width:auto;"/>
-      </a>
+      <div style="font-size:0.78rem;color:#666;margin-bottom:9px;">האפליקציה זמינה להורדה באייפון ובאנדרואיד</div>
+      <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+        <a href="https://apps.apple.com/il/app/hfitjourney/id6795736567?l=he"
+           target="_blank" rel="noopener" aria-label="הורדה מ-App Store"
+           style="display:inline-block;line-height:0;">
+          <img src="appstore-badge.svg" alt="הורדה מ-App Store" width="168" height="58"
+               style="display:block;height:clamp(46px,12.8vw,58px);width:auto;"/>
+        </a>
+        <!-- אנדרואיד: קובץ ההתקנה מוגש מהאתר עצמו (לא Google Play) -->
+        <a class="store-android" href="downloads/FitJourney.apk" download="FitJourney.apk"
+           aria-label="הורדה לאנדרואיד" style="display:inline-block;line-height:0;">
+          <img src="android-badge.svg" alt="הורדה ישירה לאנדרואיד" width="180" height="58"
+               style="display:block;height:clamp(46px,12.8vw,58px);width:auto;"/>
+        </a>
+      </div>
+      <div class="store-android" style="font-size:0.7rem;color:#5f6368;margin-top:9px;">באנדרואיד: קובץ התקנה ישיר · בהתקנה הראשונה מאשרים "התר ממקור זה"</div>
+      <script>/* בתוך האפליקציה עצמה אין טעם בכפתור, ובאייפון אפל לא מתירה להפנות לפלטפורמה אחרת */
+      try { if (window.Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform())
+        document.querySelectorAll('.store-android').forEach(function (e) { e.remove(); }); } catch (e) {}</script>
     </div>
   </div>
 </section>
