@@ -9,3 +9,6 @@ strength_exercises.backup-*.json
 .claude/.proven-config-version
 .claude/security-scans/
 food_all.backup.json
+
+# סקילים מקומיים של Claude — לא לפרסם באתר
+.claude/skills/

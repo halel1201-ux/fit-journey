@@ -12,7 +12,19 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="HF Coaching">
   <link rel="apple-touch-icon" href="apple-touch-icon.png"/>
-  <title>HF Online Coaching — ליווי אונליין שמביא תוצאות</title>
+  <title>Fit Journey | ליווי אונליין שמביא תוצאות אמיתיות</title>
+  <meta name="description" content="ליווי אונליין שמביא תוצאות אמיתיות: תוכנית אימונים ותפריט אישיים, מעקב צמוד ומענה אישי בוואטסאפ. לגברים ולנשים." />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Fit Journey" />
+  <meta property="og:locale" content="he_IL" />
+  <meta property="og:url" content="https://fitjourney-net.com/" />
+  <meta property="og:title" content="Fit Journey | ליווי אונליין שמביא תוצאות אמיתיות" />
+  <meta property="og:description" content="תוכנית אימונים ותפריט אישיים, מעקב צמוד ומענה אישי בוואטסאפ." />
+  <meta property="og:image" content="https://fitjourney-net.com/landing/og-image.jpg" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="הלל, Fit Journey: ליווי אונליין" />
+  <meta name="twitter:card" content="summary_large_image" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;700;900&display=swap" rel="stylesheet" />
@@ -1631,6 +1643,44 @@
     /* הרקעים המקוריים — הסדר החדש לא משנה את הצבעים */
     #story,#client-stories{background:var(--black)}
     #hero{background:rgb(17, 17, 17)}#achievements{background:rgb(9, 9, 9)}#results{background:rgb(17, 17, 17)}#who{background:rgb(9, 9, 9)}#features{background:rgb(17, 17, 17)}#pricing{background:rgb(9, 9, 9)}#closing{background:rgb(9, 9, 9)}
+
+    /* ─── POLISH 10/2026 — לפי Emil Kowalski / Taste / Impeccable ─── */
+    #hero { min-height: 100svh; }
+    h1, h2, h3 { text-wrap: balance; }
+    p { text-wrap: pretty; }
+    ::selection { background: rgba(255,107,0,.38); color: #fff; }
+    a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
+    .btn-primary, .btn-secondary, .carousel-btn, .gender-tab, .more-card {
+      transition-property: transform, box-shadow, background-color, color, border-color;
+      transition-duration: 160ms; transition-timing-function: cubic-bezier(.23,1,.32,1);
+    }
+    .btn-primary:active, .btn-secondary:active, .carousel-btn:active, .gender-tab:active, .more-card:active { transform: scale(.97); }
+    .btn-primary { animation-iteration-count: 3; }   /* פועם 3 פעמים בכניסה ונעצר */
+    .scroll-hint { animation-iteration-count: 3; }
+    @media (hover: none) { .btn-primary:hover, .more-card:hover { transform: none; } }
+    /* אייקונים: Tabler Icons (MIT) במקום אימוג'י */
+    .medal-ico { display: inline-block; width: 1.05em; height: 1.05em; vertical-align: -0.16em; flex-shrink: 0; }
+    .achieve-medal { display: flex; align-items: center; justify-content: center; width: 46px; height: 46px; border-radius: 50%; background: rgba(255,215,0,.08); border: 1px solid rgba(255,215,0,.3); color: var(--gold); }
+    .achieve-medal .medal-ico { width: 24px; height: 24px; }
+    .comp-photo-label .medal-ico, .season-medal-tag .medal-ico { margin-left: 4px; }
+    .champ-row .medal-ico { color: var(--gold); margin-left: 6px; }
+
+    /* ─── סליידר לפני/אחרי ─── */
+    @property --pos { syntax: '<percentage>'; inherits: true; initial-value: 50%; }
+    .ba { --pos: 50%; position: relative; aspect-ratio: 4 / 5; border-radius: 12px; overflow: hidden; border: 1px solid var(--border); background: #111; touch-action: pan-y; user-select: none; -webkit-user-select: none; cursor: ew-resize; margin-bottom: 14px; }
+    .ba-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
+    .ba-before { clip-path: inset(0 0 0 var(--pos)); }
+    .ba-handle { position: absolute; top: 0; bottom: 0; left: var(--pos); width: 2px; margin-left: -1px; background: var(--gold); box-shadow: 0 0 12px rgba(255,180,0,.6); pointer-events: none; }
+    .ba-knob { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 44px; height: 44px; border-radius: 50%; background: rgba(9,9,9,.78); border: 2px solid var(--gold); display: flex; align-items: center; justify-content: center; color: var(--gold); direction: ltr; }
+    .ba-knob svg { width: 15px; height: 15px; }
+    .ba-tag { position: absolute; top: 10px; padding: 2px 10px; border-radius: 20px; font-size: .75rem; font-weight: 800; background: rgba(9,9,9,.75); color: #fff; pointer-events: none; }
+    .ba-tag-b { right: 10px; } .ba-tag-a { left: 10px; color: var(--orange); }
+    .ba-range { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+    .ba:focus-within { outline: 2px solid var(--gold); outline-offset: 3px; }
+    .ba-hint { animation: baHint 1.3s cubic-bezier(.77,0,.175,1) 1; }
+    @keyframes baHint { 0%, 100% { --pos: 50%; } 35% { --pos: 28%; } 70% { --pos: 64%; } }
+    .champ-photos .ba { margin-bottom: 0; }
+    .cs-head { margin-top: 2px; }
   </style>
 </head>
 <body>
@@ -1895,21 +1945,42 @@
     <div class="title-line"></div>
     <div class="cs-grid">
       <div class="cs-card">
-        <div class="cs-head"><img src="תחרויות/images/daniel.jpg" alt="דניאל רון — לפני ואחרי" loading="lazy"><div><div class="cs-name">הסיפור של דניאל רון</div><div class="cs-title"><bdi dir="ltr">+13</bdi> ק״ג — גוף אתלטי, חד ומוגדר</div></div></div>
+        <div class="ba" data-ba>
+          <img class="ba-img" src="landing/ba/daniel-after.jpg" alt="דניאל רון אחרי" loading="lazy" width="640" height="800">
+          <img class="ba-img ba-before" src="landing/ba/daniel-before.jpg" alt="דניאל רון לפני" loading="lazy" width="640" height="800">
+          <span class="ba-tag ba-tag-b">לפני</span><span class="ba-tag ba-tag-a">אחרי</span>
+          <span class="ba-handle" aria-hidden="true"><span class="ba-knob"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6l6 6"/></svg><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6l-6 6"/></svg></span></span>
+          <input class="ba-range" type="range" min="0" max="100" value="50" dir="ltr" aria-label="השוואת לפני ואחרי של דניאל רון">
+        </div>
+        <div class="cs-head"><div><div class="cs-name">הסיפור של דניאל רון</div><div class="cs-title"><bdi dir="ltr">+13</bdi> ק״ג — גוף אתלטי, חד ומוגדר</div></div></div>
         <div class="cs-row"><span>לפני</span>ניסה כמה מאמנים. כל אחד הבטיח תוצאות, אבל המאזניים לא זזו.</div>
         <div class="cs-row"><span>התהליך</span>תוכנית מדויקת ומעקב צמוד, והגוף פשוט הגיב.</div>
         <div class="cs-row"><span>התוצאה</span>עלייה של 13 ק״ג עם שמירה מלאה על אחוז שומן נמוך.</div>
         <div class="cs-quote">"לא האמנתי שאני יכול לעלות ככה במשקל."</div>
       </div>
       <div class="cs-card">
-        <div class="cs-head"><img src="תחרויות/images/liran.jpg" alt="לירן — לפני ואחרי" loading="lazy"><div><div class="cs-name">הסיפור של לירן</div><div class="cs-title"><bdi dir="ltr">+16</bdi> ק״ג — בלי לתפוח</div></div></div>
+        <div class="ba" data-ba>
+          <img class="ba-img" src="landing/ba/liran-after.jpg" alt="לירן אחרי" loading="lazy" width="640" height="800">
+          <img class="ba-img ba-before" src="landing/ba/liran-before.jpg" alt="לירן לפני" loading="lazy" width="640" height="800">
+          <span class="ba-tag ba-tag-b">לפני</span><span class="ba-tag ba-tag-a">אחרי</span>
+          <span class="ba-handle" aria-hidden="true"><span class="ba-knob"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6l6 6"/></svg><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6l-6 6"/></svg></span></span>
+          <input class="ba-range" type="range" min="0" max="100" value="50" dir="ltr" aria-label="השוואת לפני ואחרי של לירן">
+        </div>
+        <div class="cs-head"><div><div class="cs-name">הסיפור של לירן</div><div class="cs-title"><bdi dir="ltr">+16</bdi> ק״ג — בלי לתפוח</div></div></div>
         <div class="cs-row"><span>לפני</span>לא האמין שאפשר לעלות במשקל בלי לתפוח.</div>
         <div class="cs-row"><span>התהליך</span>תוכנית אימונים ותזונה מדויקת שבנינו יחד, מעקב שוטף ועקביות.</div>
         <div class="cs-row"><span>התוצאה</span>עלייה של 16 ק״ג עם שמירה מלאה על אחוז שומן נמוך.</div>
         <div class="cs-quote">"הגוף פשוט השתנה."</div>
       </div>
       <div class="cs-card">
-        <div class="cs-head"><img src="תחרויות/images/OFIR.jpg" alt="אופיר — לפני ואחרי" loading="lazy"><div><div class="cs-name">הסיפור של אופיר</div><div class="cs-title"><bdi dir="ltr">−35</bdi> ק״ג — ושריר במקום</div></div></div>
+        <div class="ba" data-ba>
+          <img class="ba-img" src="landing/ba/ofir-after.jpg" alt="אופיר אחרי" loading="lazy" width="640" height="800">
+          <img class="ba-img ba-before" src="landing/ba/ofir-before.jpg" alt="אופיר לפני" loading="lazy" width="640" height="800">
+          <span class="ba-tag ba-tag-b">לפני</span><span class="ba-tag ba-tag-a">אחרי</span>
+          <span class="ba-handle" aria-hidden="true"><span class="ba-knob"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6l6 6"/></svg><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6l-6 6"/></svg></span></span>
+          <input class="ba-range" type="range" min="0" max="100" value="50" dir="ltr" aria-label="השוואת לפני ואחרי של אופיר">
+        </div>
+        <div class="cs-head"><div><div class="cs-name">הסיפור של אופיר</div><div class="cs-title"><bdi dir="ltr">−35</bdi> ק״ג — ושריר במקום</div></div></div>
         <div class="cs-row"><span>לפני</span>תמיד חשב שזה לא בשבילו, שהוא לא מהסוג שמצליח.</div>
         <div class="cs-row"><span>התהליך</span>ליווי של מישהו שמאמין בו יותר ממה שהוא האמין בעצמו.</div>
         <div class="cs-row"><span>התוצאה</span>ירידה של 35 ק״ג ועלייה משמעותית במסת השריר, ואיתן אנרגיה וביטחון.</div>
@@ -1935,7 +2006,7 @@
           <div class="year-label">2026</div>
 
           <div class="achieve-item">
-            <div class="achieve-medal">🏆</div>
+            <div class="achieve-medal"><svg class="medal-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 21l8 0"/><path d="M12 17l0 4"/><path d="M7 4l10 0"/><path d="M17 4v8a5 5 0 0 1 -10 0v-8"/><path d="M3 9a2 2 0 1 0 4 0a2 2 0 1 0 -4 0"/><path d="M17 9a2 2 0 1 0 4 0a2 2 0 1 0 -4 0"/></svg></div>
             <div class="achieve-info">
               <div class="achieve-comp">MBC Classic Physique — Overall Champion</div>
               <div class="achieve-place">מקום ראשון כולל</div>
@@ -1944,7 +2015,7 @@
           </div>
 
           <div class="achieve-item">
-            <div class="achieve-medal">🥇</div>
+            <div class="achieve-medal"><svg class="medal-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v3m-4 -3v6m8 -6v6"/><path d="M12 18.5l-3 1.5l.5 -3.5l-2 -2l3 -.5l1.5 -3l1.5 3l3 .5l-2 2l.5 3.5l-3 -1.5"/></svg></div>
             <div class="achieve-info">
               <div class="achieve-comp">WNBF Classic Physique</div>
               <div class="achieve-place">מקום ראשון</div>
@@ -1969,7 +2040,7 @@
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
               <span>mbc2026.jpg</span>
             </div>
-            <div class="comp-photo-label">🏆 MBC 2026</div>
+            <div class="comp-photo-label"><svg class="medal-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 21l8 0"/><path d="M12 17l0 4"/><path d="M7 4l10 0"/><path d="M17 4v8a5 5 0 0 1 -10 0v-8"/><path d="M3 9a2 2 0 1 0 4 0a2 2 0 1 0 -4 0"/><path d="M17 9a2 2 0 1 0 4 0a2 2 0 1 0 -4 0"/></svg> MBC 2026</div>
           </div>
 
           <!-- WNBF 2026 -->
@@ -1980,7 +2051,7 @@
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
               <span>wnbf2026.jpg</span>
             </div>
-            <div class="comp-photo-label">🥇 WNBF 2026</div>
+            <div class="comp-photo-label"><svg class="medal-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v3m-4 -3v6m8 -6v6"/><path d="M12 18.5l-3 1.5l.5 -3.5l-2 -2l3 -.5l1.5 -3l1.5 3l3 .5l-2 2l.5 3.5l-3 -1.5"/></svg> WNBF 2026</div>
           </div>
 
         </div>
@@ -2000,8 +2071,8 @@
       <div class="season-caption">
         <div class="season-caption-title">סיכום <span>עונת תחרויות מאי 2026</span></div>
         <div class="season-medals">
-          <span class="season-medal-tag trophy">🏆 Overall Champion</span>
-          <span class="season-medal-tag gold">🥇 WNBF</span>
+          <span class="season-medal-tag trophy"><svg class="medal-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 21l8 0"/><path d="M12 17l0 4"/><path d="M7 4l10 0"/><path d="M17 4v8a5 5 0 0 1 -10 0v-8"/><path d="M3 9a2 2 0 1 0 4 0a2 2 0 1 0 -4 0"/><path d="M17 9a2 2 0 1 0 4 0a2 2 0 1 0 -4 0"/></svg> Overall Champion</span>
+          <span class="season-medal-tag gold"><svg class="medal-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v3m-4 -3v6m8 -6v6"/><path d="M12 18.5l-3 1.5l.5 -3.5l-2 -2l3 -.5l1.5 -3l1.5 3l3 .5l-2 2l.5 3.5l-3 -1.5"/></svg> WNBF</span>
         </div>
       </div>
     </div>
@@ -2012,10 +2083,16 @@
       <div class="champ-kicker">הסיפור של נשיאל</div>
       <h3 class="champ-title">מ-<bdi dir="ltr">+18</bdi> ק״ג מסה <span>לאלוף ישראל</span></h3>
       <div class="champ-grid">
-        <div class="champ-photos"><img src="תחרויות/images/nesial3.jpg" alt="נשיאל — לפני ואחרי" loading="lazy"><img class="chk" src="landing/nesial-check.jpg" alt="הצ'ק של נשיאל מאליפות MBC 2026" loading="lazy"></div>
+        <div class="champ-photos"><div class="ba" data-ba>
+          <img class="ba-img" src="landing/ba/nesiel-after.jpg" alt="נשיאל אחרי" loading="lazy" width="640" height="800">
+          <img class="ba-img ba-before" src="landing/ba/nesiel-before.jpg" alt="נשיאל לפני" loading="lazy" width="640" height="800">
+          <span class="ba-tag ba-tag-b">לפני</span><span class="ba-tag ba-tag-a">אחרי</span>
+          <span class="ba-handle" aria-hidden="true"><span class="ba-knob"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6l6 6"/></svg><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6l-6 6"/></svg></span></span>
+          <input class="ba-range" type="range" min="0" max="100" value="50" dir="ltr" aria-label="השוואת לפני ואחרי של נשיאל">
+        </div><img class="chk" src="landing/nesial-check.jpg" alt="הצ'ק של נשיאל מאליפות MBC 2026" loading="lazy"></div>
         <div class="champ-text">
-          <div class="champ-row">🏆 אלוף כללי · MBC 2026 Classic Physique Natural</div>
-          <div class="champ-row">🥇 מקום ראשון · WNBF Classic Physique</div>
+          <div class="champ-row"><svg class="medal-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 21l8 0"/><path d="M12 17l0 4"/><path d="M7 4l10 0"/><path d="M17 4v8a5 5 0 0 1 -10 0v-8"/><path d="M3 9a2 2 0 1 0 4 0a2 2 0 1 0 -4 0"/><path d="M17 9a2 2 0 1 0 4 0a2 2 0 1 0 -4 0"/></svg>אלוף כללי · MBC 2026 Classic Physique Natural</div>
+          <div class="champ-row"><svg class="medal-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v3m-4 -3v6m8 -6v6"/><path d="M12 18.5l-3 1.5l.5 -3.5l-2 -2l3 -.5l1.5 -3l1.5 3l3 .5l-2 2l.5 3.5l-3 -1.5"/></svg>מקום ראשון · WNBF Classic Physique</div>
           <p>נשיאל עלה אצלי 18 ק״ג מסה תוך שמירה על אחוז שומן נמוך. במאי 2026 הוא לקח אלוף כללי ב-MBC ומקום ראשון ב-WNBF, בקטגוריה הטבעית. <strong>אותה שיטה אני בונה לך.</strong></p>
           <blockquote>"הגוף שלי השתנה לחלוטין — לא האמנתי שזה אפשרי."<cite>נשיאל מדמון</cite></blockquote>
         </div>
@@ -2947,5 +3024,30 @@
       });
       navigator.serviceWorker.register('sw.js').then(reg => reg.update()).catch(e => console.warn('SW:', e));
     }
-  </script></body>
+  </script><script>
+  /* סליידר לפני/אחרי: גרירה באצבע/עכבר (pointer capture), מקלדת דרך range, רמז חד-פעמי כשנכנס למסך */
+  (function () {
+    var all = document.querySelectorAll('[data-ba]');
+    all.forEach(function (ba) {
+      var range = ba.querySelector('.ba-range');
+      function set(p) { p = Math.max(0, Math.min(100, p)); ba.style.setProperty('--pos', p + '%'); range.value = Math.round(p); }
+      function fromX(x) { var r = ba.getBoundingClientRect(); set((x - r.left) / r.width * 100); }
+      ba.addEventListener('pointerdown', function (e) { ba.classList.remove('ba-hint'); ba.setPointerCapture(e.pointerId); ba.dataset.drag = '1'; fromX(e.clientX); });
+      ba.addEventListener('pointermove', function (e) { if (ba.dataset.drag) fromX(e.clientX); });
+      ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(function (t) { ba.addEventListener(t, function () { delete ba.dataset.drag; }); });
+      range.addEventListener('input', function () { set(+range.value); });
+    });
+    if (!('IntersectionObserver' in window) || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    var io = new IntersectionObserver(function (es) {
+      es.forEach(function (en) {
+        if (!en.isIntersecting) return;
+        io.unobserve(en.target);
+        en.target.classList.add('ba-hint');
+        setTimeout(function () { en.target.classList.remove('ba-hint'); }, 1400);
+      });
+    }, { threshold: 0.6 });
+    all.forEach(function (b) { io.observe(b); });
+  })();
+</script>
+</body>
 </html>
