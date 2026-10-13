@@ -873,7 +873,7 @@
     #pricing { background: var(--black); }
     .pricing-grid {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(4, 1fr);
       gap: 24px;
       align-items: start;
     }
@@ -987,7 +987,7 @@
     }
     .featured-tokens strong { color: var(--gold); }
 
-    @media (max-width: 900px) {
+    @media (max-width: 1100px) {
       .pricing-grid { grid-template-columns: repeat(2, 1fr); }
       .price-card.featured { transform: translateY(0); }
     }
@@ -2233,41 +2233,6 @@
     <div class="pricing-panel active" id="panel-men">
     <div class="pricing-grid">
 
-      <!-- Monthly -->
-      <div class="price-card">
-        <div class="price-badge">בלי מאמן</div>
-        <div class="plan-name">מסלול עצמאי</div>
-        <div class="price-amount"><span class="currency">₪</span>60</div>
-        <div class="price-period">החל מ- · לחודש · אתה בונה לעצמך</div>
-        <div class="price-divider"></div>
-        <ul class="price-features">
-          <li>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
-            בניית תוכנית אימונים עם AI
-          </li>
-          <li>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
-            בניית תפריט תזונה
-          </li>
-          <li>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
-            מעקב התקדמות ושיאים
-          </li>
-          <li>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
-            3 חודשים — 150 ₪ · 750 טוקנים
-          </li>
-          <li>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
-            חצי שנה — 250 ₪ · 1500 טוקנים
-          </li>
-          <li>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
-            גישה מלאה לאפליקציה
-          </li>
-        </ul>
-        <a href="join.html" class="btn-secondary price-cta" style="display:block;text-align:center;text-decoration:none;">הרשמה</a>
-      </div>
 
       <div class="price-card">
         <div class="price-badge">ללא התחייבות</div>
@@ -2339,6 +2304,24 @@
 
       <!-- 6 Months -->
       <div class="price-card">
+        <div class="price-badge">חצי שנה</div>
+        <div class="plan-name">ליווי חצי שנה</div>
+        <div class="price-amount"><span class="currency">₪</span>2,200</div>
+        <div class="price-period">ל-6 חודשים · חסכון של 200₪</div>
+        <div class="price-divider"></div>
+        <ul class="price-features">
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>בניית תוכנית מלאה</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>תפריט תזונה אישי</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>מעקב התקדמות שוטף</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>שינויי תפריט ואימונים</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>ליווי אונליין מלא</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>ליווי לאורך 6 חודשים</li>
+        </ul>
+        <button class="btn-secondary price-cta" onclick="openPayment('חצי שנה')">בחר מסלול</button>
+      </div>
+
+      <!-- 12 Months -->
+      <div class="price-card">
         <div class="price-badge">הכי משתלם</div>
         <div class="plan-name">ליווי שנתי</div>
         <div class="price-amount"><span class="currency">₪</span>4,000</div>
@@ -2391,41 +2374,6 @@
     <div class="pricing-panel" id="panel-women">
     <div class="pricing-grid">
 
-      <!-- Monthly (Women) -->
-      <div class="price-card">
-        <div class="price-badge">בלי מאמן</div>
-        <div class="plan-name">מסלול עצמאי</div>
-        <div class="price-amount"><span class="currency">₪</span>60</div>
-        <div class="price-period">החל מ- · לחודש · אתה בונה לעצמך</div>
-        <div class="price-divider"></div>
-        <ul class="price-features">
-          <li>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
-            בניית תוכנית אימונים עם AI
-          </li>
-          <li>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
-            בניית תפריט תזונה
-          </li>
-          <li>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
-            מעקב התקדמות ושיאים
-          </li>
-          <li>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
-            3 חודשים — 150 ₪ · 750 טוקנים
-          </li>
-          <li>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
-            חצי שנה — 250 ₪ · 1500 טוקנים
-          </li>
-          <li>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
-            גישה מלאה לאפליקציה
-          </li>
-        </ul>
-        <a href="join.html" class="btn-secondary price-cta" style="display:block;text-align:center;text-decoration:none;">הרשמה</a>
-      </div>
 
       <div class="price-card">
         <div class="price-badge">ללא התחייבות</div>
@@ -2462,7 +2410,25 @@
         <button class="btn-primary price-cta" onclick="openPayment('4 חודשים-נשים')">בחר מסלול</button>
       </div>
 
-      <!-- 6 Months (Women) -->
+      <!-- 6 Months -->
+      <div class="price-card">
+        <div class="price-badge">חצי שנה</div>
+        <div class="plan-name">ליווי חצי שנה</div>
+        <div class="price-amount"><span class="currency">₪</span>2,200</div>
+        <div class="price-period">ל-6 חודשים · חסכון של 200₪</div>
+        <div class="price-divider"></div>
+        <ul class="price-features">
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>בניית תוכנית מלאה</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>תפריט תזונה אישי</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>מעקב התקדמות שוטף</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>שינויי תפריט ואימונים</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>ליווי אונליין מלא</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>ליווי לאורך 6 חודשים</li>
+        </ul>
+        <button class="btn-secondary price-cta" onclick="openPayment('חצי שנה-נשים')">בחר מסלול</button>
+      </div>
+
+      <!-- 12 Months (Women) -->
       <div class="price-card">
         <div class="price-badge">הכי משתלם</div>
         <div class="plan-name">ליווי שנתי</div>
@@ -2833,10 +2799,12 @@
   const plans = {
     'חודשי':           { price: '400',   amount: '400.00',  sub: ' / חודש' },
     '4 חודשים':        { price: '1,500', amount: '1500.00', sub: ' / 4 חודשים' },
+    'חצי שנה':         { price: '2,200', amount: '2200.00', sub: ' / 6 חודשים' },
     'שנתי':            { price: '4,000', amount: '4000.00', sub: ' / 12 חודשים' },
     /* נשים */
     'חודשי-נשים':      { price: '400',   amount: '400.00',  sub: ' / חודש' },
     '4 חודשים-נשים':   { price: '1,500', amount: '1500.00', sub: ' / 4 חודשים' },
+    'חצי שנה-נשים':    { price: '2,200', amount: '2200.00', sub: ' / 6 חודשים' },
     'שנתי-נשים':       { price: '4,000', amount: '4000.00', sub: ' / 12 חודשים' },
   };
 
@@ -2857,7 +2825,7 @@
     window.open('coaching-terms.html', '_blank');
   }
 
-  const PLAN_MAP = { 'חודשי': 'monthly', '4 חודשים': '4months', 'שנתי': 'yearly' };
+  const PLAN_MAP = { 'חודשי': 'monthly', '4 חודשים': '4months', 'חצי שנה': '6months', 'שנתי': 'yearly' };
   function openPayment(planName) {
     const plan = plans[planName];
     if (!plan) return;

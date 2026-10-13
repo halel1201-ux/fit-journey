@@ -2208,37 +2208,24 @@
       { key: 'plan_3', months: 3, label: '3 חודשים' },
       { key: 'plan_6', months: 6, label: '6 חודשים' },
     ];
-    const cards = planDefs.map(pd => {
-      const p = plans[pd.key] || {};
-      if (!p.price) return '';
+    // מסלולים קבועים + נוספים ברשימה אחת, ממוינת לפי מספר החודשים
+    const entries = [
+      ...planDefs.map(pd => ({ ...(plans[pd.key] || {}), months: pd.months, label: pd.label })),
+      ...(plans.extra_plans || []).map(ep => ({ ...ep, label: ep.months === 1 ? 'חודש אחד' : `${ep.months} חודשים` })),
+    ].filter(p => {
+      if (!p.price || !p.months) return false;
       // סנן לפי מין: כולם / גבר / אישה
       const pg = p.gender || 'all';
-      if (pg !== 'all' && pg !== myGender) return '';
-      return `
+      return pg === 'all' || pg === myGender;
+    }).sort((a, b) => a.months - b.months);
+    const allCards = entries.map(p => `
         <div class="renewal-card${p.featured ? ' featured' : ''}">
           ${p.featured ? '<div class="renewal-featured-badge">הכי פופולרי</div>' : ''}
           <div class="renewal-price">${p.price} ₪</div>
-          <div class="renewal-period">${pd.label}</div>
+          <div class="renewal-period">${p.label}</div>
           ${p.desc ? `<div class="renewal-desc">${esc(p.desc)}</div>` : ''}
-          <button class="btn-renewal" onclick="selectRenewalPlan(${pd.months}, ${p.price}, '${coachEmail}', '${phone}', '${bitLink.replace(/'/g,'')}', this)">💳 בחר מסלול</button>
-        </div>`;
-    }).join('');
-    // Extra custom plans
-    const extraCards = (plans.extra_plans || []).map(ep => {
-      if (!ep.price || !ep.months) return '';
-      const pg = ep.gender || 'all';
-      if (pg !== 'all' && pg !== myGender) return '';
-      const label = ep.months === 1 ? 'חודש אחד' : `${ep.months} חודשים`;
-      return `
-        <div class="renewal-card${ep.featured ? ' featured' : ''}">
-          ${ep.featured ? '<div class="renewal-featured-badge">הכי פופולרי</div>' : ''}
-          <div class="renewal-price">${ep.price} ₪</div>
-          <div class="renewal-period">${label}</div>
-          ${ep.desc ? `<div class="renewal-desc">${esc(ep.desc)}</div>` : ''}
-          <button class="btn-renewal" onclick="selectRenewalPlan(${ep.months}, ${ep.price}, '${coachEmail}', '${phone}', '${bitLink.replace(/'/g,'')}', this)">💳 בחר מסלול</button>
-        </div>`;
-    }).join('');
-    const allCards = cards + extraCards;
+          <button class="btn-renewal" onclick="selectRenewalPlan(${p.months}, ${p.price}, '${coachEmail}', '${phone}', '${bitLink.replace(/'/g,'')}', this)">💳 בחר מסלול</button>
+        </div>`).join('');
     document.getElementById('renewal-cards').innerHTML =
       allCards || '<div class="empty" style="padding:20px 0;">המאמן עדיין לא הגדיר מסלולים — צור קשר ישירות.</div>';
     document.getElementById('renewal-section').style.display = 'block';
