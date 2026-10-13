@@ -1681,6 +1681,132 @@
     @keyframes baHint { 0%, 100% { --pos: 50%; } 35% { --pos: 28%; } 70% { --pos: 64%; } }
     .champ-photos .ba { margin-bottom: 0; }
     .cs-head { margin-top: 2px; }
+
+    /* ── משותף ── */
+    .hero-from { margin: -22px auto 26px; font-size: .95rem; color: #ddd; } .hero-from b { color: var(--gold); }
+    .pm { font-size: .82rem; font-weight: 700; color: var(--gold); margin-top: 2px; }
+    .incl { display: flex; flex-wrap: wrap; gap: 6px 14px; justify-content: center; align-items: center; margin: 0 auto 22px; max-width: 760px; font-size: .86rem; color: #ccc; }
+    .incl b { width: 100%; text-align: center; color: #fff; font-size: .92rem; } .incl span { display: inline-flex; gap: 5px; align-items: center; } .incl svg { width: 14px; height: 14px; color: var(--orange); }
+    .women-line { margin: 18px auto 0; max-width: 560px; text-align: center; padding: 12px 16px; border-radius: 12px; background: rgba(255,61,133,.07); border: 1px solid rgba(255,61,133,.28); font-size: .95rem; color: #eee; } .women-line b { color: #ff7aa8; }
+    .pricing-grid.rows .price-features, .pricing-grid.rows .price-divider { display: none; }
+    @media (max-width: 600px) {
+      .pricing-grid.rows { gap: 10px; }
+      .pricing-grid.rows > .price-card { display: grid; grid-template-columns: 1fr auto; column-gap: 12px; align-items: center; padding: 14px 16px; }
+      .pricing-grid.rows > .price-card.featured { transform: none; }
+      .pricing-grid.rows .price-badge { grid-column: 1 / -1; justify-self: start; margin-bottom: 6px; }
+      .pricing-grid.rows .plan-name { margin: 0; font-size: 1.05rem; }
+      .pricing-grid.rows .price-amount { grid-column: 2; grid-row: 2 / 4; font-size: 2rem; margin: 0; }
+      .pricing-grid.rows .pm, .pricing-grid.rows .price-period { grid-column: 1; } .pricing-grid.rows .price-period { font-size: .78rem; margin: 2px 0 0; }
+      .pricing-grid.rows .renew-note { grid-column: 1 / -1; }
+      .pricing-grid.rows .price-cta { grid-column: 1 / -1; margin-top: 10px; padding: 10px; font-size: .95rem; }
+    }
+    /* ── תיקוני Impeccable detect: ניגודיות על כתום + בלי זוהר פועם ── */
+    .btn-primary, button.btn-primary, .price-badge.featured-badge, .cs-name, .champ-kicker { color: #111 !important; }
+    .btn-primary { animation: none !important; box-shadow: 0 10px 26px -10px rgba(255,107,0,.75); }
+    .btn-primary:hover { box-shadow: 0 14px 30px -10px rgba(255,107,0,.9); }
+    html.hero-off .spark { animation-play-state: paused; }
+
+    /* הרגע היחיד בדף: הצתה של המסך הראשון (~1.6 שנ׳). שאר הדף שקט — רק משוב ללחיצות. */
+    @property --rise { syntax: '<percentage>'; inherits: false; initial-value: 120%; }
+    @property --heat { syntax: '<number>'; inherits: true; initial-value: 1; }
+    html.mo #hero { animation: heat 1.8s cubic-bezier(.16,1,.3,1) both; }
+    @keyframes heat { 0% { --heat: 0; } 55% { --heat: 1.7; } 100% { --heat: 1; } }
+    #hero .hero-bg { background: radial-gradient(ellipse 70% 50% at 50% 100%, rgba(255,107,0, calc(.22 * var(--heat))) 0%, transparent 70%), radial-gradient(ellipse 40% 30% at 50% 85%, rgba(255,180,0, calc(.1 * var(--heat))) 0%, transparent 60%), var(--black); }
+    html.mo #hero .hero-photo img { -webkit-mask-image: linear-gradient(to top, #000 var(--rise), transparent calc(var(--rise) + 22%)); mask-image: linear-gradient(to top, #000 var(--rise), transparent calc(var(--rise) + 22%)); animation: rise 1.25s cubic-bezier(.16,1,.3,1) .1s both, cool 1.6s ease-out .1s both; }
+    @keyframes rise { from { --rise: -22%; } to { --rise: 120%; } }
+    @keyframes cool { from { filter: brightness(1.9) saturate(1.5) drop-shadow(0 0 22px rgba(255,107,0,.35)); } to { filter: drop-shadow(0 0 22px rgba(255,107,0,.35)); } }
+    .flare { position: absolute; left: 50%; bottom: 8%; width: 0; height: 0; z-index: 1; pointer-events: none; }
+    .flare i { position: absolute; width: var(--s); height: var(--s); border-radius: 50%; background: var(--gold); opacity: 0; }
+    html.mo .flare i { animation: flare 1.3s cubic-bezier(.16,1,.3,1) calc(.15s + var(--d)) both; }
+    @keyframes flare { 0% { opacity: 1; transform: translate(0,0); } 70% { opacity: .9; } 100% { opacity: 0; transform: translate(var(--x), var(--y)) scale(.4); } }
+    html.mo #hero .hero-title .highlight { background-image: linear-gradient(110deg, var(--orange) 0%, var(--gold) 38%, #fff3c4 50%, var(--gold) 62%, var(--orange) 100%); background-size: 260% 100%; animation: shine 1.4s cubic-bezier(.16,1,.3,1) 1s both; }
+    @keyframes shine { from { background-position: 220% 0; } to { background-position: -60% 0; } }
+    @media (min-width: 901px) { .flare { left: 27%; } }
+  
+    #theater { background: var(--black); padding-bottom: 40px; }
+    .th-img { position: relative; aspect-ratio: 4 / 5; border-radius: 14px; overflow: hidden; border: 1px solid var(--border); background: #111; }
+    .th-img img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+    .th-before { clip-path: inset(0 0 0 50%); }
+    .th-line { position: absolute; top: 0; bottom: 0; left: 50%; width: 2px; margin-left: -1px; background: var(--gold); }
+    .th-tag { position: absolute; top: 10px; padding: 2px 10px; border-radius: 20px; font-size: .75rem; font-weight: 800; background: rgba(9,9,9,.75); }
+    .th-tag.b { right: 10px; } .th-tag.a { left: 10px; color: var(--orange); }
+    .th-card figcaption { text-align: center; margin-top: 12px; }
+    .th-n { font-size: 3rem; font-weight: 900; line-height: 1; color: var(--orange); display: inline-flex; align-items: baseline; gap: 2px; }
+    .th-n small { font-size: 1rem; color: #fff; margin-left: 6px; }
+    .th-card b { display: block; font-size: 1.15rem; margin-top: 4px; } .th-card figcaption > span { display: block; color: #bbb; font-size: .92rem; }
+    .th-card q { display: block; margin-top: 8px; color: #fff; font-weight: 600; font-size: .95rem; quotes: '"' '"'; }
+    .th-cards { display: grid; gap: 34px; max-width: 420px; margin: 0 auto; padding: 0 24px; }
+    .th-dots { display: none; }
+    /* הרגע: כשהדפדפן תומך באנימציה שמונעת מגלילה — הבמה ננעצת, והגלילה מעבירה מלפני לאחרי, מתאמן אחרי מתאמן */
+    @supports (animation-timeline: view()) {
+      @property --p { syntax: '<percentage>'; inherits: true; initial-value: 0%; }
+      @property --n { syntax: '<integer>'; inherits: true; initial-value: 0; }
+      html.mo .th-track { height: 440svh; view-timeline: --th block; }
+      html.mo .th-stage { position: sticky; top: 70px; height: calc(100svh - 70px); display: flex; flex-direction: column; justify-content: center; }
+      html.mo .th-cards { display: block; position: relative; height: min(640px, calc(100svh - 120px)); width: min(380px, 100%); }
+      html.mo .th-card { position: absolute; inset: 0 24px; opacity: 0; animation: thShow linear both, thSweep linear both; animation-timeline: --th, --th; }
+      html.mo .th-img { max-height: calc(100svh - 300px); margin: 0 auto; aspect-ratio: 4/5; }
+      html.mo .th-before { clip-path: inset(0 0 0 var(--p)); } html.mo .th-line { left: var(--p); }
+      html.mo .th-val { counter-reset: n var(--n); font-size: 0; } html.mo .th-val::after { content: counter(n); font-size: 3rem; }
+      html.mo .th-card:nth-child(1) { animation-range: contain 0% contain 25%, contain 0% contain 25%; animation-name: thShowFirst, thSweep0; }
+      @keyframes thSweep0 { 0%, 14% { --p: 0%; --n: 0; } 72%, 100% { --p: 100%; --n: 13; } }
+      html.mo .th-card:nth-child(2) { animation-range: contain 25% contain 50%, contain 25% contain 50%; animation-name: thShow, thSweep1; }
+      @keyframes thSweep1 { 0%, 14% { --p: 0%; --n: 0; } 72%, 100% { --p: 100%; --n: 16; } }
+      html.mo .th-card:nth-child(3) { animation-range: contain 50% contain 75%, contain 50% contain 75%; animation-name: thShow, thSweep2; }
+      @keyframes thSweep2 { 0%, 14% { --p: 0%; --n: 0; } 72%, 100% { --p: 100%; --n: 35; } }
+      html.mo .th-card:nth-child(4) { animation-range: contain 75% contain 100%, contain 75% contain 100%; animation-name: thShowLast, thSweep3; }
+      @keyframes thSweep3 { 0%, 14% { --p: 0%; --n: 0; } 72%, 100% { --p: 100%; --n: 18; } }
+      @keyframes thShow { 0% { opacity: 0; transform: translateY(40px) scale(.96); } 10%, 88% { opacity: 1; transform: none; } 100% { opacity: 0; transform: translateY(-30px) scale(.97); } }
+      @keyframes thShowFirst { 0%, 88% { opacity: 1; transform: none; } 100% { opacity: 0; transform: translateY(-30px) scale(.97); } }
+      @keyframes thShowLast { 0% { opacity: 0; transform: translateY(40px) scale(.96); } 10%, 100% { opacity: 1; transform: none; } }
+      html.mo .th-dots { display: flex; justify-content: center; gap: 8px; margin-top: 14px; }
+      html.mo .th-dots i { width: 8px; height: 8px; border-radius: 4px; background: #333; animation: thDot linear none; animation-timeline: --th; }
+      html.mo .th-dots i:nth-child(1) { animation-range: contain 0% contain 25%; }
+      html.mo .th-dots i:nth-child(2) { animation-range: contain 25% contain 50%; }
+      html.mo .th-dots i:nth-child(3) { animation-range: contain 50% contain 75%; }
+      html.mo .th-dots i:nth-child(4) { animation-range: contain 75% contain 100%; }
+      @keyframes thDot { 0%, 100% { background: var(--orange); width: 22px; } }
+    }
+    @media (min-width: 901px) { .th-cards { max-width: 1000px; grid-template-columns: repeat(2, 1fr); } }
+  
+    #pricing a[href="intake.html"] { color: #111 !important; }
+    /* ── מבחן התאמה ── */
+    #fit { background: var(--graphite); }
+    .fit-sub { text-align: center; color: #bbb; margin: -36px 0 22px; }
+    .fit { max-width: 560px; margin: 0 auto; background: var(--card-bg); border: 1px solid var(--border); border-radius: 18px; padding: 18px; }
+    .fit-bar { height: 4px; border-radius: 4px; background: #222; overflow: hidden; margin-bottom: 16px; }
+    .fit-bar i { display: block; height: 100%; background: linear-gradient(90deg, var(--orange), var(--gold)); transform-origin: right; transform: scaleX(var(--prog, .33)); transition: transform .35s cubic-bezier(.23,1,.32,1); }
+    .fit-q { border: 0; margin: 0 0 18px; } .fit-q legend { font-size: 1.15rem; font-weight: 900; margin-bottom: 10px; }
+    .fit-q legend span { display: inline-block; font-size: .78rem; color: var(--orange); margin-left: 8px; font-weight: 800; }
+    .fit-opts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .fit-o { padding: 14px 10px; border-radius: 12px; border: 1px solid #333; background: #141414; color: #fff; font: 700 .98rem Heebo, sans-serif; cursor: pointer; transition: transform .16s cubic-bezier(.23,1,.32,1), border-color .2s, background-color .2s; }
+    .fit-o:active { transform: scale(.97); } .fit-o.on { border-color: var(--orange); background: rgba(255,107,0,.14); }
+    @media (hover: hover) and (pointer: fine) { .fit-o:hover { border-color: rgba(255,107,0,.6); } }
+    .fit-res { display: none; text-align: center; }
+    .fit [tabindex="-1"]:focus { outline: none; }
+    .fit-res-k { font-size: .85rem; color: var(--gold); font-weight: 800; } .fit-res-name { font-size: 1.7rem; font-weight: 900; margin: 4px 0; }
+    .fit-res-price { color: #ddd; } .fit-res-price b { color: var(--orange); font-size: 1.3rem; }
+    .fit-res-why { color: #bbb; margin: 10px 0 16px; line-height: 1.6; }
+    .fit-wa { display: flex !important; justify-content: center; }
+    .fit-alt { margin-top: 12px; font-size: .9rem; color: #999; } .fit-alt a, .fit-alt button { color: var(--orange); background: none; border: 0; font: inherit; cursor: pointer; text-decoration: underline; }
+    html.fit-js .fit-q, html.fit-js .fit-res { display: none; }
+    html.fit-js .fit[data-at="1"] [data-step="1"], html.fit-js .fit[data-at="2"] [data-step="2"], html.fit-js .fit[data-at="3"] [data-step="3"], html.fit-js .fit[data-at="4"] [data-step="4"] { display: block; animation: fitIn .32s cubic-bezier(.23,1,.32,1) both; }
+    @keyframes fitIn { from { opacity: 0; transform: translateX(-14px); } to { opacity: 1; transform: none; } }
+    @media (prefers-reduced-motion: reduce) { html.fit-js .fit [data-step] { animation: none !important; } }
+    /* ── 4 החודשים ── */
+    .mo4 { max-width: 760px; margin: 0 auto 26px; }
+    .mo4-h { text-align: center; font-weight: 900; font-size: 1.1rem; margin-bottom: 12px; }
+    .draft { display: inline-block; font-size: .7rem; font-weight: 800; color: #111; background: var(--gold); border-radius: 10px; padding: 1px 8px; vertical-align: 2px; margin-right: 6px; }
+    .mo4 ol { list-style: none; display: grid; gap: 8px; counter-reset: m; position: relative; }
+    .mo4 li { display: grid; grid-template-columns: 20px 1fr; column-gap: 12px; position: relative; }
+    .mo4 li::before { content: ''; grid-row: 1 / 3; width: 12px; height: 12px; margin: 5px auto 0; border-radius: 50%; background: var(--orange); }
+    .mo4 li:not(:last-child)::after { content: ''; position: absolute; right: 9px; top: 20px; bottom: -10px; width: 2px; background: rgba(255,107,0,.35); }
+    .mo4 li b { font-size: .98rem; } .mo4 li span { color: #bbb; font-size: .9rem; line-height: 1.55; }
+    @media (min-width: 901px) { .mo4 ol { grid-template-columns: repeat(4, 1fr); } .mo4 li::after { display: none; } }
+    /* ── מעבר מסלול → תשלום ── */
+    ::view-transition-group(plan) { animation-duration: .42s; animation-timing-function: cubic-bezier(.77,0,.175,1); }
+    html.vt .modal-overlay, html.vt .modal { transition: none !important; }
+  
   </style>
 </head>
 <body>
@@ -1740,6 +1866,7 @@
 <!-- ═══ HERO ═══ -->
 <section id="hero">
   <div class="hero-bg"></div>
+  <div class="flare" aria-hidden="true"><i style="--x:-168px;--y:-260px;--d:0ms;--s:3px"></i><i style="--x:-130px;--y:-313px;--d:60ms;--s:4px"></i><i style="--x:-92px;--y:-366px;--d:120ms;--s:5px"></i><i style="--x:-108px;--y:-419px;--d:180ms;--s:3px"></i><i style="--x:-70px;--y:-472px;--d:240ms;--s:4px"></i><i style="--x:-32px;--y:-285px;--d:0ms;--s:5px"></i><i style="--x:-48px;--y:-338px;--d:60ms;--s:3px"></i><i style="--x:-10px;--y:-391px;--d:120ms;--s:4px"></i><i style="--x:28px;--y:-444px;--d:180ms;--s:5px"></i><i style="--x:12px;--y:-497px;--d:240ms;--s:3px"></i><i style="--x:50px;--y:-310px;--d:0ms;--s:4px"></i><i style="--x:88px;--y:-363px;--d:60ms;--s:5px"></i><i style="--x:72px;--y:-416px;--d:120ms;--s:3px"></i><i style="--x:110px;--y:-469px;--d:180ms;--s:4px"></i><i style="--x:148px;--y:-282px;--d:240ms;--s:5px"></i><i style="--x:132px;--y:-335px;--d:0ms;--s:3px"></i></div>
   <div class="hero-photo" aria-hidden="true"><picture><source srcset="landing/halel-cut.webp" type="image/webp"><img src="landing/halel-cut.png" alt="" width="351" height="1037" fetchpriority="high"></picture></div>
   <div class="sparks">
     <div class="spark"></div><div class="spark"></div>
@@ -1763,6 +1890,8 @@
       תוכנית אימונים, תזונה וליווי אישי שמותאמים בדיוק למטרה שלך —<br>
       מסה, חיטוב, שינוי גוף או הכנה לתחרות.
     </p>
+
+    <div class="hero-from">ליווי אישי <b>מ-400 ₪ לחודש</b> · למתאמנים ולמתאמנות</div>
 
     <div class="hero-buttons">
       <a href="#" class="btn-primary" onclick="goTo('pricing'); return false;">
@@ -1801,193 +1930,32 @@
   </div>
 </section>
 
-<!-- ═══ RESULTS CAROUSEL ═══ -->
-<section id="results">
-  <div class="container">
-    <h2 class="section-title">תוצאות <span>מתאמנים</span></h2>
-    <div class="title-line"></div>
 
-    <div class="carousel-wrapper">
-      <div class="carousel-track-outer">
-        <div class="carousel-track" id="carousel-track">
 
-          <!-- דניאל רון -->
-          <div class="result-card">
-            <div class="result-img-wrap">
-              <img src="תחרויות/images/daniel.jpg" alt="טרנספורמציה של דניאל רון — לפני ואחרי ליווי HF"
-                   onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
-              />
-              <div class="result-img-placeholder" style="display:none;">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
-                <span>הוסף תמונה: תחרויות/images/daniel.jpg</span>
-              </div>
-            </div>
-            <div class="card-info">
-              <div class="card-top">
-                <div class="card-name">דניאל רון</div>
-                <div class="weight-tag">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
-                  +13 ק"ג
-                </div>
-              </div>
-              <div class="card-divider"></div>
-              <p class="card-desc">
-                עלייה של 13 קילוגרם עם שמירה מלאה על אחוז שומן נמוך — גוף אתלטי, חד ומוגדר.
-                <span class="card-quote">"לא האמנתי שאני יכול לעלות ככה במשקל. ניסיתי עם מספר מאמנים לפני — כל אחד הבטיח תוצאות, אבל המאזניים לא זזו. עד שהגעתי לפה. פתאום הכל התחיל להשתנות — התוכנית הייתה מדויקת, המעקב היה צמוד, והגוף פשוט הגיב. התוצאות מדברות בעד עצמן."</span>
-              </p>
-            </div>
-          </div>
 
-          <!-- לירן -->
-          <div class="result-card">
-            <div class="result-img-wrap">
-              <!-- שים את תמונת לפני/אחרי של לירן בתיקיית images ליד הקובץ -->
-              <img src="תחרויות/images/liran.jpg" alt="טרנספורמציה של לירן — לפני ואחרי ליווי HF"
-                   onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
-              />
-              <div class="result-img-placeholder" style="display:none;">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
-                <span>הוסף תמונה: תחרויות/images/liran.jpg</span>
-              </div>
-            </div>
-            <div class="card-info">
-              <div class="card-top">
-                <div class="card-name">לירן</div>
-                <div class="weight-tag">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
-                  +16 ק"ג
-                </div>
-              </div>
-              <div class="card-divider"></div>
-              <p class="card-desc">
-                תהליך בניית מסה שעשה את כל ההבדל — עלייה של 16 קילוגרם עם שמירה מלאה על אחוז שומן נמוך.
-                תוכנית אימונים ותזונה מדויקת שבנינו יחד, מעקב שוטף ועקביות — זה הסוד.
-                <span class="card-quote">"לא האמנתי שאפשר לעלות ככה בלי לתפוח — הגוף פשוט השתנה."</span>
-              </p>
-            </div>
-          </div>
 
-          <!-- אופיר -->
-          <div class="result-card">
-            <div class="result-img-wrap">
-              <img src="תחרויות/images/OFIR.jpg" alt="טרנספורמציה של אופיר — לפני ואחרי ליווי HF"
-                   onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
-              <div class="result-img-placeholder" style="display:none;">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
-                <span>תחרויות/images/OFIR.jpg</span>
-              </div>
-            </div>
-            <div class="card-info">
-              <div class="card-top">
-                <div class="card-name">אופיר</div>
-                <div class="weight-tag" style="background:rgba(255,107,0,0.18);border-color:rgba(255,107,0,0.5);color:var(--orange);">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
-                  -35 ק"ג
-                </div>
-              </div>
-              <div class="card-divider"></div>
-              <p class="card-desc">
-                ירידה של 35 קילוגרם שינתה את החיים — לא רק את הגוף, אלא את האנרגיה, הביטחון והתחושה היומיומית.
-                <span class="card-quote">"תמיד חשבתי שזה לא בשבילי, שאני לא מהסוג שמצליח. אבל כשיש מישהו שמאמין בך יותר ממה שאתה מאמין בעצמך — קורים דברים. הגוף שלי היום הוא ההוכחה."</span>
-              </p>
-            </div>
-          </div>
-
-          <!-- נשיאל — סליידשואו 3 תמונות -->
-          <div class="result-card">
-            <div class="result-img-wrap">
-              <div class="slideshow-wrap" id="nesial-slideshow">
-                <img id="nesial-img" class="slide-img" src="תחרויות/images/nesial1.jpg" alt="נשיאל — טרנספורמציה" />
-                <div class="slide-dots" id="nesial-dots">
-                  <div class="slide-dot active"></div>
-                  <div class="slide-dot"></div>
-                  <div class="slide-dot"></div>
-                </div>
-              </div>
-            </div>
-            <div class="card-info">
-              <div class="card-top">
-                <div class="card-name">נשיאל</div>
-                <div class="weight-tag">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
-                  +18 ק"ג
-                </div>
-              </div>
-              <div class="card-divider"></div>
-              <p class="card-desc">
-                שינוי מדהים שאי אפשר להתעלם ממנו — טרנספורמציה מלאה שמראה מה קורה כשמחויבות פוגשת תוכנית נכונה.
-                <span class="card-quote">"הגוף שלי השתנה לחלוטין — לא האמנתי שזה אפשרי."</span>
-              </p>
-            </div>
-          </div>
-
-        </div><!-- /track -->
-      </div><!-- /outer -->
-
-      <div class="carousel-nav">
-        <button class="carousel-btn" id="btn-prev" aria-label="הקודם">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>
-        </button>
-        <button class="carousel-btn" id="btn-next" aria-label="הבא">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>
-        </button>
-      </div>
-
-      <div class="carousel-dots" id="carousel-dots"></div>
-    </div>
-  </div>
-</section>
-
-<!-- ═══ הסיפורים שלהם (מתוך הטקסטים והציטוטים שבקרוסלה) ═══ -->
-<section id="client-stories">
-  <div class="container">
-    <h2 class="section-title">הסיפורים <span>שלהם</span></h2>
-    <div class="title-line"></div>
-    <div class="cs-grid">
-      <div class="cs-card">
-        <div class="ba" data-ba>
-          <img class="ba-img" src="landing/ba/daniel-after.jpg" alt="דניאל רון אחרי" loading="lazy" width="640" height="800">
-          <img class="ba-img ba-before" src="landing/ba/daniel-before.jpg" alt="דניאל רון לפני" loading="lazy" width="640" height="800">
-          <span class="ba-tag ba-tag-b">לפני</span><span class="ba-tag ba-tag-a">אחרי</span>
-          <span class="ba-handle" aria-hidden="true"><span class="ba-knob"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6l6 6"/></svg><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6l-6 6"/></svg></span></span>
-          <input class="ba-range" type="range" min="0" max="100" value="50" dir="ltr" aria-label="השוואת לפני ואחרי של דניאל רון">
-        </div>
-        <div class="cs-head"><div><div class="cs-name">הסיפור של דניאל רון</div><div class="cs-title"><bdi dir="ltr">+13</bdi> ק״ג — גוף אתלטי, חד ומוגדר</div></div></div>
-        <div class="cs-row"><span>לפני</span>ניסה כמה מאמנים. כל אחד הבטיח תוצאות, אבל המאזניים לא זזו.</div>
-        <div class="cs-row"><span>התהליך</span>תוכנית מדויקת ומעקב צמוד, והגוף פשוט הגיב.</div>
-        <div class="cs-row"><span>התוצאה</span>עלייה של 13 ק״ג עם שמירה מלאה על אחוז שומן נמוך.</div>
-        <div class="cs-quote">"לא האמנתי שאני יכול לעלות ככה במשקל."</div>
-      </div>
-      <div class="cs-card">
-        <div class="ba" data-ba>
-          <img class="ba-img" src="landing/ba/liran-after.jpg" alt="לירן אחרי" loading="lazy" width="640" height="800">
-          <img class="ba-img ba-before" src="landing/ba/liran-before.jpg" alt="לירן לפני" loading="lazy" width="640" height="800">
-          <span class="ba-tag ba-tag-b">לפני</span><span class="ba-tag ba-tag-a">אחרי</span>
-          <span class="ba-handle" aria-hidden="true"><span class="ba-knob"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6l6 6"/></svg><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6l-6 6"/></svg></span></span>
-          <input class="ba-range" type="range" min="0" max="100" value="50" dir="ltr" aria-label="השוואת לפני ואחרי של לירן">
-        </div>
-        <div class="cs-head"><div><div class="cs-name">הסיפור של לירן</div><div class="cs-title"><bdi dir="ltr">+16</bdi> ק״ג — בלי לתפוח</div></div></div>
-        <div class="cs-row"><span>לפני</span>לא האמין שאפשר לעלות במשקל בלי לתפוח.</div>
-        <div class="cs-row"><span>התהליך</span>תוכנית אימונים ותזונה מדויקת שבנינו יחד, מעקב שוטף ועקביות.</div>
-        <div class="cs-row"><span>התוצאה</span>עלייה של 16 ק״ג עם שמירה מלאה על אחוז שומן נמוך.</div>
-        <div class="cs-quote">"הגוף פשוט השתנה."</div>
-      </div>
-      <div class="cs-card">
-        <div class="ba" data-ba>
-          <img class="ba-img" src="landing/ba/ofir-after.jpg" alt="אופיר אחרי" loading="lazy" width="640" height="800">
-          <img class="ba-img ba-before" src="landing/ba/ofir-before.jpg" alt="אופיר לפני" loading="lazy" width="640" height="800">
-          <span class="ba-tag ba-tag-b">לפני</span><span class="ba-tag ba-tag-a">אחרי</span>
-          <span class="ba-handle" aria-hidden="true"><span class="ba-knob"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6l6 6"/></svg><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6l-6 6"/></svg></span></span>
-          <input class="ba-range" type="range" min="0" max="100" value="50" dir="ltr" aria-label="השוואת לפני ואחרי של אופיר">
-        </div>
-        <div class="cs-head"><div><div class="cs-name">הסיפור של אופיר</div><div class="cs-title"><bdi dir="ltr">−35</bdi> ק״ג — ושריר במקום</div></div></div>
-        <div class="cs-row"><span>לפני</span>תמיד חשב שזה לא בשבילו, שהוא לא מהסוג שמצליח.</div>
-        <div class="cs-row"><span>התהליך</span>ליווי של מישהו שמאמין בו יותר ממה שהוא האמין בעצמו.</div>
-        <div class="cs-row"><span>התוצאה</span>ירידה של 35 ק״ג ועלייה משמעותית במסת השריר, ואיתן אנרגיה וביטחון.</div>
-        <div class="cs-quote">"הגוף שלי היום הוא ההוכחה."</div>
-      </div>
-    </div>
-  </div>
+<!-- ═══ תיאטרון השינוי ═══ -->
+<section id="theater">
+  <a id="results"></a>
+  <div class="container"><h2 class="section-title">השינוי <span>שלהם</span></h2><div class="title-line"></div></div>
+  <div class="th-track"><div class="th-stage"><div class="th-cards">
+      <figure class="th-card" style="--i:0">
+        <div class="th-img"><img src="landing/ba/daniel-after.jpg" alt="דניאל רון אחרי" loading="lazy" width="640" height="800"><img class="th-before" src="landing/ba/daniel-before.jpg" alt="דניאל רון לפני" loading="lazy" width="640" height="800"><span class="th-line" aria-hidden="true"></span><span class="th-tag b">לפני</span><span class="th-tag a">אחרי</span></div>
+        <figcaption><div class="th-n" dir="ltr"><span class="th-sign">+</span><span class="th-val">13</span><small>ק״ג</small></div><b>דניאל רון</b><span>גוף אתלטי, חד ומוגדר</span><q>לא האמנתי שאני יכול לעלות ככה במשקל.</q></figcaption>
+      </figure>
+      <figure class="th-card" style="--i:1">
+        <div class="th-img"><img src="landing/ba/liran-after.jpg" alt="לירן אחרי" loading="lazy" width="640" height="800"><img class="th-before" src="landing/ba/liran-before.jpg" alt="לירן לפני" loading="lazy" width="640" height="800"><span class="th-line" aria-hidden="true"></span><span class="th-tag b">לפני</span><span class="th-tag a">אחרי</span></div>
+        <figcaption><div class="th-n" dir="ltr"><span class="th-sign">+</span><span class="th-val">16</span><small>ק״ג</small></div><b>לירן</b><span>מסה בלי לתפוח</span><q>הגוף פשוט השתנה.</q></figcaption>
+      </figure>
+      <figure class="th-card" style="--i:2">
+        <div class="th-img"><img src="landing/ba/ofir-after.jpg" alt="אופיר אחרי" loading="lazy" width="640" height="800"><img class="th-before" src="landing/ba/ofir-before.jpg" alt="אופיר לפני" loading="lazy" width="640" height="800"><span class="th-line" aria-hidden="true"></span><span class="th-tag b">לפני</span><span class="th-tag a">אחרי</span></div>
+        <figcaption><div class="th-n" dir="ltr"><span class="th-sign">−</span><span class="th-val">35</span><small>ק״ג</small></div><b>אופיר</b><span>ירידה, ושריר במקום</span><q>הגוף שלי היום הוא ההוכחה.</q></figcaption>
+      </figure>
+      <figure class="th-card" style="--i:3">
+        <div class="th-img"><img src="landing/ba/nesiel-after.jpg" alt="נשיאל מדמון אחרי" loading="lazy" width="640" height="800"><img class="th-before" src="landing/ba/nesiel-before.jpg" alt="נשיאל מדמון לפני" loading="lazy" width="640" height="800"><span class="th-line" aria-hidden="true"></span><span class="th-tag b">לפני</span><span class="th-tag a">אחרי</span></div>
+        <figcaption><div class="th-n" dir="ltr"><span class="th-sign">+</span><span class="th-val">18</span><small>ק״ג</small></div><b>נשיאל מדמון</b><span>ואחר כך אלוף ישראל 2026</span><q>הגוף שלי השתנה לחלוטין. לא האמנתי שזה אפשרי.</q></figcaption>
+      </figure>
+  </div><div class="th-dots" aria-hidden="true"><i style="--i:0"></i><i style="--i:1"></i><i style="--i:2"></i><i style="--i:3"></i></div></div></div>
 </section>
 
 <!-- ═══ COACH ACHIEVEMENTS ═══ -->
@@ -2107,51 +2075,31 @@
 
 
 <!-- ═══ WHO IS IT FOR ═══ -->
-<section id="who">
+<!-- ═══ מבחן התאמה ═══ -->
+<section id="fit">
   <div class="container">
-    <h2 class="section-title">למי זה <span>מתאים?</span></h2>
+    <h2 class="section-title">מה <span>מתאים לך?</span></h2>
     <div class="title-line"></div>
-
-    <div class="who-grid">
-      <div class="who-card">
-        <div class="check-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>
-        </div>
-        <p>אנשים שרוצים לעלות מסת שריר בצורה נכונה</p>
+    <p class="fit-sub">3 שאלות, 20 שניות, והמלצה על מסלול. אחר כך ממשיכים בוואטסאפ.</p>
+    <form class="fit" onsubmit="return false" novalidate>
+      <div class="fit-bar" aria-hidden="true"><i></i></div>
+      <fieldset class="fit-q" data-q="goal" data-step="1"><legend tabindex="-1"><span>1/3</span>מה המטרה שלך?</legend><div class="fit-opts"><button type="button" class="fit-o" data-v="mass">לעלות מסה</button><button type="button" class="fit-o" data-v="cut">להתחטב בלי לאבד שריר</button><button type="button" class="fit-o" data-v="stuck">תקוע ולא מתקדם</button><button type="button" class="fit-o" data-v="comp">להגיע לבמה</button></div></fieldset>
+      <fieldset class="fit-q" data-q="level" data-step="2"><legend tabindex="-1"><span>2/3</span>כמה ניסיון יש לך?</legend><div class="fit-opts"><button type="button" class="fit-o" data-v="new">בלי ניסיון</button><button type="button" class="fit-o" data-v="mid">יש קצת ניסיון</button><button type="button" class="fit-o" data-v="adv">מתאמן/ת שנים</button></div></fieldset>
+      <fieldset class="fit-q" data-q="commit" data-step="3"><legend tabindex="-1"><span>3/3</span>לכמה זמן מתכננים?</legend><div class="fit-opts"><button type="button" class="fit-o" data-v="m1">לנסות חודש</button><button type="button" class="fit-o" data-v="m4">4 חודשים, תהליך אמיתי</button><button type="button" class="fit-o" data-v="m6">חצי שנה</button><button type="button" class="fit-o" data-v="m12">שנה שלמה</button></div></fieldset>
+      <div class="fit-res" data-step="4" aria-live="polite">
+        <div class="fit-res-k">ההמלצה בשבילך</div>
+        <div class="fit-res-name" tabindex="-1">ליווי 4 חודשים</div>
+        <div class="fit-res-price"><b>1,500 ₪</b> · 375 ₪ לחודש</div>
+        <p class="fit-res-why">מספיק זמן לבנות, לכוונן ולראות שינוי אמיתי. זה המסלול שהכי הרבה מתאמנים בוחרים.</p>
+        <a class="btn-primary fit-wa" href="https://wa.me/972586931163" target="_blank" rel="noopener">לשלוח לי את זה בוואטסאפ</a>
+        <div class="fit-alt"><a href="intake.html">לשאלון המלא</a> · <button type="button" class="fit-again">להתחיל מחדש</button></div>
       </div>
-      <div class="who-card">
-        <div class="check-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>
-        </div>
-        <p>אנשים שרוצים להתחטב בלי לאבד מסת שריר</p>
-      </div>
-      <div class="who-card">
-        <div class="check-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>
-        </div>
-        <p>מתאמנים תקועים שלא מצליחים להתקדם לבד</p>
-      </div>
-      <div class="who-card">
-        <div class="check-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>
-        </div>
-        <p>אנשים שרוצים מסגרת, פיקוח וליווי אישי</p>
-      </div>
-      <div class="who-card">
-        <div class="check-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>
-        </div>
-        <p>מתחרים או אנשים שרוצים להגיע לרמה גבוהה יותר</p>
-      </div>
-      <div class="who-card">
-        <div class="check-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>
-        </div>
-        <p>מתחילים שרוצים להתחיל נכון בלי לבזבז זמן</p>
-      </div>
-    </div>
+    </form>
+    <div class="women-line"><b>מתאמנת?</b> אותו ליווי ואותם מחירים, אצלי או אצל מאמנת מטעמי.</div>
   </div>
 </section>
+
+
 
 
 <!-- ═══ FEATURES ═══ -->
@@ -2223,6 +2171,7 @@
     <h2 class="section-title">מסלולי <span>ליווי</span></h2>
     <div class="title-line"></div>
 
+<div class="mo4"><div class="mo4-h">מה קורה ב-4 החודשים <span class="draft">טיוטה לאישור</span></div><ol><li><b>חודש 1 · בונים</b><span>שאלון היכרות, תשלום בביט והודעה בוואטסאפ, ואנחנו חוזרים אליך תוך 24 שעות. אחר כך תוכנית אימונים ותפריט אישיים באפליקציה.</span></li><li><b>חודש 2 · מכווננים</b><span>לפי המשקל, התמונות והביצועים: משנים מה שצריך בתפריט ובאימונים.</span></li><li><b>חודש 3 · מעמיקים</b><span>מעלים עומסים, מחדדים את התזונה ובונים הרגלים שנשארים.</span></li><li><b>חודש 4 · מסכמים</b><span>תמונות ומדדים לפני/אחרי, ותוכנית ברורה להמשך.</span></li></ol></div>
     <!-- Gender Tabs -->
     <div class="gender-tabs">
       <button class="gender-tab active" id="tab-men" onclick="switchGender('men')">גברים</button>
@@ -2231,13 +2180,15 @@
 
     <!-- ── MEN'S PLANS ── -->
     <div class="pricing-panel active" id="panel-men">
-    <div class="pricing-grid">
+    <div class="incl"><b>כל מסלול כולל:</b><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>תוכנית אימונים אישית</span><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>תפריט תזונה אישי</span><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>מעקב התקדמות שוטף</span><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>שינויים לפי תגובת הגוף</span><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>ליווי אונליין בוואטסאפ</span><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>אפליקציית Fit Journey</span></div>
+    <div class="pricing-grid rows">
 
 
       <div class="price-card">
         <div class="price-badge">ללא התחייבות</div>
         <div class="plan-name">ליווי חודשי</div>
         <div class="price-amount"><span class="currency">₪</span>400</div>
+        <div class="pm">400 ₪ לחודש</div>
         <div class="price-period">לחודש · מתחדש אוטומטית</div>
         <div class="renew-note">ביטול בהודעה חודש מראש · <a href="coaching-terms.html">תקנון</a></div>
         <div class="price-divider"></div>
@@ -2271,6 +2222,7 @@
         <div class="price-badge featured-badge">הכי פופולרי</div>
         <div class="plan-name">ליווי 4 חודשים</div>
         <div class="price-amount"><span class="currency">₪</span>1,500</div>
+        <div class="pm">375 ₪ לחודש</div>
         <div class="price-period">ל-4 חודשים · חסכון של 100₪</div>
         <div class="price-divider"></div>
         <ul class="price-features">
@@ -2307,6 +2259,7 @@
         <div class="price-badge">חצי שנה</div>
         <div class="plan-name">ליווי חצי שנה</div>
         <div class="price-amount"><span class="currency">₪</span>2,200</div>
+        <div class="pm">≈367 ₪ לחודש</div>
         <div class="price-period">ל-6 חודשים · חסכון של 200₪</div>
         <div class="price-divider"></div>
         <ul class="price-features">
@@ -2325,6 +2278,7 @@
         <div class="price-badge">הכי משתלם</div>
         <div class="plan-name">ליווי שנתי</div>
         <div class="price-amount"><span class="currency">₪</span>4,000</div>
+        <div class="pm">≈333 ₪ לחודש</div>
         <div class="price-period">ל-12 חודשים · חסכון של 800₪</div>
         <div class="price-divider"></div>
         <ul class="price-features">
@@ -2372,13 +2326,15 @@
 
     <!-- ── WOMEN'S PLANS ── -->
     <div class="pricing-panel" id="panel-women">
-    <div class="pricing-grid">
+    <div class="incl"><b>כל מסלול כולל:</b><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>תוכנית אימונים אישית</span><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>תפריט תזונה אישי</span><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>מעקב התקדמות שוטף</span><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>שינויים לפי תגובת הגוף</span><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>ליווי אונליין בוואטסאפ</span><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>אפליקציית Fit Journey</span></div>
+    <div class="pricing-grid rows">
 
 
       <div class="price-card">
         <div class="price-badge">ללא התחייבות</div>
         <div class="plan-name">ליווי חודשי</div>
         <div class="price-amount"><span class="currency">₪</span>400</div>
+        <div class="pm">400 ₪ לחודש</div>
         <div class="price-period">לחודש · מתחדש אוטומטית</div>
         <div class="renew-note">ביטול בהודעה חודש מראש · <a href="coaching-terms.html">תקנון</a></div>
         <div class="price-divider"></div>
@@ -2397,6 +2353,7 @@
         <div class="price-badge featured-badge">הכי פופולרי</div>
         <div class="plan-name">ליווי 4 חודשים</div>
         <div class="price-amount"><span class="currency">₪</span>1,500</div>
+        <div class="pm">375 ₪ לחודש</div>
         <div class="price-period">ל-4 חודשים · חסכון של 100₪</div>
         <div class="price-divider"></div>
         <ul class="price-features">
@@ -2415,6 +2372,7 @@
         <div class="price-badge">חצי שנה</div>
         <div class="plan-name">ליווי חצי שנה</div>
         <div class="price-amount"><span class="currency">₪</span>2,200</div>
+        <div class="pm">≈367 ₪ לחודש</div>
         <div class="price-period">ל-6 חודשים · חסכון של 200₪</div>
         <div class="price-divider"></div>
         <ul class="price-features">
@@ -2433,6 +2391,7 @@
         <div class="price-badge">הכי משתלם</div>
         <div class="plan-name">ליווי שנתי</div>
         <div class="price-amount"><span class="currency">₪</span>4,000</div>
+        <div class="pm">≈333 ₪ לחודש</div>
         <div class="price-period">ל-12 חודשים · חסכון של 800₪</div>
         <div class="price-divider"></div>
         <ul class="price-features">
@@ -2601,7 +2560,7 @@
             <div style="font-size:0.85rem;margin-bottom:5px;">💰 <span style="color:#aaa;">בסכום:</span> <strong id="bit-amount" style="color:#FFD700;">400 ₪</strong></div>
             <div style="font-size:0.85rem;">✉️ <span style="color:#aaa;">בסיבה:</span> <strong style="color:#60a5fa;">כתובת המייל שלך</strong></div>
           </div>
-          <img id="bit-qr-img" src="" alt="QR ביט" style="width:190px;height:190px;border-radius:12px;border:2px solid rgba(0,180,255,0.3);"/>
+          <img id="bit-qr-img" src="bit-qr.png" loading="lazy" alt="QR ביט" style="width:190px;height:190px;border-radius:12px;border:2px solid rgba(0,180,255,0.3);"/>
           <div style="font-size:0.75rem;color:#555;margin-top:8px;">פתח את אפליקציית ביט וסרוק</div>
           <a href="https://www.bitpay.co.il/app/me/38AB25F4-8C62-2CA0-2650-34D4AD05E3D3CF3B" target="_blank" rel="noopener"
              style="display:inline-flex;align-items:center;gap:7px;margin-top:10px;padding:9px 18px;background:rgba(0,180,255,0.1);border:1px solid rgba(0,180,255,0.35);border-radius:10px;color:#00b4ff;font-weight:700;font-size:0.85rem;text-decoration:none;transition:background 0.2s;"
@@ -2714,6 +2673,7 @@
   /* ─── CAROUSEL ─── */
   (function() {
     const track = document.getElementById('carousel-track');
+    if (!track) return;
     const dotsContainer = document.getElementById('carousel-dots');
     const btnNext = document.getElementById('btn-next');
     const btnPrev = document.getElementById('btn-prev');
@@ -3016,6 +2976,69 @@
     }, { threshold: 0.6 });
     all.forEach(function (b) { io.observe(b); });
   })();
+</script>
+<script>
+
+  window.__mo = (function () {
+    if (!('IntersectionObserver' in window) || matchMedia('(prefers-reduced-motion: reduce)').matches) return null;
+    document.documentElement.classList.add('mo');
+    return { watch: function (el, fn, th) { var o = new IntersectionObserver(function (es) { es.forEach(function (e) { if (e.isIntersecting) { fn(e.target); o.unobserve(e.target); } }); }, { threshold: th || .5 }); o.observe(el); } };
+  })();
+  /* הניצוצות נעצרים כשההירו יוצא מהמסך */
+  if ('IntersectionObserver' in window) new IntersectionObserver(function (es) { document.documentElement.classList.toggle('hero-off', !es[0].isIntersecting); }).observe(document.getElementById('hero'));
+
+  /* ── מבחן התאמה ── */
+  (function () {
+    var f = document.querySelector('.fit'); if (!f) return;
+    document.documentElement.classList.add('fit-js'); f.dataset.at = 1;
+    var ans = {}, L = {"goal":{"mass":"לעלות מסה","cut":"להתחטב בלי לאבד שריר","stuck":"תקוע ולא מתקדם","comp":"להגיע לבמה"},"level":{"new":"בלי ניסיון","mid":"יש קצת ניסיון","adv":"מתאמן/ת שנים"},"commit":{"m1":"לנסות חודש","m4":"4 חודשים, תהליך אמיתי","m6":"חצי שנה","m12":"שנה שלמה"}}, busy = false, timer = 0;
+    var WHY = { mass: 'מסה נכונה: עולים במשקל ושומרים על הגוף חד.', cut: 'חיטוב בלי לאבד את השריר שבנית.', stuck: 'נמצא בדיוק איפה זה נתקע ונשנה את זה.', comp: 'לבמה בונים לאורך זמן, ונדבר בוואטסאפ על לוח הזמנים.' };
+    var PLAN = { m1: ['ליווי חודשי', '400 ₪', '400 ₪ לחודש · מתחדש, ביטול בהודעה חודש מראש', 'מתחילים בלי התחייבות ארוכה, ורואים איך זה מרגיש.'],
+                 m4: ['ליווי 4 חודשים', '1,500 ₪', '375 ₪ לחודש', 'מספיק זמן לבנות, לכוונן ולראות שינוי אמיתי. זה המסלול שהכי הרבה מתאמנים בוחרים.'],
+                 m6: ['ליווי חצי שנה', '2,200 ₪', '≈367 ₪ לחודש', 'זמן לעבור יותר משלב אחד: למשל מסה ואחריה חיטוב.'],
+                 m12: ['ליווי שנתי', '4,000 ₪', '≈333 ₪ לחודש', 'הכי משתלם לחודש, לשנה של התקדמות רצופה.'] };
+    function step(n) {
+      f.dataset.at = n; f.querySelector('.fit-bar i').style.setProperty('--prog', Math.min(1, n / 3));
+      var t = n < 4 ? f.querySelector('[data-step="' + n + '"] legend') : f.querySelector('.fit-res-name');
+      if (t) t.focus();
+    }
+    f.addEventListener('click', function (e) {
+      var b = e.target.closest('.fit-o'); if (b && !busy) {
+        var q = b.closest('.fit-q'), k = q.dataset.q, n = +q.dataset.step;
+        if (n !== +f.dataset.at) return;                       /* רק השלב הפעיל */
+        ans[k] = b.dataset.v; busy = true;
+        q.querySelectorAll('.fit-o').forEach(function (x) { x.classList.toggle('on', x === b); });
+        timer = setTimeout(function () { timer = 0; busy = false; if (n < 3) step(n + 1); else show(); }, 180);
+      }
+      if (e.target.closest('.fit-again')) { clearTimeout(timer); timer = 0; busy = false; ans = {}; f.querySelectorAll('.fit-o.on').forEach(function (x) { x.classList.remove('on'); }); step(1); }
+    });
+    function show() {
+      if (!ans.goal || !ans.level || !ans.commit) return;
+      var p = PLAN[ans.commit], r = f.querySelector('.fit-res');
+      r.querySelector('.fit-res-name').textContent = p[0];
+      r.querySelector('.fit-res-price').innerHTML = '<b>' + p[1] + '</b> · ' + p[2];
+      r.querySelector('.fit-res-why').textContent = p[3] + ' ' + WHY[ans.goal];
+      var msg = 'היי הלל, עשיתי את המבחן באתר.\nמטרה: ' + L.goal[ans.goal] + '\nניסיון: ' + L.level[ans.level] + '\nזמן: ' + L.commit[ans.commit] + '\nההמלצה: ' + p[0] + ' (' + p[1] + ').\nאשמח לבדוק התאמה!';
+      r.querySelector('.fit-wa').href = 'https://wa.me/972586931163?text=' + encodeURIComponent(msg);
+      step(4);
+    }
+  })();
+
+  /* ── מעבר מסלול → תשלום (View Transitions; בלי תמיכה — נפתח כרגיל) ── */
+  (function () {
+    var orig = window.openPayment; if (typeof orig !== 'function') return;
+    var lastCard = null;                                       /* הכרטיס שנלחץ — נתפס לפני ה-onclick */
+    document.addEventListener('click', function (e) { lastCard = e.target.closest ? e.target.closest('.price-card') : null; setTimeout(function () { lastCard = null; }, 0); }, true);
+    window.openPayment = function (name) {
+      var card = lastCard; lastCard = null;
+      if (!document.startViewTransition || !card || matchMedia('(prefers-reduced-motion: reduce)').matches) return orig(name);
+      var H = document.documentElement, modal = document.querySelector('#payment-modal .modal');
+      card.style.viewTransitionName = 'plan'; H.classList.add('vt');
+      var t = document.startViewTransition(function () { card.style.viewTransitionName = ''; modal.style.viewTransitionName = 'plan'; orig(name); });
+      t.finished.finally(function () { modal.style.viewTransitionName = ''; H.classList.remove('vt'); });
+    };
+  })();
+  
 </script>
 </body>
 </html>
