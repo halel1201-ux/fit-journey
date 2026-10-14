@@ -1737,36 +1737,6 @@
     .th-card q { display: block; margin-top: 8px; color: #fff; font-weight: 600; font-size: .95rem; quotes: '"' '"'; }
     .th-cards { display: grid; gap: 34px; max-width: 420px; margin: 0 auto; padding: 0 24px; }
     .th-dots { display: none; }
-    /* הרגע: כשהדפדפן תומך באנימציה שמונעת מגלילה — הבמה ננעצת, והגלילה מעבירה מלפני לאחרי, מתאמן אחרי מתאמן */
-    @supports (animation-timeline: view()) {
-      @property --p { syntax: '<percentage>'; inherits: true; initial-value: 0%; }
-      @property --n { syntax: '<integer>'; inherits: true; initial-value: 0; }
-      html.mo .th-track { height: 440svh; view-timeline: --th block; }
-      html.mo .th-stage { position: sticky; top: 70px; height: calc(100svh - 70px); display: flex; flex-direction: column; justify-content: center; }
-      html.mo .th-cards { display: block; position: relative; height: min(640px, calc(100svh - 120px)); width: min(380px, 100%); }
-      html.mo .th-card { position: absolute; inset: 0 24px; opacity: 0; animation: thShow linear both, thSweep linear both; animation-timeline: --th, --th; }
-      html.mo .th-img { max-height: calc(100svh - 300px); margin: 0 auto; aspect-ratio: 4/5; }
-      html.mo .th-before { clip-path: inset(0 0 0 var(--p)); } html.mo .th-line { left: var(--p); }
-      html.mo .th-val { counter-reset: n var(--n); font-size: 0; } html.mo .th-val::after { content: counter(n); font-size: 3rem; }
-      html.mo .th-card:nth-child(1) { animation-range: contain 0% contain 25%, contain 0% contain 25%; animation-name: thShowFirst, thSweep0; }
-      @keyframes thSweep0 { 0%, 14% { --p: 0%; --n: 0; } 72%, 100% { --p: 100%; --n: 13; } }
-      html.mo .th-card:nth-child(2) { animation-range: contain 25% contain 50%, contain 25% contain 50%; animation-name: thShow, thSweep1; }
-      @keyframes thSweep1 { 0%, 14% { --p: 0%; --n: 0; } 72%, 100% { --p: 100%; --n: 16; } }
-      html.mo .th-card:nth-child(3) { animation-range: contain 50% contain 75%, contain 50% contain 75%; animation-name: thShow, thSweep2; }
-      @keyframes thSweep2 { 0%, 14% { --p: 0%; --n: 0; } 72%, 100% { --p: 100%; --n: 35; } }
-      html.mo .th-card:nth-child(4) { animation-range: contain 75% contain 100%, contain 75% contain 100%; animation-name: thShowLast, thSweep3; }
-      @keyframes thSweep3 { 0%, 14% { --p: 0%; --n: 0; } 72%, 100% { --p: 100%; --n: 18; } }
-      @keyframes thShow { 0% { opacity: 0; transform: translateY(40px) scale(.96); } 10%, 88% { opacity: 1; transform: none; } 100% { opacity: 0; transform: translateY(-30px) scale(.97); } }
-      @keyframes thShowFirst { 0%, 88% { opacity: 1; transform: none; } 100% { opacity: 0; transform: translateY(-30px) scale(.97); } }
-      @keyframes thShowLast { 0% { opacity: 0; transform: translateY(40px) scale(.96); } 10%, 100% { opacity: 1; transform: none; } }
-      html.mo .th-dots { display: flex; justify-content: center; gap: 8px; margin-top: 14px; }
-      html.mo .th-dots i { width: 8px; height: 8px; border-radius: 4px; background: #333; animation: thDot linear none; animation-timeline: --th; }
-      html.mo .th-dots i:nth-child(1) { animation-range: contain 0% contain 25%; }
-      html.mo .th-dots i:nth-child(2) { animation-range: contain 25% contain 50%; }
-      html.mo .th-dots i:nth-child(3) { animation-range: contain 50% contain 75%; }
-      html.mo .th-dots i:nth-child(4) { animation-range: contain 75% contain 100%; }
-      @keyframes thDot { 0%, 100% { background: var(--orange); width: 22px; } }
-    }
     @media (min-width: 901px) { .th-cards { max-width: 1000px; grid-template-columns: repeat(2, 1fr); } }
   
     #pricing a[href="intake.html"] { color: #111 !important; }
@@ -1806,6 +1776,14 @@
     /* ── מעבר מסלול → תשלום ── */
     ::view-transition-group(plan) { animation-duration: .42s; animation-timing-function: cubic-bezier(.77,0,.175,1); }
     html.vt .modal-overlay, html.vt .modal { transition: none !important; }
+  
+    /* ── סליידר: גרירה רק מהחץ ── */
+    .ba { cursor: default; }
+    .ba-knob { pointer-events: auto; touch-action: none; cursor: ew-resize; box-shadow: 0 0 0 4px rgba(255,215,0,.14), 0 6px 16px rgba(0,0,0,.5); }
+    .ba-knob::before { content: ''; position: absolute; inset: -10px; border-radius: 50%; }
+    .ba[data-drag] .ba-knob { background: rgba(255,107,0,.9); color: #111; }
+    .th-ba { margin-bottom: 0; }
+    .ba-tag { white-space: nowrap; }
   
   </style>
 </head>
@@ -1940,19 +1918,19 @@
   <div class="container"><h2 class="section-title">השינוי <span>שלהם</span></h2><div class="title-line"></div></div>
   <div class="th-track"><div class="th-stage"><div class="th-cards">
       <figure class="th-card" style="--i:0">
-        <div class="th-img"><img src="landing/ba/daniel-after.jpg" alt="דניאל רון אחרי" loading="lazy" width="640" height="800"><img class="th-before" src="landing/ba/daniel-before.jpg" alt="דניאל רון לפני" loading="lazy" width="640" height="800"><span class="th-line" aria-hidden="true"></span><span class="th-tag b">לפני</span><span class="th-tag a">אחרי</span></div>
+        <div class="ba th-ba" data-ba><img class="ba-img" src="landing/ba/daniel-after.jpg" alt="דניאל רון אחרי" loading="lazy" width="640" height="800"><img class="ba-img ba-before" src="landing/ba/daniel-before.jpg" alt="דניאל רון לפני" loading="lazy" width="640" height="800"><span class="ba-tag ba-tag-b">לפני</span><span class="ba-tag ba-tag-a">אחרי</span><span class="ba-handle" aria-hidden="true"><span class="ba-knob"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6l6 6"/></svg><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6l-6 6"/></svg></span></span><input class="ba-range" type="range" min="0" max="100" value="50" dir="ltr" aria-label="השוואת לפני ואחרי של דניאל רון"></div>
         <figcaption><div class="th-n" dir="ltr"><span class="th-sign">+</span><span class="th-val">13</span><small>ק״ג</small></div><b>דניאל רון</b><span>גוף אתלטי, חד ומוגדר</span><q>לא האמנתי שאני יכול לעלות ככה במשקל.</q></figcaption>
       </figure>
       <figure class="th-card" style="--i:1">
-        <div class="th-img"><img src="landing/ba/liran-after.jpg" alt="לירן אחרי" loading="lazy" width="640" height="800"><img class="th-before" src="landing/ba/liran-before.jpg" alt="לירן לפני" loading="lazy" width="640" height="800"><span class="th-line" aria-hidden="true"></span><span class="th-tag b">לפני</span><span class="th-tag a">אחרי</span></div>
+        <div class="ba th-ba" data-ba><img class="ba-img" src="landing/ba/liran-after.jpg" alt="לירן אחרי" loading="lazy" width="640" height="800"><img class="ba-img ba-before" src="landing/ba/liran-before.jpg" alt="לירן לפני" loading="lazy" width="640" height="800"><span class="ba-tag ba-tag-b">לפני</span><span class="ba-tag ba-tag-a">אחרי</span><span class="ba-handle" aria-hidden="true"><span class="ba-knob"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6l6 6"/></svg><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6l-6 6"/></svg></span></span><input class="ba-range" type="range" min="0" max="100" value="50" dir="ltr" aria-label="השוואת לפני ואחרי של לירן"></div>
         <figcaption><div class="th-n" dir="ltr"><span class="th-sign">+</span><span class="th-val">16</span><small>ק״ג</small></div><b>לירן</b><span>מסה בלי לתפוח</span><q>הגוף פשוט השתנה.</q></figcaption>
       </figure>
       <figure class="th-card" style="--i:2">
-        <div class="th-img"><img src="landing/ba/ofir-after.jpg" alt="אופיר אחרי" loading="lazy" width="640" height="800"><img class="th-before" src="landing/ba/ofir-before.jpg" alt="אופיר לפני" loading="lazy" width="640" height="800"><span class="th-line" aria-hidden="true"></span><span class="th-tag b">לפני</span><span class="th-tag a">אחרי</span></div>
+        <div class="ba th-ba" data-ba><img class="ba-img" src="landing/ba/ofir-after.jpg" alt="אופיר אחרי" loading="lazy" width="640" height="800"><img class="ba-img ba-before" src="landing/ba/ofir-before.jpg" alt="אופיר לפני" loading="lazy" width="640" height="800"><span class="ba-tag ba-tag-b">לפני</span><span class="ba-tag ba-tag-a">אחרי</span><span class="ba-handle" aria-hidden="true"><span class="ba-knob"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6l6 6"/></svg><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6l-6 6"/></svg></span></span><input class="ba-range" type="range" min="0" max="100" value="50" dir="ltr" aria-label="השוואת לפני ואחרי של אופיר"></div>
         <figcaption><div class="th-n" dir="ltr"><span class="th-sign">−</span><span class="th-val">35</span><small>ק״ג</small></div><b>אופיר</b><span>ירידה, ושריר במקום</span><q>הגוף שלי היום הוא ההוכחה.</q></figcaption>
       </figure>
       <figure class="th-card" style="--i:3">
-        <div class="th-img"><img src="landing/ba/nesiel-after.jpg" alt="נשיאל מדמון אחרי" loading="lazy" width="640" height="800"><img class="th-before" src="landing/ba/nesiel-before.jpg" alt="נשיאל מדמון לפני" loading="lazy" width="640" height="800"><span class="th-line" aria-hidden="true"></span><span class="th-tag b">לפני</span><span class="th-tag a">אחרי</span></div>
+        <div class="ba th-ba" data-ba><img class="ba-img" src="landing/ba/nesiel-after.jpg" alt="נשיאל מדמון אחרי" loading="lazy" width="640" height="800"><img class="ba-img ba-before" src="landing/ba/nesiel-before.jpg" alt="נשיאל מדמון לפני" loading="lazy" width="640" height="800"><span class="ba-tag ba-tag-b">לפני</span><span class="ba-tag ba-tag-a">אחרי</span><span class="ba-handle" aria-hidden="true"><span class="ba-knob"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6l6 6"/></svg><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6l-6 6"/></svg></span></span><input class="ba-range" type="range" min="0" max="100" value="50" dir="ltr" aria-label="השוואת לפני ואחרי של נשיאל מדמון"></div>
         <figcaption><div class="th-n" dir="ltr"><span class="th-sign">+</span><span class="th-val">18</span><small>ק״ג</small></div><b>נשיאל מדמון</b><span>ואחר כך אלוף ישראל 2026</span><q>הגוף שלי השתנה לחלוטין. לא האמנתי שזה אפשרי.</q></figcaption>
       </figure>
   </div><div class="th-dots" aria-hidden="true"><i style="--i:0"></i><i style="--i:1"></i><i style="--i:2"></i><i style="--i:3"></i></div></div></div>
@@ -2052,9 +2030,9 @@
       <h3 class="champ-title">מ-<bdi dir="ltr">+18</bdi> ק״ג מסה <span>לאלוף ישראל</span></h3>
       <div class="champ-grid">
         <div class="champ-photos"><div class="ba" data-ba>
-          <img class="ba-img" src="landing/ba/nesiel-after.jpg" alt="נשיאל אחרי" loading="lazy" width="640" height="800">
-          <img class="ba-img ba-before" src="landing/ba/nesiel-before.jpg" alt="נשיאל לפני" loading="lazy" width="640" height="800">
-          <span class="ba-tag ba-tag-b">לפני</span><span class="ba-tag ba-tag-a">אחרי</span>
+          <img class="ba-img" src="landing/ba/nesiel-stage.jpg" alt="נשיאל ביום התחרות, 74 ק״ג" loading="lazy" width="640" height="800">
+          <img class="ba-img ba-before" src="landing/ba/nesiel-start.jpg" alt="נשיאל בנקודת ההתחלה, 48 ק״ג" loading="lazy" width="640" height="800">
+          <span class="ba-tag ba-tag-b">התחלה · 48 ק״ג</span><span class="ba-tag ba-tag-a">יום התחרות · 74 ק״ג</span>
           <span class="ba-handle" aria-hidden="true"><span class="ba-knob"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6l6 6"/></svg><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6l-6 6"/></svg></span></span>
           <input class="ba-range" type="range" min="0" max="100" value="50" dir="ltr" aria-label="השוואת לפני ואחרי של נשיאל">
         </div><img class="chk" src="landing/nesial-check.jpg" alt="הצ'ק של נשיאל מאליפות MBC 2026" loading="lazy"></div>
@@ -2960,7 +2938,7 @@
       var range = ba.querySelector('.ba-range');
       function set(p) { p = Math.max(0, Math.min(100, p)); ba.style.setProperty('--pos', p + '%'); range.value = Math.round(p); }
       function fromX(x) { var r = ba.getBoundingClientRect(); set((x - r.left) / r.width * 100); }
-      ba.addEventListener('pointerdown', function (e) { ba.classList.remove('ba-hint'); ba.setPointerCapture(e.pointerId); ba.dataset.drag = '1'; fromX(e.clientX); });
+      ba.addEventListener('pointerdown', function (e) { if (!e.target.closest('.ba-knob')) return; e.preventDefault(); ba.classList.remove('ba-hint'); ba.setPointerCapture(e.pointerId); ba.dataset.drag = '1'; });
       ba.addEventListener('pointermove', function (e) { if (ba.dataset.drag) fromX(e.clientX); });
       ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(function (t) { ba.addEventListener(t, function () { delete ba.dataset.drag; }); });
       range.addEventListener('input', function () { set(+range.value); });
