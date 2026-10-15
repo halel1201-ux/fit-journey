@@ -8356,6 +8356,15 @@ ${exLines || 'אין'}
         })
       }));
       renderTrainingEditor();
+      /* מתאמן עצמאי בלי תוכנית שמורה: התוכנית שנבנתה נשמרת מיד. הטוקנים כבר ירדו
+         (ואצל מי שבא מקוד הטבה — אי אפשר לבנות שוב), ומי שיצא בלי ללחוץ "שמור" היה
+         מאבד אותה. כשיש כבר תוכנית שמורה — לא דורסים אותה בלי לחיצה. */
+      if (selfMode && (!_selfTrainSnap || _selfTrainSnap === '[]')) {
+        const savedOk = await saveTraining(true);
+        toast(savedOk ? 'התוכנית נשמרה אוטומטית ✓' : 'התוכנית נבנתה אבל לא נשמרה — לחץ "שמור"', savedOk ? 'ok' : 'err');
+      } else if (selfMode) {
+        toast('התוכנית החדשה עוד לא נשמרה — לחץ "שמור" כדי להחליף את הקודמת', 'ok');
+      }
       if (unmatchedNames.length > 0) {
         const preview = unmatchedNames.slice(0, 3).join(', ') + (unmatchedNames.length > 3 ? ` ועוד ${unmatchedNames.length - 3}` : '');
         statusEl.style.color = '#ffb020';
