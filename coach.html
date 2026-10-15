@@ -3675,6 +3675,7 @@
     if (!data || !data.ok) {
       toast(data && data.reason === 'expired'
         ? 'הגישה הסתיימה — הטוקנים שלך שמורים לחידוש'
+        : data && data.reason === 'promo_limit' ? 'מתנת ההצטרפות כוללת תוכנית אחת ותפריט אחד, וכבר ניצלת אותה. להמשך בונים מסלול בעמוד ההרשמה'
         : 'אין מספיק טוקנים ל' + label + ' · יתרה ' + ((data && data.balance) || 0), 'err');
       return false;
     }

@@ -1,0 +1,46 @@
+<!doctype html>
+<html dir="rtl" lang="he">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>תקנון הטבת ההצטרפות — Fit Journey</title>
+<link rel="icon" href="favicon.png">
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;700;800;900&display=swap" rel="stylesheet">
+<style>
+  /* אותו עיצוב כמו terms-freelancer.html (FJ — האפליקציה) */
+  :root { --orange:#FF6B00; --gold:#FFD700; --muted:#8a8f95; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:#0a0a0a; color:#fff; font-family:Heebo,Arial,sans-serif;
+         padding:calc(20px + env(safe-area-inset-top,0px)) 16px calc(30px + env(safe-area-inset-bottom,0px)); }
+  .wrap { max-width:760px; margin:0 auto; }
+  .logo { font-size:1.4rem; font-weight:900; } .logo b { color:var(--orange); }
+  h1 { font-size:1.4rem; font-weight:900; margin:16px 0 6px; }
+  .sub { color:var(--muted); font-size:0.86rem; line-height:1.7; margin-bottom:16px; }
+  .doc { background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.1); border-radius:14px;
+         padding:20px 18px; line-height:1.85; font-size:0.9rem; color:#ccc; }
+  .doc h2 { color:var(--gold); font-size:1rem; margin:20px 0 6px; } .doc h2:first-child { margin-top:0; }
+  .doc p { margin:0; }
+  .ver { color:#666; font-size:0.78rem; margin-top:22px; border-top:1px solid rgba(255,255,255,0.08); padding-top:12px; }
+  .foot { color:#666; font-size:0.78rem; text-align:center; margin-top:22px; line-height:1.8; }
+  a { color:var(--orange); }
+  @media print { body { background:#fff; color:#000; padding:0; } .doc { border:0; color:#000; } .foot { display:none; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="logo">FIT <b>JOURNEY</b></div>
+  <h1>תקנון הטבת ההצטרפות</h1>
+  <div class="sub">חל על מי שמממש קוד הטבה בהרשמה לאפליקציה. בנוסף חלים תקנון <a href="terms-freelancer.html">המסלול העצמאי</a> והצהרת הבריאות שבו.</div>
+  <div class="doc" id="doc"></div>
+  <div class="foot"><a href="join.html">חזרה לדף ההצטרפות</a> · <a href="index.html">לאתר</a></div>
+</div>
+<script src="promo-terms.js"></script>
+<script>
+  /* ימים וטוקנים לפי הקוד שבכתובת; ברירת מחדל — ההטבה הנוכחית (HF30: 30 יום, 250 טוקנים) */
+  var p = new URLSearchParams(location.search), days = 30, tokens = 250;
+  document.getElementById('doc').innerHTML = promoTerms(days, tokens).map(function (x) { return '<h2>' + x[0] + '</h2><p>' + x[1] + '</p>'; }).join('') +
+    '<div class="ver">גרסה promo-hf30-v1 · עודכן 16/10/2026</div>';
+</script>
+</body>
+</html>

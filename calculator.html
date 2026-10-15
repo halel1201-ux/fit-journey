@@ -75,6 +75,8 @@
       clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px); box-shadow: 0 0 0 1px rgba(131,245,44,.5), 0 0 28px -4px rgba(131,245,44,.55); transition: transform .16s cubic-bezier(.23,1,.32,1); }
     .cta:active { transform: scale(.98); }
     .cta[aria-disabled="true"] { opacity: .45; pointer-events: none; }
+    .cta2 { display: block; text-align: center; margin-top: 10px; padding: 13px 10px; border: 1px solid rgba(229,232,232,.35); border-radius: 6px; color: var(--chrome); text-decoration: none; font-size: .92rem; }
+    .cta2 b { color: var(--neon); }
     .disc { font-size: .75rem; color: #6f767a; text-align: center; margin-top: 18px; line-height: 1.6; }
     @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; } }
   </style>
@@ -148,7 +150,8 @@
       </div>
     </div>
 
-    <a class="cta" id="cta" href="https://wa.me/972586931163" target="_blank" rel="noopener" aria-disabled="true">רוצה תפריט מלא? שלח לי בוואטסאפ</a>
+    <a class="cta" id="cta" href="index.html#pricing">רוצה תפריט מלא? למסלולי הליווי</a>
+    <a class="cta2" href="join.html?code=HF30#signup">מעדיף לבנות לבד? <b>האפליקציה חודש חינם</b> · קוד HF30</a>
 
     <details><summary>איך זה מחושב?</summary>
       <ol class="how">
@@ -216,7 +219,7 @@
       var n = Object.keys(st.days).filter(function (k) { return st.days[k]; }).length;
       $('cnt').textContent = n + ' אימונים בשבוע';
       var ok = st.goal && st.sex && w && h && a;
-      $('empty').hidden = !!ok; $('out').hidden = !ok; $('cta').setAttribute('aria-disabled', ok ? 'false' : 'true');
+      $('empty').hidden = !!ok; $('out').hidden = !ok;
       if (!ok) return;
       var r = calc({ goal: st.goal, sex: st.sex, w: w, h: h, a: a, n: n, dur: dur, int: st.int, wmode: st.wmode, walk: walkRaw });
       $('dTrain').hidden = n === 0; $('dRest').hidden = n === 7;
@@ -227,10 +230,6 @@
       $('wk').textContent = fmt(r.wk) + ' קלוריות';
       $('brk').innerHTML = [['מטבוליזם במנוחה', r.bmr], ['בסיס יומי (×1.2)', r.base], ['הליכה מעל 3,000 צעדים', '+' + r.walk], ['אימון (' + dur + ' דק׳, ' + INT_HE[st.int] + ')', '+' + r.train], ['שריפה ביום אימון', r.tdT], ['שריפה ביום מנוחה', r.tdR]]
         .map(function (x) { return '<div><span>' + x[0] + '</span><b>' + (typeof x[1] === 'number' ? fmt(x[1]) : x[1]) + '</b></div>'; }).join('');
-      var dl = Object.keys(st.days).filter(function (k) { return st.days[k]; }).sort().map(function (k) { return DAY_HE[k]; }).join(' ');
-      var msg = 'היי הלל, מילאתי את מחשבון הקלוריות באתר.\nמטרה: ' + GOAL_HE[st.goal] + ' · ' + SEX_HE[st.sex] + ' · ' + w + ' ק"ג · ' + h + ' ס"מ · גיל ' + a +
-        '\nאימונים: ' + n + ' בשבוע' + (dl ? ' (' + dl + ')' : '') + '\nיום אימון: ' + r.kT + ' קלוריות · יום מנוחה: ' + r.kR + '\nאשמח לתפריט מלא ולשמוע על הליווי!';
-      $('cta').href = 'https://wa.me/972586931163?text=' + encodeURIComponent(msg);
     }
   })();
   </script>

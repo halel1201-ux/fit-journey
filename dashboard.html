@@ -2883,6 +2883,7 @@
     if (!spend || !spend.ok) {
       flStatus(spend && spend.reason === 'expired'
         ? 'הגישה הסתיימה — הטוקנים שלך נשמרו לחידוש'
+        : spend && spend.reason === 'promo_limit' ? 'מתנת ההצטרפות כוללת תוכנית אחת ותפריט אחד, וכבר ניצלת אותה. להמשך בונים מסלול בעמוד ההרשמה'
         : 'אין מספיק טוקנים · יתרה ' + ((spend && spend.balance) || 0), 'err');
       flRenderCard();
       return;

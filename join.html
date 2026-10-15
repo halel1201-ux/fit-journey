@@ -220,6 +220,16 @@ if (location.protocol === 'file:') location.href = 'https://fit-journey1.vercel.
     section { padding:36px 0; }
     .fj span { font-size:13rem; }
   }
+  /* קוד הטבה */
+  .promo{margin:4px 0 14px;padding:12px;border:1px dashed rgba(255,255,255,0.18);border-radius:12px;}
+  .promo>label span{margin:0 0 6px;}
+  .promo-row{display:flex;gap:8px;}
+  .promo-row input{flex:1;min-width:0;text-transform:uppercase;letter-spacing:1px;font-weight:800;}
+  .promo-btn{flex:0 0 auto;padding:0 14px;border-radius:10px;border:1px solid rgba(255,255,255,0.25);background:transparent;color:#fff;font:800 0.88rem Heebo,sans-serif;cursor:pointer;}
+  .promo-msg{font-size:0.82rem;margin-top:7px;min-height:1em;line-height:1.5;}
+  .promo.on{border-style:solid;border-color:#4ade80;background:rgba(74,222,128,0.06);}
+  .promo-gift{font-weight:900;color:#4ade80;}
+  body.promo-mode #buy{display:none;}
 </style>
 </head>
 <body>
@@ -399,6 +409,12 @@ if (location.protocol === 'file:') location.href = 'https://fit-journey1.vercel.
     <h2>שלושה שדות ואתה בפנים</h2>
     <div class="form-card">
       <div class="chosen" id="j-chosen"></div>
+      <div class="promo" id="j-promo">
+        <label for="j-code"><span>יש לך קוד הטבה?</span></label>
+        <div class="promo-row"><input id="j-code" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" dir="ltr" placeholder="HF30">
+          <button type="button" class="promo-btn" id="j-code-btn" onclick="applyPromo()">הפעל קוד</button></div>
+        <div class="promo-msg" id="j-promo-msg" aria-live="polite"></div>
+      </div>
       <label><span>שם מלא</span><input id="j-name" type="text" autocomplete="name"></label>
       <label><span>אימייל — לשם יישלח קוד הכניסה</span>
         <input id="j-email" type="email" autocomplete="email" inputmode="email"></label>
@@ -431,6 +447,7 @@ if (location.protocol === 'file:') location.href = 'https://fit-journey1.vercel.
 
 <script src="vendor/supabase.min.js"></script>
 <script src="freelancer-terms.js"></script>
+<script src="promo-terms.js"></script>
 <script>
   const URL_ = 'https://luwknflmhvcxgifzxgrk.supabase.co';
   const KEY  = 'sb_publishable_k3M7SfBeiBGs3rTKewBzWQ_7RHRskB9';
@@ -534,11 +551,85 @@ if (location.protocol === 'file:') location.href = 'https://fit-journey1.vercel.
   renderPlans();
   renderTerms();
   renderChosen();
+  (function () {
+    const c = new URLSearchParams(location.search).get('code');
+    if (!c) return;
+    document.getElementById('j-code').value = c.toUpperCase();
+    applyPromo().then(() => document.getElementById('signup').scrollIntoView({ block: 'start' }));
+  })();
 
   function st(msg, kind) {
     const el = document.getElementById('j-status');
     el.style.color = kind === 'err' ? '#f87171' : kind === 'ok' ? '#4ade80' : '#8a8f95';
     el.textContent = msg;
+  }
+
+  /* ══ קוד הטבה ══
+     הבדיקה והמימוש בשרת (check_promo / redeem_promo): תקרת 50 מימושים, נרשמים חדשים בלבד,
+     והנעילה לתוכנית אחת ולתפריט אחד נאכפים במסד — לא כאן. */
+  let promo = null;   // { code, days, tokens, terms_version }
+  function promoMsg(t, kind) {
+    const el = document.getElementById('j-promo-msg');
+    el.style.color = kind === 'err' ? '#f87171' : kind === 'ok' ? '#4ade80' : '#8a8f95';
+    el.innerHTML = t;
+  }
+  async function applyPromo() {
+    const code = document.getElementById('j-code').value.trim().toUpperCase();
+    if (!code) { promoMsg('מקלידים את הקוד שקיבלת', 'err'); return; }
+    promoMsg('בודק...');
+    const { data, error } = await sb.rpc('check_promo', { p_code: code });
+    if (error || !data) { promoMsg('לא הצלחנו לבדוק את הקוד, נסה שוב', 'err'); return; }
+    if (!data.ok) {
+      promoMsg(data.reason === 'exhausted' ? 'הקוד הזה כבר נוצל עד הסוף. אפשר לבחור מסלול למטה.' : 'הקוד לא תקף', 'err');
+      clearPromo(true); return;
+    }
+    promo = { code, days: data.days, tokens: data.tokens, terms_version: data.terms_version };
+    document.body.classList.add('promo-mode');
+    document.getElementById('j-promo').classList.add('on');
+    promoMsg('<span class="promo-gift">🎁 הקוד הופעל: ' + data.days + ' יום חינם + תוכנית אחת ותפריט אחד</span> · <a href="#" onclick="clearPromo();return false;" style="color:#aaa;">ביטול</a>', 'ok');
+    document.getElementById('j-chosen').innerHTML = '<span>הטבת הצטרפות: <b>' + data.days + ' יום חינם</b></span><span><b>0 ₪</b> · תוכנית + תפריט</span>';
+    document.getElementById('j-terms').innerHTML = '<h3 style="font-size:0.9rem;">תקנון הטבת ההצטרפות — קוד ' + code.replace(/</g, '') + '</h3>' +
+      promoTerms(data.days, data.tokens).map(([h, t]) => '<h3>' + h + '</h3><p>' + t + '</p>').join('') +
+      '<p style="color:#666;">גרסה ' + data.terms_version + '</p>';
+    document.getElementById('j-terms-link').href = 'terms-promo.html?code=' + encodeURIComponent(code);
+    document.getElementById('j-agree').checked = false;
+    document.getElementById('j-btn').textContent = 'הפעל ' + data.days + ' יום חינם';
+    const foot = document.querySelector('.foot');
+    if (foot) foot.innerHTML = 'בלי תשלום ובלי חיוב אוטומטי.<br>הגישה נפתחת <b>מיד</b>, וקישור כניסה נשלח למייל.';
+  }
+  function clearPromo(keepMsg) {
+    promo = null;
+    document.body.classList.remove('promo-mode');
+    document.getElementById('j-promo').classList.remove('on');
+    if (!keepMsg) { promoMsg(''); document.getElementById('j-code').value = ''; }
+    document.getElementById('j-btn').textContent = 'שלח בקשה';
+    renderTerms(); renderChosen();
+    document.getElementById('j-agree').checked = false;
+  }
+  async function submitPromo(name, email, phone, enh, btn) {
+    const { data, error } = await sb.rpc('redeem_promo', {
+      p_code: promo.code, p_name: name, p_email: email, p_phone: phone,
+      p_enhancement: enh || null, p_waiver_version: promo.terms_version,
+    });
+    if (error) { btn.disabled = false; st('לא נשלח: ' + error.message, 'err'); return; }
+    if (!data || !data.ok) {
+      btn.disabled = false;
+      st(data && data.reason === 'not_new' ? 'הקוד מיועד לנרשמים חדשים בלבד. אם כבר יש לך חשבון, אפשר להיכנס או לבחור מסלול.'
+        : data && data.reason === 'exhausted' ? 'הקוד נוצל עד הסוף ממש עכשיו. אפשר לבחור מסלול.'
+        : 'הקוד לא תקף', 'err');
+      return;
+    }
+    /* קישור כניסה למייל — אותה דרך כניסה כמו בדף הכניסה */
+    const { error: oErr } = await sb.auth.signInWithOtp({ email, options: { emailRedirectTo: location.origin + '/login.html' } });
+    const until = new Date(data.until + 'T00:00:00').toLocaleDateString('he-IL');
+    document.getElementById('app').innerHTML =
+      '<div class="done"><div class="v">🎁</div>' +
+      '<h1 style="margin-top:10px;font-size:1.7rem;">החודש שלך פתוח!</h1>' +
+      '<div class="lead">גישה מלאה עד ' + until + ', כולל תוכנית אימונים אחת ותפריט אחד.</div>' +
+      '<div class="form-card" style="text-align:right;margin:0 auto;line-height:1.8;">' +
+        (oErr ? 'לא הצלחנו לשלוח קישור כניסה כרגע. נכנסים מ<a href="login.html" style="color:#4ade80;">דף הכניסה</a> עם המייל <b>' + email.replace(/</g, '&lt;') + '</b>.'
+              : 'שלחנו קישור כניסה למייל <b>' + email.replace(/</g, '&lt;') + '</b>. פותחים אותו מהטלפון ונכנסים ישר לאפליקציה.<br><span style="color:#8a8f95;font-size:0.85rem;">לא הגיע? בודקים בספאם, או נכנסים מ<a href="login.html" style="color:#4ade80;">דף הכניסה</a>.</span>') +
+      '</div></div>';
   }
 
   async function submitJoin() {
@@ -555,6 +646,7 @@ if (location.protocol === 'file:') location.href = 'https://fit-journey1.vercel.
     }
 
     btn.disabled = true; st('שולח...');
+    if (promo) return submitPromo(name, email, phone, enh, btn);
     const plan = flPlan(planKey);
     const { error } = await sb.rpc('request_freelancer', {
       p_name: name, p_email: email, p_phone: phone,

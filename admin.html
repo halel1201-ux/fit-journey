@@ -2730,6 +2730,9 @@
       return;
     }
     freelancersCache = data || [];
+    /* קודי הטבה (HF30 וכו') — מונה מימושים והפעלה/השהיה */
+    const { data: pst } = await sb.rpc('promo_status');
+    promoCache = Array.isArray(pst) ? pst : [];
     renderFreelancers();
     refreshRequestsBadge();
   }
@@ -2763,15 +2766,35 @@
     return Math.round((d - today) / 86400000);
   }
 
+  let promoCache = [];
+  function promoBoxHtml() {
+    if (!promoCache.length) return '';
+    return promoCache.map(p => '<div style="border:1px dashed rgba(74,222,128,0.45);border-radius:12px;padding:10px 12px;margin-bottom:12px;">' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">' +
+        '<b>🎁 קוד ' + esc(p.code) + ' · ' + p.uses + '/' + p.max + ' מומשו</b>' +
+        '<span style="font-size:0.75rem;color:' + (p.active ? '#4ade80' : '#f87171') + ';">' + (p.active ? 'פעיל' : 'כבוי') + '</span>' +
+        '<button class="btn-sm btn-outline" onclick="togglePromo('' + esc(p.code) + '',' + (!p.active) + ')">' + (p.active ? 'השהה' : 'הפעל') + '</button></div>' +
+      (p.redemptions.length ? '<details style="margin-top:6px;font-size:0.8rem;color:#bbb;"><summary>מי מימש (' + p.redemptions.length + ')</summary>' +
+        p.redemptions.map(r => '<div>' + esc(r.name || '') + ' · ' + esc(r.email) + (r.phone ? ' · ' + esc(r.phone) : '') + ' · ' + String(r.at).slice(0, 10) + '</div>').join('') + '</details>' : '') +
+      '</div>').join('');
+  }
+  async function togglePromo(code, on) {
+    if (!confirm((on ? 'להפעיל' : 'להשהות') + ' את הקוד ' + code + '?')) return;
+    const { error } = await sb.rpc('set_promo_active', { p_code: code, p_active: on });
+    if (error) { toast('נכשל: ' + error.message, 'err'); return; }
+    toast('הקוד ' + code + (on ? ' פעיל' : ' הושהה'), 'ok');
+    loadFreelancers();
+  }
+
   function renderFreelancers() {
     const wrap = document.getElementById('freelancers-wrap');
     if (!wrap) return;
     if (!freelancersCache.length) {
-      wrap.innerHTML = '<div style="color:#444;font-size:0.85rem;padding:8px 0;">אין מתאמנים עצמאיים עדיין</div>';
+      wrap.innerHTML = promoBoxHtml() + '<div style="color:#444;font-size:0.85rem;padding:8px 0;">אין מתאמנים עצמאיים עדיין</div>';
       return;
     }
     const today = new Date().toISOString().slice(0, 10);
-    wrap.innerHTML = freelancersCache.map(c => {
+    wrap.innerHTML = promoBoxHtml() + freelancersCache.map(c => {
       const st = String(c.freelancer_status || '');
       const active = c.client_type === 'freelancer' && c.access_until && c.access_until >= today;
       const daysLeft = active
