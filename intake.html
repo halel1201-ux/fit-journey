@@ -6,17 +6,17 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <link rel="icon" type="image/png" href="favicon.png"/>
 <link rel="apple-touch-icon" href="apple-touch-icon.png"/>
-<title>שאלון קליטה — Fit Journey</title>
-<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;700;800;900&display=swap" rel="stylesheet"/>
+<title>שאלון קליטה — HFitJourney</title>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;700;800;900&family=Barlow+Condensed:ital,wght@1,800;1,900&display=swap" rel="stylesheet"/>
 <style>
   *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
-  :root{--orange:#FF6B00;--orange2:#FF8C00;--gold:#FFD700;--black:#0a0a0a;--muted:#9a9a9a;}
+  :root{--orange:#83F52C;--orange2:#6FD61F;--gold:#E5E8E8;--black:#070808;--muted:#9DA3A6;}
   select{color-scheme:dark;} select option{background:#1a1a1a;color:#fff;}
   body{font-family:'Heebo',sans-serif;background:var(--black);color:#fff;min-height:100vh;padding:0 0 60px;}
   ::-webkit-scrollbar{width:6px;}::-webkit-scrollbar-track{background:#0e0e0e;}::-webkit-scrollbar-thumb{background:var(--orange);border-radius:3px;}
   .wrap{max-width:720px;margin:0 auto;padding:0 18px;}
 
-  .hero{text-align:center;padding:44px 0 30px;background:radial-gradient(ellipse 90% 60% at 50% 0%,rgba(255,107,0,0.18),transparent 65%);}
+  .hero{text-align:center;padding:44px 0 30px;background:radial-gradient(ellipse 90% 60% at 50% 0%,rgba(131,245,44,0.18),transparent 65%);}
   .hero img{width:64px;height:64px;border-radius:16px;margin-bottom:14px;}
   .hero h1{font-size:clamp(1.6rem,4.5vw,2.2rem);font-weight:900;line-height:1.2;}
   .hero h1 b{background:linear-gradient(135deg,var(--orange),var(--gold));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;}
@@ -28,7 +28,7 @@
   .prog-txt{font-size:0.72rem;color:var(--muted);text-align:center;margin-top:5px;}
 
   .q{background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:16px 18px;margin-bottom:14px;transition:border-color .2s;}
-  .q:focus-within{border-color:rgba(255,107,0,0.45);}
+  .q:focus-within{border-color:rgba(131,245,44,0.45);}
   .q.err{border-color:rgba(248,113,113,0.6);}
   .q-num{font-size:0.68rem;font-weight:800;color:var(--orange);letter-spacing:1px;}
   .q-t{font-size:1rem;font-weight:800;margin:5px 0 12px;line-height:1.45;}
@@ -41,13 +41,13 @@
   .opts{display:flex;flex-direction:column;gap:8px;}
   .opt{display:flex;align-items:flex-start;gap:10px;padding:11px 13px;background:rgba(255,255,255,0.03);
        border:1px solid rgba(255,255,255,0.1);border-radius:10px;cursor:pointer;transition:all .15s;font-size:0.92rem;line-height:1.5;}
-  .opt:hover{border-color:rgba(255,107,0,0.4);background:rgba(255,107,0,0.05);}
+  .opt:hover{border-color:rgba(131,245,44,0.4);background:rgba(131,245,44,0.05);}
   .opt input{width:18px;height:18px;accent-color:var(--orange);flex-shrink:0;margin-top:2px;cursor:pointer;}
-  .opt.on{border-color:var(--orange);background:rgba(255,107,0,0.09);}
+  .opt.on{border-color:var(--orange);background:rgba(131,245,44,0.09);}
 
-  .submit{width:100%;padding:16px;background:linear-gradient(135deg,var(--orange),var(--orange2));color:#fff;border:none;
+  .submit{width:100%;padding:16px;background:var(--orange);color:#0a0b0b;border:none;clip-path:polygon(12px 0,100% 0,100% calc(100% - 12px),calc(100% - 12px) 100%,0 100%,0 12px);
           border-radius:14px;font-family:'Heebo',sans-serif;font-weight:900;font-size:1.05rem;cursor:pointer;
-          box-shadow:0 8px 26px rgba(255,107,0,0.35);margin-top:8px;}
+          box-shadow:0 8px 26px rgba(131,245,44,0.35);margin-top:8px;}
   .submit:disabled{opacity:.6;cursor:not-allowed;}
   .note{font-size:0.78rem;color:#666;text-align:center;margin-top:12px;line-height:1.6;}
   .msg{display:none;padding:13px 16px;border-radius:12px;font-size:0.9rem;margin-bottom:14px;line-height:1.6;}
@@ -57,17 +57,28 @@
   .done .v{font-size:4rem;}
   .done h2{font-size:1.6rem;font-weight:900;margin:14px 0 10px;}
   .done p{color:var(--muted);line-height:1.8;}
-  .done a{display:inline-block;margin-top:22px;padding:13px 28px;background:linear-gradient(135deg,var(--orange),var(--orange2));
-          color:#fff;text-decoration:none;border-radius:12px;font-weight:800;}
+  .done a{display:inline-block;margin-top:22px;padding:13px 28px;background:var(--orange);
+          color:#0a0b0b;text-decoration:none;border-radius:12px;font-weight:800;}
   footer{text-align:center;color:#555;font-size:0.78rem;padding:30px 0 0;}
   footer a{color:var(--orange);text-decoration:none;}
+  /* HFitJourney */
+  .wc{display:inline-flex;flex-direction:column;align-items:center;line-height:1;margin-bottom:16px;}
+  .wc-t{font-family:'Barlow Condensed',sans-serif;font-style:italic;font-weight:900;font-size:2.4rem;background:linear-gradient(180deg,#fff,#c7ccce 50%,#7f868a 56%,#e5e8e8);-webkit-background-clip:text;background-clip:text;color:transparent;}
+  .wc-t b{background:linear-gradient(180deg,#c6ff8f,#83F52C 55%,#4fb312);-webkit-background-clip:text;background-clip:text;color:transparent;}
+  .wc-s{font-size:.5rem;letter-spacing:.42em;color:#92999E;margin-top:4px;display:flex;align-items:center;gap:6px;}
+  .wc-s::before,.wc-s::after{content:'';width:14px;height:1px;background:#92999E;}
+  .hero h1{transform:skewX(-6deg);}
+  .hero h1 b{background:none;-webkit-text-fill-color:var(--orange);color:var(--orange);text-shadow:0 0 22px rgba(131,245,44,.35);}
+  .q{background:#0d0f0f;border-color:rgba(229,232,232,.12);border-radius:10px;}
+  .q-num{font-family:'Barlow Condensed',Heebo,sans-serif;font-style:italic;letter-spacing:2px;}
+  .submit{box-shadow:0 0 0 1px rgba(131,245,44,.5),0 0 28px -4px rgba(131,245,44,.55);}
 </style>
 </head>
 <body>
 
 <div id="form-view">
   <div class="hero"><div class="wrap">
-    <img src="favicon.png" alt="Fit Journey"/>
+    <div class="wc" dir="ltr" aria-label="HFitJourney"><span class="wc-t">H<b>Fit</b>Journey</span><span class="wc-s">ONLINE COACHING</span></div>
     <h1>שאלון קליטה — <b>ליווי אישי</b></h1>
     <p>כמה שאלות קצרות שיעזרו לי לבנות לך תוכנית מדויקת.<br/>לוקח כ-3 דקות ✍️</p>
   </div></div>
@@ -82,13 +93,13 @@
     <form id="intake" autocomplete="on"></form>
 
     <!-- 💳 שלב התשלום -->
-    <div style="background:radial-gradient(120% 90% at 50% 0%,rgba(255,215,0,0.09),transparent 65%),rgba(255,255,255,0.035);border:1px solid rgba(255,215,0,0.35);border-radius:16px;padding:20px;margin:22px 0 14px;">
+    <div style="background:radial-gradient(120% 90% at 50% 0%,rgba(229,232,232,0.09),transparent 65%),rgba(255,255,255,0.035);border:1px solid rgba(229,232,232,0.35);border-radius:16px;padding:20px;margin:22px 0 14px;">
       <div style="font-size:1.05rem;font-weight:900;margin-bottom:6px;">💳 תשלום ושליחה</div>
       <p style="color:#aaa;font-size:0.88rem;line-height:1.7;margin-bottom:14px;">
         כדי שאתחיל לבנות את התוכנית — יש להעביר את התשלום בביט ולצרף אישור.
       </p>
 
-      <div style="background:rgba(0,0,0,0.35);border:1px solid rgba(255,215,0,0.25);border-radius:12px;padding:14px;text-align:center;margin-bottom:14px;">
+      <div style="background:rgba(0,0,0,0.35);border:1px solid rgba(229,232,232,0.25);border-radius:12px;padding:14px;text-align:center;margin-bottom:14px;">
         <div style="font-size:0.74rem;color:#888;letter-spacing:.5px;">העברה בביט למספר</div>
         <div style="font-size:1.5rem;font-weight:900;color:var(--gold);direction:ltr;margin-top:4px;">058-693-1163</div>
       </div>
@@ -162,7 +173,7 @@
   </div>
 </div>
 
-<footer>Fit Journey · ליווי אונליין · <a href="index.html">האתר</a></footer>
+<footer>HFitJourney · ליווי אונליין · <a href="index.html">האתר</a></footer>
 
 <script>
 /* ── 22 השאלות ── */
@@ -258,13 +269,13 @@ function buildPdfHtml(answers, name){
       <td style="padding:7px 10px;border-bottom:1px solid #eee;color:#666;font-size:11px;width:42%;vertical-align:top;">${i+1}. ${q.t}</td>
       <td style="padding:7px 10px;border-bottom:1px solid #eee;font-size:12px;font-weight:600;color:#111;">${(answers[q.t]||'—').replace(/</g,'&lt;')}</td></tr>`).join('');
   return `<div dir="rtl" style="font-family:Heebo,Arial,sans-serif;width:760px;padding:26px;background:#fff;color:#111;">
-    <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #FF6B00;padding-bottom:12px;margin-bottom:16px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #83F52C;padding-bottom:12px;margin-bottom:16px;">
       <div><div style="font-size:22px;font-weight:900;">שאלון קליטה — ליווי אישי</div>
         <div style="font-size:12px;color:#777;margin-top:3px;">${name} · ${new Date().toLocaleDateString('he-IL')}</div></div>
-      <div style="font-size:26px;font-weight:900;color:#FF6B00;">FIT JOURNEY</div>
+      <div style="font-size:26px;font-weight:900;color:#83F52C;">FIT JOURNEY</div>
     </div>
     <table style="width:100%;border-collapse:collapse;">${rows}</table>
-    <div style="margin-top:16px;font-size:10px;color:#999;text-align:center;">הופק אוטומטית ממערכת Fit Journey</div>
+    <div style="margin-top:16px;font-size:10px;color:#999;text-align:center;">הופק אוטומטית · HFitJourney</div>
   </div>`;
 }
 
