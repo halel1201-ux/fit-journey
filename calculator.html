@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- דף נסתר: נכנסים אליו רק מהקישור הנסתר בפוטר או מקישור ישיר. לא באינדקס של מנועי חיפוש -->
+  <meta name="robots" content="noindex, nofollow, noarchive" />
+  <meta name="theme-color" content="#070808" />
+  <title>מחשבון קלוריות ומאקרו — HFitJourney</title>
+  <link rel="icon" href="favicon.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700;800;900&family=Barlow+Condensed:ital,wght@1,600;1,800;1,900&display=swap" rel="stylesheet" />
+  <style>
+    /* אותה שפה של דף הנחיתה: שחור, כרום וניאון */
+    :root { --black: #070808; --card: #0d0f0f; --neon: #83F52C; --chrome: #E5E8E8; --steel: #92999E; --muted: #9DA3A6; --line: rgba(229,232,232,.14); }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { -webkit-text-size-adjust: 100%; }
+    body { font-family: 'Heebo', sans-serif; background: radial-gradient(60% 40% at 50% 0%, rgba(131,245,44,.10), transparent 70%), var(--black); color: #fff; min-height: 100vh; padding-bottom: 50px; }
+    .wrap { max-width: 640px; margin: 0 auto; padding: 0 18px; }
+    a { color: inherit; }
+    .top { display: flex; justify-content: space-between; align-items: center; padding: 16px 0; }
+    .back { font-size: .85rem; color: var(--muted); text-decoration: none; }
+    .wc { display: inline-flex; flex-direction: column; align-items: center; line-height: 1; text-decoration: none; }
+    .wc-t { font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 900; font-size: 1.5rem; background: linear-gradient(180deg, #fff, #c7ccce 50%, #7f868a 56%, #e5e8e8); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .wc-t b { background: linear-gradient(180deg, #c6ff8f, #83F52C 55%, #4fb312); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .wc-s { font-size: .44rem; letter-spacing: .42em; color: var(--steel); margin-top: 3px; display: flex; align-items: center; gap: 6px; }
+    .wc-s::before, .wc-s::after { content: ''; width: 12px; height: 1px; background: var(--steel); }
+    .hero { text-align: center; padding: 22px 0 20px; }
+    .eyebrow { font-family: 'Barlow Condensed', sans-serif; font-style: italic; letter-spacing: .3em; font-size: .74rem; color: var(--steel); }
+    h1 { font-size: clamp(2rem, 9vw, 3rem); font-weight: 900; line-height: 1.05; margin-top: 6px; }
+    h1 .c { display: inline-block; transform: skewX(-9deg); background: linear-gradient(180deg, #fff 0%, #e9ecec 40%, #9aa1a5 62%, #e5e8e8 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    h1 .n { display: inline-block; transform: skewX(-9deg); color: var(--neon); text-shadow: 0 0 22px rgba(131,245,44,.35); }
+    .hero p { color: var(--muted); margin-top: 10px; line-height: 1.7; }
+    .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 16px 16px 18px; margin-bottom: 12px; }
+    .card.glow { border-color: rgba(131,245,44,.35); box-shadow: 0 0 40px -18px rgba(131,245,44,.5); }
+    .lbl { font-weight: 800; margin-bottom: 10px; display: flex; gap: 8px; align-items: baseline; }
+    .lbl span { font-family: 'Barlow Condensed', sans-serif; font-style: italic; color: var(--neon); font-size: .85rem; letter-spacing: .1em; }
+    .lbl small { font-weight: 500; color: var(--muted); font-size: .78rem; }
+    .seg { display: grid; gap: 8px; }
+    .g2 { grid-template-columns: repeat(2, 1fr); } .g3 { grid-template-columns: repeat(3, 1fr); } .g7 { grid-template-columns: repeat(7, 1fr); gap: 6px; }
+    .seg button { padding: 13px 6px; border-radius: 8px; border: 1px solid rgba(229,232,232,.18); background: #121415; color: #fff; font: 700 .96rem 'Heebo', sans-serif; cursor: pointer; transition: border-color .2s, background-color .2s, transform .16s cubic-bezier(.23,1,.32,1); }
+    .g7 button { padding: 12px 0; font-size: .95rem; }
+    .seg button small { display: block; font-weight: 500; font-size: .7rem; color: var(--muted); margin-top: 2px; line-height: 1.3; }
+    .seg button:active { transform: scale(.97); }
+    .seg button[aria-pressed="true"] { border-color: var(--neon); background: rgba(131,245,44,.12); color: var(--neon); }
+    @media (hover: hover) and (pointer: fine) { .seg button:hover { border-color: rgba(131,245,44,.55); } }
+    .nums { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .f label { display: block; font-size: .8rem; color: var(--muted); margin-bottom: 4px; }
+    .f .in { display: flex; align-items: center; border: 1px solid rgba(229,232,232,.18); border-radius: 8px; background: #121415; }
+    .f .in:focus-within { border-color: var(--neon); }
+    .f input { flex: 1; min-width: 0; width: 100%; padding: 12px 8px; border: 0; background: none; color: #fff; font: 800 1.15rem 'Heebo', sans-serif; text-align: center; outline: none; }
+    .f .u { color: var(--muted); font-size: .78rem; padding-left: 8px; }
+    .err { color: #f87171; font-size: .8rem; margin-top: 6px; min-height: 1em; }
+    .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+    .hint { font-size: .74rem; color: var(--muted); margin-top: 8px; line-height: 1.5; }
+    .res-empty { text-align: center; color: var(--muted); padding: 10px 0; }
+    .days { display: grid; gap: 14px; }
+    .day h3 { font-size: 1rem; font-weight: 800; color: var(--chrome); display: flex; justify-content: space-between; align-items: baseline; }
+    .day h3 small { font-size: .78rem; color: var(--muted); font-weight: 500; }
+    .kcal { font-family: 'Barlow Condensed', 'Heebo', sans-serif; font-style: italic; font-weight: 900; font-size: 3.1rem; line-height: 1; color: var(--neon); margin: 6px 0 10px; text-shadow: 0 0 24px rgba(131,245,44,.3); }
+    .kcal small { font-family: 'Heebo', sans-serif; font-style: normal; font-size: 1rem; font-weight: 700; color: var(--chrome); margin-right: 6px; }
+    .day.rest .kcal { font-size: 2.4rem; }
+    .macros { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .m { border: 1px solid var(--line); border-radius: 8px; padding: 10px 6px; text-align: center; background: #101213; }
+    .m b { display: block; font-size: 1.3rem; font-weight: 900; } .m span { font-size: .76rem; color: var(--muted); }
+    .day + .day { border-top: 1px solid var(--line); padding-top: 14px; }
+    .week { display: flex; justify-content: space-between; align-items: center; border: 1px dashed rgba(131,245,44,.4); border-radius: 8px; padding: 10px 12px; margin-top: 4px; }
+    .week b { font-size: 1.3rem; color: var(--neon); font-weight: 900; }
+    details { margin-top: 12px; } summary { cursor: pointer; color: var(--chrome); font-weight: 700; font-size: .9rem; }
+    .brk { margin-top: 8px; display: grid; gap: 4px; font-size: .86rem; color: var(--muted); }
+    .brk div { display: flex; justify-content: space-between; border-bottom: 1px solid rgba(229,232,232,.06); padding: 4px 0; } .brk b { color: #fff; }
+    ol.how { padding-right: 20px; margin-top: 8px; color: var(--muted); font-size: .86rem; line-height: 1.8; }
+    .cta { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 54px; margin-top: 6px; background: var(--neon); color: #0a0b0b; font: 900 1.02rem 'Heebo', sans-serif; text-decoration: none; border: 0; cursor: pointer;
+      clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px); box-shadow: 0 0 0 1px rgba(131,245,44,.5), 0 0 28px -4px rgba(131,245,44,.55); transition: transform .16s cubic-bezier(.23,1,.32,1); }
+    .cta:active { transform: scale(.98); }
+    .cta[aria-disabled="true"] { opacity: .45; pointer-events: none; }
+    .disc { font-size: .75rem; color: #6f767a; text-align: center; margin-top: 18px; line-height: 1.6; }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; } }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="top">
+      <a class="wc" href="index.html" dir="ltr" aria-label="HFitJourney — לדף הבית"><span class="wc-t">H<b>Fit</b>Journey</span><span class="wc-s">ONLINE COACHING</span></a>
+      <a class="back" href="index.html">← לאתר</a>
+    </div>
+    <div class="hero">
+      <div class="eyebrow">CALORIE &amp; MACRO CALCULATOR</div>
+      <h1><span class="c">כמה לאכול</span><br><span class="n">כדי להגיע למטרה?</span></h1>
+      <p>לפי הגוף שלך, האימונים וההליכה: קלוריות, חלבון, פחמימות ושומן ליום אימון וליום מנוחה.</p>
+    </div>
+
+    <div class="card"><div class="lbl"><span>01</span>מה המטרה שלך?</div>
+      <div class="seg g3" id="goal" role="group" aria-label="מטרה">
+        <button type="button" data-v="cut" aria-pressed="false">חיטוב<small>לרדת בשומן</small></button>
+        <button type="button" data-v="recomp" aria-pressed="false">ריקומפוזיציה<small>שינוי גוף</small></button>
+        <button type="button" data-v="mass" aria-pressed="false">מסה<small>לעלות בשריר</small></button>
+      </div></div>
+
+    <div class="card"><div class="lbl"><span>02</span>קצת עליך</div>
+      <div class="seg g2" id="sex" role="group" aria-label="מין">
+        <button type="button" data-v="m" aria-pressed="false">גבר</button>
+        <button type="button" data-v="f" aria-pressed="false">אישה</button>
+      </div>
+      <div class="nums" style="margin-top:10px">
+        <div class="f"><label for="w">משקל</label><div class="in"><input id="w" type="number" inputmode="decimal" min="35" max="250" step="0.1" placeholder="80" /><span class="u">ק״ג</span></div></div>
+        <div class="f"><label for="h">גובה</label><div class="in"><input id="h" type="number" inputmode="numeric" min="120" max="230" placeholder="178" /><span class="u">ס״מ</span></div></div>
+        <div class="f"><label for="a">גיל</label><div class="in"><input id="a" type="number" inputmode="numeric" min="16" max="90" placeholder="28" /><span class="u">שנים</span></div></div>
+      </div>
+      <div class="err" id="err1" aria-live="polite"></div></div>
+
+    <div class="card"><div class="lbl"><span>03</span>ימי אימון <small>מסמנים את הימים שבהם מתאמנים</small></div>
+      <div class="seg g7" id="days" role="group" aria-label="ימי אימון">
+        <button type="button" data-v="0" aria-pressed="false">א׳</button><button type="button" data-v="1" aria-pressed="false">ב׳</button><button type="button" data-v="2" aria-pressed="false">ג׳</button>
+        <button type="button" data-v="3" aria-pressed="false">ד׳</button><button type="button" data-v="4" aria-pressed="false">ה׳</button><button type="button" data-v="5" aria-pressed="false">ו׳</button><button type="button" data-v="6" aria-pressed="false">ש׳</button>
+      </div>
+      <div class="row2">
+        <div class="f"><label for="dur">אורך אימון</label><div class="in"><input id="dur" type="number" inputmode="numeric" min="15" max="180" value="60" /><span class="u">דק׳</span></div></div>
+        <div class="f"><label>&nbsp;</label><div class="hint" id="cnt" style="margin-top:12px">0 אימונים בשבוע</div></div>
+      </div>
+      <div class="lbl" style="margin-top:12px;margin-bottom:8px;font-size:.9rem">עצימות האימון</div>
+      <div class="seg g3" id="int" role="group" aria-label="עצימות">
+        <button type="button" data-v="light" aria-pressed="false">קלה<small>מכונות, 8–15 חזרות</small></button>
+        <button type="button" data-v="mod" aria-pressed="true">בינונית<small>סקוואט, דדליפט</small></button>
+        <button type="button" data-v="hard" aria-pressed="false">קשה<small>כבד, מנוחות קצרות</small></button>
+      </div></div>
+
+    <div class="card"><div class="lbl"><span>04</span>הליכה יומית <small>ממוצע ליום</small></div>
+      <div class="seg g2" id="wmode" role="group" aria-label="יחידת הליכה">
+        <button type="button" data-v="steps" aria-pressed="true">צעדים</button>
+        <button type="button" data-v="km" aria-pressed="false">קילומטרים</button>
+      </div>
+      <div class="f" style="margin-top:10px"><div class="in"><input id="walk" type="number" inputmode="decimal" min="0" max="40000" placeholder="לדוגמה 8000" /><span class="u" id="wu">צעדים</span></div></div>
+      <div class="hint">לא יודעים? משאירים ריק (נחשב כ-3,000 צעדים, כמו יום רגיל בלי הליכה מיוחדת). 1,300 צעדים הם בערך ק״מ.</div></div>
+
+    <div class="card glow" id="result" aria-live="polite">
+      <div class="res-empty" id="empty">ממלאים מטרה, מין, משקל, גובה וגיל, והתוצאה תופיע כאן.</div>
+      <div class="days" id="out" hidden>
+        <div class="day train" id="dTrain"><h3>יום אימון <small id="goalName"></small></h3>
+          <div class="kcal"><span id="k1">0</span><small>קלוריות</small></div>
+          <div class="macros"><div class="m"><b id="p1">0</b><span>חלבון (גרם)</span></div><div class="m"><b id="c1">0</b><span>פחמימות (גרם)</span></div><div class="m"><b id="f1">0</b><span>שומן (גרם)</span></div></div></div>
+        <div class="day rest" id="dRest"><h3>יום מנוחה</h3>
+          <div class="kcal"><span id="k2">0</span><small>קלוריות</small></div>
+          <div class="macros"><div class="m"><b id="p2">0</b><span>חלבון (גרם)</span></div><div class="m"><b id="c2">0</b><span>פחמימות (גרם)</span></div><div class="m"><b id="f2">0</b><span>שומן (גרם)</span></div></div></div>
+        <div class="week"><span>ממוצע שבועי ליום</span><b id="wk">0</b></div>
+        <details><summary>פירוק השריפה שלך</summary><div class="brk" id="brk"></div></details>
+      </div>
+    </div>
+
+    <a class="cta" id="cta" href="https://wa.me/972586931163" target="_blank" rel="noopener" aria-disabled="true">רוצה תפריט מלא? שלח לי בוואטסאפ</a>
+
+    <details><summary>איך זה מחושב?</summary>
+      <ol class="how">
+        <li>מטבוליזם במנוחה (Mifflin-St Jeor): 10×משקל + 6.25×גובה − 5×גיל, ‎+5 לגבר או ‎−161 לאישה.</li>
+        <li>בסיס יומי: המטבוליזם × 1.2 (כולל כ-3,000 צעדים).</li>
+        <li>הליכה מעל 3,000 צעדים: ק״מ × משקל × 0.5 (1,300 צעדים ≈ ק״מ).</li>
+        <li>אימון כוח: שעות × משקל × (MET − 1). קלה 3.5 · בינונית 5.0 · קשה 6.0.</li>
+        <li>מטרה: חיטוב × 0.80 · ריקומפוזיציה × 0.95 · מסה × 1.12, לכל יום בנפרד.</li>
+        <li>חלבון 2.2 גרם לק״ג בחיטוב, 2.0 בריקומפוזיציה ובמסה. שומן 25% מקלוריות יום האימון לגבר, 30% לאישה. פחמימות: מה שנשאר.</li>
+        <li>מינימום 1,500 קלוריות לגבר ו-1,200 לאישה.</li>
+      </ol></details>
+
+    <p class="disc">כל נוסחה היא הערכה (±10%). הדיוק האמיתי מגיע ממעקב: אם המשקל לא זז אחרי 2–3 שבועות, מתקנים ב-100–200 קלוריות. אני מאמן כושר, לא רופא ולא דיאטן קליני. במצב רפואי, בהריון או עם הפרעת אכילה מתייעצים עם איש מקצוע.</p>
+  </div>
+
+  <script>
+  /* נוסחת הפעילות שאושרה ע"י הלל (16/10/2026). מקורות: Mifflin-St Jeor; ACSM walking (‎0.1 ml/kg/m ≈ 0.5 קק"ל לק"ג לק"מ); Compendium 2024 (02054=3.5, 02052=5.0, 02050=6.0) */
+  (function () {
+    var K = { goal: { cut: 0.80, recomp: 0.95, mass: 1.12 }, prot: { cut: 2.2, recomp: 2.0, mass: 2.0 }, fat: { m: 0.25, f: 0.30 },
+              met: { light: 3.5, mod: 5.0, hard: 6.0 }, min: { m: 1500, f: 1200 }, base: 1.2, stepsKm: 1300, baseSteps: 3000, walkK: 0.5 };
+    var GOAL_HE = { cut: 'חיטוב', recomp: 'ריקומפוזיציה', mass: 'מסה' }, SEX_HE = { m: 'גבר', f: 'אישה' }, INT_HE = { light: 'קלה', mod: 'בינונית', hard: 'קשה' };
+    var DAY_HE = ['א׳', 'ב׳', 'ג׳', 'ד׳', 'ה׳', 'ו׳', 'ש׳'];
+    var st = { goal: null, sex: null, int: 'mod', wmode: 'steps', days: {} };
+    var $ = function (id) { return document.getElementById(id); };
+    function rnd(x) { return Math.floor(x + 0.5); }
+    function r10(x) { return rnd(x / 10) * 10; }
+
+    function calc(i) {                                         /* i: goal, sex, w, h, a, n (ימי אימון), dur, int, wmode, walk */
+      var bmr = 10 * i.w + 6.25 * i.h - 5 * i.a + (i.sex === 'm' ? 5 : -161);
+      var base = bmr * K.base;
+      var extraKm = i.wmode === 'km' ? Math.max(0, (i.walk || 0) - K.baseSteps / K.stepsKm) : Math.max(0, (i.walk || K.baseSteps) - K.baseSteps) / K.stepsKm;
+      var walk = extraKm * i.w * K.walkK;
+      var train = (i.dur / 60) * i.w * (K.met[i.int] - 1);
+      var tdT = base + walk + train, tdR = base + walk, mn = K.min[i.sex], g = K.goal[i.goal];
+      var kT = Math.max(mn, r10(tdT * g)), kR = Math.max(mn, r10(tdR * g));
+      var p = rnd(i.w * K.prot[i.goal]);
+      var f = rnd((i.n > 0 ? kT : kR) * K.fat[i.sex] / 9);
+      var cT = Math.max(0, rnd((kT - p * 4 - f * 9) / 4)), cR = Math.max(0, rnd((kR - p * 4 - f * 9) / 4));
+      var wk = r10((i.n * kT + (7 - i.n) * kR) / 7);
+      return { bmr: rnd(bmr), base: rnd(base), walk: rnd(walk), train: rnd(train), tdT: rnd(tdT), tdR: rnd(tdR), kT: kT, kR: kR, p: p, f: f, cT: cT, cR: cR, wk: wk };
+    }
+    window.__hfCalc = calc;                                    /* לבדיקות */
+
+    function seg(id, key, multi) {
+      var g = $(id);
+      g.addEventListener('click', function (e) {
+        var b = e.target.closest('button'); if (!b) return;
+        if (multi) { st.days[b.dataset.v] = !st.days[b.dataset.v]; b.setAttribute('aria-pressed', st.days[b.dataset.v] ? 'true' : 'false'); }
+        else { st[key] = b.dataset.v; g.querySelectorAll('button').forEach(function (x) { x.setAttribute('aria-pressed', x === b ? 'true' : 'false'); }); }
+        if (key === 'wmode') { $('wu').textContent = st.wmode === 'km' ? 'ק״מ' : 'צעדים'; $('walk').placeholder = st.wmode === 'km' ? 'לדוגמה 6' : 'לדוגמה 8000'; $('walk').value = ''; }
+        render();
+      });
+    }
+    seg('goal', 'goal'); seg('sex', 'sex'); seg('int', 'int'); seg('wmode', 'wmode'); seg('days', 'days', true);
+    ['w', 'h', 'a', 'dur', 'walk'].forEach(function (id) { $(id).addEventListener('input', render); });
+
+    function num(id, lo, hi) { var v = parseFloat($(id).value); return (v >= lo && v <= hi) ? v : null; }
+    function render() {
+      var w = num('w', 35, 250), h = num('h', 120, 230), a = num('a', 16, 90), dur = num('dur', 15, 180) || 60;
+      var walkRaw = $('walk').value === '' ? null : num('walk', 0, st.wmode === 'km' ? 40 : 40000);
+      var errs = [];
+      if ($('w').value && !w) errs.push('משקל בין 35 ל-250'); if ($('h').value && !h) errs.push('גובה בין 120 ל-230'); if ($('a').value && !a) errs.push('גיל בין 16 ל-90');
+      if ($('walk').value && walkRaw === null) errs.push('הליכה לא תקינה');
+      $('err1').textContent = errs.join(' · ');
+      var n = Object.keys(st.days).filter(function (k) { return st.days[k]; }).length;
+      $('cnt').textContent = n + ' אימונים בשבוע';
+      var ok = st.goal && st.sex && w && h && a;
+      $('empty').hidden = !!ok; $('out').hidden = !ok; $('cta').setAttribute('aria-disabled', ok ? 'false' : 'true');
+      if (!ok) return;
+      var r = calc({ goal: st.goal, sex: st.sex, w: w, h: h, a: a, n: n, dur: dur, int: st.int, wmode: st.wmode, walk: walkRaw });
+      $('dTrain').hidden = n === 0; $('dRest').hidden = n === 7;
+      $('goalName').textContent = GOAL_HE[st.goal];
+      var fmt = function (x) { return x.toLocaleString('he-IL'); };
+      $('k1').textContent = fmt(r.kT); $('p1').textContent = r.p; $('c1').textContent = r.cT; $('f1').textContent = r.f;
+      $('k2').textContent = fmt(r.kR); $('p2').textContent = r.p; $('c2').textContent = r.cR; $('f2').textContent = r.f;
+      $('wk').textContent = fmt(r.wk) + ' קלוריות';
+      $('brk').innerHTML = [['מטבוליזם במנוחה', r.bmr], ['בסיס יומי (×1.2)', r.base], ['הליכה מעל 3,000 צעדים', '+' + r.walk], ['אימון (' + dur + ' דק׳, ' + INT_HE[st.int] + ')', '+' + r.train], ['שריפה ביום אימון', r.tdT], ['שריפה ביום מנוחה', r.tdR]]
+        .map(function (x) { return '<div><span>' + x[0] + '</span><b>' + (typeof x[1] === 'number' ? fmt(x[1]) : x[1]) + '</b></div>'; }).join('');
+      var dl = Object.keys(st.days).filter(function (k) { return st.days[k]; }).sort().map(function (k) { return DAY_HE[k]; }).join(' ');
+      var msg = 'היי הלל, מילאתי את מחשבון הקלוריות באתר.\nמטרה: ' + GOAL_HE[st.goal] + ' · ' + SEX_HE[st.sex] + ' · ' + w + ' ק"ג · ' + h + ' ס"מ · גיל ' + a +
+        '\nאימונים: ' + n + ' בשבוע' + (dl ? ' (' + dl + ')' : '') + '\nיום אימון: ' + r.kT + ' קלוריות · יום מנוחה: ' + r.kR + '\nאשמח לתפריט מלא ולשמוע על הליווי!';
+      $('cta').href = 'https://wa.me/972586931163?text=' + encodeURIComponent(msg);
+    }
+  })();
+  </script>
+</body>
+</html>
