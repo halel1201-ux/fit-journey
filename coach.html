@@ -12750,8 +12750,11 @@ ${buildFoodListForPrompt()}
         const lean=(e.weight&&e.body_fat_pct)?+(e.weight*(1-e.body_fat_pct/100)).toFixed(1):null;
         return `<tr style="border-bottom:1px solid rgba(255,255,255,0.04);">
           <td style="padding:7px 8px;font-size:0.79rem;color:var(--muted);">${e.date}</td>
+          <td style="text-align:center;padding:7px 4px;">${progTypeOf(e)==='meeting'
+            ? '<span style="font-size:0.66rem;font-weight:800;padding:2px 8px;border-radius:10px;background:rgba(255,107,0,0.14);color:#FF8C00;border:1px solid rgba(255,107,0,0.4);white-space:nowrap;">📏 פגישה</span>'
+            : '<span style="font-size:0.66rem;font-weight:800;padding:2px 8px;border-radius:10px;background:rgba(255,255,255,0.05);color:#aaa;border:1px solid rgba(255,255,255,0.12);white-space:nowrap;">⚖️ שקילה ביתית</span>'}</td>
           <td style="text-align:center;padding:7px 6px;font-weight:700;">${e.weight?e.weight+' ק"ג':'—'}</td>
-          <td style="text-align:center;padding:7px 6px;color:#4ade80;font-weight:700;">${e.body_fat_pct?e.body_fat_pct+'%':'—'}</td>
+          <td style="text-align:center;padding:7px 6px;color:#4ade80;font-weight:700;">${e.body_fat_pct?e.body_fat_pct+'%'+(progTypeOf(e)==='home'?' <span style="color:#777;font-size:0.62rem;font-weight:600;">משוער</span>':''):'—'}</td>
           <td style="text-align:center;padding:7px 6px;color:var(--gold);font-weight:700;">${lean?lean:'—'}</td>
           <td style="text-align:center;padding:4px 4px;">
             ${!e.body_fat_pct?`<button class="btn-sm btn-outline" style="font-size:0.68rem;padding:2px 8px;" onclick="quickAddBF('${e.id}','${e.date}',${e.weight||0})">+ %שומן</button>`:''}
@@ -12762,6 +12765,7 @@ ${buildFoodListForPrompt()}
         <table style="width:100%;border-collapse:collapse;">
           <thead><tr style="border-bottom:1px solid rgba(255,255,255,0.1);">
             <th style="text-align:right;padding:7px 8px;font-size:0.7rem;color:var(--muted);">תאריך</th>
+            <th style="text-align:center;padding:7px 6px;font-size:0.7rem;color:var(--muted);">סוג</th>
             <th style="text-align:center;padding:7px 6px;font-size:0.7rem;color:var(--muted);">משקל</th>
             <th style="text-align:center;padding:7px 6px;font-size:0.7rem;color:var(--muted);">% שומן</th>
             <th style="text-align:center;padding:7px 6px;font-size:0.7rem;color:var(--muted);">מסה רזה</th>
@@ -12773,6 +12777,9 @@ ${buildFoodListForPrompt()}
     }
 
     wrap.innerHTML=`
+      <div style="display:flex;justify-content:flex-end;margin-bottom:10px;">
+        <button class="btn-sm btn-orange" onclick="openWeighReport()" ${entries.length?'':'disabled title="אין שקילות עדיין"'}>📄 דוח שקילות</button>
+      </div>
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;">
         <div style="background:rgba(255,107,0,0.06);border:1px solid rgba(255,107,0,0.2);border-radius:10px;padding:12px;text-align:center;">
           <div style="font-size:1.2rem;font-weight:900;color:var(--orange);">${latest?.weight?latest.weight+' ק"ג':'—'}</div>
@@ -12796,12 +12803,22 @@ ${buildFoodListForPrompt()}
 
       <div style="border-top:1px solid rgba(255,255,255,0.07);padding-top:14px;">
         <div style="font-size:0.78rem;font-weight:700;color:var(--muted);margin-bottom:10px;">הוסף רשומה</div>
+        <div style="display:flex;gap:8px;margin-bottom:10px;">${[['home','⚖️ שקילה ביתית'],['meeting','📏 פגישה']].map(([k,l])=>
+          `<button type="button" onclick="progSetType('${k}')" style="flex:1;padding:9px 6px;border-radius:9px;font-family:Heebo,sans-serif;font-size:0.82rem;font-weight:800;cursor:pointer;${progEntryType===k
+            ?'background:rgba(255,107,0,0.14);border:1px solid #FF6B00;color:#FF8C00;'
+            :'background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.12);color:#9aa0a6;'}">${l}</button>`).join('')}</div>
+        <div style="font-size:0.7rem;color:#777;margin:-4px 0 10px;">${progEntryType==='meeting'
+          ?'פגישה: משקל, אחוז שומן וכל ההיקפים.'
+          :'שקילה ביתית: משקל בלבד. אחוז שומן רק אם הערכת אותו מתמונות.'}</div>
         <div class="form-grid" style="grid-template-columns:1fr 1fr 1fr 1fr;margin-bottom:10px;">
           <div class="f-group"><label>תאריך</label><input type="date" id="prog-date" value="${today}"/></div>
           <div class="f-group"><label>משקל (ק"ג)</label><input type="number" id="prog-w" step="0.1" placeholder="—"/></div>
-          <div class="f-group"><label>% שומן</label><input type="number" id="prog-bf" step="0.1" min="3" max="65" placeholder="—"/></div>
+          <div class="f-group"><label>${progEntryType==='meeting'?'% שומן':'% שומן משוער מתמונות'}</label><input type="number" id="prog-bf" step="0.1" min="3" max="65" placeholder="${progEntryType==='meeting'?'—':'אופציונלי'}"/></div>
           <div class="f-group"><label>הערות</label><input type="text" id="prog-notes" placeholder="אופציונלי"/></div>
         </div>
+        ${progEntryType==='meeting'?`<div style="font-size:0.72rem;font-weight:700;color:var(--muted);margin-bottom:6px;">היקפים (ס״מ)</div>
+        <div class="form-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:10px;">${getMeasCols().map(c=>
+          `<div class="f-group"><label>${c.label}</label><input type="number" id="prog-m-${c.key}" step="0.1" placeholder="—"/></div>`).join('')}</div>`:''}
         <button class="btn-sm btn-orange" onclick="saveProgressEntry()">שמור רשומה</button>
       </div>`;
 
@@ -12862,6 +12879,7 @@ ${buildFoodListForPrompt()}
       weight:w??existing?.weight??null,
       body_fat_pct:bf??existing?.body_fat_pct??null,
       notes:notes||existing?.notes||null,
+      entry_type:progEntryType,
     };
 
     const { data, error } = await sb.from('progress_entries')
@@ -12879,8 +12897,188 @@ ${buildFoodListForPrompt()}
     else clientProgressEntries.unshift(data);
     clientProgressEntries.sort((a,b)=>b.date.localeCompare(a.date));
 
+    /* פגישה: ההיקפים נכתבים לטבלת ההיקפים באותו תאריך — אותו מקום שבו מסך ההיקפים קורא */
+    let measMsg = '';
+    if (progEntryType === 'meeting') {
+      const vals = {};
+      getMeasCols().forEach(c => { const v = parseFloat(document.getElementById('prog-m-' + c.key)?.value); if (v > 0) vals[c.key] = v; });
+      if (Object.keys(vals).length) {
+        const prevM = clientMeasurements.find(m => m.date === date) || {};
+        const mp = { client_email: email, coach_email: coachEmail, date };
+        MEAS_COLS.forEach(c => { mp[c.key] = (c.key in vals) ? vals[c.key] : (prevM[c.key] ?? null); });
+        const { data: md, error: me } = await sb.from('body_measurements').upsert(mp, { onConflict: 'client_email,date' }).select().single();
+        if (me) measMsg = ' · ההיקפים לא נשמרו: ' + me.message;
+        else {
+          const k = clientMeasurements.findIndex(m => m.date === date);
+          if (k >= 0) clientMeasurements[k] = md; else clientMeasurements.unshift(md);
+          clientMeasurements.sort((a, b) => b.date.localeCompare(a.date));
+          if (typeof renderMeasurementsEditor === 'function') renderMeasurementsEditor();
+          measMsg = ' · ' + Object.keys(vals).length + ' היקפים';
+        }
+      }
+    }
     renderProgressEditor();
-    toast('התקדמות נשמרה ✓','ok');
+    toast((progEntryType === 'meeting' ? 'פגישה נשמרה ✓' : 'שקילה נשמרה ✓') + measMsg, measMsg.includes('לא נשמרו') ? 'err' : 'ok');
+  }
+
+  /* ══ סוג רשומה + דוח שקילות ══ */
+  let progEntryType = 'home';
+  /* רשומה ישנה בלי סוג: פגישה אם יש היקפים באותו תאריך, אחרת שקילה ביתית */
+  function progTypeOf(e) {
+    if (e && e.entry_type) return e.entry_type;
+    return (clientMeasurements || []).some(m => m.date === e.date) ? 'meeting' : 'home';
+  }
+  function progSetType(t) {
+    const keep = ['prog-date', 'prog-w', 'prog-bf', 'prog-notes'].map(id => [id, document.getElementById(id)?.value]);
+    progEntryType = t;
+    renderProgressEditor();
+    keep.forEach(([id, v]) => { const el = document.getElementById(id); if (el && v != null) el.value = v; });
+  }
+
+  const WR_SWATCHES = [['#83F52C', 'ירוק ניאון'], ['#FFFFFF', 'לבן'], ['#FF6B00', 'כתום'], ['#38BDF8', 'תכלת'], ['#FFD700', 'זהב'], ['#F472B6', 'ורוד']];
+  let _wr = null;   // { brand, logo, coachName, app, color, days }
+
+  async function openWeighReport() {
+    if (!activeEmail) return;
+    const { data: co } = await sb.from('coaches').select('name,app_name,logo_url,brand_color').eq('email', coachEmail).maybeSingle();
+    const brand = /^#[0-9a-f]{6}$/i.test(co?.brand_color || '') ? co.brand_color : '#83F52C';
+    _wr = { brand, logo: co?.logo_url || (location.origin + '/icon-512.png'), coachName: co?.name || '', app: co?.app_name || 'Fit Journey', color: brand, days: 0 };
+    const cl = clients.find(c => c.email === activeEmail);
+    const ov = document.createElement('div');
+    ov.id = 'wr-modal';
+    ov.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.75);display:flex;align-items:center;justify-content:center;padding:16px;';
+    ov.innerHTML = `<div style="width:min(440px,100%);max-height:92vh;overflow:auto;background:#141414;border:1px solid #FF6B00;border-radius:16px;padding:18px;box-shadow:0 0 50px -12px rgba(255,107,0,0.6);">
+      <div style="display:flex;justify-content:space-between;align-items:center;"><b style="font-size:1.02rem;">📄 דוח שקילות · ${esc(cl?.name || activeEmail)}</b>
+        <button onclick="document.getElementById('wr-modal').remove()" style="background:none;border:0;color:#888;font-size:1.1rem;cursor:pointer;" aria-label="סגור">✕</button></div>
+      <div style="font-size:0.75rem;color:#888;margin:14px 0 6px;">תקופה</div>
+      <div id="wr-days" style="display:flex;gap:6px;">${[[0, 'כל התקופה'], [90, '3 חודשים'], [30, 'חודש']].map(([d, l]) =>
+        `<button type="button" data-d="${d}" onclick="wrPick('days',${d})" style="flex:1;padding:9px 4px;border-radius:9px;font-family:Heebo,sans-serif;font-size:0.8rem;font-weight:800;cursor:pointer;"></button>`).join('')}</div>
+      <div style="font-size:0.75rem;color:#888;margin:14px 0 8px;">צבע הכיתוב <span style="color:#555;">(רקע הדוח שחור)</span></div>
+      <div id="wr-sw" style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-start;">${WR_SWATCHES.concat(_wr.brand && !WR_SWATCHES.some(x => x[0].toLowerCase() === _wr.brand.toLowerCase()) ? [[_wr.brand, 'צבע המותג']] : []).map(([c, n]) =>
+        `<button type="button" data-c="${c}" onclick="wrPick('color','${c}')" style="background:none;border:0;cursor:pointer;color:#aaa;font-family:Heebo,sans-serif;font-size:0.68rem;text-align:center;width:46px;"><span style="display:block;width:30px;height:30px;border-radius:50%;background:${c};margin:0 auto 3px;"></span>${n}</button>`).join('')}
+        <label style="cursor:pointer;color:#aaa;font-size:0.68rem;text-align:center;width:46px;"><input type="color" id="wr-custom" value="${_wr.color}" oninput="wrPick('color',this.value)" style="width:30px;height:30px;border:0;padding:0;background:none;border-radius:50%;display:block;margin:0 auto 3px;cursor:pointer;">צבע אחר</label></div>
+      <div id="wr-prev" style="margin-top:12px;border-radius:10px;background:#0a0a0a;padding:12px 14px;"></div>
+      <div style="font-size:0.75rem;color:#888;margin:14px 0 6px;">הערה לדוח (אופציונלי)</div>
+      <textarea id="wr-note" rows="3" maxlength="600" placeholder="למשל: ירידה יציבה, ממשיכים באותו קצב עד הפגישה הבאה" style="width:100%;background:#1c1c1c;border:1px solid #333;border-radius:9px;color:#fff;padding:9px;font-family:Heebo,sans-serif;font-size:0.85rem;resize:vertical;"></textarea>
+      <button class="btn-sm btn-orange" style="width:100%;margin-top:14px;padding:12px;font-size:0.95rem;" onclick="makeWeighReport()">⬇ הפק דוח</button>
+      <div style="font-size:0.7rem;color:#666;margin-top:8px;text-align:center;">הדוח נפתח במסך מלא. "הדפס" ← "שמור כ-PDF".</div></div>`;
+    ov.addEventListener('click', e => { if (e.target === ov) ov.remove(); });
+    document.body.appendChild(ov);
+    wrRefresh();
+  }
+  function wrPick(k, v) { if (!_wr) return; if (k === 'color' && !/^#[0-9a-f]{6}$/i.test(v)) return; _wr[k] = v; wrRefresh(); }
+  function wrRefresh() {
+    document.querySelectorAll('#wr-days button').forEach(b => {
+      const on = +b.dataset.d === _wr.days;
+      b.textContent = ({ 0: 'כל התקופה', 90: '3 חודשים', 30: 'חודש' })[b.dataset.d];
+      b.style.background = on ? 'rgba(255,107,0,0.14)' : 'rgba(255,255,255,0.03)';
+      b.style.border = '1px solid ' + (on ? '#FF6B00' : 'rgba(255,255,255,0.12)');
+      b.style.color = on ? '#FF8C00' : '#9aa0a6';
+    });
+    document.querySelectorAll('#wr-sw button').forEach(b => {
+      const on = b.dataset.c.toLowerCase() === _wr.color.toLowerCase();
+      b.firstElementChild.style.boxShadow = on ? `0 0 0 2px #141414,0 0 0 4px ${_wr.color},0 0 12px ${_wr.color}` : '0 0 0 1px #444';
+      b.style.color = on ? _wr.color : '#aaa';
+    });
+    const c = _wr.color, pv = document.getElementById('wr-prev');
+    if (pv) pv.innerHTML = `<div style="color:${c};font-weight:900;font-size:1.05rem;">דוח שקילות</div><div style="color:${wrTone(c, .7)};font-size:0.75rem;">כך ייראה הכיתוב על רקע שחור</div>`;
+  }
+  function wrTone(hex, a) { const n = parseInt(hex.slice(1), 16); return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${a})`; }
+
+  async function makeWeighReport() {
+    if (!_wr || !activeEmail) return;
+    const email = activeEmail, note = (document.getElementById('wr-note')?.value || '').trim();
+    const since = _wr.days ? new Date(Date.now() - _wr.days * 864e5).toISOString().slice(0, 10) : '1900-01-01';
+    const [pe, bm] = await Promise.all([
+      sb.from('progress_entries').select('date,weight,body_fat_pct,entry_type').eq('client_email', email).gte('date', since).order('date'),
+      sb.from('body_measurements').select('*').eq('client_email', email).gte('date', since).order('date'),
+    ]);
+    if (pe.error) { toast('לא נטען: ' + pe.error.message, 'err'); return; }
+    const meas = bm.data || [];
+    const rows = (pe.data || []).filter(r => r.weight).map(r => ({ ...r, type: r.entry_type || (meas.some(m => m.date === r.date) ? 'meeting' : 'home') }));
+    if (!rows.length) { toast('אין שקילות בתקופה הזו', 'err'); return; }
+    const cl = clients.find(c => c.email === email);
+    const html = buildWeighReportHtml({ ..._wr, rows, meas, note, clientName: cl?.name || email, cols: getMeasCols() });
+    document.getElementById('wr-modal')?.remove();
+    openPrintable(html, 'דוח שקילות');
+  }
+
+  function buildWeighReportHtml(o) {
+    const c = o.color, T = a => wrTone(c, a), E = s => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+    const fd = d => new Date(d + 'T12:00:00').toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit', year: '2-digit' });
+    const rows = o.rows, first = rows[0], last = rows[rows.length - 1];
+    const lastBf = rows.slice().reverse().find(r => r.body_fat_pct);
+    const lean = r => (r.weight && r.body_fat_pct) ? +(r.weight * (1 - r.body_fat_pct / 100)).toFixed(1) : null;
+    const measByDate = {}; o.meas.forEach(m => { measByDate[m.date] = m; });
+    const range = fd(first.date) + ' – ' + fd(last.date);
+    /* גרף */
+    let chart = '';
+    if (rows.length > 1) {
+      const W = rows.map(r => +r.weight), w = 640, h = 140, pad = 28;
+      const lo = Math.floor(Math.min(...W)) - 0.5, hi = Math.ceil(Math.max(...W)) + 0.5;
+      const t0 = new Date(first.date).getTime(), t1 = new Date(last.date).getTime() || t0 + 1;
+      const x = r => pad + (new Date(r.date).getTime() - t0) * (w - pad * 2) / Math.max(1, t1 - t0), y = v => pad / 2 + (hi - v) * (h - pad) / (hi - lo);
+      const pts = rows.map(r => x(r).toFixed(1) + ',' + y(+r.weight).toFixed(1)).join(' ');
+      const grid = [hi, (hi + lo) / 2, lo].map(v => `<line x1="${pad}" x2="${w - pad}" y1="${y(v)}" y2="${y(v)}" stroke="${T(.14)}"/><text x="${pad - 6}" y="${y(v) + 4}" font-size="10" text-anchor="end" fill="${T(.55)}" font-family="Heebo">${v.toFixed(1)}</text>`).join('');
+      const dots = rows.map(r => r.type === 'meeting'
+        ? `<rect x="${x(r) - 5}" y="${y(+r.weight) - 5}" width="10" height="10" rx="2" fill="#0a0a0a" stroke="${c}" stroke-width="2.5"/>`
+        : `<circle cx="${x(r)}" cy="${y(+r.weight)}" r="3.2" fill="${c}"/>`).join('');
+      chart = `<div class="box"><svg viewBox="0 0 ${w} ${h}" width="100%" style="display:block" direction="ltr">${grid}
+        <polyline points="${pad},${h - pad / 2} ${pts} ${w - pad},${h - pad / 2}" fill="${c}" fill-opacity=".10" stroke="none"/>
+        <polyline points="${pts}" fill="none" stroke="${c}" stroke-width="2.5" stroke-linejoin="round"/>${dots}</svg>
+        <div class="lg"><span><i style="background:${c}"></i>שקילה ביתית</span><span><i class="sq" style="border-color:${c}"></i>פגישה (משקל + היקפים)</span></div></div>`;
+    }
+    const kpis = [['משקל התחלה', first.weight + ' ק״ג'], ['משקל נוכחי', last.weight + ' ק״ג'], ['שינוי', (last.weight - first.weight > 0 ? '+' : '') + (last.weight - first.weight).toFixed(1) + ' ק״ג'], ['אחוז שומן אחרון', lastBf ? lastBf.body_fat_pct + '%' : '—']];
+    const tr = (r, k) => { const m = measByDate[r.date]; return `<tr class="${k % 2 ? 'z' : ''}"><td class="d">${fd(r.date)}</td>
+      <td><span class="tag ${r.type === 'meeting' ? 'on' : ''}">${r.type === 'meeting' ? 'פגישה' : 'שקילה ביתית'}</span></td>
+      <td class="b">${r.weight}</td><td>${r.body_fat_pct ? r.body_fat_pct + '%' + (r.type === 'home' ? '<small> משוער</small>' : '') : '—'}</td>
+      <td>${lean(r) ?? '—'}</td><td>${m && m.waist ? m.waist : '—'}</td></tr>`; };
+    const thead = '<tr><th class="d">תאריך</th><th>סוג</th><th>משקל</th><th>% שומן</th><th>מסה רזה</th><th>מותן</th></tr>';
+    /* חלוקה לעמודים: עמוד 1 עם סיכום וגרף, אחר כך עמודי טבלה */
+    const desc = rows.slice().reverse(), P1 = chart ? 18 : 26, PN = 34, chunks = [desc.slice(0, P1)];
+    for (let i = P1; i < desc.length; i += PN) chunks.push(desc.slice(i, i + PN));
+    /* היקפים: עד 6 עמודות תאריך (ראשונה + 5 אחרונות) */
+    let mDates = o.meas.map(m => m.date);
+    if (mDates.length > 6) mDates = [mDates[0], ...mDates.slice(-5)];
+    const mCols = o.cols.filter(col => o.meas.some(m => m[col.key] != null));
+    const hasMeas = mDates.length && mCols.length;
+    const total = chunks.length + (hasMeas || o.note ? 1 : 0);
+    const head = title => `<div class="hd"><div><div class="k">${E(o.app)}${o.coachName ? ' · ' + E(o.coachName) : ''}</div><div class="t">${title}</div><div class="s">${E(o.clientName)} · ${range}</div></div><img src="${E(o.logo)}" alt=""></div>`;
+    const foot = n => `<div class="ft"><span>הופק מ-${E(o.app)} · ${new Date().toLocaleDateString('he-IL')}</span><span>עמוד ${n} מתוך ${total}</span></div>`;
+    let pages = chunks.map((ch, i) => `<section class="pg">${head(i ? 'דוח שקילות · המשך' : 'דוח שקילות')}<div class="in">
+      ${i ? '' : `<div class="kp">${kpis.map(([a, b], j) => `<div class="${j === 2 ? 'hl' : ''}"><b dir="ltr">${b}</b><span>${a}</span></div>`).join('')}</div>${chart}`}
+      <table>${thead}${ch.map((r, k) => tr(r, k)).join('')}</table></div>${foot(i + 1)}</section>`).join('');
+    if (hasMeas || o.note) {
+      const dl = (a, b) => (a == null || b == null) ? '—' : `<b dir="ltr">${+(b - a).toFixed(1) > 0 ? '+' : ''}${(+(b - a)).toFixed(1)}</b>`;
+      const mf = mDates.map(d => o.meas.find(m => m.date === d));
+      pages += `<section class="pg">${head('היקפים בפגישות')}<div class="in">
+        ${hasMeas ? `<table class="mt"><tr><th class="d">מדד (ס״מ)</th>${mDates.map(d => `<th>${fd(d)}</th>`).join('')}<th>שינוי</th></tr>
+          ${mCols.map((col, j) => `<tr class="${j % 2 ? 'z' : ''}"><td class="d">${col.label}</td>${mf.map(m => `<td>${m[col.key] ?? '—'}</td>`).join('')}<td>${dl(mf[0][col.key], mf[mf.length - 1][col.key])}</td></tr>`).join('')}</table>` : ''}
+        ${o.note ? `<div class="nt"><b>הערת המאמן</b><p>${E(o.note).replace(/\n/g, '<br>')}</p></div>` : ''}</div>${foot(total)}</section>`;
+    }
+    return `<!doctype html><html lang="he" dir="rtl"><head><meta charset="utf-8"><title>דוח שקילות — ${E(o.clientName)}</title>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;600;800;900&display=swap" rel="stylesheet"><style>
+@page{size:A4;margin:0}*{box-sizing:border-box;margin:0;padding:0}html,body{background:#0a0a0a;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+body{font-family:Heebo,Arial,sans-serif;color:${c}}
+.pg{width:210mm;height:297mm;position:relative;overflow:hidden;background:#0a0a0a;page-break-after:always;margin:0 auto}
+@media screen{.pg{margin:0 auto 6mm;box-shadow:0 0 0 1px #222}}
+.hd{display:flex;justify-content:space-between;align-items:center;padding:9mm 12mm 6mm;border-bottom:1.5px solid ${T(.55)}}
+.hd .k{font-size:9pt;color:${T(.7)};font-weight:600}.hd .t{font-size:22pt;font-weight:900;line-height:1.15}.hd .s{font-size:10pt;color:${T(.8)}}
+.hd img{width:22mm;height:22mm;border-radius:4mm;object-fit:cover;box-shadow:0 0 0 1px ${T(.45)}}
+.in{padding:6mm 12mm 0}
+.kp{display:grid;grid-template-columns:repeat(4,1fr);gap:3mm}.kp div{border:1px solid ${T(.25)};border-radius:3mm;padding:3mm;text-align:center;background:${T(.03)}}
+.kp div.hl{border-color:${T(.7)};background:${T(.1)}}.kp b{display:block;font-size:15pt;font-weight:900}.kp span{font-size:8pt;color:${T(.65)}}
+.box{margin-top:5mm;border:1px solid ${T(.2)};border-radius:3mm;padding:3mm 2mm 2mm}
+.lg{display:flex;gap:6mm;justify-content:center;font-size:8.5pt;margin-top:1.5mm;color:${T(.65)}}.lg i{display:inline-block;width:2.6mm;height:2.6mm;border-radius:50%;margin-left:1.5mm}.lg i.sq{border-radius:.6mm;border:2px solid;background:transparent}
+table{width:100%;border-collapse:collapse;margin-top:4mm;font-size:8.8pt}th{background:${T(.1)};padding:1.8mm 2mm;font-weight:800}td{text-align:center;padding:1.5mm 2mm;border-bottom:1px solid ${T(.1)}}
+th.d,td.d{text-align:right}td.d{color:${T(.7)}}td.b{font-weight:800}tr.z td{background:${T(.035)}}td small{color:${T(.5)};font-size:7pt}
+.tag{display:inline-block;font-size:7.5pt;font-weight:800;padding:.3mm 2mm;border-radius:3mm;border:1px solid ${T(.5)};color:${T(.85)};white-space:nowrap}.tag.on{background:${c};color:#0a0a0a;border-color:${c}}
+.mt{font-size:9.5pt}.mt td{padding:2mm}
+.nt{margin-top:6mm;border:1px solid ${T(.25)};border-radius:3mm;padding:4mm}.nt b{font-size:10.5pt}.nt p{font-size:9.5pt;color:${T(.85)};margin-top:1.5mm;line-height:1.7}
+.ft{position:absolute;inset:auto 12mm 7mm;display:flex;justify-content:space-between;font-size:7.5pt;color:${T(.5)};border-top:1px solid ${T(.18)};padding-top:2mm}
+.pb{position:fixed;top:12px;left:12px;z-index:9;background:${c};color:#0a0a0a;border:0;border-radius:8px;padding:9px 16px;font:900 14px Heebo,Arial,sans-serif;cursor:pointer;box-shadow:0 4px 18px rgba(0,0,0,.5)}
+@media print{.pb{display:none}}
+</style></head><body><button class="pb" onclick="print()">🖨️ הדפס / שמור כ-PDF</button>${pages}</body></html>`;
   }
 
   async function quickAddBF(id, date, weight) {
