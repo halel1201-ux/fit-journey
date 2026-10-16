@@ -37,10 +37,10 @@
 </div>
 <script src="promo-terms.js"></script>
 <script>
-  /* ימים וטוקנים לפי הקוד שבכתובת; ברירת מחדל — ההטבה הנוכחית (HF30: 30 יום, 250 טוקנים) */
+  /* ההטבה הנוכחית: קוד אישי חד-פעמי — 30 יום ו-250 טוקנים */
   var p = new URLSearchParams(location.search), days = 30, tokens = 250;
   document.getElementById('doc').innerHTML = promoTerms(days, tokens).map(function (x) { return '<h2>' + x[0] + '</h2><p>' + x[1] + '</p>'; }).join('') +
-    '<div class="ver">גרסה promo-hf30-v1 · עודכן 16/10/2026</div>';
+    '<div class="ver">גרסה promo-v2 · עודכן 17/10/2026</div>';
 </script>
 </body>
 </html>

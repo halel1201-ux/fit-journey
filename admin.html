@@ -2767,16 +2767,46 @@
   }
 
   let promoCache = [];
+  /* קודי הטבה: קודים אישיים חד-פעמיים. מוצגים כולם — זמינים, מומשו, כבויים — עם העתקה */
+  let promoFilter = 'avail';
+  function promoState(p) { return !p.active ? 'off' : (p.uses >= p.max ? 'used' : 'avail'); }
   function promoBoxHtml() {
-    if (!promoCache.length) return '';
-    return promoCache.map(p => '<div style="border:1px dashed rgba(74,222,128,0.45);border-radius:12px;padding:10px 12px;margin-bottom:12px;">' +
+    const list = promoCache.filter(p => /^HF-/.test(p.code));
+    if (!list.length) return '';
+    const n = { avail: 0, used: 0, off: 0 }; list.forEach(p => n[promoState(p)]++);
+    const shown = list.filter(p => promoFilter === 'all' || promoState(p) === promoFilter)
+      .sort((a, b) => promoState(a).localeCompare(promoState(b)) || a.code.localeCompare(b.code));
+    const chip = st => st === 'avail' ? '<span style="color:#4ade80;">זמין</span>' : st === 'used' ? '<span style="color:#FF8C00;">מומש</span>' : '<span style="color:#777;">כבוי</span>';
+    const tab = (k, l) => '<button class="btn-sm ' + (promoFilter === k ? 'btn-orange' : 'btn-outline') + '" style="font-size:0.72rem;padding:3px 10px;" onclick="promoFilter=\'' + k + '\';renderFreelancers()">' + l + '</button>';
+    return '<div style="border:1px dashed rgba(74,222,128,0.45);border-radius:12px;padding:10px 12px;margin-bottom:12px;">' +
       '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">' +
-        '<b>🎁 קוד ' + esc(p.code) + ' · ' + p.uses + '/' + p.max + ' מומשו</b>' +
-        '<span style="font-size:0.75rem;color:' + (p.active ? '#4ade80' : '#f87171') + ';">' + (p.active ? 'פעיל' : 'כבוי') + '</span>' +
-        '<button class="btn-sm btn-outline" onclick="togglePromo('' + esc(p.code) + '',' + (!p.active) + ')">' + (p.active ? 'השהה' : 'הפעל') + '</button></div>' +
-      (p.redemptions.length ? '<details style="margin-top:6px;font-size:0.8rem;color:#bbb;"><summary>מי מימש (' + p.redemptions.length + ')</summary>' +
-        p.redemptions.map(r => '<div>' + esc(r.name || '') + ' · ' + esc(r.email) + (r.phone ? ' · ' + esc(r.phone) : '') + ' · ' + String(r.at).slice(0, 10) + '</div>').join('') + '</details>' : '') +
-      '</div>').join('');
+        '<b>🎁 קודי הטבה · ' + n.avail + ' זמינים · ' + n.used + ' מומשו' + (n.off ? ' · ' + n.off + ' כבויים' : '') + '</b>' +
+        '<span style="display:flex;gap:6px;flex-wrap:wrap;">' + tab('avail', 'זמינים') + tab('used', 'מומשו') + tab('all', 'הכול') +
+        '<button class="btn-sm btn-outline" style="font-size:0.72rem;padding:3px 10px;" onclick="copyPromoCodes()">📋 העתק זמינים</button>' +
+        (n.off ? '<button class="btn-sm btn-orange" style="font-size:0.72rem;padding:3px 10px;" onclick="activateAllPromos()">הפעל את כל הכבויים</button>' : '') + '</span></div>' +
+      '<div style="font-size:0.72rem;color:#777;margin:6px 0 4px;">כל קוד: 30 יום חינם + תוכנית ותפריט, פעם אחת בלבד. קישור ישיר: <span dir="ltr">fitjourney-net.com/join.html?code=HF-XXXXXX</span></div>' +
+      '<div style="max-height:320px;overflow:auto;margin-top:6px;">' + (shown.length ? shown.map(p => {
+        const st = promoState(p), r = p.redemptions[0];
+        return '<div style="display:grid;grid-template-columns:110px 56px 1fr auto;gap:8px;align-items:center;padding:5px 2px;border-top:1px solid rgba(255,255,255,0.06);font-size:0.8rem;">' +
+          '<b dir="ltr" style="font-family:Consolas,monospace;letter-spacing:1px;">' + esc(p.code) + '</b>' + chip(st) +
+          '<span style="color:#bbb;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + (r ? esc(r.name || '') + ' · ' + esc(r.email) + (r.phone ? ' · ' + esc(r.phone) : '') + ' · ' + String(r.at).slice(0, 10) : '') + '</span>' +
+          '<span style="display:flex;gap:4px;">' + (st === 'avail' ? '<button class="btn-sm btn-outline" style="font-size:0.68rem;padding:2px 8px;" onclick="copyText(\'' + esc(p.code) + '\')">העתק</button>' : '') +
+          (st !== 'used' ? '<button class="btn-sm btn-outline" style="font-size:0.68rem;padding:2px 8px;" onclick="togglePromo(\'' + esc(p.code) + '\',' + (!p.active) + ')">' + (p.active ? 'השהה' : 'הפעל') + '</button>' : '') + '</span></div>';
+      }).join('') : '<div style="color:#666;font-size:0.8rem;padding:6px 0;">אין קודים בסינון הזה</div>') + '</div></div>';
+  }
+  function copyText(t) { (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(() => toast('הועתק: ' + t, 'ok'), () => prompt('העתק:', t)); }
+  function copyPromoCodes() {
+    const t = promoCache.filter(p => /^HF-/.test(p.code) && promoState(p) === 'avail').map(p => p.code).join('\n');
+    if (!t) { toast('אין קודים זמינים', 'err'); return; }
+    copyText(t);
+  }
+  async function activateAllPromos() {
+    const off = promoCache.filter(p => /^HF-/.test(p.code) && !p.active && p.uses < p.max).map(p => p.code);
+    if (!off.length || !confirm('להפעיל ' + off.length + ' קודים?')) return;
+    let bad = 0;
+    for (const c of off) { const { error } = await sb.rpc('set_promo_active', { p_code: c, p_active: true }); if (error) bad++; }
+    toast(bad ? bad + ' קודים נכשלו' : off.length + ' קודים הופעלו', bad ? 'err' : 'ok');
+    loadFreelancers();
   }
   async function togglePromo(code, on) {
     if (!confirm((on ? 'להפעיל' : 'להשהות') + ' את הקוד ' + code + '?')) return;

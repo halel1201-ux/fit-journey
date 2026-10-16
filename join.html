@@ -552,8 +552,11 @@ if (location.protocol === 'file:') location.href = 'https://fit-journey1.vercel.
   renderTerms();
   renderChosen();
   (function () {
-    const c = new URLSearchParams(location.search).get('code');
-    if (!c) return;
+    const qs = new URLSearchParams(location.search), c = qs.get('code');
+    if (!c) {
+      if (qs.get('promo')) setTimeout(() => { const el = document.getElementById('j-code'); el.scrollIntoView({ block: 'center' }); el.focus(); }, 300);
+      return;
+    }
     document.getElementById('j-code').value = c.toUpperCase();
     applyPromo().then(() => document.getElementById('signup').scrollIntoView({ block: 'start' }));
   })();
