@@ -411,7 +411,7 @@ if (location.protocol === 'file:') location.href = 'https://fit-journey1.vercel.
       <div class="chosen" id="j-chosen"></div>
       <div class="promo" id="j-promo">
         <label for="j-code"><span>יש לך קוד הטבה?</span></label>
-        <div class="promo-row"><input id="j-code" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" dir="ltr" placeholder="HF30">
+        <div class="promo-row"><input id="j-code" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" dir="ltr" placeholder="HF-XXXXXX">
           <button type="button" class="promo-btn" id="j-code-btn" onclick="applyPromo()">הפעל קוד</button></div>
         <div class="promo-msg" id="j-promo-msg" aria-live="polite"></div>
       </div>
@@ -568,7 +568,7 @@ if (location.protocol === 'file:') location.href = 'https://fit-journey1.vercel.
   }
 
   /* ══ קוד הטבה ══
-     הבדיקה והמימוש בשרת (check_promo / redeem_promo): תקרת 50 מימושים, נרשמים חדשים בלבד,
+     הבדיקה והמימוש בשרת (check_promo / redeem_promo): כל קוד אישי ועובד פעם אחת (max_uses=1), נרשמים חדשים בלבד,
      והנעילה לתוכנית אחת ולתפריט אחד נאכפים במסד — לא כאן. */
   let promo = null;   // { code, days, tokens, terms_version }
   function promoMsg(t, kind) {
@@ -583,7 +583,7 @@ if (location.protocol === 'file:') location.href = 'https://fit-journey1.vercel.
     const { data, error } = await sb.rpc('check_promo', { p_code: code });
     if (error || !data) { promoMsg('לא הצלחנו לבדוק את הקוד, נסה שוב', 'err'); return; }
     if (!data.ok) {
-      promoMsg(data.reason === 'exhausted' ? 'הקוד הזה כבר נוצל עד הסוף. אפשר לבחור מסלול למטה.' : 'הקוד לא תקף', 'err');
+      promoMsg(data.reason === 'exhausted' ? 'הקוד הזה כבר מומש — כל קוד אישי עובד פעם אחת בלבד. אפשר לבחור מסלול למטה.' : 'הקוד לא תקף', 'err');
       clearPromo(true); return;
     }
     promo = { code, days: data.days, tokens: data.tokens, terms_version: data.terms_version };
@@ -618,7 +618,7 @@ if (location.protocol === 'file:') location.href = 'https://fit-journey1.vercel.
     if (!data || !data.ok) {
       btn.disabled = false;
       st(data && data.reason === 'not_new' ? 'הקוד מיועד לנרשמים חדשים בלבד. אם כבר יש לך חשבון, אפשר להיכנס או לבחור מסלול.'
-        : data && data.reason === 'exhausted' ? 'הקוד נוצל עד הסוף ממש עכשיו. אפשר לבחור מסלול.'
+        : data && data.reason === 'exhausted' ? 'הקוד הזה מומש ממש עכשיו. אפשר לבחור מסלול.'
         : 'הקוד לא תקף', 'err');
       return;
     }
