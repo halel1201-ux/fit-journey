@@ -2783,6 +2783,7 @@
         '<b>🎁 קודי הטבה · ' + n.avail + ' זמינים · ' + n.used + ' מומשו' + (n.off ? ' · ' + n.off + ' כבויים' : '') + '</b>' +
         '<span style="display:flex;gap:6px;flex-wrap:wrap;">' + tab('avail', 'זמינים') + tab('used', 'מומשו') + tab('all', 'הכול') +
         '<button class="btn-sm btn-outline" style="font-size:0.72rem;padding:3px 10px;" onclick="copyPromoCodes()">📋 העתק זמינים</button>' +
+        '<button class="btn-sm btn-outline" style="font-size:0.72rem;padding:3px 10px;" onclick="promoListPdf()">📄 PDF מעודכן</button>' +
         (n.off ? '<button class="btn-sm btn-orange" style="font-size:0.72rem;padding:3px 10px;" onclick="activateAllPromos()">הפעל את כל הכבויים</button>' : '') + '</span></div>' +
       '<div style="font-size:0.72rem;color:#777;margin:6px 0 4px;">כל קוד: 30 יום חינם + תוכנית ותפריט, פעם אחת בלבד. קישור ישיר: <span dir="ltr">fitjourney-net.com/join.html?code=HF-XXXXXX</span></div>' +
       '<div style="max-height:320px;overflow:auto;margin-top:6px;">' + (shown.length ? shown.map(p => {
@@ -2799,6 +2800,64 @@
     const t = promoCache.filter(p => /^HF-/.test(p.code) && promoState(p) === 'avail').map(p => p.code).join('\n');
     if (!t) { toast('אין קודים זמינים', 'err'); return; }
     copyText(t);
+  }
+  /* רשימת הקודים כ-PDF, לפי המצב במסד ברגע ההפקה: מה שמומש מסומן "מומש" עם שם ותאריך.
+     אותו סדר ומספור כמו ברשימה המודפסת (לפי הקוד), כדי שאפשר יהיה להשוות שורה מול שורה. */
+  function promoListPdf() {
+    const list = promoCache.filter(p => /^HF-/.test(p.code)).sort((a, b) => a.code.localeCompare(b.code));
+    if (!list.length) { toast('אין קודים', 'err'); return; }
+    const n = { avail: 0, used: 0, off: 0 }; list.forEach(p => n[promoState(p)]++);
+    const d = new Date(), pad = x => String(x).padStart(2, '0');
+    const stamp = pad(d.getDate()) + '/' + pad(d.getMonth() + 1) + '/' + d.getFullYear() + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+    const dmy = iso => { const t = String(iso || '').slice(0, 10).split('-'); return t.length === 3 ? t[2] + '/' + t[1] + '/' + t[0].slice(2) : ''; };
+    const row = (p, i) => {
+      const st = promoState(p), r = p.redemptions[0];
+      const info = st === 'used' && r ? '<span class="who">' + esc(r.name || r.email) + ' · ' + dmy(r.at) + '</span>'
+                 : st === 'off' ? '<span class="who off">כבוי</span>' : '<span class="line"></span>';
+      return '<div class="row ' + st + '"><i>' + (i + 1) + '</i><b>' + esc(p.code) + '</b>' + info +
+        (st === 'used' ? '<em>✓ מומש</em>' : '<u></u>') + '</div>';
+    };
+    const pages = [];
+    for (let k = 0; k < list.length; k += 50) {
+      const part = list.slice(k, k + 50), half = Math.ceil(part.length / 2);
+      pages.push('<div class="page"><div class="hrow"><img src="' + location.origin + '/icon-512.png" alt="FJ"><div><h2>' + list.length + ' קודי הטבה <span>אישיים</span></h2>' +
+        '<div class="sub">' + n.avail + ' זמינים · <b>' + n.used + ' מומשו</b>' + (n.off ? ' · ' + n.off + ' כבויים' : '') + ' · מצב נכון ל-' + stamp + '</div></div></div>' +
+        '<div class="list"><div>' + part.slice(0, half).map((p, i) => row(p, k + i)).join('') + '</div><div>' +
+        part.slice(half).map((p, i) => row(p, k + half + i)).join('') + '</div></div>' +
+        '<div class="foot"><span>Fit Journey · לשימוש פנימי · לא להפיץ את הרשימה</span><span>' + (pages.length + 1) + '</span></div></div>');
+    }
+    const html = '<!doctype html><html lang="he" dir="rtl"><head><meta charset="utf-8"><title>קודי הטבה — ' + stamp + '</title>' +
+      '<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;700;800;900&display=swap" rel="stylesheet"><style>' +
+      '@page{size:A4;margin:0}*{box-sizing:border-box;margin:0;padding:0}body{font-family:Heebo,sans-serif;background:#0a0a0a;color:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}' +
+      '.page{width:210mm;height:297mm;padding:14mm 14mm 18mm;position:relative;overflow:hidden;page-break-after:always;background:radial-gradient(70% 40% at 80% 0%,rgba(255,107,0,.16),transparent 70%),#0a0a0a}' +
+      '.hrow{display:flex;align-items:center;gap:4mm}.hrow img{width:15mm;height:15mm;border-radius:3.5mm;box-shadow:0 0 0 1px rgba(255,107,0,.35)}' +
+      'h2{font-size:20pt;font-weight:900}h2 span{color:#FF6B00}.sub{color:#aaa;font-size:10pt;margin-top:1mm}.sub b{color:#FF8C00}' +
+      '.list{display:grid;grid-template-columns:1fr 1fr;gap:0 8mm;margin-top:7mm}' +
+      '.row{display:grid;grid-template-columns:7mm 32mm 1fr 15mm;gap:2mm;align-items:end;padding:1.4mm 0;border-bottom:1px solid #222;font-size:9.5pt;min-height:9.4mm}' +
+      '.row i{font-style:normal;color:#666}.row b{direction:ltr;text-align:right;font-family:Consolas,monospace;font-size:11pt;color:#FFD700;letter-spacing:.04em}' +
+      '.row .line{border-bottom:1px dotted #444;height:4mm}.row u{width:4mm;height:4mm;border:1px solid #555;border-radius:1mm;justify-self:end}' +
+      '.row .who{color:#ddd;font-size:8.5pt;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.row .who.off{color:#777}' +
+      '.row.used b{color:#777;text-decoration:line-through;text-decoration-color:#FF6B00;text-decoration-thickness:2px}' +
+      '.row em{font-style:normal;font-weight:900;font-size:8.5pt;color:#FF6B00;border:1.5px solid #FF6B00;border-radius:1.2mm;padding:0 1.2mm;transform:rotate(-6deg);justify-self:end;white-space:nowrap}' +
+      '.row.off b{color:#666}.foot{position:absolute;inset:auto 14mm 8mm;display:flex;justify-content:space-between;font-size:8pt;color:#666;border-top:1px solid #222;padding-top:2mm}' +
+      '.pb{position:fixed;top:10px;left:10px;background:#FF6B00;color:#fff;border:0;border-radius:8px;padding:8px 16px;font:900 14px Heebo,sans-serif;cursor:pointer}@media print{.pb{display:none}}' +
+      '</style></head><body><button class="pb" onclick="print()">שמור כ-PDF / הדפס</button>' + pages.join('') + '</body></html>';
+    openPrintable(html, 'קודי הטבה');
+  }
+  /* כמו בפאנל המאמן: חלון חדש, ואם אין (WebView של האפליקציה) — אותו מסמך ב-iframe מלא מסך */
+  function openPrintable(html, title) {
+    let win = null;
+    try { win = window.open('', '_blank', 'width=820,height=1000'); } catch (e) { win = null; }
+    if (win && win.document) { win.document.write(html); win.document.close(); win.focus(); return; }
+    const ov = document.createElement('div');
+    ov.style.cssText = 'position:fixed;inset:0;z-index:99999;background:#0a0a0a;display:flex;flex-direction:column;';
+    ov.innerHTML = '<div style="display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid rgba(255,255,255,0.1);background:#111;">' +
+      '<button data-x class="btn-sm btn-outline">✕ סגור</button><div style="flex:1;font-weight:900;text-align:center;">' + title + '</div>' +
+      '<button data-p class="btn-sm btn-orange">🖨️ הדפס</button></div>';
+    const fr = document.createElement('iframe'); fr.setAttribute('srcdoc', html); fr.style.cssText = 'flex:1;width:100%;border:0;background:#0a0a0a;';
+    ov.appendChild(fr); document.body.appendChild(ov);
+    ov.querySelector('[data-x]').onclick = () => ov.remove();
+    ov.querySelector('[data-p]').onclick = () => { try { fr.contentWindow.focus(); fr.contentWindow.print(); } catch (e) { toast('ההדפסה אינה נתמכת כאן', 'err'); } };
   }
   async function activateAllPromos() {
     const off = promoCache.filter(p => /^HF-/.test(p.code) && !p.active && p.uses < p.max).map(p => p.code);
