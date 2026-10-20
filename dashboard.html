@@ -324,6 +324,8 @@
       display: flex; align-items: center; gap: 14px;
     }
     .session-day-title { font-size: 0.95rem; font-weight: 900; flex: 1; }
+    .session-clock.over { background: linear-gradient(135deg, #f87171, #ef4444); -webkit-background-clip: text; background-clip: text; }
+    .session-clock { direction: ltr; unicode-bidi: isolate; }   /* "52:12 / 60:00" — זמן ואז יעד, משמאל לימין */
     .session-clock {
       font-size: 1.25rem; font-weight: 900; font-variant-numeric: tabular-nums;
       background: linear-gradient(135deg, var(--orange), var(--gold));
@@ -2595,6 +2597,7 @@
     const prevReps = lastSessionReps(dayName);
     workoutSession = {
       dayName,
+      estMin: +day.est_min || 0,            /* זמן משוער שהמאמן הגדיר ליום (0 = לא הוגדר) */
       startTime: Date.now(),
       timerInterval: null,
       restInterval: null,
@@ -3419,7 +3422,9 @@
     if (s > 0 && s % 15 === 0) persistWorkout();
     const m = Math.floor(s / 60).toString().padStart(2, '0');
     const sec = (s % 60).toString().padStart(2, '0');
-    document.getElementById('session-clock').textContent = m + ':' + sec;
+    const clock = document.getElementById('session-clock'), est = workoutSession.estMin;
+    clock.textContent = m + ':' + sec + (est ? ' / ' + est + ':00' : '');
+    clock.classList.toggle('over', !!est && s > est * 60);
   }
 
   const TECHNIQUES = {
@@ -4707,6 +4712,7 @@
     if (!workoutSession) return;
     const btn = document.getElementById('btn-finish');
     const elapsed = Math.floor((Date.now() - workoutSession.startTime) / 1000);
+    const pace = workoutPace(workoutSession.estMin, Math.floor(elapsed / 60));
     const exercises = workoutSession.exercises
       .map(ex => ({
         name: ex.name,
@@ -4740,7 +4746,7 @@
       log_date: todayStr(),
       day_name: workoutSession.dayName,
       exercises,
-      notes: `משך אימון: ${Math.floor(elapsed / 60)} דקות`,
+      notes: `משך אימון: ${Math.floor(elapsed / 60)} דקות${pace ? ` · יעד ${pace.est} דקות` : ''}`,
       total_volume: totalVolume
     });
     if (error) { btn.disabled = false; btn.textContent = '✓ סיים ושלח'; alert('שגיאה בשמירה: ' + error.message); return; }
@@ -4783,7 +4789,8 @@
           day_name: workoutSession.dayName,
           duration_min: Math.floor(elapsed / 60),
           exercises_count: exercises.length,
-          prs
+          prs,
+          ...(pace ? { est_min: pace.est, pace_ok: pace.ok, over_min: pace.over } : {})
         }
       });
       // OneSignal push to coach
@@ -4792,14 +4799,15 @@
         if (tok?.onesignal_player_id) {
           const clientName = clientData?.name || currentEmail.split('@')[0];
           const prTxt = prs.length ? ` 🏆 שיא ב${prs[0].exercise}!` : '';
-          await sendPushToPlayer(tok.onesignal_player_id, `${clientName} סיים אימון`, `${workoutSession.dayName} — ${Math.floor(elapsed/60)} דקות${prTxt}`);
+          const paceTxt = pace ? (pace.ok ? ' · בזמן ✓' : ` · איטי ב-${pace.over} דק׳`) : '';
+          await sendPushToPlayer(tok.onesignal_player_id, `${clientName} סיים אימון`, `${workoutSession.dayName} — ${Math.floor(elapsed/60)} דקות${paceTxt}${prTxt}`);
         }
       })();
     }
 
     // Show volume popup
     const totalSets = exercises.reduce((a, ex) => a + (ex.sets?.length || 0), 0);
-    showVolumeModal(totalVolume, prevVol || 0, totalSets, exercises.length, Math.floor(elapsed / 60), workoutSession.dayName);
+    showVolumeModal(totalVolume, prevVol || 0, totalSets, exercises.length, Math.floor(elapsed / 60), workoutSession.dayName, pace);
 
     if (prs.length) {
       setTimeout(() => celebratePR(prs), 600);   // 💥 full celebration (confetti + share)
@@ -7310,8 +7318,32 @@ ${foodList || 'אין פריטים'}
   };
   const pick = arr => arr[Math.floor(Math.random() * arr.length)];
 
-  function showVolumeModal(currentVol, prevVol, totalSets, exCount, durationMin, dayName) {
+  /* קצב מול הזמן שהמאמן הגדיר ליום. עד 5 דקות מעל — עדיין נחשב בזמן,
+     כדי שדקה של איחור לא תיחשב "איטי". בלי זמן מוגדר — אין משוב בכלל. */
+  const PACE_GRACE_MIN = 5;
+  function workoutPace(estMin, durMin) {
+    if (!(estMin > 0)) return null;
+    const over = durMin - estMin;
+    return { est: estMin, dur: durMin, over: Math.max(0, over), ok: over <= PACE_GRACE_MIN };
+  }
+  function paceText(p) {
+    if (p.dur <= p.est) return `⚡ הספק מעולה! סיימת ב-${p.dur} דקות מתוך ${p.est}.`;
+    if (p.ok) return `✅ עמדת בזמנים: ${p.dur} דקות מתוך ${p.est}.`;
+    return `⏱ האימון היה איטי מהמתוכנן: ${p.over} דקות מעל הזמן (${p.dur} מתוך ${p.est}). השתדל לעמוד בזמנים בפעם הבאה.`;
+  }
+
+  function showVolumeModal(currentVol, prevVol, totalSets, exCount, durationMin, dayName, pace) {
     const m = getVolMilestone(currentVol);
+    const paceEl = document.getElementById('vol-pace');
+    if (paceEl) {
+      paceEl.style.display = pace ? 'block' : 'none';
+      if (pace) {
+        paceEl.textContent = paceText(pace);
+        paceEl.style.color = pace.ok ? '#4ade80' : '#f87171';
+        paceEl.style.borderColor = pace.ok ? 'rgba(74,222,128,0.35)' : 'rgba(248,113,113,0.4)';
+        paceEl.style.background = pace.ok ? 'rgba(74,222,128,0.08)' : 'rgba(248,113,113,0.08)';
+      }
+    }
 
     // compute comparison vs previous workout (for both modal + story image)
     let vsDir = 'first', vsPct = 0;
@@ -9236,6 +9268,7 @@ ${foodList || 'אין פריטים'}
     <div class="vol-compare-text" id="vol-compare-text"></div>
     <div class="vol-vs-badge" id="vol-vs-badge"></div>
     <div id="vol-motivation" style="font-size:0.92rem;font-weight:800;color:#FFD700;margin:-6px 0 18px;line-height:1.4;"></div>
+    <div id="vol-pace" style="display:none;font-size:0.86rem;font-weight:800;line-height:1.5;margin:-8px 0 16px;padding:9px 12px;border:1px solid;border-radius:12px;"></div>
     <div class="vol-sets-breakdown">
       <div class="vol-stat">
         <div class="vol-stat-num" id="vol-stat-sets">—</div>
