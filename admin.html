@@ -1799,6 +1799,12 @@
         <div id="studio-dlc-wrap"><div style="font-size:0.8rem;color:#555;">טוען...</div></div>
       </div>
       <div class="sec-card" style="margin-bottom:16px;">
+        <div class="sec-card-title">📞 לידים מדף הנחיתה <span id="leads-count" style="color:#83F52C;font-size:0.8rem;"></span>
+          <button class="btn-sm btn-outline" onclick="loadLeads()" style="font-size:0.72rem;">רענן</button>
+        </div>
+        <div id="leads-wrap"><div style="font-size:0.8rem;color:#555;">טוען...</div></div>
+      </div>
+      <div class="sec-card" style="margin-bottom:16px;">
         <div class="sec-card-title">🧍 מתאמנים עצמאיים
           <button class="btn-sm btn-outline" onclick="loadFreelancers()" style="font-size:0.72rem;">רענן</button>
         </div>
@@ -1815,6 +1821,7 @@
     renderCoachesTable();
     loadStudioDlcRequests();
     loadFreelancers();
+    loadLeads();
   }
 
   /* ══════════════════════════════════════════════════════
@@ -2716,6 +2723,46 @@
      כל פעולה עוברת דרך RPC: הדפדפן שולח מייל וכמות בלבד, והמסד
      קובע תאריכים ויתרות. */
   let freelancersCache = [];
+
+  /* ── לידים: מי שהשאיר פרטים בדף הנחיתה (במקום מחירים). חדשים למעלה, "טופל" מעביר לארכיון ── */
+  let leadsCache = [], leadsFilter = 'new';
+  async function loadLeads() {
+    const wrap = document.getElementById('leads-wrap');
+    if (!wrap) return;
+    const { data, error } = await sb.from('coaching_leads').select('*').order('created_at', { ascending: false }).limit(200);
+    if (error) { wrap.innerHTML = '<div style="color:#f87171;font-size:0.8rem;">לא נטען: ' + esc(error.message) + '</div>'; return; }
+    leadsCache = data || [];
+    renderLeads();
+  }
+  function renderLeads() {
+    const wrap = document.getElementById('leads-wrap'); if (!wrap) return;
+    const fresh = leadsCache.filter(l => l.status === 'new').length;
+    const cnt = document.getElementById('leads-count'); if (cnt) cnt.textContent = fresh ? '· ' + fresh + ' חדשים' : '';
+    const list = leadsCache.filter(l => leadsFilter === 'all' || (leadsFilter === 'new' ? l.status === 'new' : l.status !== 'new'));
+    const tab = (k, t) => '<button class="btn-sm ' + (leadsFilter === k ? 'btn-orange' : 'btn-outline') + '" style="font-size:0.72rem;padding:3px 10px;" onclick="leadsFilter=\'' + k + '\';renderLeads()">' + t + '</button>';
+    const when = iso => { const d = new Date(iso); return d.toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit' }) + ' ' + d.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' }); };
+    const intl = p => String(p || '').replace(/^\+/, '').replace(/^0/, '972');
+    wrap.innerHTML = '<div style="display:flex;gap:6px;margin-bottom:8px;">' + tab('new', 'חדשים') + tab('done', 'טופלו') + tab('all', 'הכול') + '</div>' +
+      (list.length ? list.map(l => {
+        const hi = encodeURIComponent('היי ' + (l.full_name || '').split(' ')[0] + ', כאן הלל מ-FJ. ראיתי שהשארת פרטים באתר על ליווי אישי' + (l.plan_interest ? ' (' + l.plan_interest + ')' : '') + ' 💪');
+        return '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:9px 2px;border-top:1px solid rgba(255,255,255,0.06);font-size:0.82rem;">' +
+          '<div><b>' + esc(l.full_name) + '</b> <span style="color:#777;font-size:0.72rem;">' + when(l.created_at) + '</span><br>' +
+          '<span style="color:#aaa;">' + [l.gender === 'women' ? 'נשים' : l.gender === 'men' ? 'גברים' : '', l.plan_interest || 'מסלול לא נבחר', l.goal || ''].filter(Boolean).map(esc).join(' · ') + '</span></div>' +
+          '<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">' +
+            '<a class="btn-sm btn-outline" style="font-size:0.72rem;padding:3px 10px;text-decoration:none;" href="tel:' + esc(l.phone) + '" dir="ltr">' + esc(l.phone) + '</a>' +
+            '<a class="btn-sm btn-outline" style="font-size:0.72rem;padding:3px 10px;text-decoration:none;color:#25D366;border-color:rgba(37,211,102,0.4);" target="_blank" rel="noopener" href="https://wa.me/' + intl(l.phone) + '?text=' + hi + '">וואטסאפ</a>' +
+            (l.status === 'new'
+              ? '<button class="btn-sm btn-orange" style="font-size:0.72rem;padding:3px 10px;" onclick="setLeadStatus(' + l.id + ',\'contacted\')">✓ טופל</button>'
+              : '<button class="btn-sm btn-outline" style="font-size:0.72rem;padding:3px 10px;" onclick="setLeadStatus(' + l.id + ',\'new\')">החזר לחדשים</button>') +
+          '</div></div>';
+      }).join('') : '<div style="color:#555;font-size:0.8rem;padding:6px 0;">' + (leadsFilter === 'new' ? 'אין לידים חדשים' : 'אין לידים') + '</div>');
+  }
+  async function setLeadStatus(id, status) {
+    const { error } = await sb.from('coaching_leads').update({ status, handled_at: status === 'new' ? null : new Date().toISOString() }).eq('id', id);
+    if (error) { toast('נכשל: ' + error.message, 'err'); return; }
+    const l = leadsCache.find(x => x.id === id); if (l) l.status = status;
+    renderLeads();
+  }
 
   async function loadFreelancers() {
     /* נטען גם כשאין לאן לצייר: המונה על כפתור הבקשות צריך את

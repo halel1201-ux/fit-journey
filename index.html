@@ -1910,6 +1910,30 @@
     }
     @media (prefers-reduced-motion: reduce) { .hf-big { filter: none; } }
 
+    /* ── השארת פרטים (במקום מחירים) ── */
+    .lead { max-width: 640px; margin: 40px auto 0; padding: 30px 26px; border-radius: 20px; text-align: center; scroll-margin-top: 90px;
+      background: radial-gradient(120% 90% at 50% 0%, rgba(131,245,44,.14), transparent 65%), rgba(255,255,255,.03); border: 1px solid rgba(131,245,44,.35); }
+    .lead-k { display: inline-block; font-size: .74rem; font-weight: 800; letter-spacing: .08em; color: #83F52C; border: 1px solid rgba(131,245,44,.4); border-radius: 30px; padding: 3px 12px; margin-bottom: 10px; }
+    .lead-h { font-size: 1.45rem; font-weight: 900; color: #fff; margin: 0 0 8px; }
+    .lead-p { color: #aaa; font-size: .93rem; line-height: 1.7; margin: 0 auto 18px; max-width: 480px; }
+    .lead-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; text-align: right; }
+    .lead-f span { display: block; font-size: .78rem; font-weight: 700; color: #bbb; margin-bottom: 5px; }
+    .lead-f input, .lead-f select { width: 100%; box-sizing: border-box; padding: 12px 14px; border-radius: 12px; background: rgba(0,0,0,.45);
+      border: 1px solid rgba(229,232,232,.18); color: #fff; font: 600 1rem 'Heebo', sans-serif; outline: none; }
+    .lead-f input:focus, .lead-f select:focus { border-color: #83F52C; box-shadow: 0 0 0 3px rgba(131,245,44,.18); }
+    .lead-f select option { background: #111; color: #fff; }
+    .lead-hp { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); opacity: 0; pointer-events: none; }   /* בלי היסט: בעמוד RTL היסט שמאלה יוצר גלילה הצידה */
+    .lead-btn { width: 100%; margin-top: 16px; padding: 15px; font-size: 1.05rem; border: 0; cursor: pointer; }
+    .lead-btn:disabled { opacity: .6; cursor: wait; }
+    .lead-msg { min-height: 1.2em; margin-top: 10px; color: #f87171; font-size: .88rem; font-weight: 700; }
+    .lead-note { margin: 6px 0 0; font-size: .78rem; color: #888; }
+    .lead-note a, #pricing .lead-done a { color: #83F52C !important; }
+    .lead.sent > .lead-k, .lead.sent > .lead-h, .lead.sent > .lead-p { display: none; }
+    .lead-done:focus { outline: none; }
+    .lead-done[hidden], .lead-form[hidden] { display: none; }
+    #payment-modal { display: none !important; }   /* חלון התשלום הישן (עם המחיר) — אין כפתור שפותח אותו מאז שהמחירים ירדו */
+    .lead-done-i { width: 56px; height: 56px; margin: 0 auto 12px; border-radius: 50%; display: grid; place-items: center; font-size: 1.6rem; font-weight: 900; color: #111; background: #83F52C; }
+    @media (max-width: 600px) { .lead { padding: 24px 16px; } .lead-grid { grid-template-columns: 1fr; } }
   </style>
 </head>
 <body>
@@ -1992,7 +2016,7 @@
       מסה, חיטוב, שינוי גוף או הכנה לתחרות.
     </p>
 
-    <div class="hero-from">ליווי אישי <b>מ-400 ₪ לחודש</b> · למתאמנים ולמתאמנות</div>
+    <div class="hero-from">ליווי אישי אונליין · <b>למתאמנים ולמתאמנות</b></div>
 
     <div class="hero-buttons">
       <a href="#" class="btn-primary" onclick="goTo('pricing'); return false;">
@@ -2192,10 +2216,9 @@
       <div class="fit-res" data-step="4" aria-live="polite">
         <div class="fit-res-k">ההמלצה בשבילך</div>
         <div class="fit-res-name" tabindex="-1">ליווי 4 חודשים</div>
-        <div class="fit-res-price"><b>1,500 ₪</b> · 375 ₪ לחודש</div>
         <p class="fit-res-why">מספיק זמן לבנות, לכוונן ולראות שינוי אמיתי. זה המסלול שהכי הרבה מתאמנים בוחרים.</p>
         <a class="btn-primary fit-wa" href="https://wa.me/972586931163" target="_blank" rel="noopener">לשלוח לי את זה בוואטסאפ</a>
-        <div class="fit-alt"><a href="intake.html">לשאלון המלא</a> · <button type="button" class="fit-again">להתחיל מחדש</button></div>
+        <div class="fit-alt"><a href="#lead" class="fit-lead">להשאיר פרטים</a> · <a href="intake.html">לשאלון המלא</a> · <button type="button" class="fit-again">להתחיל מחדש</button></div>
       </div>
     </form>
     <div class="women-line"><b>מתאמנת?</b> אותו ליווי ואותם מחירים, אצלי או אצל מאמנת מטעמי.</div>
@@ -2300,9 +2323,7 @@
       <div class="price-card">
         <div class="price-badge">ללא התחייבות</div>
         <div class="plan-name">ליווי חודשי</div>
-        <div class="price-amount"><span class="currency">₪</span>400</div>
-        <div class="pm">400 ₪ לחודש</div>
-        <div class="price-period">לחודש · מתחדש אוטומטית</div>
+        <div class="price-period">חודש · מתחדש, בלי התחייבות ארוכה</div>
         <div class="renew-note">ביטול בהודעה חודש מראש · <a href="coaching-terms.html">תקנון</a></div>
         <div class="price-divider"></div>
         <ul class="price-features">
@@ -2327,16 +2348,14 @@
             ליווי אונליין
           </li>
         </ul>
-        <button class="btn-secondary price-cta" onclick="openPayment('חודשי')">בחר מסלול</button>
+        <button class="btn-secondary price-cta" onclick="leadFor('ליווי חודשי')">לפרטים נוספים</button>
       </div>
 
       <!-- 3 Months (Featured) -->
       <div class="price-card featured">
         <div class="price-badge featured-badge">הכי פופולרי</div>
         <div class="plan-name">ליווי 4 חודשים</div>
-        <div class="price-amount"><span class="currency">₪</span>1,500</div>
-        <div class="pm">375 ₪ לחודש</div>
-        <div class="price-period">ל-4 חודשים · חסכון של 100₪</div>
+        <div class="price-period">4 חודשים של ליווי צמוד</div>
         <div class="price-divider"></div>
         <ul class="price-features">
           <li>
@@ -2364,16 +2383,14 @@
             ליווי לאורך 4 חודשים
           </li>
         </ul>
-        <button class="btn-primary price-cta" onclick="openPayment('4 חודשים')">בחר מסלול</button>
+        <button class="btn-primary price-cta" onclick="leadFor('ליווי 4 חודשים')">לפרטים נוספים</button>
       </div>
 
       <!-- 6 Months -->
       <div class="price-card">
         <div class="price-badge">חצי שנה</div>
         <div class="plan-name">ליווי חצי שנה</div>
-        <div class="price-amount"><span class="currency">₪</span>2,200</div>
-        <div class="pm">≈367 ₪ לחודש</div>
-        <div class="price-period">ל-6 חודשים · חסכון של 200₪</div>
+        <div class="price-period">6 חודשים של ליווי צמוד</div>
         <div class="price-divider"></div>
         <ul class="price-features">
           <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>בניית תוכנית מלאה</li>
@@ -2383,16 +2400,14 @@
           <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>ליווי אונליין מלא</li>
           <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>ליווי לאורך 6 חודשים</li>
         </ul>
-        <button class="btn-secondary price-cta" onclick="openPayment('חצי שנה')">בחר מסלול</button>
+        <button class="btn-secondary price-cta" onclick="leadFor('ליווי חצי שנה')">לפרטים נוספים</button>
       </div>
 
       <!-- 12 Months -->
       <div class="price-card">
         <div class="price-badge">הכי משתלם</div>
         <div class="plan-name">ליווי שנתי</div>
-        <div class="price-amount"><span class="currency">₪</span>4,000</div>
-        <div class="pm">≈333 ₪ לחודש</div>
-        <div class="price-period">ל-12 חודשים · חסכון של 800₪</div>
+        <div class="price-period">12 חודשים של ליווי צמוד</div>
         <div class="price-divider"></div>
         <ul class="price-features">
           <li>
@@ -2420,21 +2435,12 @@
             בניית תהליך מסודר לתוצאה
           </li>
         </ul>
-        <button class="btn-secondary price-cta" onclick="openPayment('שנתי')">בחר מסלול</button>
+        <button class="btn-secondary price-cta" onclick="leadFor('ליווי שנתי')">לפרטים נוספים</button>
       </div>
 
 
     </div>
 
-    <!-- Bit payment info (men) -->
-    <div style="max-width:420px;margin:28px auto 0;text-align:center;padding:18px 22px;background:rgba(229,232,232,0.04);border:1px solid rgba(229,232,232,0.18);border-radius:14px;">
-      <div style="font-size:0.78rem;color:#888;margin-bottom:8px;letter-spacing:0.5px;">ניתן לשלם גם בביט</div>
-      <div style="display:flex;align-items:center;justify-content:center;gap:10px;">
-        <span style="background:#0090ff;color:#fff;font-weight:900;font-size:0.9rem;letter-spacing:0.5px;border-radius:6px;padding:3px 10px;direction:ltr;">bit</span>
-        <span style="font-size:1.3rem;font-weight:900;color:#E5E8E8;letter-spacing:1px;direction:ltr;">058-693-1163</span>
-      </div>
-      <div style="font-size:0.72rem;color:#555;margin-top:8px;">לאחר התשלום שלח הודעה בוואצאפ לאישור</div>
-    </div>
     </div><!-- /panel-men -->
 
     <!-- ── WOMEN'S PLANS ── -->
@@ -2446,9 +2452,7 @@
       <div class="price-card">
         <div class="price-badge">ללא התחייבות</div>
         <div class="plan-name">ליווי חודשי</div>
-        <div class="price-amount"><span class="currency">₪</span>400</div>
-        <div class="pm">400 ₪ לחודש</div>
-        <div class="price-period">לחודש · מתחדש אוטומטית</div>
+        <div class="price-period">חודש · מתחדש, בלי התחייבות ארוכה</div>
         <div class="renew-note">ביטול בהודעה חודש מראש · <a href="coaching-terms.html">תקנון</a></div>
         <div class="price-divider"></div>
         <ul class="price-features">
@@ -2458,16 +2462,14 @@
           <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>עדכונים לפי צורך</li>
           <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>ליווי אונליין</li>
         </ul>
-        <button class="btn-secondary price-cta" onclick="openPayment('חודשי-נשים')">בחר מסלול</button>
+        <button class="btn-secondary price-cta" onclick="leadFor('ליווי חודשי')">לפרטים נוספים</button>
       </div>
 
       <!-- 2 Months (Women) — Featured -->
       <div class="price-card featured">
         <div class="price-badge featured-badge">הכי פופולרי</div>
         <div class="plan-name">ליווי 4 חודשים</div>
-        <div class="price-amount"><span class="currency">₪</span>1,500</div>
-        <div class="pm">375 ₪ לחודש</div>
-        <div class="price-period">ל-4 חודשים · חסכון של 100₪</div>
+        <div class="price-period">4 חודשים של ליווי צמוד</div>
         <div class="price-divider"></div>
         <ul class="price-features">
           <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>בניית תוכנית מלאה</li>
@@ -2477,16 +2479,14 @@
           <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>ליווי אונליין מלא</li>
           <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>ליווי לאורך 4 חודשים</li>
         </ul>
-        <button class="btn-primary price-cta" onclick="openPayment('4 חודשים-נשים')">בחר מסלול</button>
+        <button class="btn-primary price-cta" onclick="leadFor('ליווי 4 חודשים')">לפרטים נוספים</button>
       </div>
 
       <!-- 6 Months -->
       <div class="price-card">
         <div class="price-badge">חצי שנה</div>
         <div class="plan-name">ליווי חצי שנה</div>
-        <div class="price-amount"><span class="currency">₪</span>2,200</div>
-        <div class="pm">≈367 ₪ לחודש</div>
-        <div class="price-period">ל-6 חודשים · חסכון של 200₪</div>
+        <div class="price-period">6 חודשים של ליווי צמוד</div>
         <div class="price-divider"></div>
         <ul class="price-features">
           <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>בניית תוכנית מלאה</li>
@@ -2496,16 +2496,14 @@
           <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>ליווי אונליין מלא</li>
           <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>ליווי לאורך 6 חודשים</li>
         </ul>
-        <button class="btn-secondary price-cta" onclick="openPayment('חצי שנה-נשים')">בחר מסלול</button>
+        <button class="btn-secondary price-cta" onclick="leadFor('ליווי חצי שנה')">לפרטים נוספים</button>
       </div>
 
       <!-- 12 Months (Women) -->
       <div class="price-card">
         <div class="price-badge">הכי משתלם</div>
         <div class="plan-name">ליווי שנתי</div>
-        <div class="price-amount"><span class="currency">₪</span>4,000</div>
-        <div class="pm">≈333 ₪ לחודש</div>
-        <div class="price-period">ל-12 חודשים · חסכון של 800₪</div>
+        <div class="price-period">12 חודשים של ליווי צמוד</div>
         <div class="price-divider"></div>
         <ul class="price-features">
           <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>ליווי מלא ל-12 חודשים</li>
@@ -2515,21 +2513,36 @@
           <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>התאמות לפי התקדמות</li>
           <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>בניית תהליך מסודר לתוצאה</li>
         </ul>
-        <button class="btn-secondary price-cta" onclick="openPayment('שנתי-נשים')">בחר מסלול</button>
+        <button class="btn-secondary price-cta" onclick="leadFor('ליווי שנתי')">לפרטים נוספים</button>
       </div>
 
     </div>
 
-    <!-- Bit payment info (women) -->
-    <div style="max-width:420px;margin:28px auto 0;text-align:center;padding:18px 22px;background:rgba(229,232,232,0.04);border:1px solid rgba(229,232,232,0.18);border-radius:14px;">
-      <div style="font-size:0.78rem;color:#888;margin-bottom:8px;letter-spacing:0.5px;">ניתן לשלם גם בביט</div>
-      <div style="display:flex;align-items:center;justify-content:center;gap:10px;">
-        <span style="background:#0090ff;color:#fff;font-weight:900;font-size:0.9rem;letter-spacing:0.5px;border-radius:6px;padding:3px 10px;direction:ltr;">bit</span>
-        <span style="font-size:1.3rem;font-weight:900;color:#E5E8E8;letter-spacing:1px;direction:ltr;">058-693-1163</span>
-      </div>
-      <div style="font-size:0.72rem;color:#555;margin-top:8px;">לאחר התשלום שלחי הודעה בוואצאפ לאישור</div>
-    </div>
     </div><!-- /panel-women -->
+
+    <!-- 📞 השארת פרטים — במקום מחירים: שם וטלפון, ונחזור תוך 24 שעות -->
+    <div class="lead" id="lead">
+      <div class="lead-k">בלי התחייבות</div>
+      <h3 class="lead-h">רוצה לשמוע פרטים?</h3>
+      <p class="lead-p">השאירו שם וטלפון, ונחזור אליכם תוך 24 שעות עם כל הפרטים על המסלול שמתאים לכם.</p>
+      <form class="lead-form" id="lead-form" novalidate onsubmit="return submitLead(event)">
+        <div class="lead-grid">
+          <label class="lead-f"><span>שם מלא</span><input id="lead-name" autocomplete="name" maxlength="80" required></label>
+          <label class="lead-f"><span>טלפון</span><input id="lead-phone" type="tel" inputmode="tel" autocomplete="tel" maxlength="16" dir="ltr" placeholder="050-0000000" required></label>
+          <label class="lead-f"><span>מסלול שמעניין אותך</span><select id="lead-plan"><option value="">עוד לא בטוח/ה</option><option>ליווי חודשי</option><option>ליווי 4 חודשים</option><option>ליווי חצי שנה</option><option>ליווי שנתי</option></select></label>
+          <label class="lead-f"><span>המטרה</span><select id="lead-goal"><option value="">בחירה</option><option>לעלות מסה</option><option>להתחטב בלי לאבד שריר</option><option>תקוע ולא מתקדם</option><option>להגיע לבמה</option><option>להתחיל להתאמן נכון</option></select></label>
+        </div>
+        <input id="lead-hp" class="lead-hp" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
+        <button class="btn-primary lead-btn" id="lead-btn" type="submit">שלחו לי פרטים</button>
+        <div class="lead-msg" id="lead-msg" role="alert"></div>
+        <p class="lead-note">הפרטים משמשים רק כדי לחזור אליכם. מעדיפים לדבר עכשיו? <a href="https://wa.me/972586931163?text=%D7%94%D7%99%D7%99%20%D7%94%D7%9C%D7%9C%2C%20%D7%90%D7%A9%D7%9E%D7%97%20%D7%9C%D7%A9%D7%9E%D7%95%D7%A2%20%D7%A4%D7%A8%D7%98%D7%99%D7%9D%20%D7%A2%D7%9C%20%D7%94%D7%9C%D7%99%D7%95%D7%95%D7%99%20%D7%94%D7%90%D7%99%D7%A9%D7%99" target="_blank" rel="noopener">כתבו לנו בוואטסאפ</a></p>
+      </form>
+      <div class="lead-done" id="lead-done" hidden tabindex="-1">
+        <div class="lead-done-i" aria-hidden="true">✓</div>
+        <h3 class="lead-h">קיבלנו, <span id="lead-done-name"></span>!</h3>
+        <p class="lead-p">נחזור אליך תוך 24 שעות. בינתיים אפשר למלא את <a href="intake.html">שאלון הקליטה</a> (3 דקות), כדי שנגיע לשיחה מוכנים.</p>
+      </div>
+    </div>
 
     <!-- 📋 שאלון קליטה -->
     <div style="max-width:620px;margin:44px auto 0;text-align:center;padding:28px 24px;background:radial-gradient(120% 90% at 50% 0%,rgba(131,245,44,0.12),transparent 65%),rgba(255,255,255,0.03);border:1px solid rgba(131,245,44,0.35);border-radius:18px;">
@@ -2884,6 +2897,40 @@
   };
 
   /* ── gender tab switcher ── */
+  /* ── השארת פרטים: במקום מחירים — שם וטלפון, ונחזור תוך 24 שעות ──
+     נשמר בטבלה coaching_leads דרך פונקציית השרת coaching-lead, שגם שולחת מייל. */
+  const LEAD_FN = 'https://luwknflmhvcxgifzxgrk.supabase.co/functions/v1/coaching-lead';
+  function leadFor(plan, goal) {
+    const sel = document.getElementById('lead-plan'); if (sel && plan) sel.value = plan;
+    const gl = document.getElementById('lead-goal'); if (gl && goal) gl.value = goal;
+    const box = document.getElementById('lead'); if (!box) return;
+    box.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'center' });
+    setTimeout(() => { const n = document.getElementById('lead-name'); if (n && !n.value) n.focus({ preventScroll: true }); }, 500);
+  }
+  async function submitLead(e) {
+    e.preventDefault();
+    const el = id => document.getElementById(id);
+    const name = el('lead-name').value.trim(), phone = el('lead-phone').value.replace(/[^\d+]/g, ''), msg = el('lead-msg');
+    msg.textContent = '';
+    if (name.length < 2) { msg.textContent = 'נשמח לדעת איך קוראים לך'; el('lead-name').focus(); return false; }
+    if (!/^(\+972|972|0)\d{8,9}$/.test(phone)) { msg.textContent = 'מספר הטלפון לא נראה תקין (למשל 050-1234567)'; el('lead-phone').focus(); return false; }
+    const btn = el('lead-btn'); btn.disabled = true; btn.textContent = 'שולח...';
+    try {
+      const res = await fetch(LEAD_FN, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ full_name: name, phone, plan_interest: el('lead-plan').value, goal: el('lead-goal').value,
+          gender: el('tab-women') && el('tab-women').classList.contains('active') ? 'women' : 'men',
+          source: 'landing', website: el('lead-hp').value }) });
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok || !j.ok) throw new Error(j.error || 'שגיאה');
+      el('lead-done-name').textContent = name.split(/\s+/)[0];
+      el('lead-form').hidden = true; el('lead-done').hidden = false; el('lead').classList.add('sent'); el('lead-done').focus({ preventScroll: true });
+    } catch (err) {
+      btn.disabled = false; btn.textContent = 'שלחו לי פרטים';
+      msg.innerHTML = 'השליחה לא הצליחה. נסו שוב, או <a href="https://wa.me/972586931163" target="_blank" rel="noopener">כתבו לנו בוואטסאפ</a>.';
+    }
+    return false;
+  }
+
   function switchGender(gender) {
     ['men','women'].forEach(g => {
       document.getElementById('panel-'+g).classList.toggle('active', g===gender);
@@ -3108,10 +3155,10 @@
     document.documentElement.classList.add('fit-js'); f.dataset.at = 1;
     var ans = {}, L = {"goal":{"mass":"לעלות מסה","cut":"להתחטב בלי לאבד שריר","stuck":"תקוע ולא מתקדם","comp":"להגיע לבמה"},"level":{"new":"בלי ניסיון","mid":"יש קצת ניסיון","adv":"מתאמן/ת שנים"},"commit":{"m1":"לנסות חודש","m4":"4 חודשים, תהליך אמיתי","m6":"חצי שנה","m12":"שנה שלמה"}}, busy = false, timer = 0;
     var WHY = { mass: 'מסה נכונה: עולים במשקל ושומרים על הגוף חד.', cut: 'חיטוב בלי לאבד את השריר שבנית.', stuck: 'נמצא בדיוק איפה זה נתקע ונשנה את זה.', comp: 'לבמה בונים לאורך זמן, ונדבר בוואטסאפ על לוח הזמנים.' };
-    var PLAN = { m1: ['ליווי חודשי', '400 ₪', '400 ₪ לחודש · מתחדש, ביטול בהודעה חודש מראש', 'מתחילים בלי התחייבות ארוכה, ורואים איך זה מרגיש.'],
-                 m4: ['ליווי 4 חודשים', '1,500 ₪', '375 ₪ לחודש', 'מספיק זמן לבנות, לכוונן ולראות שינוי אמיתי. זה המסלול שהכי הרבה מתאמנים בוחרים.'],
-                 m6: ['ליווי חצי שנה', '2,200 ₪', '≈367 ₪ לחודש', 'זמן לעבור יותר משלב אחד: למשל מסה ואחריה חיטוב.'],
-                 m12: ['ליווי שנתי', '4,000 ₪', '≈333 ₪ לחודש', 'הכי משתלם לחודש, לשנה של התקדמות רצופה.'] };
+    var PLAN = { m1: ['ליווי חודשי', 'מתחילים בלי התחייבות ארוכה, ורואים איך זה מרגיש.'],
+                 m4: ['ליווי 4 חודשים', 'מספיק זמן לבנות, לכוונן ולראות שינוי אמיתי. זה המסלול שהכי הרבה מתאמנים בוחרים.'],
+                 m6: ['ליווי חצי שנה', 'זמן לעבור יותר משלב אחד: למשל מסה ואחריה חיטוב.'],
+                 m12: ['ליווי שנתי', 'הכי משתלם לחודש, לשנה של התקדמות רצופה.'] };
     function step(n) {
       f.dataset.at = n; f.querySelector('.fit-bar i').style.setProperty('--prog', Math.min(1, n / 3));
       var t = n < 4 ? f.querySelector('[data-step="' + n + '"] legend') : f.querySelector('.fit-res-name');
@@ -3131,9 +3178,9 @@
       if (!ans.goal || !ans.level || !ans.commit) return;
       var p = PLAN[ans.commit], r = f.querySelector('.fit-res');
       r.querySelector('.fit-res-name').textContent = p[0];
-      r.querySelector('.fit-res-price').innerHTML = '<b>' + p[1] + '</b> · ' + p[2];
-      r.querySelector('.fit-res-why').textContent = p[3] + ' ' + WHY[ans.goal];
-      var msg = 'היי הלל, עשיתי את המבחן באתר.\nמטרה: ' + L.goal[ans.goal] + '\nניסיון: ' + L.level[ans.level] + '\nזמן: ' + L.commit[ans.commit] + '\nההמלצה: ' + p[0] + ' (' + p[1] + ').\nאשמח לבדוק התאמה!';
+      r.querySelector('.fit-res-why').textContent = p[1] + ' ' + WHY[ans.goal];
+      r.querySelector('.fit-lead').onclick = function (ev) { ev.preventDefault(); leadFor(p[0], L.goal[ans.goal]); };
+      var msg = 'היי הלל, עשיתי את המבחן באתר.\nמטרה: ' + L.goal[ans.goal] + '\nניסיון: ' + L.level[ans.level] + '\nזמן: ' + L.commit[ans.commit] + '\nההמלצה: ' + p[0] + '.\nאשמח לשמוע פרטים!';
       r.querySelector('.fit-wa').href = 'https://wa.me/972586931163?text=' + encodeURIComponent(msg);
       step(4);
     }
