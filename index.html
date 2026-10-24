@@ -1934,6 +1934,24 @@
     #payment-modal { display: none !important; }   /* חלון התשלום הישן (עם המחיר) — אין כפתור שפותח אותו מאז שהמחירים ירדו */
     .lead-done-i { width: 56px; height: 56px; margin: 0 auto 12px; border-radius: 50%; display: grid; place-items: center; font-size: 1.6rem; font-weight: 900; color: #111; background: #83F52C; }
     @media (max-width: 600px) { .lead { padding: 24px 16px; } .lead-grid { grid-template-columns: 1fr; } }
+    /* ── קיר תוצאות: סינון, מונה, הצגת עוד ── */
+    .rw-bar { display: grid; gap: 10px; justify-items: center; margin: 4px auto 22px; }
+    .rw-filters { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+    .rw-filters[hidden] { display: none; }
+    .rw-chip { font: 700 .88rem 'Heebo', sans-serif; color: #C9CED0; background: rgba(255,255,255,.03); border: 1px solid rgba(229,232,232,.16); border-radius: 30px; padding: 8px 16px; cursor: pointer;
+               transition: background-color .16s cubic-bezier(.23,1,.32,1), color .16s, border-color .16s, transform .12s; }
+    .rw-chip span { font-family: 'Barlow Condensed', Heebo, sans-serif; font-style: italic; font-weight: 800; color: #83F52C; margin-inline-start: 4px; }
+    .rw-chip[aria-pressed="true"] { background: #83F52C; color: #0A0C08; border-color: #83F52C; } .rw-chip[aria-pressed="true"] span { color: #0A0C08; }
+    .rw-chip:active { transform: scale(.97); }
+    .rw-chip:focus-visible, .rw-more:focus-visible { outline: 2px solid #83F52C; outline-offset: 3px; }
+    @media (hover: hover) and (pointer: fine) { .rw-chip:not([aria-pressed="true"]):hover { border-color: rgba(131,245,44,.5); color: #fff; } }
+    .rw-count { color: var(--muted); font-size: .9rem; margin: 0; }
+    .rw-more-wrap { text-align: center; margin-top: 26px; }
+    .rw-more { font: 800 .98rem 'Heebo', sans-serif; color: #83F52C; background: transparent; border: 1px solid rgba(131,245,44,.5); border-radius: 12px; padding: 12px 26px; cursor: pointer; transition: background-color .16s; }
+    .rw-more[hidden] { display: none; }
+    @media (hover: hover) and (pointer: fine) { .rw-more:hover { background: rgba(131,245,44,.08); } }
+    #theater .th-story { display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+    @media (max-width: 900px) { .rw-filters { flex-wrap: nowrap; overflow-x: auto; justify-content: flex-start; max-width: 100%; padding: 2px 4px 6px; scrollbar-width: none; } .rw-filters::-webkit-scrollbar { display: none; } .rw-chip { flex: none; } }
   </style>
 </head>
 <body>
@@ -2065,24 +2083,73 @@
 <section id="theater">
   <a id="results"></a>
   <div class="container"><div class="eyebrow">TRANSFORMATIONS</div><h2 class="section-title"><span class="slant">תוצאות</span> <span class="slant">של מתאמנים</span></h2><p class="th-sub">מתאמנים אמיתיים. גוררים את החץ ורואים את השינוי.</p><div class="th-arrows"><button type="button" class="th-prev" aria-label="הקודם">→</button><button type="button" class="th-next" aria-label="הבא">←</button></div><div class="title-line"></div></div>
-  <div class="th-track"><div class="th-stage"><div class="th-cards">
-      <figure class="th-card" style="--i:0">
-        <div class="ba th-ba" data-ba><img class="ba-img" src="landing/ba/daniel-after.jpg" alt="דניאל רון אחרי" loading="lazy" width="640" height="800"><img class="ba-img ba-before" src="landing/ba/daniel-before.jpg" alt="דניאל רון לפני" loading="lazy" width="640" height="800"><span class="ba-tag ba-tag-b">לפני</span><span class="ba-tag ba-tag-a">אחרי</span><span class="ba-handle" aria-hidden="true"><span class="ba-knob"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6l6 6"/></svg><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6l-6 6"/></svg></span></span><input class="ba-range" type="range" min="0" max="100" value="50" dir="ltr" aria-label="השוואת לפני ואחרי של דניאל רון"></div>
-        <figcaption><div class="th-n" dir="ltr"><span class="th-sign">+</span><span class="th-val">13</span><small>ק״ג</small></div><b>דניאל רון</b><p class="th-story"><strong>עבר כמה מאמנים. כולם הבטיחו, המאזניים לא זזו.</strong> פה קיבל תוכנית מדויקת ומעקב צמוד, והגוף סוף סוף הגיב: 13 ק״ג, ואחוז השומן נשאר נמוך.</p><q>לא האמנתי שאני יכול לעלות ככה במשקל.</q></figcaption>
-      </figure>
-      <figure class="th-card" style="--i:1">
-        <div class="ba th-ba" data-ba><img class="ba-img" src="landing/ba/liran-after.jpg" alt="לירן אחרי" loading="lazy" width="640" height="800"><img class="ba-img ba-before" src="landing/ba/liran-before.jpg" alt="לירן לפני" loading="lazy" width="640" height="800"><span class="ba-tag ba-tag-b">לפני</span><span class="ba-tag ba-tag-a">אחרי</span><span class="ba-handle" aria-hidden="true"><span class="ba-knob"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6l6 6"/></svg><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6l-6 6"/></svg></span></span><input class="ba-range" type="range" min="0" max="100" value="50" dir="ltr" aria-label="השוואת לפני ואחרי של לירן"></div>
-        <figcaption><div class="th-n" dir="ltr"><span class="th-sign">+</span><span class="th-val">16</span><small>ק״ג</small></div><b>לירן</b><p class="th-story"><strong>לא האמין שאפשר לעלות במשקל בלי לתפוח.</strong> בנינו יחד אימונים ותזונה מדויקים, עם מעקב שוטף ועקביות: 16 ק״ג, ואחוז השומן נשאר נמוך.</p><q>הגוף פשוט השתנה.</q></figcaption>
-      </figure>
-      <figure class="th-card" style="--i:2">
-        <div class="ba th-ba" data-ba><img class="ba-img" src="landing/ba/ofir-after.jpg" alt="אופיר אחרי" loading="lazy" width="640" height="800"><img class="ba-img ba-before" src="landing/ba/ofir-before.jpg" alt="אופיר לפני" loading="lazy" width="640" height="800"><span class="ba-tag ba-tag-b">לפני</span><span class="ba-tag ba-tag-a">אחרי</span><span class="ba-handle" aria-hidden="true"><span class="ba-knob"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6l6 6"/></svg><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6l-6 6"/></svg></span></span><input class="ba-range" type="range" min="0" max="100" value="50" dir="ltr" aria-label="השוואת לפני ואחרי של אופיר"></div>
-        <figcaption><div class="th-n" dir="ltr"><span class="th-sign">−</span><span class="th-val">35</span><small>ק״ג</small></div><b>אופיר</b><p class="th-story"><strong>תמיד חשב שזה לא בשבילו, שהוא "לא מהסוג שמצליח".</strong> קיבל מישהו שמאמין בו יותר ממה שהוא האמין בעצמו: 35 ק״ג ירדו, ובמקומם שריר, אנרגיה וביטחון.</p><q>הגוף שלי היום הוא ההוכחה.</q></figcaption>
-      </figure>
-      <figure class="th-card" style="--i:3">
-        <div class="ba th-ba" data-ba><img class="ba-img" src="landing/ba/nesiel-after.jpg" alt="נשיאל מדמון אחרי" loading="lazy" width="640" height="800"><img class="ba-img ba-before" src="landing/ba/nesiel-before.jpg" alt="נשיאל מדמון לפני" loading="lazy" width="640" height="800"><span class="ba-tag ba-tag-b">לפני</span><span class="ba-tag ba-tag-a">אחרי</span><span class="ba-handle" aria-hidden="true"><span class="ba-knob"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6l6 6"/></svg><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6l-6 6"/></svg></span></span><input class="ba-range" type="range" min="0" max="100" value="50" dir="ltr" aria-label="השוואת לפני ואחרי של נשיאל מדמון"></div>
-        <figcaption><div class="th-n" dir="ltr"><span class="th-sign">+</span><span class="th-val">18</span><small>ק״ג</small></div><div class="th-from">מתחילת התהליך</div><b>נשיאל מדמון</b><p class="th-story"><strong>התחיל רזה, מול המראה בבית.</strong> 18 ק״ג מסה אחר כך, עם אחוז שומן נמוך, הוא עלה לבמה ולקח אלוף כללי ב-MBC 2026.</p><q>הגוף שלי השתנה לחלוטין. לא האמנתי שזה אפשרי.</q></figcaption>
-      </figure>
-  </div><div class="th-dots" aria-hidden="true"><i style="--i:0"></i><i style="--i:1"></i><i style="--i:2"></i><i style="--i:3"></i></div></div></div>
+  <div class="rw-bar container">
+    <div class="rw-filters" id="rw-filters" role="group" aria-label="סינון תוצאות"></div>
+    <p class="rw-count" id="rw-count" aria-live="polite"></p>
+  </div>
+  <div class="th-track"><div class="th-stage"><div class="th-cards" id="rw-cards"></div></div></div>
+  <div class="rw-more-wrap"><button type="button" class="rw-more" id="rw-more" hidden>הצגת עוד תוצאות</button></div>
+  <!-- קיר התוצאות: כל מתאמן חדש = שורה אחת כאן + שתי תמונות (לפני/אחרי) בתיקייה landing/ba.
+       tags: mass = עלייה במסה, cut = חיטוב, loss = ירידה במשקל, women = נשים, stage = תחרויות.
+       מסנן מופיע רק כשיש לו לפחות תוצאה אחת. הסדר כאן = הסדר בדף. -->
+  <script type="application/json" id="results-data">
+[
+ {
+  "name": "דניאל רון",
+  "sign": "+",
+  "value": 13,
+  "tags": [
+   "mass"
+  ],
+  "before": "landing/ba/daniel-before.jpg",
+  "after": "landing/ba/daniel-after.jpg",
+  "head": "עבר כמה מאמנים. כולם הבטיחו, המאזניים לא זזו.",
+  "story": "פה קיבל תוכנית מדויקת ומעקב צמוד, והגוף סוף סוף הגיב: 13 ק״ג, ואחוז השומן נשאר נמוך.",
+  "quote": "לא האמנתי שאני יכול לעלות ככה במשקל."
+ },
+ {
+  "name": "לירן",
+  "sign": "+",
+  "value": 16,
+  "tags": [
+   "mass"
+  ],
+  "before": "landing/ba/liran-before.jpg",
+  "after": "landing/ba/liran-after.jpg",
+  "head": "לא האמין שאפשר לעלות במשקל בלי לתפוח.",
+  "story": "בנינו יחד אימונים ותזונה מדויקים, עם מעקב שוטף ועקביות: 16 ק״ג, ואחוז השומן נשאר נמוך.",
+  "quote": "הגוף פשוט השתנה."
+ },
+ {
+  "name": "אופיר",
+  "sign": "−",
+  "value": 35,
+  "tags": [
+   "loss"
+  ],
+  "before": "landing/ba/ofir-before.jpg",
+  "after": "landing/ba/ofir-after.jpg",
+  "head": "תמיד חשב שזה לא בשבילו, שהוא \"לא מהסוג שמצליח\".",
+  "story": "קיבל מישהו שמאמין בו יותר ממה שהוא האמין בעצמו: 35 ק״ג ירדו, ובמקומם שריר, אנרגיה וביטחון.",
+  "quote": "הגוף שלי היום הוא ההוכחה."
+ },
+ {
+  "name": "נשיאל מדמון",
+  "sign": "+",
+  "value": 18,
+  "from": "מתחילת התהליך",
+  "tags": [
+   "mass",
+   "stage"
+  ],
+  "before": "landing/ba/nesiel-before.jpg",
+  "after": "landing/ba/nesiel-after.jpg",
+  "head": "התחיל רזה, מול המראה בבית.",
+  "story": "18 ק״ג מסה אחר כך, עם אחוז שומן נמוך, הוא עלה לבמה ולקח אלוף כללי ב-MBC 2026.",
+  "quote": "הגוף שלי השתנה לחלוטין. לא האמנתי שזה אפשרי."
+ }
+]
+  </script>
 </section>
 
 <!-- ═══ COACH ACHIEVEMENTS ═══ -->
@@ -3115,10 +3182,12 @@
       navigator.serviceWorker.register('sw.js').then(reg => reg.update()).catch(e => console.warn('SW:', e));
     }
   </script><script>
-  /* סליידר לפני/אחרי: גרירה באצבע/עכבר (pointer capture), מקלדת דרך range, רמז חד-פעמי כשנכנס למסך */
-  (function () {
-    var all = document.querySelectorAll('[data-ba]');
+  /* סליידר לפני/אחרי: גרירה באצבע/עכבר (pointer capture), מקלדת דרך range, רמז חד-פעמי כשנכנס למסך.
+     initBA(root) מפעיל אותו על כל [data-ba] שעוד לא הופעל, כך שגם כרטיסים מקיר התוצאות עובדים. */
+  window.initBA = function (root) {
+    var all = Array.prototype.filter.call((root || document).querySelectorAll('[data-ba]'), function (b) { return !b.dataset.baOn; });
     all.forEach(function (ba) {
+      ba.dataset.baOn = '1';
       var range = ba.querySelector('.ba-range');
       function set(p) { p = Math.max(0, Math.min(100, p)); ba.style.setProperty('--pos', p + '%'); range.value = Math.round(p); }
       function fromX(x) { var r = ba.getBoundingClientRect(); set((x - r.left) / r.width * 100); }
@@ -3137,7 +3206,8 @@
       });
     }, { threshold: 0.6 });
     all.forEach(function (b) { io.observe(b); });
-  })();
+  };
+  initBA(document);
 </script>
 <script>
 
@@ -3209,6 +3279,60 @@
     var p = document.querySelector('#theater .th-prev'), n = document.querySelector('#theater .th-next');
     if (p) p.addEventListener('click', function () { go(1); }); if (n) n.addEventListener('click', function () { go(-1); });
   })();
+</script>
+<script>
+/* ── קיר תוצאות ──
+   נבנה מ-#results-data. מציג 8 בכל פעם (בטלפון זו רצועת החלקה, במחשב רשת), עם מסננים לפי tags.
+   מסנן בלי תוצאות לא מוצג. "הצגת עוד" מוסיף את ה-8 הבאים. */
+(function () {
+  var el = document.getElementById('results-data'), box = document.getElementById('rw-cards'); if (!el || !box) return;
+  var DATA = []; try { DATA = JSON.parse(el.textContent); } catch (e) { return; }
+  var LABELS = { all: 'הכול', mass: 'עלייה במסה', cut: 'חיטוב', loss: 'ירידה במשקל', women: 'נשים', stage: 'תחרויות' };
+  var STEP = 8, shown = STEP, filter = 'all';
+  var bar = document.getElementById('rw-filters'), count = document.getElementById('rw-count'), more = document.getElementById('rw-more');
+  function esc(t) { return String(t == null ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;'); }
+  function list() { return filter === 'all' ? DATA : DATA.filter(function (d) { return (d.tags || []).indexOf(filter) > -1; }); }
+  var ARROW_L = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6l6 6"/></svg>';
+  var ARROW_R = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6l-6 6"/></svg>';
+  function card(d, i) {
+    var n = esc(d.name);
+    return '<figure class="th-card" style="--i:' + i + '">' +
+      '<div class="ba th-ba" data-ba><img class="ba-img" src="' + esc(d.after) + '" alt="' + n + ' אחרי" loading="lazy" width="640" height="800">' +
+      '<img class="ba-img ba-before" src="' + esc(d.before) + '" alt="' + n + ' לפני" loading="lazy" width="640" height="800">' +
+      '<span class="ba-tag ba-tag-b">לפני</span><span class="ba-tag ba-tag-a">אחרי</span>' +
+      '<span class="ba-handle" aria-hidden="true"><span class="ba-knob">' + ARROW_L + ARROW_R + '</span></span>' +
+      '<input class="ba-range" type="range" min="0" max="100" value="50" dir="ltr" aria-label="השוואת לפני ואחרי של ' + n + '"></div>' +
+      '<figcaption><div class="th-n" dir="ltr"><span class="th-sign">' + esc(d.sign) + '</span><span class="th-val">' + esc(d.value) + '</span><small>' + esc(d.unit || 'ק״ג') + '</small></div>' +
+      (d.from ? '<div class="th-from">' + esc(d.from) + '</div>' : '') + '<b>' + n + '</b>' +
+      '<p class="th-story"><strong>' + esc(d.head) + '</strong> ' + esc(d.story) + '</p>' +
+      (d.quote ? '<q>' + esc(d.quote) + '</q>' : '') + '</figcaption></figure>';
+  }
+  function chips() {
+    var keys = ['all'].concat(Object.keys(LABELS).filter(function (k) { return k !== 'all' && DATA.some(function (d) { return (d.tags || []).indexOf(k) > -1; }); }));
+    bar.hidden = keys.length < 3;   /* מסנן אחד בלבד לא מוסיף כלום */
+    bar.innerHTML = keys.map(function (k) {
+      var c = k === 'all' ? DATA.length : DATA.filter(function (d) { return (d.tags || []).indexOf(k) > -1; }).length;
+      return '<button type="button" class="rw-chip" data-k="' + k + '" aria-pressed="' + (k === filter) + '">' + LABELS[k] + ' <span>' + c + '</span></button>';
+    }).join('');
+  }
+  function render(keepScroll) {
+    var L = list(), part = L.slice(0, shown);
+    box.innerHTML = part.map(card).join('');
+    initBA(box);
+    count.textContent = L.length + (L.length === 1 ? ' תוצאה' : ' תוצאות') + (filter === 'all' ? ' של מתאמנים אמיתיים' : ' · ' + LABELS[filter]);
+    more.hidden = L.length <= shown;
+    more.textContent = 'הצגת עוד תוצאות (' + (L.length - part.length) + ')';
+    if (!keepScroll) box.scrollLeft = 0;
+  }
+  bar.addEventListener('click', function (e) {
+    var b = e.target.closest('.rw-chip'); if (!b) return;
+    filter = b.getAttribute('data-k'); shown = STEP;
+    bar.querySelectorAll('.rw-chip').forEach(function (x) { x.setAttribute('aria-pressed', x === b ? 'true' : 'false'); });
+    render();
+  });
+  more.addEventListener('click', function () { var before = box.children.length; shown += STEP; render(true); var f = box.children[before]; if (f) { var t = f.querySelector('.ba-range'); if (t) t.focus({ preventScroll: true }); f.scrollIntoView({ block: 'nearest', inline: 'start', behavior: 'smooth' }); } });
+  chips(); render();
+})();
 </script>
 </body>
 </html>
