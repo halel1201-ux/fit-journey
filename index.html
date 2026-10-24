@@ -29,6 +29,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;700;800;900&family=Barlow+Condensed:ital,wght@1,600;1,800;1,900&display=swap" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <link rel="stylesheet" href="vendor/scrollcraft/scrollcraft.css">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -1935,6 +1936,204 @@
     .lead-done-i { width: 56px; height: 56px; margin: 0 auto 12px; border-radius: 50%; display: grid; place-items: center; font-size: 1.6rem; font-weight: 900; color: #111; background: #83F52C; }
     @media (max-width: 600px) { .lead { padding: 24px 16px; } .lead-grid { grid-template-columns: 1fr; } }
   </style>
+<style id="a-style">
+  /* ═══ עיצוב A · "היום / אחרי" ═══
+     טוקנים למנוע scroll-craft + נטרול הכללים הגלובליים שלו (img/svg/כפתורים) כדי לא לשנות את שאר האתר. */
+  :root { --sc-canvas: #070808; --sc-surface: #0E1010; --sc-ink: #EEF1F1; --sc-ink-soft: #A7AEB1; --sc-accent: #83F52C; --sc-accent-ink: #0A0C08;
+          --sc-font-display: "Heebo", system-ui, sans-serif; --sc-font-text: "Heebo", system-ui, sans-serif;
+          --a-now: #0A0C0D; --a-then: #0A0F08; --a-line: rgba(229,232,232,.14); --z: 0; }
+  img, video, canvas, svg { display: revert; max-width: revert; }
+  button, input, select, textarea { font: revert; color: revert; }
+  #navbar { display: none !important; }
+  .a-anchor { position: absolute; top: 0; width: 0; height: 0; }
+  .fj-num { font-family: "Barlow Condensed", "Heebo", sans-serif; font-style: italic; font-weight: 900; font-variant-numeric: tabular-nums; direction: ltr; unicode-bidi: isolate; }
+  #a-main section { padding: 0; position: relative; }
+  #a-main img { display: block; }
+
+  /* ── קו האמצע: הניווט וסרט המדידה ── */
+  .a-dv { position: fixed; inset-block: 0; left: 50%; width: 0; z-index: 60; pointer-events: none; transform: translateX(calc(var(--z) * 50vw)); }
+  .a-dv-line { position: absolute; inset-block: 0; left: -1px; width: 2px; background: linear-gradient(180deg, transparent, rgba(131,245,44,.85) 12%, rgba(131,245,44,.85) 88%, transparent); transition: opacity .3s; }
+  .a-dv-tape { position: absolute; inset-block: 0; left: 1px; width: 12px; opacity: .5; transition: opacity .3s;
+               background: repeating-linear-gradient(180deg, rgba(229,232,232,.55) 0 1px, transparent 1px 12px), repeating-linear-gradient(180deg, rgba(229,232,232,.9) 0 1px, transparent 1px 60px);
+               background-size: 6px 100%, 12px 100%; background-position: 0 var(--tape-y, 0px), 0 var(--tape-y, 0px); }
+  .a-dv-top { position: absolute; top: 16px; left: 0; translate: -50% 0; display: grid; justify-items: center; gap: 8px; pointer-events: auto; }
+  .a-brand { padding: 8px 14px; border-radius: 12px; background: rgba(7,8,8,.74); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border: 1px solid var(--a-line); text-decoration: none; }
+  .a-dv-btns { display: flex; gap: 6px; }
+  .a-menu-btn, .a-dv-cta { font: 800 .78rem "Heebo", sans-serif; border-radius: 30px; padding: 7px 14px; cursor: pointer; text-decoration: none; white-space: nowrap; line-height: 1.2;
+                           transition: transform .14s cubic-bezier(.23,1,.32,1), background-color .16s; }
+  .a-menu-btn { background: rgba(7,8,8,.8); color: #EEF1F1; border: 1px solid var(--a-line); display: inline-flex; gap: 7px; align-items: center; }
+  .a-menu-btn span { width: 12px; height: 8px; border-block: 2px solid currentColor; position: relative; }
+  .a-menu-btn span::after { content: ""; position: absolute; inset-inline: 0; top: 1px; height: 2px; background: currentColor; }
+  .a-dv-cta { background: #83F52C; color: #0A0C08; border: 0; }
+  .a-menu-btn:active, .a-dv-cta:active { transform: scale(.97); }
+  .a-dv-tags { position: absolute; top: 112px; left: 0; display: flex; gap: 22px; translate: -50% 0; font: 800 .72rem "Heebo", sans-serif; letter-spacing: .14em; white-space: nowrap; transition: opacity .3s; }
+  .a-dv-tags .t-now { color: #92999E; } .a-dv-tags .t-then { color: #83F52C; }
+  .a-dv-read { position: absolute; top: 50%; left: 0; translate: -50% -50%; min-width: 128px; text-align: center; padding: 12px 16px 10px; border-radius: 16px;
+               background: rgba(7,8,8,.88); border: 1px solid rgba(131,245,44,.45); box-shadow: 0 18px 40px -18px rgba(0,0,0,.9), inset 0 1px 0 rgba(255,255,255,.06); }
+  .a-dv-read .fj-num { display: block; font-size: 3rem; line-height: .95; color: #83F52C; }
+  .a-dv-read small { display: block; margin-top: 4px; font: 700 .74rem "Heebo", sans-serif; color: #EEF1F1; white-space: nowrap; }
+  .a-dv-read, .a-dv-stamps { opacity: calc(1 - var(--z) * 2.5); transition: opacity .25s; }
+  html:not(.a-show-read) .a-dv-read, html:not(.a-show-read) .a-dv-stamps { opacity: 0; }
+  .a-dv-stamps { position: absolute; top: calc(50% + 70px); left: 0; translate: -50% 0; display: grid; gap: 6px; justify-items: center; }
+  .a-stamp { font: 800 .68rem "Heebo", sans-serif; padding: 3px 10px; border-radius: 30px; white-space: nowrap; color: #0A0C08; background: #83F52C;
+             opacity: 0; transform: translateY(6px); transition: opacity .3s cubic-bezier(.23,1,.32,1), transform .3s cubic-bezier(.23,1,.32,1); }
+  .a-stamp.on { opacity: 1; transform: none; }
+  .a-stamp b { font-family: "Barlow Condensed", sans-serif; font-style: italic; font-size: .85rem; margin-inline-start: 4px; direction: ltr; unicode-bidi: isolate; }
+
+  /* ── תפריט ── */
+  .a-menu { position: fixed; inset: 0; z-index: 80; background: rgba(5,6,6,.96); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); display: grid; place-items: center; padding: 24px; }
+  .a-menu[hidden] { display: none; }
+  .a-menu-in { position: relative; width: min(760px, 100%); display: grid; grid-template-columns: 1.2fr 1fr; gap: 28px 48px; }
+  .a-menu-col { display: grid; gap: 4px; align-content: start; }
+  .a-menu-col a { color: #EEF1F1; text-decoration: none; font: 900 clamp(1.5rem, 1.1rem + 1.6vw, 2.4rem) "Heebo", sans-serif; letter-spacing: -.02em; padding: 4px 0; }
+  .a-menu-col--sm a { font: 700 1.05rem "Heebo", sans-serif; color: #C9CED0; padding: 7px 0; border-bottom: 1px solid var(--a-line); }
+  .a-menu-col a:hover { color: #83F52C; }
+  .a-menu-cta { grid-column: 1 / -1; justify-self: start; }
+  .a-menu-x { position: absolute; top: -8px; left: 0; width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--a-line); background: transparent; color: #EEF1F1; font-size: 1.1rem; cursor: pointer; }
+
+  /* ── שני הצדדים ── */
+  .a-halves { position: absolute; inset: 0; display: grid; grid-template-columns: 1fr 1fr; }
+  .a-half { position: relative; overflow: clip; }
+  .a-half--now { background: var(--a-now); } .a-half--then { background: var(--a-then); }
+  .a-half img.a-ph { position: absolute; inset: -8% 0; width: 100%; height: 116%; max-width: none; object-fit: cover; }
+
+  /* 1 · פתיחה */
+  .a-hero .a-half--now .a-ph { filter: blur(5px) grayscale(1) brightness(.5) contrast(1.05); }
+  .a-hero .a-half--then .a-ph { filter: blur(5px) brightness(.85) saturate(.9); }
+  .a-hero .a-half--then::after { content: ""; position: absolute; inset: 0; background: radial-gradient(70% 60% at 30% 70%, rgba(131,245,44,.20), transparent 70%); }
+  .a-coach { position: absolute; bottom: 0; left: 50%; height: min(92svh, 980px); width: auto; max-width: none; z-index: 3; translate: -50% 0;
+             transform: translateY(calc(var(--sc-p, 0) * -5svh)) scale(calc(1 + var(--sc-p, 0) * .05)); transform-origin: 50% 100%; filter: drop-shadow(0 30px 40px rgba(0,0,0,.6)); }
+  .a-floor { position: absolute; inset-inline: 0; bottom: 0; height: 30%; z-index: 4; pointer-events: none; background: linear-gradient(180deg, transparent, rgba(7,8,8,.75) 55%, #070808); }
+  .a-haze { position: absolute; inset: 0; z-index: 5; pointer-events: none; opacity: .5; transform: translateY(calc(var(--sc-p, 0) * -9svh));
+            background: radial-gradient(40% 30% at 70% 85%, rgba(229,232,232,.08), transparent 70%), radial-gradient(35% 28% at 25% 80%, rgba(131,245,44,.07), transparent 70%); }
+  .a-hcopy { position: absolute; z-index: 6; bottom: clamp(3rem, 14vh, 9rem); width: min(31vw, 30rem); }
+  .a-hcopy--now { right: clamp(1.5rem, 4vw, 4rem); } .a-hcopy--then { left: clamp(1.5rem, 4vw, 4rem); }
+  .a-kick { font: 800 .78rem "Heebo", sans-serif; letter-spacing: .16em; margin: 0 0 12px; color: #83F52C; }
+  .a-kick--now, .a-hcopy--now .a-kick { color: #92999E; }
+  .a-h-now { font-size: clamp(1.6rem, 1rem + 1.6vw, 2.5rem); font-weight: 800; line-height: 1.15; color: #C9CED0; text-wrap: balance; }
+  .a-hero h1 { font-size: clamp(2rem, 1.1rem + 2.6vw, 3.6rem); font-weight: 900; line-height: 1.04; letter-spacing: -.02em; margin: 0 0 14px; color: #fff; text-wrap: balance; }
+  .a-hero h1 em { font-style: normal; color: #83F52C; }
+  .a-sub { margin: 0 0 22px; color: #A7AEB1; font-size: 1.02rem; line-height: 1.6; max-width: 28rem; }
+  .a-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 15px 28px; border: 0; border-radius: 12px; background: #83F52C; color: #0A0C08 !important;
+           font: 800 1.05rem "Heebo", sans-serif; cursor: pointer; white-space: nowrap; text-decoration: none; box-shadow: 0 10px 26px -12px rgba(131,245,44,.7);
+           transition: transform .14s cubic-bezier(.23,1,.32,1), box-shadow .14s cubic-bezier(.23,1,.32,1); }
+  .a-btn:active { transform: scale(.97); }
+  .a-btn--ghost { background: transparent; color: #83F52C !important; border: 1px solid rgba(131,245,44,.5); box-shadow: none; padding: 12px 20px; font-size: .95rem; }
+  .a-btn--full { width: 100%; }
+  @media (hover: hover) and (pointer: fine) { .a-btn:hover { box-shadow: 0 14px 30px -12px rgba(131,245,44,.9); } .a-btn--ghost:hover { background: rgba(131,245,44,.08); } }
+
+  /* קטעים רגילים בשני טורים */
+  .a-sec { position: relative; }
+  .a-sec > .a-halves { z-index: 0; }
+  .a-grid { position: relative; z-index: 1; display: grid; grid-template-columns: 1fr 1fr; padding-block: clamp(4rem, 12vh, 8rem); }
+  .a-col { padding-inline: clamp(1.5rem, 6vw, 6rem); color: #EEF1F1; }
+  .a-h2 { font-size: clamp(1.9rem, 1.2rem + 2vw, 3.1rem); font-weight: 900; margin: 0 0 clamp(1rem, 3vh, 1.8rem); letter-spacing: -.02em; line-height: 1.05; color: #fff; }
+  .a-h2 b { color: #83F52C; } .a-h2--now { color: #B8BEC1; }
+  .a-p { font-size: clamp(1.02rem, .95rem + .3vw, 1.2rem); line-height: 1.75; color: #D2D7D8; max-width: 34rem; }
+  .a-sign { margin-top: 12px; font-family: "Barlow Condensed", sans-serif; font-style: italic; font-weight: 900; font-size: 1.6rem; color: #83F52C; }
+  .a-stats { display: flex; gap: 28px; margin-top: 26px; flex-wrap: wrap; }
+  .a-stats dt { font-size: .76rem; color: #92999E; font-weight: 700; } .a-stats dd { margin: 2px 0 0; font-size: 2.2rem; color: #EEF1F1; line-height: 1; }
+  .a-row { min-height: clamp(5rem, 12vh, 7.5rem); display: flex; align-items: center; border-top: 1px solid var(--a-line); font-size: clamp(1rem, .9rem + .35vw, 1.22rem); line-height: 1.5; }
+  .a-c-now .a-row { color: #9AA1A4; text-decoration: line-through; text-decoration-color: rgba(229,232,232,.25); }
+  .a-c-then .a-row { color: #D2D7D8; } .a-c-then .a-row b { color: #fff; }
+  .a-c-then .a-row::before { content: ""; flex: none; width: 10px; height: 10px; border-radius: 50%; background: #83F52C; margin-inline-end: 14px; }
+
+  /* 4 · תוצאות (השיא) */
+  .a-case { position: absolute; inset: 0; display: grid; grid-template-columns: 1fr 1fr; }
+  .a-case .a-half img.a-ph { inset: 0; height: 100%; }
+  .a-case .a-half--now img.a-ph { filter: grayscale(.85) brightness(.8) contrast(1.05); }
+  .a-band { position: absolute; inset-inline: 0; bottom: 0; height: 46%; background: linear-gradient(180deg, transparent, rgba(7,8,8,.88) 70%); }
+  .a-cap { position: absolute; bottom: clamp(2rem, 9vh, 5rem); z-index: 2; width: min(34vw, 28rem); color: #EEF1F1; }
+  .a-cap--now { right: clamp(1.5rem, 4vw, 4rem); } .a-cap--then { left: clamp(1.5rem, 4vw, 4rem); }
+  .a-who { font-size: clamp(1.5rem, 1rem + 1.4vw, 2.3rem); font-weight: 900; margin: 0 0 6px; }
+  .a-q { color: #C9CED0; font-size: 1rem; line-height: 1.55; }
+  .a-big { display: block; font-size: clamp(3.4rem, 2rem + 4vw, 6rem); line-height: .9; color: #83F52C; }
+  .a-unit { font-size: .95rem; font-weight: 800; }
+  .a-lbl { font: 800 .74rem "Heebo", sans-serif; letter-spacing: .14em; color: #92999E; margin: 0 0 8px; } .a-cap--then .a-lbl { color: #83F52C; }
+  .a-title { margin-top: 10px; font-weight: 800; font-size: 1.05rem; }
+
+  /* 5 · הישגים */
+  .a-titles { list-style: none; margin: 22px 0 0; display: grid; gap: 10px; }
+  .a-titles li { display: flex; justify-content: space-between; gap: 12px; padding: 12px 0; border-top: 1px solid var(--a-line); flex-wrap: wrap; }
+  .a-titles b { color: #fff; } .a-titles span { color: #83F52C; font-weight: 800; }
+  .a-quote { margin: 24px 0 0; font-size: 1.15rem; font-weight: 700; color: #EEF1F1; line-height: 1.5; }
+  .a-quote cite { display: block; margin-top: 6px; font-style: normal; font-size: .85rem; color: #92999E; }
+  .a-gal { display: grid; grid-template-columns: 1.1fr 1fr; gap: 12px; align-items: start; }
+  .a-gal figure { margin: 0; } .a-gal img { width: 100%; aspect-ratio: 4 / 5; object-fit: cover; border-radius: 8px; }
+  .a-g2 { margin-top: 18%; } .a-gal figcaption { margin-top: 8px; font-size: .82rem; color: #92999E; }
+
+  /* 7 · אפליקציה */
+  .a-checks { list-style: none; margin: 0 0 22px; display: grid; gap: 10px; }
+  .a-checks li { display: flex; gap: 10px; align-items: center; color: #D2D7D8; } .a-checks li::before { content: "✓"; color: #83F52C; font-weight: 900; }
+  .a-appvis .app-vis { margin-top: 10px; }
+  .a-app #more-links { padding: 0; } .a-app .more-grid { margin-top: 18px; }
+
+  /* 8 · מסלולים */
+  .a-plan { padding: 16px 0; border-top: 1px solid var(--a-line); display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 4px 16px; }
+  .a-plan h3 { font-size: 1.2rem; font-weight: 800; color: #fff; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .a-plan p { grid-column: 1; color: #A7AEB1; font-size: .95rem; }
+  .a-plan button { grid-column: 2; grid-row: 1 / 3; font: 800 .88rem "Heebo", sans-serif; color: #83F52C; background: transparent; border: 1px solid rgba(131,245,44,.5); border-radius: 30px; padding: 9px 16px; cursor: pointer; white-space: nowrap; }
+  .a-plan--hot button { background: #83F52C; color: #0A0C08; border-color: #83F52C; }
+  .a-tag { font-size: .7rem; font-weight: 800; color: #83F52C; border: 1px solid rgba(131,245,44,.45); border-radius: 30px; padding: 2px 10px; }
+  .a-note { margin-top: 14px; color: #92999E; font-size: .88rem; line-height: 1.6; } .a-note a { color: #83F52C; }
+  .a-months { list-style: none; margin: 0; display: grid; gap: 14px; counter-reset: m; }
+  .a-months li { color: #D2D7D8; line-height: 1.6; padding-inline-start: 14px; border-inline-start: 2px solid rgba(131,245,44,.5); }
+  .a-months b { color: #fff; }
+  .a-intake { margin-top: 26px; padding: 18px; border-radius: 14px; border: 1px solid var(--a-line); background: rgba(255,255,255,.02); }
+  .a-intake p { color: #D2D7D8; line-height: 1.6; margin-bottom: 12px; } .a-intake b { color: #fff; }
+  .a-intake-btns { display: flex; gap: 10px; flex-wrap: wrap; }
+
+  /* 9 · סגירה */
+  .a-close .a-c-then { position: absolute; inset: 0; background: radial-gradient(70% 70% at 50% 40%, rgba(131,245,44,.10), transparent 70%), var(--a-then); }
+  .a-close .a-c-now { position: absolute; inset-block: 0; right: 0; width: 50%; background: var(--a-now); z-index: 2; transform: translateX(calc(var(--z) * 100%)); display: grid; place-items: center; }
+  .a-close .a-c-now p { color: #6E7578; font-size: clamp(1.3rem, .9rem + 1.2vw, 2rem); font-weight: 900; text-align: center; padding: 2rem; max-width: 22rem; opacity: calc(1 - var(--z) * 1.6); }
+  .a-ccopy { position: absolute; z-index: 1; top: 50%; left: 50%; width: min(92vw, 36rem); translate: -50% -50%; transform: translateX(calc((1 - var(--z)) * -25vw)); color: #EEF1F1; }
+  .a-ccopy h2 { font-size: clamp(2rem, 1.2rem + 2.4vw, 3.4rem); font-weight: 900; margin: 0 0 10px; letter-spacing: -.02em; text-align: center; color: #fff; }
+  .a-lead { color: #A7AEB1; margin: 0 auto 20px; max-width: 30rem; line-height: 1.6; text-align: center; } .a-lead a { color: #83F52C; }
+  .a-form { display: grid; gap: 12px; text-align: right; }
+  .a-two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .a-gender { border: 0; padding: 0; margin: 0; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .a-gender legend { float: right; margin-inline-end: 6px; font-size: .78rem; font-weight: 700; color: #bbb; }
+  .a-gender label { cursor: pointer; } .a-gender input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+  .a-gender span { display: inline-block; padding: 8px 18px; border-radius: 30px; border: 1px solid rgba(229,232,232,.2); font-weight: 800; font-size: .9rem; color: #C9CED0; transition: background-color .16s, color .16s, border-color .16s; }
+  .a-gender input:checked + span { background: #83F52C; color: #0A0C08; border-color: #83F52C; }
+  .a-gender input:focus-visible + span { outline: 2px solid #83F52C; outline-offset: 3px; }
+  .a-fine { font-size: .78rem; color: #888; text-align: center; } .a-fine a { color: #83F52C; }
+  .a-done { text-align: center; } .a-done:focus { outline: none; }
+  .a-total { margin-top: 16px; font-size: .86rem; color: #A7AEB1; text-align: center; } .a-total .fj-num { color: #83F52C; font-size: 1.2rem; }
+
+  /* ── טלפון: שני הצדדים נשארים, הקטעים הארוכים נערמים (היום מעל, אחרי מתחת) ── */
+  @media (max-width: 760px) {
+    .a-dv-top { top: 10px; } .a-brand { padding: 6px 10px; } .a-brand .wc-t { font-size: 1.2rem; }
+    .a-dv-cta { display: none; }
+    .a-dv-tags { top: 98px; gap: 14px; font-size: .62rem; }
+    .a-dv-read { min-width: 96px; padding: 8px 10px 7px; } .a-dv-read .fj-num { font-size: 2.2rem; } .a-dv-read small { font-size: .62rem; }
+    .a-dv-stamps { top: calc(50% + 52px); } .a-stamp { font-size: .6rem; padding: 2px 8px; }
+    html.a-stacked .a-dv-line, html.a-stacked .a-dv-tape, html.a-stacked .a-dv-tags { opacity: 0; }
+    .a-menu-in { grid-template-columns: 1fr; gap: 18px; } .a-menu-x { top: -40px; }
+    .a-coach { height: 70svh; }
+    .a-hcopy { width: auto; inset-inline: 16px; }
+    .a-hcopy--now { top: 128px; bottom: auto; text-align: center; } .a-h-now { font-size: 1.15rem; }
+    .a-hcopy--then { bottom: 96px; text-align: center; }   /* מעל כפתור הוואטסאפ הצף */ .a-hero h1 { font-size: 2rem; } .a-sub { display: none; } .a-hcopy--then .a-btn { width: 100%; }
+    .a-grid { padding-block: 128px 4rem; }
+    .a-stack-m .a-halves { display: none; }
+    .a-stack-m .a-grid { grid-template-columns: 1fr; padding: 0; }
+    .a-stack-m .a-col { padding: 3.5rem 18px; } .a-stack-m .a-col:first-child { background: var(--a-now); padding-top: 128px; } .a-stack-m .a-col:last-child { background: var(--a-then); }
+    .a-pairs .a-col { padding-inline: 14px; } .a-row { font-size: .9rem; min-height: 6.6rem; }
+    .a-c-then .a-row::before { width: 8px; height: 8px; margin-inline-end: 8px; }
+    .a-cap { width: auto; } .a-cap--now { right: 12px; left: calc(50% + 14px); } .a-cap--then { left: 12px; right: calc(50% + 14px); }
+    .a-who { font-size: 1.1rem; } .a-q { display: none; } .a-big { font-size: 2.6rem; } .a-title { font-size: .8rem; }
+    .a-ccopy { width: calc(100vw - 32px); transform: none; z-index: 3; } .a-close .a-c-now p { display: none; }
+    .a-two { grid-template-columns: 1fr; } .a-ccopy h2 { font-size: 1.8rem; } .a-lead { font-size: .9rem; margin-bottom: 14px; } .a-total { display: none; }
+    .a-form { gap: 9px; } .a-form .lead-f input, .a-form .lead-f select { padding: 11px 13px; }
+    .a-plan { grid-template-columns: 1fr; } .a-plan button { grid-column: 1; grid-row: auto; justify-self: start; margin-top: 6px; }
+    .a-app .app-vis { transform: scale(.86); transform-origin: 50% 0; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    :root { --z: 1 !important; } .a-dv { transform: none; } .a-dv-line, .a-dv-tape, .a-dv-read, .a-dv-stamps { display: none; } .a-close .a-c-now { display: none; } .a-ccopy { transform: none; }
+  }
+
+</style>
 </head>
 <body>
 
@@ -1986,229 +2185,190 @@
 </header>
 
 
-<!-- ═══ HERO ═══ -->
-<section id="hero">
-  <div class="hero-bg"></div>
-  <div class="hf-big" aria-hidden="true">HF</div>
-  <div class="side-words" aria-hidden="true"><span>TRAINING</span><span>NUTRITION</span><span>PROGRESS</span><span>ANYWHERE</span></div>
-  <div class="flare" aria-hidden="true"><i style="--x:-168px;--y:-260px;--d:0ms;--s:3px"></i><i style="--x:-130px;--y:-313px;--d:60ms;--s:4px"></i><i style="--x:-92px;--y:-366px;--d:120ms;--s:5px"></i><i style="--x:-108px;--y:-419px;--d:180ms;--s:3px"></i><i style="--x:-70px;--y:-472px;--d:240ms;--s:4px"></i><i style="--x:-32px;--y:-285px;--d:0ms;--s:5px"></i><i style="--x:-48px;--y:-338px;--d:60ms;--s:3px"></i><i style="--x:-10px;--y:-391px;--d:120ms;--s:4px"></i><i style="--x:28px;--y:-444px;--d:180ms;--s:5px"></i><i style="--x:12px;--y:-497px;--d:240ms;--s:3px"></i><i style="--x:50px;--y:-310px;--d:0ms;--s:4px"></i><i style="--x:88px;--y:-363px;--d:60ms;--s:5px"></i><i style="--x:72px;--y:-416px;--d:120ms;--s:3px"></i><i style="--x:110px;--y:-469px;--d:180ms;--s:4px"></i><i style="--x:148px;--y:-282px;--d:240ms;--s:5px"></i><i style="--x:132px;--y:-335px;--d:0ms;--s:3px"></i></div>
-  <div class="hero-photo" aria-hidden="true"><picture><source srcset="landing/halel-hero.webp" type="image/webp"><img src="landing/halel-hero.png" alt="" width="600" height="1772" fetchpriority="high"></picture></div>
-  <div class="sparks">
-    <div class="spark"></div><div class="spark"></div>
-    <div class="spark"></div><div class="spark"></div>
-    <div class="spark"></div><div class="spark"></div>
-    <div class="spark"></div><div class="spark"></div>
-    <div class="spark"></div><div class="spark"></div>
-    <div class="spark"></div><div class="spark"></div>
-  </div>
-  <div class="hero-line"></div>
-
-  <div class="hero-content">
-    <div class="hero-tag"><span class="wc lg" dir="ltr"><span class="wc-t">H<b>Fit</b>Journey</span><span class="wc-s">ONLINE COACHING</span></span></div>
-
-    <h1 class="hero-title">
-      ליווי אונליין שמביא<br>
-      <span class="highlight">תוצאות אמיתיות</span>
-    </h1>
-
-    <p class="hero-sub">
-      תוכנית אימונים, תזונה וליווי אישי שמותאמים בדיוק למטרה שלך —<br>
-      מסה, חיטוב, שינוי גוף או הכנה לתחרות.
-    </p>
-
-    <div class="hero-from">ליווי אישי אונליין · <b>למתאמנים ולמתאמנות</b></div>
-
-    <div class="hero-buttons">
-      <a href="#" class="btn-primary" onclick="goTo('pricing'); return false;">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
-        התחל תהליך עכשיו
-      </a>
-      <a href="#" class="btn-secondary" onclick="goTo('results'); return false;">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8" fill="currentColor" stroke="none"/></svg>
-        צפה בתוצאות של מתאמנים
-      </a>
-    </div>
-
-    <div class="scroll-hint">
-      <span>גלול למטה</span>
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
+<!-- ═══ עיצוב A · "היום / אחרי" (scroll-craft, Split stage) ═══
+     שני צדדים קבועים לכל אורך הדף: ימין = היום, שמאל = אחרי. קו האמצע הוא הניווט וסרט המדידה.
+     העוגנים הישנים (#hero, #features, #results, #achievements, #fit, #pricing, #more-links) נשארים כעוגנים ריקים,
+     כדי שקישורים מבחוץ (למשל המחשבון ← index.html#pricing) ימשיכו לעבוד. -->
+<div class="sc-grain" aria-hidden="true"></div>
+<div class="a-dv" id="a-dv">
+  <div class="a-dv-line" aria-hidden="true"></div>
+  <div class="a-dv-tape" id="a-tape" aria-hidden="true"></div>
+  <div class="a-dv-top">
+    <a class="a-brand wc" href="#a-hero" aria-label="HFitJourney, לראש הדף"><span class="wc-t">H<b>Fit</b>Journey</span><span class="wc-s">ONLINE COACHING</span></a>
+    <div class="a-dv-btns">
+      <button class="a-menu-btn" id="a-menu-btn" type="button" aria-expanded="false" aria-controls="a-menu"><span aria-hidden="true"></span>תפריט</button>
+      <a class="a-dv-cta" href="#lead" onclick="leadFor(); return false;">השארת פרטים</a>
     </div>
   </div>
-</section>
+  <div class="a-dv-tags" aria-hidden="true"><span class="t-now" id="a-tag-now">היום</span><span class="t-then" id="a-tag-then">אחרי</span></div>
+  <div class="a-dv-read" aria-hidden="true"><span class="fj-num" id="a-num">0</span><small id="a-lbl">ק״ג · מתחילים</small></div>
+  <div class="a-dv-stamps" id="a-stamps" aria-hidden="true"></div>
+</div>
 
-<div class="stats-strip"><div><small>מתאמנים בליווי</small><b dir="ltr">30+</b><span>גברים ונשים</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3 20a6 6 0 0 1 12 0M16 4a3 3 0 0 1 0 6M18 14a5 5 0 0 1 3 6"/></svg></div><div><small>תארים ב-2026</small><b dir="ltr">2</b><span>MBC · WNBF · נשיאל</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 21h8M12 17v4M7 4h10v4a5 5 0 0 1-10 0zM7 6H4a3 3 0 0 0 3 4M17 6h3a3 3 0 0 1-3 4"/></svg></div><div><small>חוזרים אליך</small><b dir="ltr">24h</b><span>אחרי תשלום והודעה</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div><div><small>ליווי מכל מקום</small><b dir="ltr">ONLINE</b><span>דרך האפליקציה</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></svg></div></div>
-
-<!-- ═══ הסיפור שלי ═══ -->
-<section id="story">
-  <div class="container">
-    <div class="eyebrow">ABOUT ME</div><h2 class="section-title"><span class="slant">לא עוד מאמן.</span> <span class="slant">תהליך אמיתי.</span></h2>
-    <div class="title-line"></div>
-    <div class="story-grid">
-      <div class="story-photo"><img src="landing/halel-story.jpg" alt="הלל בחדר הכושר" loading="lazy" width="515" height="682"></div>
-      <div class="story-text">
-        <div class="story-kicker">בקצרה</div>
-        <p>התחלתי כמו רוב מי שכותב לי היום: נכנסתי לחדר כושר עם המון רצון ו<strong>אפס תוכנית</strong>. העתקתי אימונים מהרשת, אכלתי "בריא", והגוף כמעט לא זז.</p>
-        <p>אחרי שנים של ניסוי וטעייה הבנתי שאין קסם. יש <strong>תוכנית מדויקת, מעקב צמוד והתמדה</strong>. בניתי את עצמי מחדש לפי זה, צעד אחרי צעד.</p>
-        <p>ואז התחלתי לבנות גם אחרים. היום אני מלווה <strong>מעל 30 מתאמנים</strong>, ואחד מהם, נשיאל, לקח השנה <span class="gold">אלוף ישראל</span>.</p>
-        <div class="story-sign">— הלל</div>
-        <div class="story-tiles"><a class="tile" href="#achievements"><img src="תחרויות/mbc2026.jpg" alt="" loading="lazy"><span>תחרויות</span></a><a class="tile" href="#achievements"><img src="landing/ba/nesiel-stage.jpg" alt="" loading="lazy"><span>הישגים</span></a><a class="tile" href="#story"><img src="landing/halel-story.jpg" alt="" loading="lazy"><span>הדרך שלי</span></a></div>
-      </div>
+<nav class="a-menu" id="a-menu" aria-label="תפריט ראשי" hidden>
+  <div class="a-menu-in">
+    <div class="a-menu-col">
+      <a href="#a-results" data-go>תוצאות</a>
+      <a href="#a-ach" data-go>הישגים</a>
+      <a href="#a-features" data-go>מה מקבלים</a>
+      <a href="#a-fit" data-go>מה מתאים לך?</a>
+      <a href="#a-app" data-go>האפליקציה</a>
+      <a href="#a-plans" data-go>מסלולים</a>
     </div>
+    <div class="a-menu-col a-menu-col--sm">
+      <a href="intake.html">שאלון קליטה</a>
+      <a href="join.html">מנוי למתאמן</a>
+      <a href="webinar.html">FIT JOURNEY APP</a>
+      <a href="#" onclick="aMenu(false); openRecipeBook(); return false;">ספר מתכונים</a>
+      <a href="coaching-terms.html">תקנון</a>
+      <a href="login.html">אזור אישי</a>
+    </div>
+    <a class="a-menu-cta" href="#lead" onclick="aMenu(false); leadFor(); return false;">השארת פרטים</a>
+    <button class="a-menu-x" type="button" onclick="aMenu(false)" aria-label="סגירת התפריט">✕</button>
   </div>
-</section>
+</nav>
 
+<main id="a-main">
+  <div id="hero" style="display:none !important"></div>
 
-
-
-
-<!-- ═══ תיאטרון השינוי ═══ -->
-<section id="theater">
-  <a id="results"></a>
-  <div class="container"><div class="eyebrow">TRANSFORMATIONS</div><h2 class="section-title"><span class="slant">תוצאות</span> <span class="slant">של מתאמנים</span></h2><p class="th-sub">מתאמנים אמיתיים. גוררים את החץ ורואים את השינוי.</p><div class="th-arrows"><button type="button" class="th-prev" aria-label="הקודם">→</button><button type="button" class="th-next" aria-label="הבא">←</button></div><div class="title-line"></div></div>
-  <div class="th-track"><div class="th-stage"><div class="th-cards">
-      <figure class="th-card" style="--i:0">
-        <div class="ba th-ba" data-ba><img class="ba-img" src="landing/ba/daniel-after.jpg" alt="דניאל רון אחרי" loading="lazy" width="640" height="800"><img class="ba-img ba-before" src="landing/ba/daniel-before.jpg" alt="דניאל רון לפני" loading="lazy" width="640" height="800"><span class="ba-tag ba-tag-b">לפני</span><span class="ba-tag ba-tag-a">אחרי</span><span class="ba-handle" aria-hidden="true"><span class="ba-knob"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6l6 6"/></svg><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6l-6 6"/></svg></span></span><input class="ba-range" type="range" min="0" max="100" value="50" dir="ltr" aria-label="השוואת לפני ואחרי של דניאל רון"></div>
-        <figcaption><div class="th-n" dir="ltr"><span class="th-sign">+</span><span class="th-val">13</span><small>ק״ג</small></div><b>דניאל רון</b><p class="th-story"><strong>עבר כמה מאמנים. כולם הבטיחו, המאזניים לא זזו.</strong> פה קיבל תוכנית מדויקת ומעקב צמוד, והגוף סוף סוף הגיב: 13 ק״ג, ואחוז השומן נשאר נמוך.</p><q>לא האמנתי שאני יכול לעלות ככה במשקל.</q></figcaption>
-      </figure>
-      <figure class="th-card" style="--i:1">
-        <div class="ba th-ba" data-ba><img class="ba-img" src="landing/ba/liran-after.jpg" alt="לירן אחרי" loading="lazy" width="640" height="800"><img class="ba-img ba-before" src="landing/ba/liran-before.jpg" alt="לירן לפני" loading="lazy" width="640" height="800"><span class="ba-tag ba-tag-b">לפני</span><span class="ba-tag ba-tag-a">אחרי</span><span class="ba-handle" aria-hidden="true"><span class="ba-knob"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6l6 6"/></svg><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6l-6 6"/></svg></span></span><input class="ba-range" type="range" min="0" max="100" value="50" dir="ltr" aria-label="השוואת לפני ואחרי של לירן"></div>
-        <figcaption><div class="th-n" dir="ltr"><span class="th-sign">+</span><span class="th-val">16</span><small>ק״ג</small></div><b>לירן</b><p class="th-story"><strong>לא האמין שאפשר לעלות במשקל בלי לתפוח.</strong> בנינו יחד אימונים ותזונה מדויקים, עם מעקב שוטף ועקביות: 16 ק״ג, ואחוז השומן נשאר נמוך.</p><q>הגוף פשוט השתנה.</q></figcaption>
-      </figure>
-      <figure class="th-card" style="--i:2">
-        <div class="ba th-ba" data-ba><img class="ba-img" src="landing/ba/ofir-after.jpg" alt="אופיר אחרי" loading="lazy" width="640" height="800"><img class="ba-img ba-before" src="landing/ba/ofir-before.jpg" alt="אופיר לפני" loading="lazy" width="640" height="800"><span class="ba-tag ba-tag-b">לפני</span><span class="ba-tag ba-tag-a">אחרי</span><span class="ba-handle" aria-hidden="true"><span class="ba-knob"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6l6 6"/></svg><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6l-6 6"/></svg></span></span><input class="ba-range" type="range" min="0" max="100" value="50" dir="ltr" aria-label="השוואת לפני ואחרי של אופיר"></div>
-        <figcaption><div class="th-n" dir="ltr"><span class="th-sign">−</span><span class="th-val">35</span><small>ק״ג</small></div><b>אופיר</b><p class="th-story"><strong>תמיד חשב שזה לא בשבילו, שהוא "לא מהסוג שמצליח".</strong> קיבל מישהו שמאמין בו יותר ממה שהוא האמין בעצמו: 35 ק״ג ירדו, ובמקומם שריר, אנרגיה וביטחון.</p><q>הגוף שלי היום הוא ההוכחה.</q></figcaption>
-      </figure>
-      <figure class="th-card" style="--i:3">
-        <div class="ba th-ba" data-ba><img class="ba-img" src="landing/ba/nesiel-after.jpg" alt="נשיאל מדמון אחרי" loading="lazy" width="640" height="800"><img class="ba-img ba-before" src="landing/ba/nesiel-before.jpg" alt="נשיאל מדמון לפני" loading="lazy" width="640" height="800"><span class="ba-tag ba-tag-b">לפני</span><span class="ba-tag ba-tag-a">אחרי</span><span class="ba-handle" aria-hidden="true"><span class="ba-knob"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6l6 6"/></svg><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6l-6 6"/></svg></span></span><input class="ba-range" type="range" min="0" max="100" value="50" dir="ltr" aria-label="השוואת לפני ואחרי של נשיאל מדמון"></div>
-        <figcaption><div class="th-n" dir="ltr"><span class="th-sign">+</span><span class="th-val">18</span><small>ק״ג</small></div><div class="th-from">מתחילת התהליך</div><b>נשיאל מדמון</b><p class="th-story"><strong>התחיל רזה, מול המראה בבית.</strong> 18 ק״ג מסה אחר כך, עם אחוז שומן נמוך, הוא עלה לבמה ולקח אלוף כללי ב-MBC 2026.</p><q>הגוף שלי השתנה לחלוטין. לא האמנתי שזה אפשרי.</q></figcaption>
-      </figure>
-  </div><div class="th-dots" aria-hidden="true"><i style="--i:0"></i><i style="--i:1"></i><i style="--i:2"></i><i style="--i:3"></i></div></div></div>
-</section>
-
-<!-- ═══ COACH ACHIEVEMENTS ═══ -->
-<section id="achievements">
-  <div class="container">
-    <div class="eyebrow">COMPETITIVE ACHIEVEMENTS · 2026</div><h2 class="section-title"><span class="slant">הישגים</span> <span class="slant">תחרותיים</span></h2>
-    <div class="title-line"></div>
-
-    <div class="achievements-layout">
-
-      <!-- טיימליין ───────────────────── -->
-      <div class="timeline">
-
-        <!-- 2026 -->
-        <div class="year-block">
-          <div class="year-label">2026</div>
-
-          <div class="achieve-item">
-            <div class="achieve-medal"><svg class="medal-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 21l8 0"/><path d="M12 17l0 4"/><path d="M7 4l10 0"/><path d="M17 4v8a5 5 0 0 1 -10 0v-8"/><path d="M3 9a2 2 0 1 0 4 0a2 2 0 1 0 -4 0"/><path d="M17 9a2 2 0 1 0 4 0a2 2 0 1 0 -4 0"/></svg></div>
-            <div class="achieve-info">
-              <div class="achieve-comp">MBC Classic Physique — Overall Champion</div>
-              <div class="achieve-place">מקום ראשון כולל</div>
-              <span class="achieve-org">MBC</span>
-            </div>
-          </div>
-
-          <div class="achieve-item">
-            <div class="achieve-medal"><svg class="medal-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v3m-4 -3v6m8 -6v6"/><path d="M12 18.5l-3 1.5l.5 -3.5l-2 -2l3 -.5l1.5 -3l1.5 3l3 .5l-2 2l.5 3.5l-3 -1.5"/></svg></div>
-            <div class="achieve-info">
-              <div class="achieve-comp">WNBF Classic Physique</div>
-              <div class="achieve-place">מקום ראשון</div>
-              <span class="achieve-org">WNBF</span>
-            </div>
-          </div>
-        </div>
-
-
+  <!-- 1 · הכרה: אותו חדר כושר בשני גוונים, הלל על הקו -->
+  <section class="a-hero" id="a-hero" data-sc-act="pin" data-sc-span="1.9" data-a-tags="היום|אחרי">
+    <div data-sc-stage>
+      <div class="a-halves">
+        <div class="a-half a-half--now"><img class="a-ph" src="landing/plate-now.jpg" alt="" data-sc-parallax="-1.1"></div>
+        <div class="a-half a-half--then"><img class="a-ph" src="landing/plate-then.jpg" alt="" data-sc-parallax="-1.4"></div>
       </div>
-
-      <!-- תמונות עם מתחרים ───────────────────── -->
-      <div>
-        <div class="comp-photos-title">תמונות מהתחרויות</div>
-        <div class="comp-grid">
-
-          <!-- MBC 2026 -->
-          <div class="comp-photo">
-            <img src="תחרויות/mbc2026.jpg" alt="MBC 2026 — HF"
-                 onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
-            <div class="comp-photo-placeholder" style="display:none;">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
-              <span>mbc2026.jpg</span>
-            </div>
-            <div class="comp-photo-label"><svg class="medal-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 21l8 0"/><path d="M12 17l0 4"/><path d="M7 4l10 0"/><path d="M17 4v8a5 5 0 0 1 -10 0v-8"/><path d="M3 9a2 2 0 1 0 4 0a2 2 0 1 0 -4 0"/><path d="M17 9a2 2 0 1 0 4 0a2 2 0 1 0 -4 0"/></svg> MBC 2026</div>
-          </div>
-
-          <!-- WNBF 2026 -->
-          <div class="comp-photo" style="aspect-ratio:3/4;">
-            <img src="תחרויות/wnbf2026.jpg" alt="WNBF 2026 — HF" style="object-fit:cover; object-position:center 20%;"
-                 onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
-            <div class="comp-photo-placeholder" style="display:none;">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
-              <span>wnbf2026.jpg</span>
-            </div>
-            <div class="comp-photo-label"><svg class="medal-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v3m-4 -3v6m8 -6v6"/><path d="M12 18.5l-3 1.5l.5 -3.5l-2 -2l3 -.5l1.5 -3l1.5 3l3 .5l-2 2l.5 3.5l-3 -1.5"/></svg> WNBF 2026</div>
-          </div>
-
-        </div>
+      <img class="a-coach" src="landing/halel-hero.png" alt="הלל, המאמן" width="600" height="1772" fetchpriority="high">
+      <div class="a-floor" aria-hidden="true"></div><div class="a-haze" aria-hidden="true"></div>
+      <div class="a-hcopy a-hcopy--now" data-sc-cue="0 0.9 0">
+        <p class="a-kick">היום</p>
+        <p class="a-h-now">מתאמנים לבד, מנחשים, והגוף לא זז.</p>
       </div>
-
+      <div class="a-hcopy a-hcopy--then" data-sc-cue="0 0.9 0">
+        <p class="a-kick">אחרי</p>
+        <h1>ליווי אונליין שמביא <em>תוצאות אמיתיות</em>.</h1>
+        <p class="a-sub">תוכנית אימונים, תזונה וליווי אישי, מותאמים בדיוק למטרה שלך: מסה, חיטוב, שינוי גוף או הכנה לתחרות.</p>
+        <a class="a-btn" href="#lead" onclick="leadFor(); return false;">השארת פרטים</a>
+      </div>
     </div>
+  </section>
 
-    <!-- סיכום עונת תחרויות מאי 2026 -->
-    <div class="season-summary-wrap">
-    <div class="season-summary">
-      <img src="תחרויות/may2026.jpg" alt="סיכום עונת תחרויות מאי 2026 — HF"
-           onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
-      <div class="season-summary-placeholder" style="display:none;">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
-        <span>may2026.jpg</span>
+  <!-- 2 · הסיפור: איך התחלתי מול איך זה נראה היום -->
+  <section class="a-sec a-story a-stack-m" id="a-story" data-sc-act="flow" data-a-tags="איך התחלתי|היום">
+    <span id="story" class="a-anchor"></span>
+    <div class="a-halves" aria-hidden="true"><div class="a-half a-half--now"></div><div class="a-half a-half--then"></div></div>
+    <div class="a-grid">
+      <div class="a-col" data-sc-reveal="up" data-sc-reveal-at="0 0.32">
+        <p class="a-kick a-kick--now">איך התחלתי</p>
+        <h2 class="a-h2">אפס תוכנית.</h2>
+        <p class="a-p">התחלתי כמו רוב מי שכותב לי היום: נכנסתי לחדר כושר עם המון רצון ואפס תוכנית. העתקתי אימונים מהרשת, אכלתי "בריא", והגוף כמעט לא זז.</p>
       </div>
-      <div class="season-caption">
-        <div class="season-caption-title">סיכום <span>עונת תחרויות מאי 2026</span></div>
-        <div class="season-medals">
-          <span class="season-medal-tag trophy"><svg class="medal-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 21l8 0"/><path d="M12 17l0 4"/><path d="M7 4l10 0"/><path d="M17 4v8a5 5 0 0 1 -10 0v-8"/><path d="M3 9a2 2 0 1 0 4 0a2 2 0 1 0 -4 0"/><path d="M17 9a2 2 0 1 0 4 0a2 2 0 1 0 -4 0"/></svg> Overall Champion</span>
-          <span class="season-medal-tag gold"><svg class="medal-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v3m-4 -3v6m8 -6v6"/><path d="M12 18.5l-3 1.5l.5 -3.5l-2 -2l3 -.5l1.5 -3l1.5 3l3 .5l-2 2l.5 3.5l-3 -1.5"/></svg> WNBF</span>
+      <div class="a-col" data-sc-reveal="up" data-sc-reveal-at="0.06 0.38">
+        <p class="a-kick">היום</p>
+        <h2 class="a-h2">תהליך אמיתי.</h2>
+        <p class="a-p">אחרי שנים של ניסוי וטעייה הבנתי שאין קסם: יש תוכנית מדויקת, מעקב צמוד והתמדה. בניתי את עצמי מחדש לפי זה, ואז התחלתי לבנות גם אחרים. היום אני מלווה מעל 30 מתאמנים, ואחד מהם, נשיאל, לקח השנה אלוף ישראל.</p>
+        <p class="a-sign">הלל</p>
+        <dl class="a-stats">
+          <div><dt>מתאמנים בליווי</dt><dd class="fj-num">30+</dd></div>
+          <div><dt>חוזרים אליך</dt><dd class="fj-num">24h</dd></div>
+          <div><dt>ליווי מכל מקום</dt><dd class="fj-num">ONLINE</dd></div>
+        </dl>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 · בהירות: לבד מול ליווי, שורה מול שורה -->
+  <section class="a-sec a-pairs" id="a-features" data-sc-act="flow" data-a-tags="לבד|בליווי">
+    <span id="features" class="a-anchor"></span>
+    <div class="a-halves" aria-hidden="true"><div class="a-half a-half--now"></div><div class="a-half a-half--then"></div></div>
+    <div class="a-grid">
+      <div class="a-col a-c-now"><div class="sc-stack" data-sc-in data-sc-stagger="70">
+        <h2 class="a-h2 a-h2--now">לבד</h2>
+        <div class="a-row">מעתיקים אימונים מהרשת.</div>
+        <div class="a-row">אוכלים "בריא" ומקווים.</div>
+        <div class="a-row">לא יודעים אם יש התקדמות.</div>
+        <div class="a-row">אותה תוכנית, חודשים.</div>
+        <div class="a-row">לבד מול כל שאלה.</div>
+      </div></div>
+      <div class="a-col a-c-then"><div class="sc-stack" data-sc-in data-sc-stagger="70">
+        <h2 class="a-h2">מה מקבלים <b>בליווי</b></h2>
+        <div class="a-row"><span><b>תוכנית אימונים אישית.</b> מותאמת לרמה, למטרה, לציוד, לזמינות ולפציעות.</span></div>
+        <div class="a-row"><span><b>תפריט תזונה אישי.</b> כזה שאפשר לחיות איתו לאורך זמן.</span></div>
+        <div class="a-row"><span><b>מעקב שוטף.</b> משקל, תמונות, ביצועים ומדדים.</span></div>
+        <div class="a-row"><span><b>שינויים לפי הגוף.</b> התוכנית מתפתחת איתך, לא לפי תבנית.</span></div>
+        <div class="a-row"><span><b>ליווי אונליין אישי.</b> מענה, הכוונה ותיקונים לאורך כל הדרך.</span></div>
+      </div></div>
+    </div>
+  </section>
+
+  <!-- 4 · השיא: ארבעה מתאמנים, סרט המדידה סופר ק״ג אמיתיים -->
+  <section class="a-cases" id="a-results" data-sc-act="pin" data-sc-span="4.8" data-a-tags="לפני|אחרי">
+    <span id="results" class="a-anchor"></span><span id="theater" class="a-anchor"></span>
+    <div data-sc-stage>
+      <div class="a-case" data-sc-cue="0 0.24 0">
+        <div class="a-half a-half--now"><img class="a-ph" src="landing/ba/daniel-before.jpg" alt="דניאל רון לפני הליווי" loading="lazy"><div class="a-band"></div>
+          <div class="a-cap a-cap--now"><p class="a-lbl">לפני</p><p class="a-who">דניאל רון</p><p class="a-q">עבר כמה מאמנים. כולם הבטיחו, המאזניים לא זזו.</p></div></div>
+        <div class="a-half a-half--then"><img class="a-ph" src="landing/ba/daniel-after.jpg" alt="דניאל רון אחרי" loading="lazy"><div class="a-band"></div>
+          <div class="a-cap a-cap--then"><p class="a-lbl">אחרי</p><span class="a-big fj-num">+13</span><span class="a-unit">ק״ג, ואחוז השומן נשאר נמוך</span></div></div>
+      </div>
+      <div class="a-case" data-sc-cue="0.2 0.43">
+        <div class="a-half a-half--now"><img class="a-ph" src="landing/ba/liran-before.jpg" alt="לירן לפני הליווי" loading="lazy"><div class="a-band"></div>
+          <div class="a-cap a-cap--now"><p class="a-lbl">לפני</p><p class="a-who">לירן</p><p class="a-q">לא האמין שאפשר לעלות במשקל בלי לתפוח.</p></div></div>
+        <div class="a-half a-half--then"><img class="a-ph" src="landing/ba/liran-after.jpg" alt="לירן אחרי" loading="lazy"><div class="a-band"></div>
+          <div class="a-cap a-cap--then"><p class="a-lbl">אחרי</p><span class="a-big fj-num">+16</span><span class="a-unit">ק״ג, ואחוז השומן נשאר נמוך</span></div></div>
+      </div>
+      <div class="a-case" data-sc-cue="0.39 0.64">
+        <div class="a-half a-half--now"><img class="a-ph" src="landing/ba/ofir-before.jpg" alt="אופיר לפני הליווי" loading="lazy"><div class="a-band"></div>
+          <div class="a-cap a-cap--now"><p class="a-lbl">לפני</p><p class="a-who">אופיר</p><p class="a-q">תמיד חשב שזה לא בשבילו.</p></div></div>
+        <div class="a-half a-half--then"><img class="a-ph" src="landing/ba/ofir-after.jpg" alt="אופיר אחרי" loading="lazy"><div class="a-band"></div>
+          <div class="a-cap a-cap--then"><p class="a-lbl">אחרי</p><span class="a-big fj-num">−35</span><span class="a-unit">ק״ג, ובמקומם שריר וביטחון</span></div></div>
+      </div>
+      <div class="a-case a-case--peak" data-sc-cue="0.6 1">
+        <div class="a-half a-half--now"><img class="a-ph" src="landing/ba/nesiel-start.jpg" alt="נשיאל מדמון בהתחלה, מול המראה" loading="lazy"><div class="a-band"></div>
+          <div class="a-cap a-cap--now"><p class="a-lbl">לפני</p><p class="a-who">נשיאל מדמון</p><p class="a-q">התחיל רזה, מול המראה בבית.</p></div></div>
+        <div class="a-half a-half--then"><img class="a-ph" src="תחרויות/mbc2026.jpg" alt="נשיאל מדמון על הבמה, MBC 2026" loading="lazy"><div class="a-band"></div>
+          <div class="a-cap a-cap--then"><p class="a-lbl">אחרי</p><span class="a-big fj-num">+18</span><span class="a-unit">ק״ג מתחילת התהליך</span>
+            <p class="a-title">אלוף ישראל · MBC Classic Physique Natural 2026</p></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 · ההישגים: הסיפור מול הבמה -->
+  <section class="a-sec a-ach a-stack-m" id="a-ach" data-sc-act="flow" data-a-tags="הסיפור|הבמה">
+    <span id="achievements" class="a-anchor"></span>
+    <div class="a-halves" aria-hidden="true"><div class="a-half a-half--now"></div><div class="a-half a-half--then"></div></div>
+    <div class="a-grid">
+      <div class="a-col sc-stack" data-sc-in data-sc-stagger="70">
+        <p class="a-kick a-kick--now">הישגים תחרותיים · 2026</p>
+        <h2 class="a-h2">מ-48 ק״ג<br>לאלוף ישראל.</h2>
+        <p class="a-p">נשיאל התחיל להתאמן ב-48 ק״ג ועלה לבמה ב-74: ‎+26 ק״ג מתחילת האימונים, ו-18 מהם בתהליך שלנו, עם אחוז שומן נמוך. במאי 2026 הוא לקח אלוף כללי ב-MBC ומקום ראשון ב-WNBF, בקטגוריה הטבעית.</p>
+        <ul class="a-titles">
+          <li><b>MBC Classic Physique Natural</b><span>אלוף כללי (Overall)</span></li>
+          <li><b>WNBF Classic Physique</b><span>מקום ראשון</span></li>
+        </ul>
+        <blockquote class="a-quote">"הגוף שלי השתנה לחלוטין. לא האמנתי שזה אפשרי."<cite>נשיאל מדמון</cite></blockquote>
+      </div>
+      <div class="a-col">
+        <div class="a-gal">
+          <figure class="a-g1" data-sc-reveal="up" data-sc-reveal-at="0 0.35"><img src="תחרויות/may2026.jpg" alt="נשיאל ביום התחרות, מאי 2026" loading="lazy"><figcaption>יום התחרות · 74 ק״ג</figcaption></figure>
+          <figure class="a-g2" data-sc-reveal="left" data-sc-reveal-at="0.05 0.4"><img src="תחרויות/wnbf2026.jpg" alt="הבמה ב-WNBF 2026" loading="lazy"><figcaption>WNBF 2026</figcaption></figure>
         </div>
       </div>
     </div>
-    </div><!-- /season-summary-wrap -->
+  </section>
 
-    <!-- הסיפור של נשיאל -->
-    <div class="champ-story">
-      <div class="champ-kicker">הסיפור של נשיאל</div>
-      <h3 class="champ-title">מ-<bdi dir="ltr">+26</bdi> ק״ג <span>לאלוף ישראל</span><small class="champ-from">מתחילת האימונים · <bdi dir="ltr">48 → 74</bdi> ק״ג</small></h3>
-      <div class="champ-grid">
-        <div class="champ-photos"><div class="ba" data-ba>
-          <img class="ba-img" src="landing/ba/nesiel-stage.jpg" alt="נשיאל ביום התחרות, 74 ק״ג" loading="lazy" width="640" height="800">
-          <img class="ba-img ba-before" src="landing/ba/nesiel-start.jpg" alt="נשיאל בנקודת ההתחלה, 48 ק״ג" loading="lazy" width="640" height="800">
-          <span class="ba-tag ba-tag-b">התחלה · 48 ק״ג</span><span class="ba-tag ba-tag-a">יום התחרות · 74 ק״ג</span>
-          <span class="ba-handle" aria-hidden="true"><span class="ba-knob"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6l6 6"/></svg><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6l-6 6"/></svg></span></span>
-          <input class="ba-range" type="range" min="0" max="100" value="50" dir="ltr" aria-label="השוואת לפני ואחרי של נשיאל">
-        </div><img class="chk" src="landing/nesial-check.jpg" alt="הצ'ק של נשיאל מאליפות MBC 2026" loading="lazy"></div>
-        <div class="champ-text">
-          <div class="champ-row"><svg class="medal-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 21l8 0"/><path d="M12 17l0 4"/><path d="M7 4l10 0"/><path d="M17 4v8a5 5 0 0 1 -10 0v-8"/><path d="M3 9a2 2 0 1 0 4 0a2 2 0 1 0 -4 0"/><path d="M17 9a2 2 0 1 0 4 0a2 2 0 1 0 -4 0"/></svg>אלוף כללי · MBC 2026 Classic Physique Natural</div>
-          <div class="champ-row"><svg class="medal-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v3m-4 -3v6m8 -6v6"/><path d="M12 18.5l-3 1.5l.5 -3.5l-2 -2l3 -.5l1.5 -3l1.5 3l3 .5l-2 2l.5 3.5l-3 -1.5"/></svg>מקום ראשון · WNBF Classic Physique</div>
-          <p>נשיאל התחיל להתאמן ב-48 ק״ג ועלה לבמה ב-74: ‎+26 ק״ג מתחילת האימונים, ו-18 מהם בתהליך שלנו, תוך שמירה על אחוז שומן נמוך. במאי 2026 הוא לקח אלוף כללי ב-MBC ומקום ראשון ב-WNBF, בקטגוריה הטבעית. <strong>אותה שיטה אני בונה לך.</strong></p>
-          <blockquote>"הגוף שלי השתנה לחלוטין — לא האמנתי שזה אפשרי."<cite>נשיאל מדמון</cite></blockquote>
-        </div>
+  <!-- 6 · מבחן התאמה: השאלות מול ההמלצה (הרכיב הקיים, בלי שינוי בלוגיקה) -->
+  <section class="a-sec a-fit a-stack-m" id="a-fit" data-sc-act="flow" data-a-tags="השאלות|ההמלצה">
+    <span id="fit" class="a-anchor"></span>
+    <div class="a-halves" aria-hidden="true"><div class="a-half a-half--now"></div><div class="a-half a-half--then"></div></div>
+    <div class="a-grid">
+      <div class="a-col sc-stack" data-sc-in data-sc-stagger="70">
+        <p class="a-kick a-kick--now">20 שניות</p>
+        <h2 class="a-h2">מה מתאים לך?</h2>
+        <p class="a-p">שלוש שאלות קצרות, והמלצה על מסלול. אחר כך משאירים פרטים או ממשיכים בוואטסאפ.</p>
       </div>
-    </div>
-
-  </div>
-</section>
-
-
-
-
-
-<!-- ═══ WHO IS IT FOR ═══ -->
-<!-- ═══ מבחן התאמה ═══ -->
-<section id="fit">
-  <div class="container">
-    <h2 class="section-title">מה <span>מתאים לך?</span></h2>
-    <div class="title-line"></div>
-    <p class="fit-sub">3 שאלות, 20 שניות, והמלצה על מסלול. אחר כך ממשיכים בוואטסאפ.</p>
-    <form class="fit" onsubmit="return false" novalidate>
+      <div class="a-col">
+        <form class="fit" onsubmit="return false" novalidate>
       <div class="fit-bar" aria-hidden="true"><i></i></div>
       <fieldset class="fit-q" data-q="goal" data-step="1"><legend tabindex="-1"><span>1/3</span>מה המטרה שלך?</legend><div class="fit-opts"><button type="button" class="fit-o" data-v="mass">לעלות מסה</button><button type="button" class="fit-o" data-v="cut">להתחטב בלי לאבד שריר</button><button type="button" class="fit-o" data-v="stuck">תקוע ולא מתקדם</button><button type="button" class="fit-o" data-v="comp">להגיע לבמה</button></div></fieldset>
       <fieldset class="fit-q" data-q="level" data-step="2"><legend tabindex="-1"><span>2/3</span>כמה ניסיון יש לך?</legend><div class="fit-opts"><button type="button" class="fit-o" data-v="new">בלי ניסיון</button><button type="button" class="fit-o" data-v="mid">יש קצת ניסיון</button><button type="button" class="fit-o" data-v="adv">מתאמן/ת שנים</button></div></fieldset>
@@ -2221,380 +2381,22 @@
         <div class="fit-alt"><a href="#lead" class="fit-lead">להשאיר פרטים</a> · <a href="intake.html">לשאלון המלא</a> · <button type="button" class="fit-again">להתחיל מחדש</button></div>
       </div>
     </form>
-    <div class="women-line"><b>מתאמנת?</b> אותו ליווי ואותם מחירים, אצלי או אצל מאמנת מטעמי.</div>
-  </div>
-</section>
-
-
-
-
-<!-- ═══ FEATURES ═══ -->
-<section id="features">
-  <div class="container">
-    <div class="eyebrow">WHAT YOU GET</div><h2 class="section-title"><span class="slant">מה מקבלים</span> <span class="slant">בליווי?</span></h2>
-    <div class="title-line"></div>
-
-    <div class="features-grid">
-
-      <div class="feat-card">
-        <div class="feat-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-            <path d="M6.5 6.5h11M4 12h16M6.5 17.5h11"/><circle cx="12" cy="12" r="10"/>
-          </svg>
-        </div>
-        <div class="feat-title">תוכנית אימונים אישית</div>
-        <p class="feat-desc">מותאמת לרמה, מטרה, ציוד, זמינות, פציעות וניסיון קודם — בניית תוכנית שעובדת בדיוק בשבילך.</p>
-      </div>
-
-      <div class="feat-card">
-        <div class="feat-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-            <path d="M12 2a7 7 0 0 1 7 7c0 5-7 13-7 13S5 14 5 9a7 7 0 0 1 7-7z"/><circle cx="12" cy="9" r="2.5"/>
-          </svg>
-        </div>
-        <div class="feat-title">תפריט תזונה אישי</div>
-        <p class="feat-desc">מותאם למשקל, מטרה, אורח חיים והעדפות מזון — תוכנית תזונה שאפשר לחיות איתה לאורך זמן.</p>
-      </div>
-
-      <div class="feat-card">
-        <div class="feat-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
-          </svg>
-        </div>
-        <div class="feat-title">מעקב שוטף</div>
-        <p class="feat-desc">בדיקת התקדמות לפי משקל, תמונות, ביצועים ומדדים — כך תמיד יודעים איפה עומדים ולאן הולכים.</p>
-      </div>
-
-      <div class="feat-card">
-        <div class="feat-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-            <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/>
-          </svg>
-        </div>
-        <div class="feat-title">שינויים לפי צורך</div>
-        <p class="feat-desc">עדכונים בתפריט ובאימונים בהתאם לתגובת הגוף — הגוף שלך מתפתח, התוכנית מתפתחת איתו.</p>
-      </div>
-
-      <div class="feat-card">
-        <div class="feat-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-          </svg>
-        </div>
-        <div class="feat-title">ליווי אונליין אישי</div>
-        <p class="feat-desc">מענה, הכוונה, תיקונים ושמירה על מסגרת לאורך כל הדרך — לא לבד, אף פעם לא לבד.</p>
-      </div>
-
-    </div>
-  </div>
-</section>
-
-
-<!-- ═══ האפליקציה ═══ -->
-<section id="app-showcase"><div class="container app-wrap">
-  <div class="app-copy"><div class="eyebrow">THE APP</div><h2 class="section-title"><span class="slant">כל התהליך</span> <span class="slant">במקום אחד</span></h2>
-    <ul><li><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#83F52C" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>תוכנית אימונים ותפריט אישיים</li><li><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#83F52C" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>מעקב משקל, תמונות וביצועים</li><li><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#83F52C" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>מדדים וגרפים של ההתקדמות</li><li><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#83F52C" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>באייפון ובאנדרואיד</li></ul>
-    <a href="#" class="btn-primary" onclick="goTo('more-links'); return false;">הכירו את האפליקציה <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"/></svg></a></div>
-  <div class="app-vis" aria-hidden="true"><div class="ph p1"><div class="scr"><span class="wc " dir="ltr"><span class="wc-t">H<b>Fit</b>Journey</span><span class="wc-s">ONLINE COACHING</span></span><div class="lbl">Body Progress</div><svg viewBox="0 0 200 80" preserveAspectRatio="none" aria-hidden="true"><path d="M0 70 L25 64 L50 60 L75 52 L100 50 L125 40 L150 34 L175 24 L200 16 L200 80 L0 80Z" fill="rgba(131,245,44,.15)"/><path d="M0 70 L25 64 L50 60 L75 52 L100 50 L125 40 L150 34 L175 24 L200 16" fill="none" stroke="#83F52C" stroke-width="2.4"/></svg><div class="kg" dir="ltr">85.2 <small>kg</small></div></div></div>
-    <div class="ph p2"><div class="scr"><span class="wc " dir="ltr"><span class="wc-t">H<b>Fit</b>Journey</span><span class="wc-s">ONLINE COACHING</span></span><div class="lbl">תזונה היום</div><div class="ringbig"></div><div class="macro"><div><b>190g</b>חלבון</div><div><b>310g</b>פחמימה</div><div><b>70g</b>שומן</div></div></div></div>
-    <div class="demo">המחשה של מסכי האפליקציה</div></div>
-</div></section>
-
-<!-- ═══ PRICING ═══ -->
-<section id="pricing">
-  <div class="container">
-    <h2 class="section-title">מסלולי <span>ליווי</span></h2>
-    <div class="title-line"></div>
-
-<div class="mo4"><div class="mo4-h">מה קורה ב-4 החודשים</div><ol><li><b>חודש 1 · בונים</b><span>שאלון היכרות, תשלום בביט והודעה בוואטסאפ, ואנחנו חוזרים אליך תוך 24 שעות. אחר כך תוכנית אימונים ותפריט אישיים באפליקציה.</span></li><li><b>חודש 2 · מכווננים</b><span>לפי המשקל, התמונות והביצועים: משנים מה שצריך בתפריט ובאימונים.</span></li><li><b>חודש 3 · מעמיקים</b><span>מעלים עומסים, מחדדים את התזונה ובונים הרגלים שנשארים.</span></li><li><b>חודש 4 · מסכמים</b><span>תמונות ומדדים לפני/אחרי, ותוכנית ברורה להמשך.</span></li></ol></div>
-    <!-- Gender Tabs -->
-    <div class="gender-tabs">
-      <button class="gender-tab active" id="tab-men" onclick="switchGender('men')">גברים</button>
-      <button class="gender-tab" id="tab-women" onclick="switchGender('women')">נשים</button>
-    </div>
-
-    <!-- ── MEN'S PLANS ── -->
-    <div class="pricing-panel active" id="panel-men">
-    <div class="incl"><b>כל מסלול כולל:</b><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>תוכנית אימונים אישית</span><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>תפריט תזונה אישי</span><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>מעקב התקדמות שוטף</span><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>שינויים לפי תגובת הגוף</span><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>ליווי אונליין בוואטסאפ</span><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>אפליקציית Fit Journey</span></div>
-    <div class="pricing-grid rows">
-
-
-      <div class="price-card">
-        <div class="price-badge">ללא התחייבות</div>
-        <div class="plan-name">ליווי חודשי</div>
-        <div class="price-period">חודש · מתחדש, בלי התחייבות ארוכה</div>
-        <div class="renew-note">ביטול בהודעה חודש מראש · <a href="coaching-terms.html">תקנון</a></div>
-        <div class="price-divider"></div>
-        <ul class="price-features">
-          <li>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
-            תוכנית אימונים אישית
-          </li>
-          <li>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
-            תפריט תזונה מותאם
-          </li>
-          <li>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
-            מעקב חודשי
-          </li>
-          <li>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
-            עדכונים לפי צורך
-          </li>
-          <li>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
-            ליווי אונליין
-          </li>
-        </ul>
-        <button class="btn-secondary price-cta" onclick="leadFor('ליווי חודשי')">לפרטים נוספים</button>
-      </div>
-
-      <!-- 3 Months (Featured) -->
-      <div class="price-card featured">
-        <div class="price-badge featured-badge">הכי פופולרי</div>
-        <div class="plan-name">ליווי 4 חודשים</div>
-        <div class="price-period">4 חודשים של ליווי צמוד</div>
-        <div class="price-divider"></div>
-        <ul class="price-features">
-          <li>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
-            בניית תוכנית מלאה
-          </li>
-          <li>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
-            תפריט תזונה אישי
-          </li>
-          <li>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
-            מעקב התקדמות שוטף
-          </li>
-          <li>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
-            שינויי תפריט ואימונים
-          </li>
-          <li>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
-            ליווי אונליין מלא
-          </li>
-          <li>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
-            ליווי לאורך 4 חודשים
-          </li>
-        </ul>
-        <button class="btn-primary price-cta" onclick="leadFor('ליווי 4 חודשים')">לפרטים נוספים</button>
-      </div>
-
-      <!-- 6 Months -->
-      <div class="price-card">
-        <div class="price-badge">חצי שנה</div>
-        <div class="plan-name">ליווי חצי שנה</div>
-        <div class="price-period">6 חודשים של ליווי צמוד</div>
-        <div class="price-divider"></div>
-        <ul class="price-features">
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>בניית תוכנית מלאה</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>תפריט תזונה אישי</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>מעקב התקדמות שוטף</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>שינויי תפריט ואימונים</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>ליווי אונליין מלא</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>ליווי לאורך 6 חודשים</li>
-        </ul>
-        <button class="btn-secondary price-cta" onclick="leadFor('ליווי חצי שנה')">לפרטים נוספים</button>
-      </div>
-
-      <!-- 12 Months -->
-      <div class="price-card">
-        <div class="price-badge">הכי משתלם</div>
-        <div class="plan-name">ליווי שנתי</div>
-        <div class="price-period">12 חודשים של ליווי צמוד</div>
-        <div class="price-divider"></div>
-        <ul class="price-features">
-          <li>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
-            ליווי מלא ל-12 חודשים
-          </li>
-          <li>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
-            תוכנית אימונים מתקדמת
-          </li>
-          <li>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
-            תפריט מותאם ומעודכן
-          </li>
-          <li>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
-            מעקב רציף
-          </li>
-          <li>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
-            התאמות לפי התקדמות
-          </li>
-          <li>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
-            בניית תהליך מסודר לתוצאה
-          </li>
-        </ul>
-        <button class="btn-secondary price-cta" onclick="leadFor('ליווי שנתי')">לפרטים נוספים</button>
-      </div>
-
-
-    </div>
-
-    </div><!-- /panel-men -->
-
-    <!-- ── WOMEN'S PLANS ── -->
-    <div class="pricing-panel" id="panel-women">
-    <div class="incl"><b>כל מסלול כולל:</b><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>תוכנית אימונים אישית</span><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>תפריט תזונה אישי</span><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>מעקב התקדמות שוטף</span><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>שינויים לפי תגובת הגוף</span><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>ליווי אונליין בוואטסאפ</span><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>אפליקציית Fit Journey</span></div>
-    <div class="pricing-grid rows">
-
-
-      <div class="price-card">
-        <div class="price-badge">ללא התחייבות</div>
-        <div class="plan-name">ליווי חודשי</div>
-        <div class="price-period">חודש · מתחדש, בלי התחייבות ארוכה</div>
-        <div class="renew-note">ביטול בהודעה חודש מראש · <a href="coaching-terms.html">תקנון</a></div>
-        <div class="price-divider"></div>
-        <ul class="price-features">
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>תוכנית אימונים אישית</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>תפריט תזונה מותאם</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>מעקב חודשי</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>עדכונים לפי צורך</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>ליווי אונליין</li>
-        </ul>
-        <button class="btn-secondary price-cta" onclick="leadFor('ליווי חודשי')">לפרטים נוספים</button>
-      </div>
-
-      <!-- 2 Months (Women) — Featured -->
-      <div class="price-card featured">
-        <div class="price-badge featured-badge">הכי פופולרי</div>
-        <div class="plan-name">ליווי 4 חודשים</div>
-        <div class="price-period">4 חודשים של ליווי צמוד</div>
-        <div class="price-divider"></div>
-        <ul class="price-features">
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>בניית תוכנית מלאה</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>תפריט תזונה אישי</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>מעקב התקדמות שוטף</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>שינויי תפריט ואימונים</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>ליווי אונליין מלא</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>ליווי לאורך 4 חודשים</li>
-        </ul>
-        <button class="btn-primary price-cta" onclick="leadFor('ליווי 4 חודשים')">לפרטים נוספים</button>
-      </div>
-
-      <!-- 6 Months -->
-      <div class="price-card">
-        <div class="price-badge">חצי שנה</div>
-        <div class="plan-name">ליווי חצי שנה</div>
-        <div class="price-period">6 חודשים של ליווי צמוד</div>
-        <div class="price-divider"></div>
-        <ul class="price-features">
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>בניית תוכנית מלאה</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>תפריט תזונה אישי</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>מעקב התקדמות שוטף</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>שינויי תפריט ואימונים</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>ליווי אונליין מלא</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>ליווי לאורך 6 חודשים</li>
-        </ul>
-        <button class="btn-secondary price-cta" onclick="leadFor('ליווי חצי שנה')">לפרטים נוספים</button>
-      </div>
-
-      <!-- 12 Months (Women) -->
-      <div class="price-card">
-        <div class="price-badge">הכי משתלם</div>
-        <div class="plan-name">ליווי שנתי</div>
-        <div class="price-period">12 חודשים של ליווי צמוד</div>
-        <div class="price-divider"></div>
-        <ul class="price-features">
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>ליווי מלא ל-12 חודשים</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>תוכנית אימונים מתקדמת</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>תפריט מותאם ומעודכן</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>מעקב רציף</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>התאמות לפי התקדמות</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>בניית תהליך מסודר לתוצאה</li>
-        </ul>
-        <button class="btn-secondary price-cta" onclick="leadFor('ליווי שנתי')">לפרטים נוספים</button>
-      </div>
-
-    </div>
-
-    </div><!-- /panel-women -->
-
-    <!-- 📞 השארת פרטים — במקום מחירים: שם וטלפון, ונחזור תוך 24 שעות -->
-    <div class="lead" id="lead">
-      <div class="lead-k">בלי התחייבות</div>
-      <h3 class="lead-h">רוצה לשמוע פרטים?</h3>
-      <p class="lead-p">השאירו שם וטלפון, ונחזור אליכם תוך 24 שעות עם כל הפרטים על המסלול שמתאים לכם.</p>
-      <form class="lead-form" id="lead-form" novalidate onsubmit="return submitLead(event)">
-        <div class="lead-grid">
-          <label class="lead-f"><span>שם מלא</span><input id="lead-name" autocomplete="name" maxlength="80" required></label>
-          <label class="lead-f"><span>טלפון</span><input id="lead-phone" type="tel" inputmode="tel" autocomplete="tel" maxlength="16" dir="ltr" placeholder="050-0000000" required></label>
-          <label class="lead-f"><span>מסלול שמעניין אותך</span><select id="lead-plan"><option value="">עוד לא בטוח/ה</option><option>ליווי חודשי</option><option>ליווי 4 חודשים</option><option>ליווי חצי שנה</option><option>ליווי שנתי</option></select></label>
-          <label class="lead-f"><span>המטרה</span><select id="lead-goal"><option value="">בחירה</option><option>לעלות מסה</option><option>להתחטב בלי לאבד שריר</option><option>תקוע ולא מתקדם</option><option>להגיע לבמה</option><option>להתחיל להתאמן נכון</option></select></label>
-        </div>
-        <input id="lead-hp" class="lead-hp" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
-        <button class="btn-primary lead-btn" id="lead-btn" type="submit">שלחו לי פרטים</button>
-        <div class="lead-msg" id="lead-msg" role="alert"></div>
-        <p class="lead-note">הפרטים משמשים רק כדי לחזור אליכם. מעדיפים לדבר עכשיו? <a href="https://wa.me/972586931163?text=%D7%94%D7%99%D7%99%20%D7%94%D7%9C%D7%9C%2C%20%D7%90%D7%A9%D7%9E%D7%97%20%D7%9C%D7%A9%D7%9E%D7%95%D7%A2%20%D7%A4%D7%A8%D7%98%D7%99%D7%9D%20%D7%A2%D7%9C%20%D7%94%D7%9C%D7%99%D7%95%D7%95%D7%99%20%D7%94%D7%90%D7%99%D7%A9%D7%99" target="_blank" rel="noopener">כתבו לנו בוואטסאפ</a></p>
-      </form>
-      <div class="lead-done" id="lead-done" hidden tabindex="-1">
-        <div class="lead-done-i" aria-hidden="true">✓</div>
-        <h3 class="lead-h">קיבלנו, <span id="lead-done-name"></span>!</h3>
-        <p class="lead-p">נחזור אליך תוך 24 שעות. בינתיים אפשר למלא את <a href="intake.html">שאלון הקליטה</a> (3 דקות), כדי שנגיע לשיחה מוכנים.</p>
       </div>
     </div>
+  </section>
 
-    <!-- 📋 שאלון קליטה -->
-    <div style="max-width:620px;margin:44px auto 0;text-align:center;padding:28px 24px;background:radial-gradient(120% 90% at 50% 0%,rgba(131,245,44,0.12),transparent 65%),rgba(255,255,255,0.03);border:1px solid rgba(131,245,44,0.35);border-radius:18px;">
-      <div style="font-size:2rem;margin-bottom:8px;">📋</div>
-      <div style="font-size:1.25rem;font-weight:900;margin-bottom:8px;">רוצה שאבנה לך תוכנית מדויקת?</div>
-      <p style="color:#aaa;font-size:0.92rem;line-height:1.7;margin-bottom:18px;">
-        מלא/י את שאלון הקליטה — 22 שאלות קצרות על המטרה, הניסיון, התזונה ואורח החיים.<br/>לוקח כ-3 דקות ומגיע ישירות אליי.
-      </p>
-      <a href="intake.html" style="display:inline-block;padding:14px 32px;background:linear-gradient(135deg,var(--orange),#6FD61F);color:#fff;text-decoration:none;border-radius:12px;font-weight:900;font-size:1rem;box-shadow:0 6px 22px rgba(131,245,44,0.35);">
-        למילוי שאלון הקליטה ←
-      </a>
-    </div>
-
-  </div>
-
-  <!-- ═══ DEMO VIDEO BUTTON ═══ -->
-  <div style="display:flex;justify-content:center;margin-top:40px;">
-    <button onclick="document.getElementById('demo-modal').style.display='flex'"
-      style="background:transparent;border:2px solid #83F52C;color:#83F52C;font-family:'Heebo',sans-serif;font-size:1.05rem;font-weight:700;padding:14px 38px;border-radius:50px;cursor:pointer;display:flex;align-items:center;gap:10px;transition:all 0.25s;letter-spacing:0.5px;"
-      onmouseover="this.style.background='rgba(131,245,44,0.12)';this.style.boxShadow='0 0 22px rgba(131,245,44,0.45)'"
-      onmouseout="this.style.background='transparent';this.style.boxShadow='none'">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
-      סרטון דמו
-    </button>
-  </div>
-
-</section>
-
-<!-- ═══ DEMO VIDEO MODAL ═══ -->
-<div id="demo-modal" onclick="if(event.target===this)this.style.display='none'"
-  style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:9999;align-items:center;justify-content:center;padding:16px;">
-  <div style="position:relative;width:100%;max-width:400px;">
-    <button onclick="document.getElementById('demo-modal').style.display='none'"
-      style="position:absolute;top:-40px;left:0;background:none;border:none;color:#fff;font-size:1.6rem;cursor:pointer;line-height:1;">✕</button>
-    <div style="position:relative;padding-bottom:177.78%;height:0;border-radius:16px;overflow:hidden;box-shadow:0 0 40px rgba(131,245,44,0.5);">
-      <iframe src="fit-journey-ad.html" style="position:absolute;inset:0;width:100%;height:100%;border:none;border-radius:16px;" allow="autoplay" title="סרטון דמו"></iframe>
-    </div>
-  </div>
-</div>
-
-
-
-
-
-<!-- ═══ COACH PLANS ═══ -->
-<section id="more-links">
-  <div class="container">
-    <div class="more-grid">
-      <a class="more-card" href="coaching-terms.html"><b>תקנון אימון אונליין</b><span>כל התנאים, החידוש והביטול ›</span></a>
-      <a class="more-card" href="coaches.html"><b>מאמן?</b><span>הפלטפורמה למאמנים ›</span></a>
-    </div>
-    <!-- App Store — התג הרשמי מוגש מהאתר ולא מקושר חיצונית -->
+  <!-- 7 · האפליקציה: מה יש מול איך זה נראה -->
+  <section class="a-sec a-app a-stack-m" id="a-app" data-sc-act="flow" data-a-tags="מה יש|איך זה נראה">
+    <span id="app-showcase" class="a-anchor"></span>
+    <div class="a-halves" aria-hidden="true"><div class="a-half a-half--now"></div><div class="a-half a-half--then"></div></div>
+    <div class="a-grid">
+      <div class="a-col sc-stack" data-sc-in data-sc-stagger="70">
+        <p class="a-kick a-kick--now">האפליקציה</p>
+        <h2 class="a-h2">כל התהליך<br>במקום אחד.</h2>
+        <ul class="a-checks">
+          <li>תוכנית אימונים ותפריט אישיים</li><li>מעקב משקל, תמונות וביצועים</li><li>מדדים וגרפים של ההתקדמות</li><li>באייפון ובאנדרואיד</li>
+        </ul>
+        <div id="more-links" class="a-more"><!-- App Store — התג הרשמי מוגש מהאתר ולא מקושר חיצונית -->
     <div style="text-align:center;margin-top:26px;">
       <div style="font-size:0.78rem;color:#666;margin-bottom:9px;">האפליקציה זמינה להורדה באייפון ובאנדרואיד</div>
       <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
@@ -2615,26 +2417,100 @@
       <script>/* בתוך האפליקציה עצמה אין טעם בכפתור, ובאייפון אפל לא מתירה להפנות לפלטפורמה אחרת */
       try { if (window.Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform())
         document.querySelectorAll('.store-android').forEach(function (e) { e.remove(); }); } catch (e) {}</script>
+    </div><div class="more-grid">
+      <a class="more-card" href="coaching-terms.html"><b>תקנון אימון אונליין</b><span>כל התנאים, החידוש והביטול ›</span></a>
+      <a class="more-card" href="coaches.html"><b>מאמן?</b><span>הפלטפורמה למאמנים ›</span></a>
+    </div></div>
+      </div>
+      <div class="a-col a-appvis"><div class="app-vis" aria-hidden="true"><div class="ph p1"><div class="scr"><span class="wc " dir="ltr"><span class="wc-t">H<b>Fit</b>Journey</span><span class="wc-s">ONLINE COACHING</span></span><div class="lbl">Body Progress</div><svg viewBox="0 0 200 80" preserveAspectRatio="none" aria-hidden="true"><path d="M0 70 L25 64 L50 60 L75 52 L100 50 L125 40 L150 34 L175 24 L200 16 L200 80 L0 80Z" fill="rgba(131,245,44,.15)"/><path d="M0 70 L25 64 L50 60 L75 52 L100 50 L125 40 L150 34 L175 24 L200 16" fill="none" stroke="#83F52C" stroke-width="2.4"/></svg><div class="kg" dir="ltr">85.2 <small>kg</small></div></div></div>
+    <div class="ph p2"><div class="scr"><span class="wc " dir="ltr"><span class="wc-t">H<b>Fit</b>Journey</span><span class="wc-s">ONLINE COACHING</span></span><div class="lbl">תזונה היום</div><div class="ringbig"></div><div class="macro"><div><b>190g</b>חלבון</div><div><b>310g</b>פחמימה</div><div><b>70g</b>שומן</div></div></div></div>
+    <div class="demo">המחשה של מסכי האפליקציה</div></div></div>
+    </div>
+  </section>
+
+  <!-- 8 · ביטחון: המסלולים (בלי מחיר) מול מה שכל מסלול כולל -->
+  <section class="a-sec a-plans a-stack-m" id="a-plans" data-sc-act="flow" data-a-tags="המסלולים|מה כולל">
+    <span id="pricing" class="a-anchor"></span>
+    <div class="a-halves" aria-hidden="true"><div class="a-half a-half--now"></div><div class="a-half a-half--then"></div></div>
+    <div class="a-grid">
+      <div class="a-col"><div class="sc-stack" data-sc-in data-sc-stagger="60">
+        <h2 class="a-h2">ארבעה מסלולים</h2>
+        <div class="a-plan"><h3>ליווי חודשי</h3><p>חודש, מתחדש. בלי התחייבות ארוכה.</p><button type="button" onclick="leadFor('ליווי חודשי')">לפרטים נוספים</button></div>
+        <div class="a-plan a-plan--hot"><h3>ליווי 4 חודשים <span class="a-tag">הכי פופולרי</span></h3><p>מספיק זמן לבנות, לכוונן ולראות שינוי אמיתי.</p><button type="button" onclick="leadFor('ליווי 4 חודשים')">לפרטים נוספים</button></div>
+        <div class="a-plan"><h3>ליווי חצי שנה</h3><p>שלב אחרי שלב: למשל מסה, ואחריה חיטוב.</p><button type="button" onclick="leadFor('ליווי חצי שנה')">לפרטים נוספים</button></div>
+        <div class="a-plan"><h3>ליווי שנתי</h3><p>שנה של התקדמות רצופה.</p><button type="button" onclick="leadFor('ליווי שנתי')">לפרטים נוספים</button></div>
+        <p class="a-note">גברים ונשים. לנשים הליווי הוא איתי או עם מאמנת מטעמי. ביטול בהודעה של חודש מראש · <a href="coaching-terms.html">תקנון</a></p>
+      </div></div>
+      <div class="a-col"><div class="sc-stack" data-sc-in data-sc-stagger="60">
+        <h2 class="a-h2">מה קורה ב-4 החודשים</h2>
+        <ol class="a-months">
+          <li><b>חודש 1 · בונים.</b> שאלון היכרות, ואנחנו חוזרים אליך תוך 24 שעות. אחר כך תוכנית אימונים ותפריט אישיים באפליקציה.</li>
+          <li><b>חודש 2 · מכווננים.</b> לפי המשקל, התמונות והביצועים: משנים מה שצריך בתפריט ובאימונים.</li>
+          <li><b>חודש 3 · מעמיקים.</b> מעלים עומסים, מחדדים את התזונה ובונים הרגלים שנשארים.</li>
+          <li><b>חודש 4 · מסכמים.</b> תמונות ומדדים לפני ואחרי, ותוכנית ברורה להמשך.</li>
+        </ol>
+        <div class="a-intake">
+          <p><b>רוצה שאבנה לך תוכנית מדויקת?</b> שאלון הקליטה: 22 שאלות קצרות, כ-3 דקות.</p>
+          <div class="a-intake-btns"><a class="a-btn a-btn--ghost" href="intake.html">לשאלון הקליטה</a>
+          <button class="a-btn a-btn--ghost" type="button" onclick="document.getElementById('demo-modal').style.display='flex'">▶ סרטון דמו</button></div>
+        </div>
+      </div></div>
+    </div>
+  </section>
+
+  <!-- 9 · הקלה: הקו נגלל לקצה, נשאר רק ה"אחרי", ושם הטופס האמיתי -->
+  <section class="a-close a-stack-m" id="lead" data-sc-act="pin" data-sc-span="1.7" data-a-tags="היום|אחרי">
+    <div data-sc-stage>
+      <div class="a-c-then"></div>
+      <div class="a-c-now" aria-hidden="true"><p>הגוף שלך לא משתנה מניחושים.</p></div>
+      <div class="a-ccopy" data-sc-cue="0 1 0 0">
+        <h2>רוצה לשמוע פרטים?</h2>
+        <p class="a-lead">השאירו שם וטלפון, ונחזור אליכם תוך 24 שעות עם כל הפרטים על המסלול שמתאים לכם. בלי התחייבות.</p>
+        <form class="lead-form a-form" id="lead-form" novalidate onsubmit="return submitLead(event)">
+          <div class="a-two">
+            <label class="lead-f"><span>שם מלא</span><input id="lead-name" autocomplete="name" maxlength="80" required></label>
+            <label class="lead-f"><span>טלפון</span><input id="lead-phone" type="tel" inputmode="tel" autocomplete="tel" maxlength="16" dir="ltr" placeholder="050-0000000" required></label>
+          </div>
+          <fieldset class="a-gender"><legend>הליווי בשביל</legend>
+            <label><input type="radio" name="lead-gender" value="men" checked><span>גבר</span></label>
+            <label><input type="radio" name="lead-gender" value="women"><span>אישה</span></label>
+          </fieldset>
+          <div class="a-two">
+            <label class="lead-f"><span>מסלול שמעניין אותך</span><select id="lead-plan"><option value="">עוד לא בטוח/ה</option><option>ליווי חודשי</option><option>ליווי 4 חודשים</option><option>ליווי חצי שנה</option><option>ליווי שנתי</option></select></label>
+            <label class="lead-f"><span>המטרה</span><select id="lead-goal"><option value="">בחירה</option><option>לעלות מסה</option><option>להתחטב בלי לאבד שריר</option><option>תקוע ולא מתקדם</option><option>להגיע לבמה</option><option>להתחיל להתאמן נכון</option></select></label>
+          </div>
+          <input id="lead-hp" class="lead-hp" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
+          <button class="a-btn a-btn--full" id="lead-btn" type="submit">השארת פרטים</button>
+          <div class="lead-msg" id="lead-msg" role="alert"></div>
+          <p class="a-fine">הפרטים משמשים רק כדי לחזור אליכם. מעדיפים לדבר עכשיו? <a href="https://wa.me/972586931163?text=%D7%94%D7%99%D7%99%20%D7%94%D7%9C%D7%9C%2C%20%D7%90%D7%A9%D7%9E%D7%97%20%D7%9C%D7%A9%D7%9E%D7%95%D7%A2%20%D7%A4%D7%A8%D7%98%D7%99%D7%9D%20%D7%A2%D7%9C%20%D7%94%D7%9C%D7%99%D7%95%D7%95%D7%99%20%D7%94%D7%90%D7%99%D7%A9%D7%99" target="_blank" rel="noopener">כתבו לנו בוואטסאפ</a></p>
+        </form>
+        <div class="lead-done a-done" id="lead-done" hidden tabindex="-1">
+          <div class="lead-done-i" aria-hidden="true">✓</div>
+          <h2>קיבלנו, <span id="lead-done-name"></span>!</h2>
+          <p class="a-lead">נחזור אליך תוך 24 שעות. בינתיים אפשר למלא את <a href="intake.html">שאלון הקליטה</a> (3 דקות), כדי שנגיע לשיחה מוכנים.</p>
+        </div>
+        <p class="a-total">ארבעת המתאמנים בעמוד הזה הזיזו יחד <span class="fj-num">82</span> ק״ג.</p>
+      </div>
+    </div>
+  </section>
+</main>
+
+
+<!-- ═══ DEMO VIDEO MODAL ═══ -->
+<div id="demo-modal" onclick="if(event.target===this)this.style.display='none'"
+  style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:9999;align-items:center;justify-content:center;padding:16px;">
+  <div style="position:relative;width:100%;max-width:400px;">
+    <button onclick="document.getElementById('demo-modal').style.display='none'"
+      style="position:absolute;top:-40px;left:0;background:none;border:none;color:#fff;font-size:1.6rem;cursor:pointer;line-height:1;">✕</button>
+    <div style="position:relative;padding-bottom:177.78%;height:0;border-radius:16px;overflow:hidden;box-shadow:0 0 40px rgba(131,245,44,0.5);">
+      <iframe src="fit-journey-ad.html" style="position:absolute;inset:0;width:100%;height:100%;border:none;border-radius:16px;" allow="autoplay" title="סרטון דמו"></iframe>
     </div>
   </div>
-</section>
+</div>
 
 
-<!-- ═══ CLOSING CTA ═══ -->
-<section id="closing">
-  <div class="hf-bg" aria-hidden="true">HF</div>
-  <div class="container">
-    <blockquote class="closing-quote">
-      "הגוף שלך לא משתנה <span>מניחושים.</span><br>
-      הוא משתנה מ<strong>תוכנית מדויקת</strong>, <strong>מעקב נכון</strong> והתמדה.<br>
-      כאן מתחילים <span>תהליך אמיתי.</span>"
-    </blockquote>
-    <a href="#" class="btn-primary" onclick="goTo('pricing'); return false;" style="font-size:1.1rem;padding:18px 44px;">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
-      התחל תהליך עכשיו
-    </a>
-  </div>
-</section>
+
+
 
 <!-- ═══ RECIPE BOOK OVERLAY ═══ -->
 <div class="recipe-overlay" id="recipe-book-overlay">
@@ -2918,7 +2794,7 @@
     try {
       const res = await fetch(LEAD_FN, { method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ full_name: name, phone, plan_interest: el('lead-plan').value, goal: el('lead-goal').value,
-          gender: el('tab-women') && el('tab-women').classList.contains('active') ? 'women' : 'men',
+          gender: (document.querySelector('input[name="lead-gender"]:checked') || {}).value || null,
           source: 'landing', website: el('lead-hp').value }) });
       const j = await res.json().catch(() => ({}));
       if (!res.ok || !j.ok) throw new Error(j.error || 'שגיאה');
@@ -3210,5 +3086,83 @@
     if (p) p.addEventListener('click', function () { go(1); }); if (n) n.addEventListener('click', function () { go(-1); });
   })();
 </script>
+<script src="vendor/scrollcraft/scrollcraft.js"></script>
+<script>ScrollCraft.mount(document.getElementById('a-main'));</script>
+<script>
+/* ═══ עיצוב A · התנועה הייחודית ועוד ═══
+   1. קו האמצע הוא סרט מדידה: בזמן התוצאות הוא סופר את הק״ג האמיתיים, מטביע חותמת לכל מתאמן,
+      ואחרי התוצאות מסכם 82 ק״ג (13+16+35+18).
+   2. התוויות בראש הקו מתחלפות לפי הקטע (היום|אחרי, לבד|בליווי, ...).
+   3. בסגירה הקו נגלל לקצה (--z) וצד ה"אחרי" תופס את המסך עם הטופס.
+   הכול קורא את --sc-p שהמנוע כותב על האקטים; המנוע עצמו לא שונה. */
+(function () {
+  var CASES = [{ n: 'דניאל', v: 13 }, { n: 'לירן', v: 16 }, { n: 'אופיר', v: -35 }, { n: 'נשיאל', v: 18 }];
+  var WIN = [[0, .24], [.2, .43], [.39, .64], [.6, 1]];
+  var TOTAL = CASES.reduce(function (a, c) { return a + Math.abs(c.v); }, 0);
+  var root = document.documentElement, num = document.getElementById('a-num'), lbl = document.getElementById('a-lbl');
+  var tape = document.getElementById('a-tape'), stampsEl = document.getElementById('a-stamps');
+  var cases = document.getElementById('a-results'), close = document.getElementById('lead');
+  var tagNow = document.getElementById('a-tag-now'), tagThen = document.getElementById('a-tag-then');
+  var secs = Array.prototype.slice.call(document.querySelectorAll('#a-main [data-a-tags]'));
+  var stamps = CASES.map(function (c) {
+    var s = document.createElement('span'); s.className = 'a-stamp';
+    s.innerHTML = c.n + '<b>' + (c.v > 0 ? '+' : '−') + Math.abs(c.v) + '</b>'; stampsEl.appendChild(s); return s;
+  });
+  var shown = 0, lastTags = '', reduce = matchMedia('(prefers-reduced-motion: reduce)').matches, mob = matchMedia('(max-width: 760px)');
+  function P(el) { return parseFloat(el.style.getPropertyValue('--sc-p')) || 0; }
+  function clamp(x) { return Math.max(0, Math.min(1, x)); }
+  function frame() {
+    var pc = P(cases), pz = P(close), r = cases.getBoundingClientRect(), mid = innerHeight * .5;
+    var target = 0, label = 'ק״ג · מתחילים', idx = -1;
+    if (r.top <= mid && pc < 1) {
+      idx = pc < .22 ? 0 : pc < .415 ? 1 : pc < .62 ? 2 : 3;
+      var w = WIN[idx], t = clamp((pc - w[0]) / ((w[1] - w[0]) * .55));
+      target = CASES[idx].v * (1 - Math.pow(1 - t, 3)); label = 'ק״ג · ' + CASES[idx].n;
+    } else if (pc >= 1 || r.bottom < 0) { target = TOTAL; label = 'ק״ג זזו בעמוד'; idx = 4; }
+    shown += (target - shown) * (reduce ? 1 : .16);
+    var v = Math.round(shown);
+    num.textContent = (v > 0 && idx < 4 ? '+' : v < 0 ? '−' : '') + Math.abs(v); lbl.textContent = label;
+    stamps.forEach(function (s, i) { s.classList.toggle('on', idx > i || (idx === i && pc > WIN[i][0] + .06) || idx === 4); });
+    tape.style.setProperty('--tape-y', (-scrollY * .35).toFixed(1) + 'px');
+    root.style.setProperty('--z', reduce ? 1 : clamp((pz - .04) / .5).toFixed(4));
+    /* הקריאה במרכז הקו מופיעה מהתוצאות ועד לפני הסגירה; בטלפון רק ליד התוצאות */
+    var show = mob.matches ? (r.top < innerHeight * .6 && r.bottom > innerHeight * .4) : (r.top < innerHeight * .6 && close.getBoundingClientRect().top > innerHeight * .2);
+    root.classList.toggle('a-show-read', show);
+    /* תוויות בראש הקו, וקטעים שנערמים בטלפון (בהם הקו מוסתר) */
+    var cur = null; for (var k = 0; k < secs.length; k++) { var b = secs[k].getBoundingClientRect(); if (b.top <= mid && b.bottom > mid) { cur = secs[k]; break; } }
+    if (cur) {
+      var tg = cur.getAttribute('data-a-tags');
+      if (tg !== lastTags) { var pr = tg.split('|'); tagNow.textContent = pr[0]; tagThen.textContent = pr[1]; lastTags = tg; }
+      root.classList.toggle('a-stacked', cur.classList.contains('a-stack-m'));
+    }
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+
+  /* תפריט */
+  var menu = document.getElementById('a-menu'), btn = document.getElementById('a-menu-btn');
+  window.aMenu = function (open) {
+    menu.hidden = !open; btn.setAttribute('aria-expanded', open ? 'true' : 'false'); document.body.style.overflow = open ? 'hidden' : '';
+    if (open) { var f = menu.querySelector('a'); if (f) f.focus(); } else btn.focus({ preventScroll: true });
+  };
+  btn.addEventListener('click', function () { aMenu(menu.hidden); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !menu.hidden) aMenu(false); });
+  menu.addEventListener('click', function (e) {
+    var a = e.target.closest('a[data-go]'); if (!a) return;
+    e.preventDefault(); aMenu(false);
+    var t = document.querySelector(a.getAttribute('href')); if (t) scrollTo({ top: t.getBoundingClientRect().top + scrollY, behavior: reduce ? 'auto' : 'smooth' });
+  });
+
+  /* "השארת פרטים": גוללים לסוף אקט הסגירה, שם הטופס כבר במקומו (הגרסה הקודמת גללה לאמצע) */
+  window.leadFor = function (plan, goal) {
+    var sel = document.getElementById('lead-plan'); if (sel && plan) sel.value = plan;
+    var gl = document.getElementById('lead-goal'); if (gl && goal) gl.value = goal;
+    var y = close.getBoundingClientRect().top + scrollY + close.offsetHeight - innerHeight;
+    scrollTo({ top: y, behavior: reduce ? 'auto' : 'smooth' });
+    setTimeout(function () { var n = document.getElementById('lead-name'); if (n && !n.value) n.focus({ preventScroll: true }); }, reduce ? 50 : 900);
+  };
+})();
+</script>
+
 </body>
 </html>
