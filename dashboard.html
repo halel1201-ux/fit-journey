@@ -1331,7 +1331,6 @@
   function todayStr(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
 
   const ONESIGNAL_APP_ID  = 'fe16a494-b8de-47e9-8a29-de052e048ec8';
-  const ONESIGNAL_REST_KEY = 'os_v2_app_7ylkjffy3zd6tcrj3ycs4beozaggpy5dukfe45efqruamrlljsrgz4rncsssvzvsbpt2df3zts2vdwcl2qg6zowamqntfmprxzppmjq';
 
   function initOneSignal(userEmail) {
     // Native APK (Capacitor): use the OneSignal device SDK — real Android notifications.
@@ -1528,15 +1527,13 @@
     } catch(e) {}
   }
 
-  async function sendPushToPlayer(playerId, title, body) {
-    if (!playerId) return;
-    try {
-      await fetch('https://onesignal.com/api/v1/notifications', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Key ${ONESIGNAL_REST_KEY}` },
-        body: JSON.stringify({ app_id: ONESIGNAL_APP_ID, include_subscription_ids: [playerId], headings: { he: title, en: title }, contents: { he: body, en: body } })
-      });
-    } catch(e) { /* silent */ }
+  /* ההתראה יוצאת מהשרת (push-send), שבודק שהנמען הוא המאמן שלי.
+     המפתח של OneSignal לא נמצא בדף. */
+  async function pushTo(emails, title, body) {
+    emails = (emails || []).filter(Boolean);
+    if (!emails.length) return;
+    try { await sb.functions.invoke('push-send', { body: { to: emails, title, body } }); }
+    catch (e) { /* silent */ }
   }
 
   let currentEmail        = null;
@@ -2190,12 +2187,7 @@
       read: false,
       data: { kind: 'payment_claim', amount, method, note }
     });
-    (async () => {
-      const { data: tok } = await sb.from('push_tokens').select('onesignal_player_id').eq('user_email', coachMail).single();
-      if (tok?.onesignal_player_id) {
-        await sendPushToPlayer(tok.onesignal_player_id, `${clientName} דיווח על תשלום`, `${amount.toLocaleString()} ₪ (${method}) — מחכה לאישור`);
-      }
-    })();
+    pushTo([coachMail], `${clientName} דיווח על תשלום`, `${amount.toLocaleString()} ₪ (${method}) — מחכה לאישור`);
   }
 
   /* ── RENEWAL ── */
@@ -4793,16 +4785,13 @@
           ...(pace ? { est_min: pace.est, pace_ok: pace.ok, over_min: pace.over } : {})
         }
       });
-      // OneSignal push to coach
-      (async () => {
-        const { data: tok } = await sb.from('push_tokens').select('onesignal_player_id').eq('user_email', coachMail).single();
-        if (tok?.onesignal_player_id) {
-          const clientName = clientData?.name || currentEmail.split('@')[0];
-          const prTxt = prs.length ? ` 🏆 שיא ב${prs[0].exercise}!` : '';
-          const paceTxt = pace ? (pace.ok ? ' · בזמן ✓' : ` · איטי ב-${pace.over} דק׳`) : '';
-          await sendPushToPlayer(tok.onesignal_player_id, `${clientName} סיים אימון`, `${workoutSession.dayName} — ${Math.floor(elapsed/60)} דקות${paceTxt}${prTxt}`);
-        }
-      })();
+      // push למאמן
+      {
+        const clientName = clientData?.name || currentEmail.split('@')[0];
+        const prTxt = prs.length ? ` 🏆 שיא ב${prs[0].exercise}!` : '';
+        const paceTxt = pace ? (pace.ok ? ' · בזמן ✓' : ` · איטי ב-${pace.over} דק׳`) : '';
+        pushTo([coachMail], `${clientName} סיים אימון`, `${workoutSession.dayName} — ${Math.floor(elapsed/60)} דקות${paceTxt}${prTxt}`);
+      }
     }
 
     // Show volume popup

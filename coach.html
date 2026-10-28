@@ -2034,7 +2034,7 @@
     if (error) { toast('שגיאה: ' + error.message, 'err'); return; }
     b.attended = next;
     if (next === false) {   // gentle no-show nudge to the client
-      await sb.from('messages').insert({ coach_email: coachEmail, client_email: b.client_email, sender_email: coachEmail,
+      await sb.from('messages').insert({ coach_email: threadCoach(b.client_email), client_email: b.client_email, sender_email: coachEmail,
         content: '📩 רשמנו שלא הגעת לאימון שנקבע. הכל בסדר? אם צריך לתאם מחדש — אני כאן. נשמור על הרצף 🙏' });
     }
     /* חלון עריכת השיעור קיים רק אצל בעל הסטודיו; במסך המאמן צריך
@@ -2606,7 +2606,6 @@
   // ──────────────────────────────────────────────────────────────────────
 
   const ONESIGNAL_APP_ID   = 'fe16a494-b8de-47e9-8a29-de052e048ec8';
-  const ONESIGNAL_REST_KEY = 'os_v2_app_7ylkjffy3zd6tcrj3ycs4beozaggpy5dukfe45efqruamrlljsrgz4rncsssvzvsbpt2df3zts2vdwcl2qg6zowamqntfmprxzppmjq';
 
   function initOneSignal(userEmail) {
     // Native APK (Capacitor): use the OneSignal device SDK — real Android notifications.
@@ -2656,15 +2655,20 @@
     });
   }
 
-  async function sendPush(subscriptionIds, title, body) {
-    if (!subscriptionIds?.length) return;
-    try {
-      await fetch('https://onesignal.com/api/v1/notifications', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Key ${ONESIGNAL_REST_KEY}` },
-        body: JSON.stringify({ app_id: ONESIGNAL_APP_ID, include_subscription_ids: subscriptionIds, headings: { he: title, en: title }, contents: { he: body, en: body } })
-      });
-    } catch(e) { console.warn('sendPush:', e); }
+  /* ההתראות יוצאות מהשרת (push-send): שם נבדק שמותר לי להגיע לכל נמען,
+     ושם שמור המפתח של OneSignal. הדף שולח מיילים ולא טוקנים, ולכן גם
+     לא צריך לקרוא את push_tokens של המתאמנים. */
+  async function pushTo(emails, title, body) {
+    emails = (emails || []).filter(Boolean);
+    if (!emails.length) return;
+    try { await sb.functions.invoke('push-send', { body: { to: emails, title, body } }); }
+    catch (e) { console.warn('push-send:', e); }
+  }
+  /* לכל חברי הקבוצה: אותם אנשים שרואים את ההודעה בצ'אט הקבוצתי */
+  async function pushGroup(groupEmail, title, body) {
+    if (!groupEmail) return;
+    try { await sb.functions.invoke('push-send', { body: { group: groupEmail, title, body } }); }
+    catch (e) { console.warn('push-send:', e); }
   }
 
   function openPushOverlay() {
@@ -2704,12 +2708,8 @@
       if (document.getElementById('coach-grp-overlay')?.classList.contains('open')) renderCoachGroupMsgs();
     }
 
-    // נסה גם Push לכל מי שאישר התראות
-    try {
-      const { data: tokens } = await sb.from('push_tokens').select('onesignal_player_id').in('user_email', clientEmails);
-      const ids = (tokens || []).map(t => t.onesignal_player_id).filter(Boolean);
-      if (ids.length) await sendPush(ids, `המאמן ${coachName}`, msg);
-    } catch(e) {}
+    // וגם push לכל מי שאישר התראות, בקבוצה שההודעה נכתבה אליה
+    await pushGroup(groupCoach(), `המאמן ${coachName}`, msg);
 
     btn.disabled = false; btn.textContent = '📣 שלח לכולם';
     document.getElementById('push-msg').value = '';
@@ -2760,16 +2760,12 @@
 
     if (overdue.length || dueRecurring.length) {
       const emails = clients.map(c => c.email);
-      const { data: toks } = emails.length
-        ? await sb.from('push_tokens').select('onesignal_player_id').in('user_email', emails)
-        : { data: [] };
-      const ids = (toks || []).map(t => t.onesignal_player_id).filter(Boolean);
       for (const m of overdue) {
-        if (ids.length) await sendPush(ids, `המאמן ${coachName}`, m.message);
+        await pushTo(emails, `המאמן ${coachName}`, m.message);
         await sb.from('scheduled_messages').update({ sent: true }).eq('id', m.id);
       }
       for (const m of dueRecurring) {
-        if (ids.length) await sendPush(ids, `המאמן ${coachName}`, m.message);
+        await pushTo(emails, `המאמן ${coachName}`, m.message);
         await sb.from('scheduled_messages').update({ last_sent_date: today }).eq('id', m.id);
       }
       loadScheduledMessages();
@@ -4136,7 +4132,7 @@
     const dflt = `היי ${first}! 👋 מזמן לא התאמנו יחד — התגעגעתי. חזרתי אליך עם הצעה מיוחדת לחזרה לתהליך. מתי נוח לך לדבר? בוא נחזיר אותך לכושר 💪`;
     const msg = prompt('הודעת חזרה ללקוח (אפשר לערוך):', dflt);
     if (msg === null) return;
-    const { error } = await sb.from('messages').insert({ coach_email: coachEmail, client_email: email, sender_email: coachEmail, content: msg });
+    const { error } = await sb.from('messages').insert({ coach_email: threadCoach(email), client_email: email, sender_email: coachEmail, content: msg });
     if (error) { toast('שגיאה: ' + error.message, 'err'); return; }
     await sb.from('clients').update({ winback_sent_at: new Date().toISOString() }).eq('email', email).eq('coach_email', coachEmail);
     c.winback_sent_at = new Date().toISOString();
@@ -4167,8 +4163,8 @@
     if (error) { toast('שגיאה: ' + error.message, 'err'); return; }
     // congratulate both sides in chat
     await sb.from('messages').insert([
-      { coach_email: coachEmail, client_email: r.referrer_email, sender_email: coachEmail, content: `🎁 תודה שהבאת חבר! התגמול שלך: ${note}. כל הכבוד 🙌` },
-      { coach_email: coachEmail, client_email: r.referee_email, sender_email: coachEmail, content: `🎁 ברוך הבא! קיבלת מתנת הצטרפות: ${note}. בוא נתחיל חזק 💪` },
+      { coach_email: threadCoach(r.referrer_email), client_email: r.referrer_email, sender_email: coachEmail, content: `🎁 תודה שהבאת חבר! התגמול שלך: ${note}. כל הכבוד 🙌` },
+      { coach_email: threadCoach(r.referee_email), client_email: r.referee_email, sender_email: coachEmail, content: `🎁 ברוך הבא! קיבלת מתנת הצטרפות: ${note}. בוא נתחיל חזק 💪` },
     ]);
     renderReferrals();
     toast('שני הצדדים תוגמלו ✓', 'ok');
@@ -4411,13 +4407,10 @@
     const text = document.getElementById('churn-msg').value.trim();
     if (!text) { toast('אין הודעה לשליחה', 'err'); return; }
     const { error } = await sb.from('messages').insert({
-      coach_email: coachEmail, client_email: email, sender_email: coachEmail, content: text,
+      coach_email: threadCoach(email), client_email: email, sender_email: coachEmail, content: text,
     });
     if (error) { toast('שגיאה: ' + error.message, 'err'); return; }
-    try {
-      const { data: tok } = await sb.from('push_tokens').select('onesignal_player_id').eq('user_email', email).maybeSingle();
-      if (tok?.onesignal_player_id) await sendPush([tok.onesignal_player_id], '💬 הודעה חדשה מהמאמן', text.slice(0, 80));
-    } catch (e) { /* silent */ }
+    await pushTo([email], '💬 הודעה חדשה מהמאמן', text.slice(0, 80));
     await churnSetStatus(email, 'sent');
     closeChurnModal();
     toast('ההודעה נשלחה בצ׳אט ✓', 'ok');
@@ -4578,7 +4571,7 @@
       if (!cs.length) return { html: warn(`לא נמצא לקוח בשם "${esc(m[1])}"`), answer: 'לא נמצא', action: 'reminder' };
       if (cs.length > 1) return { html: warn('כמה התאמות: ' + cs.map(nameOf).join(', ') + ' — פרט יותר'), answer: 'רב-משמעי', action: 'reminder' };
       const c = cs[0];
-      await sb.from('messages').insert({ coach_email: coachEmail, client_email: c.email, sender_email: coachEmail, content: '👋 היי! רק בודק מה שלומך ואיך האימונים. כאן בשבילך לכל שאלה 💪' });
+      await sb.from('messages').insert({ coach_email: threadCoach(c.email), client_email: c.email, sender_email: coachEmail, content: '👋 היי! רק בודק מה שלומך ואיך האימונים. כאן בשבילך לכל שאלה 💪' });
       return { html: ok(`נשלחה תזכורת ל<b>${nameOf(c)}</b> בצ׳אט ✓`), answer: `תזכורת → ${c.name}`, action: 'reminder' };
     }
     if ((m = q.match(/^\s*הקפא\s+(?:את\s+)?(.+?)(?:\s+(\d+))?\s*$/))) {
@@ -5105,13 +5098,10 @@ ${exLines || 'אין'}
     if (!email || !text) return;
     await sb.from('client_ai_reports').insert({ coach_email: coachEmail, client_email: email, content: text });
     await sb.from('messages').insert({
-      coach_email: coachEmail, client_email: email, sender_email: coachEmail,
+      coach_email: threadCoach(email), client_email: email, sender_email: coachEmail,
       content: '📊 דוח התקדמות מהמאמן:\n\n' + text,
     });
-    try {
-      const { data: tok } = await sb.from('push_tokens').select('onesignal_player_id').eq('user_email', email).maybeSingle();
-      if (tok?.onesignal_player_id) await sendPush([tok.onesignal_player_id], '📊 דוח התקדמות חדש', 'המאמן שלח לך סיכום התקדמות');
-    } catch (e) {}
+    await pushTo([email], '📊 דוח התקדמות חדש', 'המאמן שלח לך סיכום התקדמות');
     _lastReportSent = new Date().toISOString();
     closeAiReport();
     toast('הדוח נשלח ללקוח ✓', 'ok');
@@ -5211,7 +5201,7 @@ ${exLines || 'אין'}
     }
     const { error } = await sb.from('clients').update(patch).eq('email', activeEmail);
     if (error) { toast('שגיאה: ' + error.message, 'err'); return; }
-    await sb.from('messages').insert({ coach_email: coachEmail, client_email: activeEmail, sender_email: coachEmail,
+    await sb.from('messages').insert({ coach_email: threadCoach(activeEmail), client_email: activeEmail, sender_email: coachEmail,
       content: `❄️ המנוי שלך הוקפא ל-${days} ימים (עד ${until.toLocaleDateString('he-IL')}). תקופת הליווי הוארכה בהתאם — נתראה בחזרה! 💪` });
     await loadClients();
     toast(`המנוי הוקפא ל-${days} ימים ❄️`, 'ok');
@@ -5231,7 +5221,7 @@ ${exLines || 'אין'}
     }
     const { error } = await sb.from('clients').update(patch).eq('email', activeEmail);
     if (error) { toast('שגיאה: ' + error.message, 'err'); return; }
-    await sb.from('messages').insert({ coach_email: coachEmail, client_email: activeEmail, sender_email: coachEmail,
+    await sb.from('messages').insert({ coach_email: threadCoach(activeEmail), client_email: activeEmail, sender_email: coachEmail,
       content: '☀️ המנוי הופשר — חזרנו לפעילות מלאה! מוכנים להמשיך 💪' });
     await loadClients();
     toast('המנוי הופשר ☀️', 'ok');
@@ -5240,7 +5230,7 @@ ${exLines || 'אין'}
   async function sendDeclReminder(email) {
     if (!requireEdit()) return;
     const { error } = await sb.from('messages').insert({
-      coach_email: coachEmail, client_email: email, sender_email: coachEmail,
+      coach_email: threadCoach(email), client_email: email, sender_email: coachEmail,
       content: '📝 תזכורת: נשאר לך לחתום על הצהרת הבריאות באפליקציה — נכנסים לדף הבית ולוחצים "לחתימה". לוקח דקה 🙏',
     });
     if (error) { toast('שגיאה: ' + error.message, 'err'); return; }
@@ -13382,13 +13372,7 @@ th.d,td.d{text-align:right}td.d{color:${T(.7)}}td.b{font-weight:800}tr.z td{back
       renderCoachChat();
     }
     // שלח push למתאמן הספציפי
-    try {
-      const { data: tok } = await sb.from('push_tokens').select('onesignal_player_id').eq('user_email', email).maybeSingle();
-      if (tok?.onesignal_player_id) {
-        const clientName = clients.find(c=>c.email===email)?.name || email.split('@')[0];
-        await sendPush([tok.onesignal_player_id], '💬 הודעה חדשה מהמאמן', text ? text.slice(0, 80) : '📎 קובץ');
-      }
-    } catch(e) { /* silent */ }
+    await pushTo([email], '💬 הודעה חדשה מהמאמן', text ? text.slice(0, 80) : '📎 קובץ');
   }
 
   /* ── Check-ins ── */
@@ -13663,7 +13647,7 @@ th.d,td.d{text-align:right}td.d{color:${T(.7)}}td.b{font-weight:800}tr.z td{back
     if (targetEmail !== 'all') {
       // שלח הודעה פרטית למתאמן ספציפי
       const { data: newMsg, error } = await sb.from('messages').insert({
-        coach_email:  coachEmail,
+        coach_email:  threadCoach(targetEmail),
         client_email: targetEmail,
         sender_email: coachEmail,
         content:      text || null,
@@ -13673,10 +13657,7 @@ th.d,td.d{text-align:right}td.d{color:${T(.7)}}td.b{font-weight:800}tr.z td{back
       if (error) { toast('שגיאה: ' + error.message, 'err'); return; }
       toast('נשלח ל-' + (clients.find(c=>c.email===targetEmail)?.name||targetEmail.split('@')[0]), 'ok');
       // push למתאמן הספציפי
-      try {
-        const { data: tok } = await sb.from('push_tokens').select('onesignal_player_id').eq('user_email', targetEmail).maybeSingle();
-        if (tok?.onesignal_player_id) await sendPush([tok.onesignal_player_id], '💬 הודעה חדשה מהמאמן', text ? text.slice(0,80) : '📎 קובץ');
-      } catch(e) {}
+      await pushTo([targetEmail], '💬 הודעה חדשה מהמאמן', text ? text.slice(0,80) : '📎 קובץ');
       return;
     }
 
@@ -13693,15 +13674,8 @@ th.d,td.d{text-align:right}td.d{color:${T(.7)}}td.b{font-weight:800}tr.z td{back
       coachGroupMessages.push(newMsg); renderCoachGroupMsgs();
     }
     toast('נשלח לקבוצה ✓', 'ok');
-    // push לכל המתאמנים
-    try {
-      const emails = clients.map(c => c.email);
-      if (emails.length) {
-        const { data: toks } = await sb.from('push_tokens').select('onesignal_player_id').in('user_email', emails);
-        const ids = (toks || []).map(t => t.onesignal_player_id).filter(Boolean);
-        if (ids.length) await sendPush(ids, `👥 ${coachName}`, text ? text.slice(0,80) : '📎 קובץ');
-      }
-    } catch(e) {}
+    // push לכל חברי הקבוצה
+    await pushGroup(groupCoach(), `👥 ${coachName}`, text ? text.slice(0,80) : '📎 קובץ');
   }
 
   /* ── @ MENTION IN GROUP CHAT ── */
