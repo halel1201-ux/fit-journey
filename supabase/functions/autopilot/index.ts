@@ -35,13 +35,14 @@ function detectEscalation(text: string): boolean {
   return ESCALATION_PATTERNS.some(p => p.test(text))
 }
 
-function buildSystemPrompt(coachName: string, clientName: string, clientGoal: string | null, training: string | null, nutrition: string | null, foodToday: string, exLib: string, foodRef: string): string {
+function buildSystemPrompt(coachName: string, clientName: string, clientFemale: boolean, clientGoal: string | null, training: string | null, nutrition: string | null, foodToday: string, exLib: string, foodRef: string): string {
   const goalMap: Record<string, string> = { cut: 'חיטוב', recomp: 'ריקומפוזיציה', mass: 'מסה', peak_week: 'פייק וויק' }
   const goalHeb = clientGoal ? (goalMap[clientGoal] ?? clientGoal) : 'לא הוגדרה'
   return `אתה עוזר ה-AI של מאמן הכושר ${coachName}, שמגיב ללקוחות בשמו כאשר הוא לא זמין.
 
 מידע על הלקוח:
 שם: ${clientName}
+מין: ${clientFemale ? 'אישה. פנה אליה תמיד בלשון נקבה (את, תעשי, אלופה).' : 'גבר'}
 מטרה: ${goalHeb}
 תוכנית אימונים: ${training ? training.slice(0, 1200) : 'לא נמצאה — תן עצה כללית בטוחה.'}
 תפריט תזונה: ${nutrition ? nutrition.slice(0, 800) : 'לא נמצא — תן עצה כללית בטוחה.'}
@@ -171,7 +172,7 @@ async function processItem(item: { id: number; coach_email: string; client_email
     // b. Fetch context
     const today = new Date().toISOString().split('T')[0]
     const [{ data: client }, { data: coach }, { data: training }, { data: nutrition }, { data: history }, { data: foodLogs }, { data: exLib }] = await Promise.all([
-      sb.from('clients').select('name, goal, target_calories, target_protein, target_carbs, target_fat').eq('email', item.client_email).single(),
+      sb.from('clients').select('name, gender, goal, target_calories, target_protein, target_carbs, target_fat').eq('email', item.client_email).single(),
       sb.from('coaches').select('name').eq('email', item.coach_email).single(),
       sb.from('training_plans').select('plan').eq('client_email', item.client_email).maybeSingle(),
       sb.from('nutrition_plans').select('plan').eq('client_email', item.client_email).maybeSingle(),
@@ -184,6 +185,7 @@ async function processItem(item: { id: number; coach_email: string; client_email
     ])
 
     const clientName = client?.name ?? item.client_email.split('@')[0]
+    const clientFemale = client?.gender === 'female'
     const coachName  = coach?.name  ?? 'המאמן'
 
     // מה הלקוח אכל היום + כמה נותר ליעד
@@ -214,7 +216,7 @@ async function processItem(item: { id: number; coach_email: string; client_email
     }
 
     const systemPrompt = buildSystemPrompt(
-      coachName, clientName, client?.goal ?? null,
+      coachName, clientName, clientFemale, client?.goal ?? null,
       typeof training?.plan === 'string' ? training.plan : JSON.stringify(training?.plan ?? ''),
       typeof nutrition?.plan === 'string' ? nutrition.plan : JSON.stringify(nutrition?.plan ?? ''),
       foodToday, exText, foodRef,
@@ -231,7 +233,7 @@ async function processItem(item: { id: number; coach_email: string; client_email
     let aiText: string, inputTokens = 0, outputTokens = 0
 
     if (preEscalated) {
-      aiText = 'שאלה חשובה, סימנתי אותה למאמן ויחזור אליך בהקדם 🙏 אם זה דחוף — פנה לגורם מקצועי.'
+      aiText = `שאלה חשובה, סימנתי אותה למאמן ויחזור אליך בהקדם 🙏 אם זה דחוף — ${clientFemale ? 'פני' : 'פנה'} לגורם מקצועי.`
       inputTokens = 5; outputTokens = 5
     } else {
       const r = await callClaude(systemPrompt, msgs)

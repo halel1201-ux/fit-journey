@@ -24,6 +24,8 @@
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   const isUrl = s => /^https?:\/\/\S+$/i.test(String(s || '').trim());
   const pad = n => String(n).padStart(2, '0');
+  /* פנייה למתאמן/ת: בדשבורד byG של הדף בוחר לפי מין המתאמן. במסך המאמן אין byG, ונשאר הנוסח הקיים */
+  const GN = (m, f) => (typeof window.byG === 'function' ? window.byG(m, f) : m);
 
   function say(msg, err) {
     if (typeof toast === 'function') toast(msg, err ? 'err' : 'ok');
@@ -288,8 +290,8 @@
     const loc = String(m.location || '').trim();
     const a = (href, txt, ext) => `<a href="${H(href)}" ${ext ? 'target="_blank" rel="noopener"' : ''} style="flex:none;padding:7px 12px;border-radius:9px;
       background:linear-gradient(135deg,var(--orange,#FF6B00),#FF8C00);color:#fff;font-weight:800;font-size:0.76rem;text-decoration:none;">${txt}</a>`;
-    if (m.kind === 'video' && isUrl(loc)) return a(loc, 'הצטרף', true);
-    if (m.kind === 'phone' && loc) return a('tel:' + loc.replace(/[^\d+]/g, ''), 'התקשר');
+    if (m.kind === 'video' && isUrl(loc)) return a(loc, GN('הצטרף', 'הצטרפי'), true);
+    if (m.kind === 'phone' && loc) return a('tel:' + loc.replace(/[^\d+]/g, ''), GN('התקשר', 'התקשרי'));
     if (m.kind === 'in_person' && loc) return a('https://maps.apple.com/?q=' + encodeURIComponent(loc), 'ניווט', true);
     return '';
   }
@@ -309,13 +311,13 @@
       if (syncOn() && status === 'granted') {
         calRow = `<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:10px;font-size:0.74rem;color:#4ade80;font-weight:700;">
           <span>✓ מסונכרן ליומן · תזכורת יום לפני</span>
-          <button onclick="FJMeet.disableCalendar()" style="background:none;border:none;color:#777;font-family:Heebo,sans-serif;font-size:0.72rem;cursor:pointer;text-decoration:underline;">הפסק</button></div>`;
+          <button onclick="FJMeet.disableCalendar()" style="background:none;border:none;color:#777;font-family:Heebo,sans-serif;font-size:0.72rem;cursor:pointer;text-decoration:underline;">${GN('הפסק', 'הפסיקי')}</button></div>`;
       } else if (syncOn() && status !== 'granted') {
         calRow = `<div style="margin-top:10px;font-size:0.74rem;color:#f87171;line-height:1.6;">הגישה ליומן בוטלה. אפשר להחזיר אותה ב<b>הגדרות ← Fit Journey ← יומנים</b>.</div>`;
       } else {
         calRow = `<button onclick="FJMeet.enableCalendar()" style="width:100%;margin-top:10px;padding:10px;border-radius:10px;cursor:pointer;
           background:rgba(255,255,255,0.05);border:1px solid rgba(255,107,0,0.4);color:var(--orange,#FF6B00);font-family:Heebo,sans-serif;font-weight:800;font-size:0.82rem;">
-          📅 הוסף ליומן שלי — עם תזכורת יום לפני</button>`;
+          📅 ${GN('הוסף', 'הוסיפי')} ליומן שלי — עם תזכורת יום לפני</button>`;
       }
     }
 
@@ -332,7 +334,7 @@
           </div>
           <div style="display:flex;gap:8px;margin-top:10px;">
             <button onclick="FJMeet.enableCalendar()" style="flex:1;padding:9px;border-radius:10px;border:none;cursor:pointer;
-              background:linear-gradient(135deg,var(--orange,#FF6B00),#FF8C00);color:#fff;font-family:Heebo,sans-serif;font-weight:800;font-size:0.8rem;">הוסף ליומן</button>
+              background:linear-gradient(135deg,var(--orange,#FF6B00),#FF8C00);color:#fff;font-family:Heebo,sans-serif;font-weight:800;font-size:0.8rem;">${GN('הוסף', 'הוסיפי')} ליומן</button>
             <button onclick="FJMeet.dismissCal()" style="padding:9px 14px;border-radius:10px;cursor:pointer;background:none;
               border:1px solid rgba(255,255,255,0.12);color:#888;font-family:Heebo,sans-serif;font-weight:700;font-size:0.8rem;">לא עכשיו</button>
           </div></div>`;
@@ -353,7 +355,7 @@
             <div style="font-size:0.72rem;color:#aaa;">${k.nm} · ${m.duration_min} דק׳${m.topic ? ' · ' + H(m.topic) : ''}</div>
           </div>
           ${actionFor(m)}
-          ${nat ? '' : `<button onclick="FJMeet.ics(${m.id})" title="הוסף ליומן" style="flex:none;padding:7px 10px;border-radius:9px;cursor:pointer;
+          ${nat ? '' : `<button onclick="FJMeet.ics(${m.id})" title="${GN('הוסף', 'הוסיפי')} ליומן" style="flex:none;padding:7px 10px;border-radius:9px;cursor:pointer;
             background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.14);color:#ddd;font-family:Heebo,sans-serif;font-weight:800;font-size:0.74rem;">➕ ליומן</button>`}
         </div>`;
       }).join('')}
@@ -467,7 +469,7 @@
     lsSet(SYNC_KEY, '1');
     const r = await syncCalendar();
     await paintTrainee();
-    say(r ? 'נוסף ליומן ✓ תקבל תזכורת יום לפני' : 'הסנכרון ליומן הופעל');
+    say(r ? GN('נוסף ליומן ✓ תקבל תזכורת יום לפני', 'נוסף ליומן ✓ תקבלי תזכורת יום לפני') : 'הסנכרון ליומן הופעל');
   }
 
   async function disableCalendar() {

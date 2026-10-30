@@ -33,7 +33,7 @@ const daysSince = (d: string | null): number => {
   return Math.floor((Date.now() - t) / 864e5)
 }
 
-interface ClientRow { email: string; name: string; coach_email: string; goal: string | null; last_seen: string | null; created_at: string; phone: string | null }
+interface ClientRow { email: string; name: string; coach_email: string; gender: string | null; goal: string | null; last_seen: string | null; created_at: string; phone: string | null }
 
 export function scoreClient(c: {
   tenureDays: number; seenDays: number; workoutDays: number; trackDays: number; unansweredDays: number;
@@ -61,9 +61,9 @@ function sanitizeHebrew(t: string): string {
     .trim()
 }
 
-async function composeMessage(coachName: string, clientName: string, goal: string | null, reasons: string[]): Promise<string> {
+async function composeMessage(coachName: string, clientName: string, female: boolean, goal: string | null, reasons: string[]): Promise<string> {
   const goalHeb = goal ? (goalMap[goal] ?? goal) : ''
-  const fallback = `היי ${clientName}, שמתי לב שקצת נעלמת 🙂 בוא נחזור למסלול — מה מתאים לך השבוע?`
+  const fallback = `היי ${clientName}, שמתי לב שקצת נעלמת 🙂 ${female ? 'בואי' : 'בוא'} נחזור למסלול — מה מתאים לך השבוע?`
   try {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -71,7 +71,7 @@ async function composeMessage(coachName: string, clientName: string, goal: strin
       body: JSON.stringify({
         model: CLAUDE_MODEL, max_tokens: 200,
         system: 'אתה מנסח הודעות וואטסאפ קצרות בשם מאמן כושר ללקוח שנעלם. עברית תקינה, טבעית ומדוברת בלבד. אל תמציא מילים ואל תשבש: כתוב "בוא נחזור" (לא "בואנו"), "שמתי לב" (לא "שמנתי"), "סשן" (לא "סטש"). השתמש רק במילים עבריות אמיתיות ותקינות. 2-3 משפטים, חם ובגובה העיניים, בלי אשמה ובלי לחץ, עם הצעה קונקרטית אחת לחזרה. בלי פתיחות גנריות כמו "אני מקווה שהכל בסדר". החזר רק את ההודעה עצמה.',
-        messages: [{ role: 'user', content: `המאמן: ${coachName}. הלקוח: ${clientName}${goalHeb ? ` (מטרה: ${goalHeb})` : ''}. מה שקרה: ${reasons.join('; ')}. נסח את ההודעה.` }],
+        messages: [{ role: 'user', content: `המאמן: ${coachName}. ${female ? 'הלקוחה (אישה, לכתוב אליה בלשון נקבה: "בואי", "את")' : 'הלקוח'}: ${clientName}${goalHeb ? ` (מטרה: ${goalHeb})` : ''}. מה שקרה: ${reasons.join('; ')}. נסח את ההודעה.` }],
       }),
     })
     if (!res.ok) return fallback
@@ -89,7 +89,7 @@ async function run(): Promise<string> {
 
   // 1. active clients + their coaches (batched — no per-client queries)
   const [{ data: clients }, { data: coaches }] = await Promise.all([
-    sb.from('clients').select('email,name,coach_email,goal,last_seen,created_at,phone').gte('coaching_end', todayStr),
+    sb.from('clients').select('email,name,coach_email,gender,goal,last_seen,created_at,phone').gte('coaching_end', todayStr),
     sb.from('coaches').select('email,name'),
   ])
   if (!clients?.length) return 'no active clients'
@@ -146,7 +146,7 @@ async function run(): Promise<string> {
     if (score < ALERT_THRESHOLD) continue
 
     const cName = c.name || c.email.split('@')[0]
-    const msg = await composeMessage(coachName[c.coach_email] || 'המאמן', cName, c.goal, reasons)
+    const msg = await composeMessage(coachName[c.coach_email] || 'המאמן', cName, c.gender === 'female', c.goal, reasons)
 
     const { data: alertRow, error: insErr } = await sb.from('churn_alerts').insert({
       coach_email: c.coach_email, client_email: c.email, client_name: cName,

@@ -4133,7 +4133,7 @@
     if (!requireEdit()) return;
     const c = clients.find(x => x.email === email); if (!c) return;
     const first = (c.name || '').split(' ')[0] || '';
-    const dflt = `היי ${first}! 👋 מזמן לא התאמנו יחד — התגעגעתי. חזרתי אליך עם הצעה מיוחדת לחזרה לתהליך. מתי נוח לך לדבר? בוא נחזיר אותך לכושר 💪`;
+    const dflt = `היי ${first}! 👋 מזמן לא התאמנו יחד — התגעגעתי. חזרתי אליך עם הצעה מיוחדת לחזרה לתהליך. מתי נוח לך לדבר? ${byGFor(email, 'בוא', 'בואי')} נחזיר אותך לכושר 💪`;
     const msg = prompt('הודעת חזרה ללקוח (אפשר לערוך):', dflt);
     if (msg === null) return;
     const { error } = await sb.from('messages').insert({ coach_email: coachEmail, client_email: email, sender_email: coachEmail, content: msg });
@@ -4168,7 +4168,7 @@
     // congratulate both sides in chat
     await sb.from('messages').insert([
       { coach_email: coachEmail, client_email: r.referrer_email, sender_email: coachEmail, content: `🎁 תודה שהבאת חבר! התגמול שלך: ${note}. כל הכבוד 🙌` },
-      { coach_email: coachEmail, client_email: r.referee_email, sender_email: coachEmail, content: `🎁 ברוך הבא! קיבלת מתנת הצטרפות: ${note}. בוא נתחיל חזק 💪` },
+      { coach_email: coachEmail, client_email: r.referee_email, sender_email: coachEmail, content: byGFor(r.referee_email, `🎁 ברוך הבא! קיבלת מתנת הצטרפות: ${note}. בוא נתחיל חזק 💪`, `🎁 ברוכה הבאה! קיבלת מתנת הצטרפות: ${note}. בואי נתחיל חזק 💪`) },
     ]);
     renderReferrals();
     toast('שני הצדדים תוגמלו ✓', 'ok');
@@ -5075,7 +5075,7 @@
 📈 קצב ומשקל — הערכת קצב ההתקדמות ביחס למטרה
 🎯 3 המלצות קונקרטיות למאמן לשבועות הקרובים
 בלי פתיחות מנומסות. אם אין נתונים לחלק מסוים — דלג עליו.`,
-        messages: [{ role: 'user', content: `מתאמן: ${client?.name || email} · מטרה: ${goalMap[client?.goal] || client?.goal || 'לא הוגדרה'}
+        messages: [{ role: 'user', content: `${clientFemale(email) ? 'מתאמנת (אישה. כתוב עליה בלשון נקבה)' : 'מתאמן'}: ${client?.name || email} · מטרה: ${goalMap[client?.goal] || client?.goal || 'לא הוגדרה'}
 שיאי סטים לפי תרגיל (60 יום, כרונולוגי):
 ${exLines || 'אין'}
 נפח אימון כולל לפי תאריך: ${volLine || 'אין'}
@@ -13159,6 +13159,13 @@ th.d,td.d{text-align:right}td.d{color:${T(.7)}}td.b{font-weight:800}tr.z td{back
   }
 
   /* ── Chat ── */
+  /* הודעות אוטומטיות למתאמן/ת: הלשון לפי clients.gender. נוסח הזכר הוא הנוסח הקיים */
+  function clientFemale(email) {
+    const c = clients.find(x => x.email === email);
+    return String((c && c.gender) || '').toLowerCase() === 'female';
+  }
+  function byGFor(email, m, f) { return clientFemale(email) ? f : m; }
+
   /* הצ׳אט הקבוצתי שייך לבכיר: זו הקבוצה של המתאמנים שלו. סגן
      שכתב בה בשמו יצר קבוצה שנייה ריקה שאיש לא רואה. כאן הוא כותב
      לקבוצה של הבכיר — ותמיד בשמו, כך שברור מי דיבר.
@@ -13829,7 +13836,7 @@ th.d,td.d{text-align:right}td.d{color:${T(.7)}}td.b{font-weight:800}tr.z td{back
       const getName = email => clients.find(c=>c.email===email)?.name || email.split('@')[0];
       const [e1, v1] = top[0];
       let msg = `📊 סיכום שבוע — ${weekStart} עד ${today}\n\n`;
-      msg += `🥇 אלוף נפח האימון השבועי:\n@${getName(e1)} עם ${Math.round(v1).toLocaleString()} ק"ג נפח כולל! 💪`;
+      msg += `🥇 ${byGFor(e1, 'אלוף', 'אלופת')} נפח האימון השבועי:\n@${getName(e1)} עם ${Math.round(v1).toLocaleString()} ק"ג נפח כולל! 💪`;
       if (top[1]) msg += `\n🥈 @${getName(top[1][0])} — ${Math.round(top[1][1]).toLocaleString()} ק"ג`;
       if (top[2]) msg += `\n🥉 @${getName(top[2][0])} — ${Math.round(top[2][1]).toLocaleString()} ק"ג`;
 

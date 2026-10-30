@@ -81,7 +81,7 @@ Deno.serve(async (req) => {
 
     // ── 1. Coaching period ending soon ──────────────────────────────────────
     const { data: ending } = await sb.from('clients')
-      .select('email,name,coach_email,coaching_end,frozen_until,renewal_nudge_end,client_type')
+      .select('email,name,coach_email,gender,coaching_end,frozen_until,renewal_nudge_end,client_type')
       .not('coaching_end', 'is', null)
       .gte('coaching_end', today).lte('coaching_end', horizonStr)
     for (const c of ending || []) {
@@ -93,7 +93,7 @@ Deno.serve(async (req) => {
          בשם בעל הפלטפורמה ומבטיח ליווי שאין לו */
       const content = c.client_type === 'freelancer'
         ? `⏳ הגישה למסלול העצמאי מסתיימת בעוד ${daysLeft} ימים (${heDate(c.coaching_end)}). הטוקנים שלך נשמרים גם אחרי הסיום.`
-        : `⏳ הליווי שלך מסתיים בעוד ${daysLeft} ימים (${heDate(c.coaching_end)}). בוא נשמור על המומנטום — דבר איתי לחידוש ונמשיך חזק 💪`
+        : `⏳ הליווי שלך מסתיים בעוד ${daysLeft} ימים (${heDate(c.coaching_end)}). ${c.gender === 'female' ? 'בואי נשמור על המומנטום — דברי' : 'בוא נשמור על המומנטום — דבר'} איתי לחידוש ונמשיך חזק 💪`
       plan.push({ step: 'ending-soon', email: c.email, daysLeft, content })
       if (!dry) {
         await sb.from('messages').insert({
@@ -179,7 +179,7 @@ Deno.serve(async (req) => {
     /* חלון של יומיים בלבד: בפריסה הראשונה, בלי הגבול הזה, כל מי שהליווי
        שלו נגמר לפני חודשים היה מקבל עכשיו "הליווי הסתיים". */
     const { data: ended } = await sb.from('clients')
-      .select('email,name,coach_email,coaching_end,frozen_until,period_end_push,client_type,auto_renew')
+      .select('email,name,coach_email,gender,coaching_end,frozen_until,period_end_push,client_type,auto_renew')
       .not('coaching_end', 'is', null)
       .lt('coaching_end', today).gte('coaching_end', addDays(today, -ENDED_DAYS))
     for (const c of ended || []) {
@@ -193,7 +193,7 @@ Deno.serve(async (req) => {
       const title = fl ? '🔒 הגישה למסלול העצמאי הסתיימה' : '⏳ תקופת הליווי הסתיימה'
       const body  = fl
         ? 'הטוקנים שלך נשמרים. אפשר לחדש את המסלול בכל עת.'
-        : 'כדי להמשיך בליווי, הסדר את התשלום לחודש הנוכחי מול המאמן.'
+        : `כדי להמשיך בליווי, ${c.gender === 'female' ? 'הסדירי' : 'הסדר'} את התשלום לחודש הנוכחי מול המאמן.`
       plan.push({ step: 'ended', email: c.email, coaching_end: c.coaching_end, title, body })
       if (!dry) {
         const pushed = await sendPush(c.email, title, body)

@@ -886,7 +886,7 @@
     </div>
     <div id="hl-renew" style="display:flex;align-items:center;justify-content:space-between;gap:10px;background:linear-gradient(135deg,rgba(255,107,0,0.16),rgba(255,215,0,0.06));border:1px solid rgba(255,140,0,0.5);border-radius:16px;padding:14px 16px;box-shadow:0 4px 18px rgba(0,0,0,0.3);">
       <div><div style="font-size:0.72rem;color:var(--muted);">⏳ נותרו לסיום הליווי</div><div style="margin-top:2px;"><span id="hl-cd-num" style="font-size:1.5rem;font-weight:900;color:var(--orange);">—</span> <span style="color:var(--orange);font-weight:800;">ימים</span></div></div>
-      <button onclick="renewFromHome()" style="background:linear-gradient(135deg,var(--orange),#FF8C00);color:#fff;border:none;border-radius:12px;font-family:'Heebo',sans-serif;font-weight:800;font-size:0.9rem;padding:12px 16px;cursor:pointer;box-shadow:0 3px 14px rgba(255,107,0,0.4);white-space:nowrap;">🔄 חדש ליווי ←</button>
+      <button onclick="renewFromHome()" style="background:linear-gradient(135deg,var(--orange),#FF8C00);color:#fff;border:none;border-radius:12px;font-family:'Heebo',sans-serif;font-weight:800;font-size:0.9rem;padding:12px 16px;cursor:pointer;box-shadow:0 3px 14px rgba(255,107,0,0.4);white-space:nowrap;" data-f="🔄 חדשי ליווי ←">🔄 חדש ליווי ←</button>
     </div>
     <div id="hl-debt" style="display:none;margin-top:14px;"></div>
     <div id="hl-extra" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px;"></div>
@@ -916,14 +916,14 @@
         תוכניות אימון ותזונה, יומני אימון, מדידות, תמונות התקדמות, הודעות עם המאמן והיסטוריית התשלומים.
         <br><strong style="color:#f87171;">לא ניתן לשחזר.</strong>
       </div>
-      <div style="font-size:0.78rem;color:#888;margin-bottom:8px;">להמשך, הקלד <strong style="color:#fff;">מחק</strong> בשדה:</div>
+      <div style="font-size:0.78rem;color:#888;margin-bottom:8px;"><span data-f="להמשך, הקלידי">להמשך, הקלד</span> <strong style="color:#fff;">מחק</strong> בשדה:</div>
       <input id="del-acct-confirm" type="text" autocomplete="off" placeholder="מחק"
         oninput="document.getElementById('del-acct-go').disabled = this.value.trim() !== 'מחק';"
         style="width:100%;box-sizing:border-box;padding:10px 12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.14);border-radius:9px;color:#fff;font-family:'Heebo',sans-serif;font-size:0.95rem;outline:none;margin-bottom:16px;"/>
       <div id="del-acct-err" style="display:none;font-size:0.8rem;color:#f87171;margin-bottom:12px;"></div>
       <div style="display:flex;gap:9px;">
         <button onclick="closeDeleteAccount()" style="flex:1;padding:11px;background:rgba(255,255,255,0.07);border:none;border-radius:10px;color:#ddd;font-family:'Heebo',sans-serif;font-size:0.88rem;font-weight:700;cursor:pointer;">ביטול</button>
-        <button id="del-acct-go" disabled onclick="confirmDeleteAccount()" style="flex:1;padding:11px;background:#b91c1c;border:none;border-radius:10px;color:#fff;font-family:'Heebo',sans-serif;font-size:0.88rem;font-weight:700;cursor:pointer;">מחק לצמיתות</button>
+        <button id="del-acct-go" disabled onclick="confirmDeleteAccount()" style="flex:1;padding:11px;background:#b91c1c;border:none;border-radius:10px;color:#fff;font-family:'Heebo',sans-serif;font-size:0.88rem;font-weight:700;cursor:pointer;" data-f="מחקי לצמיתות">מחק לצמיתות</button>
       </div>
     </div>
   </div>
@@ -1022,14 +1022,14 @@
       </div>
       <div style="display:flex;gap:8px;justify-content:flex-end;">
         <button onclick="closePaidModal()" style="padding:9px 16px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:#ccc;font-family:'Heebo',sans-serif;font-weight:700;cursor:pointer;">ביטול</button>
-        <button id="paid-submit-btn" onclick="submitPaidClaim()" style="padding:9px 16px;background:linear-gradient(135deg,#4ade80,#22c55e);border:none;border-radius:8px;color:#06281a;font-family:'Heebo',sans-serif;font-weight:900;cursor:pointer;">שלח לאישור</button>
+        <button id="paid-submit-btn" onclick="submitPaidClaim()" style="padding:9px 16px;background:linear-gradient(135deg,#4ade80,#22c55e);border:none;border-radius:8px;color:#06281a;font-family:'Heebo',sans-serif;font-weight:900;cursor:pointer;" data-f="שלחי לאישור">שלח לאישור</button>
       </div>
     </div>
   </div>
 
   <!-- NOTIFICATION PERMISSION BANNER -->
   <div class="notif-banner" id="notif-banner">
-    <div id="notif-banner-text">🔔 הפעל התראות כדי לקבל עדכונים והודעות מהמאמן</div>
+    <div id="notif-banner-text" data-f="🔔 הפעילי התראות כדי לקבל עדכונים והודעות מהמאמן">🔔 הפעל התראות כדי לקבל עדכונים והודעות מהמאמן</div>
     <div style="display:flex;gap:8px;align-items:center;">
       <span class="notif-switch-label" id="notif-switch-label">OFF</span>
       <label class="notif-switch">
@@ -1080,7 +1080,7 @@
       </div>
       <button onclick="syncHealthActivity()" id="health-sync-btn" style="padding:8px 14px;background:rgba(74,222,128,0.12);border:1px solid rgba(74,222,128,0.4);color:#4ade80;border-radius:10px;font-family:'Heebo';font-weight:700;font-size:0.8rem;cursor:pointer;">⌚ סנכרן</button>
       <button onclick="togglePedometer()" id="pedo-btn" style="padding:8px 14px;background:rgba(255,107,0,0.12);border:1px solid rgba(255,107,0,0.4);color:var(--orange);border-radius:10px;font-family:'Heebo';font-weight:700;font-size:0.8rem;cursor:pointer;">▶ מצב הליכה</button>
-      <button onclick="manualSteps()" style="padding:8px 14px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.15);color:#ccc;border-radius:10px;font-family:'Heebo';font-weight:700;font-size:0.8rem;cursor:pointer;">✎ עדכן ידני</button>
+      <button onclick="manualSteps()" style="padding:8px 14px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.15);color:#ccc;border-radius:10px;font-family:'Heebo';font-weight:700;font-size:0.8rem;cursor:pointer;" data-f="✎ עדכני ידנית">✎ עדכן ידני</button>
     </div>
 
     <!-- CARDIO CARD — שעון אירובי יומי. מוצג רק אם המאמן הגדיר יעד -->
@@ -1147,7 +1147,7 @@
     <!-- RENEWAL SECTION -->
     <div class="section" id="renewal-section" style="display:none;">
       <div class="sec-title"><span class="icon">🔄</span> חידוש מנוי</div>
-      <p style="font-size:0.85rem;color:var(--muted);margin-bottom:16px;margin-top:-8px;">תקופת הליווי הסתיימה — בחר מסלול להמשך:</p>
+      <p style="font-size:0.85rem;color:var(--muted);margin-bottom:16px;margin-top:-8px;" data-f="תקופת הליווי הסתיימה — בחרי מסלול להמשך:">תקופת הליווי הסתיימה — בחר מסלול להמשך:</p>
       <div class="renewal-grid" id="renewal-cards"></div>
       <div class="renewal-sent" id="renewal-sent">✓ הבקשה נשלחה! המאמן יצור איתך קשר בקרוב.</div>
     </div>
@@ -1222,7 +1222,7 @@
         <div class="wlbl">משקל עדכני</div>
         <div class="wval"><span id="weight-display">—</span> <span>ק"ג</span></div>
       </div>
-      <button class="btn-weight" onclick="updateWeight()">⚖️ עדכן משקל</button>
+      <button class="btn-weight" onclick="updateWeight()" data-f="⚖️ עדכני משקל">⚖️ עדכן משקל</button>
     </div>
 
     <div class="water-card" id="water-card">
@@ -1297,11 +1297,11 @@
     </div>
     <div class="ai-chat-msgs" id="ai-chat-msgs"></div>
     <div class="ai-inp-row">
-      <button onclick="document.getElementById('food-photo-input').click()" title="צלם ארוחה — AI יחשב קלוריות" style="flex-shrink:0;width:42px;height:42px;border-radius:50%;background:rgba(255,107,0,0.12);border:1px solid rgba(255,107,0,0.4);color:var(--orange);font-size:1.1rem;cursor:pointer;">📷</button>
+      <button onclick="document.getElementById('food-photo-input').click()" title="צלם ארוחה — AI יחשב קלוריות" data-f-title="צלמי ארוחה — AI יחשב קלוריות" style="flex-shrink:0;width:42px;height:42px;border-radius:50%;background:rgba(255,107,0,0.12);border:1px solid rgba(255,107,0,0.4);color:var(--orange);font-size:1.1rem;cursor:pointer;">📷</button>
       <input type="file" id="food-photo-input" accept="image/*" capture="environment" style="display:none;" onchange="analyzeFoodPhoto(this.files[0]); this.value='';">
-      <input class="ai-inp" id="ai-input" placeholder="שאל את עוזר התזונה..."
+      <input class="ai-inp" id="ai-input" placeholder="שאל את עוזר התזונה..." data-f-ph="שאלי את עוזר התזונה..."
         onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendAiMsg();}"/>
-      <button class="btn-ai-send" onclick="sendAiMsg()">שלח</button>
+      <button class="btn-ai-send" onclick="sendAiMsg()" data-f="שלחי">שלח</button>
     </div>
   </div>
 </div>
@@ -1316,10 +1316,10 @@
   <div class="session-body" id="session-body"></div>
   <div class="rest-banner" id="rest-banner">
     <div class="rest-banner-info">⏱ מנוחה: <span id="rest-countdown">01:30</span></div>
-    <button class="btn-skip-rest" onclick="skipRest()">דלג</button>
+    <button class="btn-skip-rest" onclick="skipRest()" data-f="דלגי">דלג</button>
   </div>
   <div class="session-ftr">
-    <button class="btn-finish" id="btn-finish" onclick="finishWorkout()">✓ סיים ושלח</button>
+    <button class="btn-finish" id="btn-finish" onclick="finishWorkout()" data-f="✓ סיימי ושלחי">✓ סיים ושלח</button>
   </div>
 </div>
 
@@ -1431,7 +1431,7 @@
     }
     toggle.checked = isOn;
     if (label) { label.textContent = isOn ? 'ON' : 'OFF'; label.classList.toggle('on', isOn); }
-    if (text) text.textContent = isOn ? '🔔 התראות פעילות' : '🔔 הפעל התראות כדי לקבל עדכונים והודעות מהמאמן';
+    if (text) text.textContent = isOn ? '🔔 התראות פעילות' : byG('🔔 הפעל התראות כדי לקבל עדכונים והודעות מהמאמן', '🔔 הפעילי התראות כדי לקבל עדכונים והודעות מהמאמן');
   }
 
   // קליק על הסוויטץ' — הופך בין הפעלה לכיבוי התראות
@@ -1544,6 +1544,27 @@
   let nutritionPlanLocal  = [];
   let nutritionTargets    = null;   // יעדי קלוריות לכל סוג יום · null = לא הוגדרו
   let clientData          = null;
+
+  /* לשון פנייה לפי מין המתאמן: byG('אתה אלוף', 'את אלופה').
+     הנוסח בלשון זכר הוא הנוסח הקיים, כך שאצל מתאמנים שום דבר לא משתנה.
+     המין נשמר ב-clients.gender כ-'male' / 'female'; ייתכנו ערכים ישנים בעברית. */
+  function clientIsFemale() {
+    const g = String((clientData || {}).gender || '').trim().toLowerCase();
+    return g === 'female' || g === 'f' || g === 'אישה' || g.indexOf('נק') === 0;
+  }
+  function byG(m, f) { return clientIsFemale() ? f : m; }
+  /* טקסט קבוע ב-HTML: data-f מחליף את הטקסט, data-f-ph את ה-placeholder, data-f-title את ה-title */
+  function applyGenderText(root) {
+    if (!clientIsFemale()) return;
+    /* הנתונים יכולים להגיע לפני שהדף סיים להיבנות, ואז החלונות שבסוף ה-HTML
+       עוד לא קיימים. ההחלפה חוזרת אחרי שהבנייה מסתיימת (היא לא מזיקה פעמיים) */
+    if (!root && document.readyState === 'loading')
+      document.addEventListener('DOMContentLoaded', () => applyGenderText(), { once: true });
+    const r = root || document;
+    r.querySelectorAll('[data-f]').forEach(el => { el.textContent = el.dataset.f; });
+    r.querySelectorAll('[data-f-ph]').forEach(el => { el.placeholder = el.dataset.fPh; });
+    r.querySelectorAll('[data-f-title]').forEach(el => { el.title = el.dataset.fTitle; });
+  }
   let workoutSession      = null;
 
   /* ── Exercise DB ── */
@@ -1859,6 +1880,7 @@
       document.getElementById('btn-coach-link').style.display = 'inline-flex';
     }
     clientData = client;
+    applyGenderText();
     /* The coach's subscription check gates actions, not the first paint — let it
        resolve in the background and repaint the launcher if it turns out frozen. */
     checkCoachSubscription().then(() => { if (_coachSubFrozen) renderLauncher(); });
@@ -1917,9 +1939,9 @@
         '<div style="color:#aaa;font-size:0.85rem;margin:8px 0 14px;">תקלה זמנית בטעינה — הנתונים שלך במקום.</div>' +
         (isAuthErr(clientRes.error)
           ? '<button onclick="fjRelogin()" style="background:#FF6B00;color:#fff;border:0;border-radius:10px;' +
-            'padding:10px 18px;font-weight:900;cursor:pointer;">התחבר מחדש</button>'
+            'padding:10px 18px;font-weight:900;cursor:pointer;">' + byG('התחבר מחדש', 'התחברי מחדש') + '</button>'
           : '<button onclick="location.reload()" style="background:#FF6B00;color:#fff;border:0;border-radius:10px;' +
-            'padding:10px 18px;font-weight:900;cursor:pointer;">נסה שוב</button>') +
+            'padding:10px 18px;font-weight:900;cursor:pointer;">' + byG('נסה שוב', 'נסי שוב') + '</button>') +
         '<div style="margin-top:12px;font-size:0.7rem;color:#666;direction:ltr;text-align:left;' +
         'font-family:monospace;word-break:break-all;">' + errLine(clientRes.error) +
         '<br>' + _diag + '</div>' +
@@ -1937,7 +1959,7 @@
         '<div style="margin-top:9px;font-size:0.78rem;color:#666;">' +
         'נרשמת ועדיין לא שויכת למאמן? ' +
         '<a href="https://wa.me/972586931163" target="_blank" rel="noopener" ' +
-        'style="color:#FF6B00;font-weight:800;">כתוב לנו</a></div></div>';
+        'style="color:#FF6B00;font-weight:800;">' + byG('כתוב לנו', 'כתבי לנו') + '</a></div></div>';
       document.getElementById('tabbar').style.display = 'none';
       // pending client: no launcher — show the detail-view so the waiting message is visible
       const _hl = document.getElementById('home-launcher'); if (_hl) _hl.style.display = 'none';
@@ -1965,7 +1987,7 @@
       if (timerInfo && !document.getElementById('btn-renew-inline')) {
         const renewBtn = document.createElement('button');
         renewBtn.id = 'btn-renew-inline';
-        renewBtn.textContent = '🔄 חדש ליווי';
+        renewBtn.textContent = byG('🔄 חדש ליווי', '🔄 חדשי ליווי');
         renewBtn.style.cssText = 'margin-top:10px;padding:9px 22px;background:linear-gradient(135deg,var(--orange),#FF8C00);border:none;border-radius:8px;color:#fff;font-family:\'Heebo\',sans-serif;font-size:0.88rem;font-weight:700;cursor:pointer;box-shadow:0 0 14px rgba(255,107,0,0.4);animation:pulse-cta 2s ease-in-out infinite;';
         renewBtn.onclick = () => document.getElementById('renewal-section')?.scrollIntoView({ behavior:'smooth', block:'start' });
         timerInfo.appendChild(renewBtn);
@@ -2177,7 +2199,7 @@
       category: method, amount, note, txn_date: todayStr(),
       created_by: clientData?.name || currentEmail
     });
-    btn.disabled = false; btn.textContent = 'שלח לאישור';
+    btn.disabled = false; btn.textContent = byG('שלח לאישור', 'שלחי לאישור');
     if (error) { alert('שגיאה: ' + error.message); return; }
     closePaidModal();
     await loadDebtCard(currentEmail);
@@ -2226,10 +2248,10 @@
           <div class="renewal-price">${p.price} ₪</div>
           <div class="renewal-period">${p.label}</div>
           ${p.desc ? `<div class="renewal-desc">${esc(p.desc)}</div>` : ''}
-          <button class="btn-renewal" onclick="selectRenewalPlan(${p.months}, ${p.price}, '${coachEmail}', '${phone}', '${bitLink.replace(/'/g,'')}', this)">💳 בחר מסלול</button>
+          <button class="btn-renewal" onclick="selectRenewalPlan(${p.months}, ${p.price}, '${coachEmail}', '${phone}', '${bitLink.replace(/'/g,'')}', this)">💳 ${byG('בחר', 'בחרי')} מסלול</button>
         </div>`).join('');
     document.getElementById('renewal-cards').innerHTML =
-      allCards || '<div class="empty" style="padding:20px 0;">המאמן עדיין לא הגדיר מסלולים — צור קשר ישירות.</div>';
+      allCards || '<div class="empty" style="padding:20px 0;">המאמן עדיין לא הגדיר מסלולים — ' + byG('צור', 'צרי') + ' קשר ישירות.</div>';
     document.getElementById('renewal-section').style.display = 'block';
   }
 
@@ -2246,7 +2268,7 @@
       window.open(bitLink, '_blank');
     } else {
       // fallback — WhatsApp
-      const msg = encodeURIComponent(`שלום, אני ${clientName} ומעוניין לחדש מנוי ל${labels[months]} (${price} ₪). אשמח לתיאום 🙏`);
+      const msg = encodeURIComponent(`שלום, אני ${clientName} ${byG('ומעוניין', 'ומעוניינת')} לחדש מנוי ל${labels[months]} (${price} ₪). אשמח לתיאום 🙏`);
       window.open(`https://wa.me/${phone}?text=${msg}`, '_blank');
     }
     btn.textContent = '✓ נשלח';
@@ -2302,7 +2324,7 @@
             <span style="font-weight:700;">${day.name || day.day || ''}</span>
             ${(day.muscles && day.muscles.length) ? `<span style="margin-right:8px;">${day.muscles.map(m => `<span style="display:inline-block;padding:1px 8px;border-radius:10px;background:rgba(255,107,0,0.12);border:1px solid rgba(255,107,0,0.25);color:var(--orange);font-size:0.7rem;font-weight:700;margin-right:3px;">${m}</span>`).join('')}</span>` : ''}
           </span>
-          <button class="btn-log-day" onclick="event.stopPropagation();startWorkout(${di})">▶ החל אימון</button>
+          <button class="btn-log-day" onclick="event.stopPropagation();startWorkout(${di})">▶ ${byG('החל', 'התחילי')} אימון</button>
           <span class="arr" style="margin-right:8px;">▼</span>
         </div>
         <div class="day-body">
@@ -2311,7 +2333,7 @@
               <span class="ex-name">${ex.name}</span>
               ${ex.linked_next ? `<span class="ex-link-badge">🔗</span>` : ''}
               ${ex.sets ? `<span class="ex-sets">${formatSetsDisplay(ex.sets)}</span>` : ''}
-              ${ex.video_url ? `<a class="ex-video" href="${ex.video_url}" target="_blank" rel="noopener">▶ צפה</a>` : ''}
+              ${ex.video_url ? `<a class="ex-video" href="${ex.video_url}" target="_blank" rel="noopener">▶ ${byG('צפה', 'צפי')}</a>` : ''}
               ${exNoteBtn(ex.name)}
             </div>
             ${setBreakdownHtml(ex)}
@@ -2417,12 +2439,12 @@
   }
   function renderExNotesBody(notes) {
     const el = document.getElementById('exnotes-list'); if (!el) return;
-    if (!notes.length) { el.innerHTML = '<div style="color:#666;text-align:center;padding:24px;font-size:0.85rem;line-height:1.6;">אין הערות עדיין 📝<br>כתוב את ההערה הראשונה שלך למטה 👇</div>'; return; }
+    if (!notes.length) { el.innerHTML = '<div style="color:#666;text-align:center;padding:24px;font-size:0.85rem;line-height:1.6;">אין הערות עדיין 📝<br>' + byG('כתוב', 'כתבי') + ' את ההערה הראשונה שלך למטה 👇</div>'; return; }
     el.innerHTML = notes.map(n => {
       const d = new Date(n.created_at).toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit', year: '2-digit' });
       const icon = EX_NOTE_ICON[n.kind] || '📝';
       const isTarget = n.kind === 'target';
-      const doneChip = isTarget ? `<button onclick="toggleExTargetDone(${n.id},${n.done ? 'false' : 'true'})" style="background:${n.done ? 'rgba(74,222,128,0.15)' : 'rgba(255,255,255,0.05)'};border:1px solid ${n.done ? 'rgba(74,222,128,0.5)' : 'rgba(255,255,255,0.15)'};color:${n.done ? '#4ade80' : '#999'};border-radius:7px;padding:3px 8px;font-size:0.68rem;font-weight:800;cursor:pointer;font-family:'Heebo',sans-serif;">${n.done ? '✓ בוצע' : 'סמן בוצע'}</button>` : '';
+      const doneChip = isTarget ? `<button onclick="toggleExTargetDone(${n.id},${n.done ? 'false' : 'true'})" style="background:${n.done ? 'rgba(74,222,128,0.15)' : 'rgba(255,255,255,0.05)'};border:1px solid ${n.done ? 'rgba(74,222,128,0.5)' : 'rgba(255,255,255,0.15)'};color:${n.done ? '#4ade80' : '#999'};border-radius:7px;padding:3px 8px;font-size:0.68rem;font-weight:800;cursor:pointer;font-family:'Heebo',sans-serif;">${n.done ? '✓ בוצע' : byG('סמן בוצע', 'סמני בוצע')}</button>` : '';
       const reply = n.coach_reply ? `<div style="margin-top:6px;padding:7px 10px;background:rgba(96,165,250,0.1);border:1px solid rgba(96,165,250,0.3);border-radius:8px;font-size:0.8rem;color:#93c5fd;">💬 <strong>המאמן:</strong> ${esc(n.coach_reply)}</div>` : '';
       return `<div id="exn-${n.id}" style="background:rgba(255,255,255,0.04);border:1px solid ${isTarget && !n.done ? 'rgba(255,107,0,0.35)' : 'rgba(255,255,255,0.08)'};border-radius:12px;padding:10px 12px;margin-bottom:8px;">
         <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:5px;">
@@ -2430,7 +2452,7 @@
           <div style="display:flex;gap:8px;align-items:center;">
             ${doneChip}
             <button onclick="editExNote(${n.id})" title="עריכה" style="background:none;border:none;color:#888;cursor:pointer;font-size:0.82rem;">✏️</button>
-            <button onclick="deleteExerciseNote(${n.id})" title="מחק" style="background:none;border:none;color:#666;cursor:pointer;font-size:0.86rem;">🗑</button>
+            <button onclick="deleteExerciseNote(${n.id})" title="${byG('מחק', 'מחקי')}" style="background:none;border:none;color:#666;cursor:pointer;font-size:0.86rem;">🗑</button>
           </div>
         </div>
         <div class="exn-text" style="font-size:0.88rem;color:#eee;line-height:1.55;white-space:pre-wrap;word-break:break-word;">${esc(n.note)}</div>
@@ -2443,12 +2465,12 @@
     const txtEl = box.querySelector('.exn-text'); if (!txtEl) return;
     const cur = txtEl.textContent;
     txtEl.outerHTML = `<div class="exn-text"><textarea id="exn-edit-${id}" rows="3" style="width:100%;box-sizing:border-box;padding:8px 10px;background:rgba(255,255,255,0.06);border:1px solid var(--orange);border-radius:8px;color:#fff;font-family:'Heebo',sans-serif;font-size:0.86rem;resize:none;">${esc(cur)}</textarea>
-      <div style="display:flex;gap:6px;margin-top:6px;"><button onclick="saveExNoteEdit(${id})" style="flex:1;padding:7px;background:var(--orange);color:#fff;border:none;border-radius:7px;font-family:'Heebo',sans-serif;font-weight:800;font-size:0.78rem;cursor:pointer;">שמור</button><button onclick="loadExerciseNotes()" style="flex:1;padding:7px;background:rgba(255,255,255,0.06);color:#ccc;border:1px solid rgba(255,255,255,0.15);border-radius:7px;font-family:'Heebo',sans-serif;font-size:0.78rem;cursor:pointer;">ביטול</button></div></div>`;
+      <div style="display:flex;gap:6px;margin-top:6px;"><button onclick="saveExNoteEdit(${id})" style="flex:1;padding:7px;background:var(--orange);color:#fff;border:none;border-radius:7px;font-family:'Heebo',sans-serif;font-weight:800;font-size:0.78rem;cursor:pointer;">${byG('שמור', 'שמרי')}</button><button onclick="loadExerciseNotes()" style="flex:1;padding:7px;background:rgba(255,255,255,0.06);color:#ccc;border:1px solid rgba(255,255,255,0.15);border-radius:7px;font-family:'Heebo',sans-serif;font-size:0.78rem;cursor:pointer;">ביטול</button></div></div>`;
     const t = document.getElementById('exn-edit-' + id); if (t) { t.focus(); t.setSelectionRange(t.value.length, t.value.length); }
   }
   async function saveExNoteEdit(id) {
     const t = document.getElementById('exn-edit-' + id); if (!t) return; const note = t.value.trim();
-    if (!note) { showDashToast('הערה ריקה — למחיקה השתמש ב-🗑'); return; }
+    if (!note) { showDashToast(byG('הערה ריקה — למחיקה השתמש ב-🗑', 'הערה ריקה — למחיקה השתמשי ב-🗑')); return; }
     const { error } = await sb.from('exercise_notes').update({ note }).eq('id', id).eq('client_email', currentEmail);
     if (error) { showDashToast('שגיאה: ' + error.message); return; }
     await loadExerciseNotes(); showDashToast('הערה עודכנה ✓');
@@ -2462,7 +2484,7 @@
     if (!note) { inp.focus(); return; }
     const btn = document.getElementById('exnotes-add-btn'); if (btn) { btn.disabled = true; btn.textContent = 'מוסיף...'; }
     const { error } = await sb.from('exercise_notes').insert({ client_email: currentEmail, exercise_key: _exNotesKey, exercise_name: _exNotesName, note, kind: _exNoteKind });
-    if (btn) { btn.disabled = false; btn.textContent = '＋ הוסף'; }
+    if (btn) { btn.disabled = false; btn.textContent = byG('＋ הוסף', '＋ הוסיפי'); }
     if (error) { showDashToast('שגיאה: ' + error.message); return; }
     inp.value = ''; _exNoteKeys.add(_exNotesKey);
     await loadExerciseNotes(); loadExNoteKeys();
@@ -2550,7 +2572,7 @@
     err.style.display = 'none';
     try {
       const { data: { session } } = await sb.auth.getSession();
-      if (!session) throw new Error('פג תוקף ההתחברות — התחבר מחדש ונסה שוב');
+      if (!session) throw new Error(byG('פג תוקף ההתחברות — התחבר מחדש ונסה שוב', 'פג תוקף ההתחברות — התחברי מחדש ונסי שוב'));
       const res = await fetch(`${URL_}/functions/v1/admin`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', apikey: KEY, Authorization: `Bearer ${session.access_token}` },
@@ -2566,7 +2588,7 @@
     } catch (e) {
       err.textContent = 'המחיקה נכשלה: ' + (e.message || e);
       err.style.display = 'block';
-      btn.disabled = false; btn.textContent = 'מחק לצמיתות';
+      btn.disabled = false; btn.textContent = byG('מחק לצמיתות', 'מחקי לצמיתות');
     }
   }
 
@@ -2734,7 +2756,7 @@
       ${tech ? `<div style="flex-basis:100%;margin-top:4px;padding:7px 10px;border-radius:8px;
         background:rgba(124,58,237,0.12);border:1px solid rgba(168,85,247,0.4);
         font-size:0.72rem;line-height:1.5;color:#c4a5ff;">
-        <b>🎯 ${tech.name}:</b> ${esc(tech.explain)}</div>` : ''}
+        <b>🎯 ${tech.name}:</b> ${esc(byG(tech.explain, tech.explainF || tech.explain))}</div>` : ''}
     </div>`;
   }
 
@@ -2873,7 +2895,7 @@
   async function flBuildPlan() {
     if (!flActive()) { flStatus('הגישה אינה בתוקף', 'err'); return; }
     if (typeof buildPlanPrompt !== 'function') {
-      flStatus('קובץ בניית התוכנית לא נטען — רענן את הדף', 'err'); return;
+      flStatus(byG('קובץ בניית התוכנית לא נטען — רענן את הדף', 'קובץ בניית התוכנית לא נטען — רענני את הדף'), 'err'); return;
     }
     const req = (document.getElementById('fl-req') || {}).value || '';
     const btn = document.getElementById('fl-plan-btn');
@@ -2932,7 +2954,7 @@
       }
       if (back !== null) { clientData.tokens_balance = back; flRenderCard(); }
       flStatus('הבנייה נכשלה: ' + (e.message || e) +
-        (back !== null ? ' · הטוקנים הוחזרו, נסה שוב' : ' · הטוקנים ירדו, נסה שוב'), 'err');
+        (back !== null ? byG(' · הטוקנים הוחזרו, נסה שוב', ' · הטוקנים הוחזרו, נסי שוב') : byG(' · הטוקנים ירדו, נסה שוב', ' · הטוקנים ירדו, נסי שוב')), 'err');
     }
     if (btn) { btn.disabled = false; btn.textContent = '🏋️ בנה תוכנית אימונים'; }
   }
@@ -2953,7 +2975,7 @@
         ? 'background:rgba(255,107,0,0.16);border:1px solid #FF6B00;color:#FF6B00;'
         : 'background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.14);color:#9aa0a6;') +
       '">' + g[1] + '</button>';
-    let hint = 'בחר מטרה לתפריט', color = '#8a8f95';
+    let hint = byG('בחר מטרה לתפריט', 'בחרי מטרה לתפריט'), color = '#8a8f95';
     if (flNutriGoal && flNutriGoal === prof) { hint = '✓ לפי הפרופיל שלך'; color = '#4ade80'; }
     else if (flNutriGoal && FL_GOAL_HE[prof]) {
       hint = '⚠️ בפרופיל: ' + FL_GOAL_HE[prof] + ' · התפריט הזה ייבנה ל' + FL_GOAL_HE[flNutriGoal]; color = '#fbbf24';
@@ -2996,7 +3018,7 @@
      לא הוצגו. הניכוי עצמו קורה בעורך, דרך אותה פעולה בשרת. */
   function flBuildNutrition() {
     if (!flActive()) { flStatus('הגישה אינה בתוקף', 'err'); return; }
-    if (!flNutriGoal) { flStatus('בחר מטרה לתפריט', 'err'); return; }
+    if (!flNutriGoal) { flStatus(byG('בחר מטרה לתפריט', 'בחרי מטרה לתפריט'), 'err'); return; }
     const bal = (clientData && clientData.tokens_balance) || 0;
     if (bal < FL_COST_NUTRI) { flStatus('אין מספיק טוקנים · יתרה ' + bal, 'err'); return; }
     const req = ((document.getElementById('fl-req') || {}).value || '').trim();
@@ -3026,7 +3048,7 @@
     const bal = (clientData && clientData.tokens_balance) || 0;
     const days = flDaysLeft();
     const live = days >= 0;
-    const female = String((clientData || {}).gender || '').indexOf('נק') === 0;
+    const female = clientIsFemale();
     const best = female ? 3 : 4;
 
     card.style.cssText = 'background:linear-gradient(160deg,rgba(255,107,0,0.09),rgba(255,255,255,0.02));' +
@@ -3074,7 +3096,7 @@
           '<button onclick="flOpenEditor()" style="display:block;width:100%;margin-top:10px;' +
           'background:rgba(255,255,255,0.04);border:1px solid rgba(255,107,0,0.5);color:#FF6B00;' +
           'border-radius:10px;padding:11px;font-family:Heebo,sans-serif;font-weight:900;font-size:0.88rem;cursor:pointer;">' +
-          '✏️ פתח את העורך — בנה ותקן בעצמך' +
+          byG('✏️ פתח את העורך — בנה ותקן בעצמך', '✏️ פתחי את העורך — בני ותקני בעצמך') +
           '<div style="font-size:0.7rem;font-weight:700;color:#9aa0a6;margin-top:2px;">ידני · בלי טוקנים · גם עריכה של מה שהסוכן בנה</div>' +
           '</button>'
         : '<div style="font-size:0.8rem;color:#aaa;margin-top:9px;line-height:1.7;">' +
@@ -3090,7 +3112,7 @@
       '<button onclick="flAskTokens()" style="margin-top:8px;margin-inline-start:6px;background:none;' +
       'border:1px solid rgba(255,107,0,0.4);color:#FF6B00;border-radius:9px;padding:7px 13px;' +
       'font-family:Heebo,sans-serif;font-size:0.78rem;font-weight:700;cursor:pointer;">' +
-      '🎟️ בקש טוקנים</button>');
+      '🎟️ ' + byG('בקש', 'בקשי') + ' טוקנים</button>');
   }
   function flInNativeApp() {
     try { return !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()); }
@@ -3109,7 +3131,7 @@
     const { data, error } = await sb.rpc('request_client_tokens', { p_packs: packs });
     if (error) { flStatus('הבקשה לא נשלחה: ' + error.message, 'err'); return; }
     flStatus('הבקשה נשלחה — ' + data.tokens + ' טוקנים, ' + data.price +
-          ' ש"ח. שלח/י את התשלום בביט ונאשר.', 'ok');
+          ' ש"ח. ' + byG('שלח', 'שלחי') + ' את התשלום בביט ונאשר.', 'ok');
   }
 
   /* ── מאמנים מומלצים ── */
@@ -3146,7 +3168,7 @@
             (c.phone ? '<a href="https://wa.me/972' + String(c.phone).replace(/\D/g, '').replace(/^0/, '') +
               '" target="_blank" rel="noopener" style="display:inline-block;margin-top:9px;' +
               'background:#25D366;color:#fff;border-radius:8px;padding:7px 14px;font-size:0.8rem;' +
-              'font-weight:800;text-decoration:none;">📲 דבר איתו</a>' : '') +
+              'font-weight:800;text-decoration:none;">📲 ' + byG('דבר', 'דברי') + ' איתו</a>' : '') +
             '</div>').join('')) +
       '<div style="font-size:0.74rem;color:#666;margin-top:10px;line-height:1.7;">' +
       'מעבר לליווי עם מאמן הוא מסלול נפרד בתשלום מלא.</div></div>';
@@ -3167,7 +3189,7 @@
     ['powerlifting', 'פאוורליפטינג'],
   ];
   const ENHANCE = [
-    ['natural', 'טבעי'], ['enhanced', 'לא טבעי'], ['peptides', 'פפטידים'],
+    ['natural', 'טבעי', 'טבעית'], ['enhanced', 'לא טבעי', 'לא טבעית'], ['peptides', 'פפטידים'],
   ];
 
   function _profBox() {
@@ -3245,7 +3267,7 @@
           sect('אימון') +
           sel('pf-goal', 'מטרה', GOALS, c.goal) +
           sel('pf-act', 'רמת פעילות', ACT_LEVELS, c.activity_level) +
-          sel('pf-enh', 'מצב אימוני', ENHANCE, c.enhancement_status) +
+          sel('pf-enh', 'מצב אימוני', ENHANCE.map(([v, m, f]) => [v, f ? byG(m, f) : m]), c.enhancement_status) +
 
           sect('תזונה') +
           fld('pf-cal', 'קלוריות יעד', c.target_calories, 'number', 'min="800" max="6000"') +
@@ -3254,7 +3276,7 @@
           '<div id="pf-status" style="font-size:0.78rem;color:#8a8f95;margin:10px 0;min-height:18px;"></div>' +
           '<button onclick="saveProfile()" style="width:100%;background:#FF6B00;color:#fff;border:0;' +
           'border-radius:11px;padding:12px;font-family:Heebo,sans-serif;font-weight:900;font-size:0.95rem;' +
-          'cursor:pointer;">שמור</button>' +
+          'cursor:pointer;">' + byG('שמור', 'שמרי') + '</button>' +
         '</div>' +
       '</div>';
   }
@@ -3393,10 +3415,10 @@
     if (topReps >= target) {
       const inc = topW < 20 ? 1 : topW < 40 ? 2.5 : Math.round(topW * 0.025 * 2) / 2;
       const newW = Math.round((topW + inc) * 2) / 2;
-      return { icon: '📈', color: '#4ade80', text: `הגעת ליעד בטופ סט (${topW} ק״ג × ${topReps}) — נסה להגיע ל-${newW} ק״ג` };
+      return { icon: '📈', color: '#4ade80', text: `הגעת ליעד בטופ סט (${topW} ק״ג × ${topReps}) — ${byG('נסה', 'נסי')} להגיע ל-${newW} ק״ג` };
     }
     if (topReps < minReps) {
-      return { icon: '🔧', color: '#fbbf24', text: `בטופ סט (${topW} ק״ג) עוד לא בטווח — שמור משקל והתמקד בטכניקה עד ${minReps} חזרות` };
+      return { icon: '🔧', color: '#fbbf24', text: `בטופ סט (${topW} ק״ג) עוד לא בטווח — ${byG('שמור משקל והתמקד', 'שמרי משקל והתמקדי')} בטכניקה עד ${minReps} חזרות` };
     }
     return { icon: '💪', color: '#7dd3fc', text: `אותו משקל בטופ סט (${topW} ק״ג) — שאף להגיע ל-${target} חזרות` };
   }
@@ -3428,14 +3450,14 @@
   }
 
   const TECHNIQUES = {
-    myo_reps:   { name: 'מיו-רפס', explain: 'סט הפעלה 9-20 חזרות (עצור 1-2 לפני כשל) → מנוחה 10-15ש → מיני-סטים של 3-5 חזרות עם מנוחה 10-15ש → עד 5 מיני-סטים או ירידה בכוח. רישום: 15+3+3+3+3+2.' },
+    myo_reps:   { name: 'מיו-רפס', explain: 'סט הפעלה 9-20 חזרות (עצור 1-2 לפני כשל) → מנוחה 10-15ש → מיני-סטים של 3-5 חזרות עם מנוחה 10-15ש → עד 5 מיני-סטים או ירידה בכוח. רישום: 15+3+3+3+3+2.', explainF: 'סט הפעלה 9-20 חזרות (עצרי 1-2 לפני כשל) → מנוחה 10-15ש → מיני-סטים של 3-5 חזרות עם מנוחה 10-15ש → עד 5 מיני-סטים או ירידה בכוח. רישום: 15+3+3+3+3+2.' },
     rest_pause: { name: 'רסט-פאוז', explain: 'סט עד כמעט כשל/כשל → מנוחה 10 שניות → עוד כמה חזרות. אפשר כמה מיני-סבבים.' },
     slow_fast:  { name: '6 איטי 6 מהיר', explain: '6 חזרות איטיות ומבוקרות ומיד אחריהן 6 חזרות מהירות באותו סט.' },
     isomix:     { name: 'איזומיקס', explain: 'אחרי כל חזרה מחזיקים את הכיווץ 5 שניות (זמן תחת מתח + קשר מוח-שריר).' },
     isomix_adv: { name: 'איזומיקס מתקדם', explain: '5 חזרות + החזקה 5ש → 5 חזרות + החזקה 10ש → 5 חזרות + החזקה 15ש.' },
     isoburst:   { name: 'איזובראסט', explain: 'משך ההחזקה = מספר החזרות ב-15ש הדינמיות. סט1 15ש+החזקה; סט2 60ש (4×15ש); סט3 30ש (2×15ש, Drop); סט4 45ש (3×15ש, +20% משקל).' },
     drop_set:   { name: 'דרופ סט', explain: 'בסיום הסט מורידים משקל וממשיכים ללא מנוחה. אפשר טריפל דרופ (8/8/8).' },
-    negative:   { name: 'חזרה שלילית', explain: 'אתה בולם ומוריד את המשקל בשליטה, והספוטר מרים בשבילך בפאזה החיובית.' },
+    negative:   { name: 'חזרה שלילית', explain: 'אתה בולם ומוריד את המשקל בשליטה, והספוטר מרים בשבילך בפאזה החיובית.', explainF: 'את בולמת ומורידה את המשקל בשליטה, והספוטר מרים בשבילך בפאזה החיובית.' },
   };
   /* ══ STUDIO CLIENT — punch card + self-booking ══ */
   // free-cancel deadline = 1 business day (24h) before the slot; if that lands on Fri/Sat (IL weekend), move earlier
@@ -3456,13 +3478,13 @@
       const req = (pending||[]).find(o=>o.name===p.name);
       return `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:11px 12px;border:1px solid rgba(255,255,255,0.08);border-radius:10px;margin-bottom:7px;">
         <div><b style="color:#fff;">${esc(p.name)}</b><div style="font-size:0.74rem;color:${p.kind==='sessions'?'#FFD700':'#4ade80'};">${p.kind==='sessions'?'🎫 '+p.sessions+' אימונים':'⏳ '+p.months+' חודשים'} · ₪${p.price}</div></div>
-        ${req ? '<span style="font-size:0.72rem;color:#fbbf24;">⏳ ממתין לאישור</span>' : `<button onclick="requestPkg(${p.id})" style="padding:6px 14px;background:linear-gradient(135deg,#FF6B00,#FF8C00);color:#fff;border:none;border-radius:8px;font-family:'Heebo';font-size:0.74rem;font-weight:700;cursor:pointer;">בקש</button>`}
+        ${req ? '<span style="font-size:0.72rem;color:#fbbf24;">⏳ ממתין לאישור</span>' : `<button onclick="requestPkg(${p.id})" style="padding:6px 14px;background:linear-gradient(135deg,#FF6B00,#FF8C00);color:#fff;border:none;border-radius:8px;font-family:'Heebo';font-size:0.74rem;font-weight:700;cursor:pointer;">${byG('בקש', 'בקשי')}</button>`}
       </div>`;
     }).join('') : '<div style="color:#666;padding:14px;text-align:center;">אין חבילות זמינות כרגע.</div>';
     m.innerHTML = `<div style="background:linear-gradient(160deg,#17181c,#0d0e11);border:1px solid rgba(255,215,0,0.35);border-radius:20px;max-width:420px;width:100%;max-height:85vh;overflow-y:auto;padding:22px 20px;position:relative;">
       <button onclick="document.getElementById('pkg-catalog-modal').style.display='none'" style="position:absolute;top:12px;left:14px;background:none;border:none;color:#666;font-size:1.3rem;cursor:pointer;">✕</button>
       <div style="font-weight:900;font-size:1.1rem;color:#fff;margin-bottom:4px;">🎟️ חבילות</div>
-      <div style="font-size:0.74rem;color:#888;margin-bottom:14px;">בחר חבילה לחידוש/התחלה — הבקשה תישלח לבעל הסטודיו לאישור.</div>
+      <div style="font-size:0.74rem;color:#888;margin-bottom:14px;">${byG('בחר', 'בחרי')} חבילה לחידוש/התחלה — הבקשה תישלח לבעל הסטודיו לאישור.</div>
       ${rows}</div>`;
     m.style.display = 'flex';
   }
@@ -3517,7 +3539,7 @@
     if (btn) { btn.disabled = true; btn.textContent = 'מנתח...'; }
     try {
       const planEx = [...new Set((trainingPlanLocal || []).flatMap(d => (d.exercises || []).map(e => e.name)))].slice(0, 40);
-      const sys = `אתה פיזיותרפיסט-ספורט. בהינתן פציעות של מתאמן ורשימת תרגילים בתוכנית שלו, החזר בעברית קצר וברור:
+      const sys = `אתה פיזיותרפיסט-ספורט.${clientIsFemale() ? ' המתאמנת היא אישה: פנה אליה בלשון נקבה.' : ''} בהינתן פציעות של מתאמן ורשימת תרגילים בתוכנית שלו, החזר בעברית קצר וברור:
 🚫 להימנע: תרגילים מהרשימה שעלולים להחמיר את הפציעה (עם סיבה במילה-שתיים)
 ✅ חלופה בטוחה: לכל תרגיל שסימנת להימנע — חלופה שעובדת אותו שריר בלי להעמיס על הפגוע
 ⚠️ דגש כללי אחד לאימון עם הפציעה.
@@ -3530,8 +3552,8 @@
       const text = data.content?.[0]?.text || 'שגיאה בקבלת ההנחיות';
       body.innerHTML = `<div style="white-space:pre-wrap;">${esc(text)}</div>`;
       _injGuideDone = true;
-    } catch (e) { body.innerHTML = '<div style="color:#ff8080;">שגיאה בניתוח — נסה שוב</div>'; }
-    if (btn) { btn.disabled = false; btn.textContent = '🔄 רענן'; }
+    } catch (e) { body.innerHTML = '<div style="color:#ff8080;">שגיאה בניתוח — ' + byG('נסה שוב', 'נסי שוב') + '</div>'; }
+    if (btn) { btn.disabled = false; btn.textContent = byG('🔄 רענן', '🔄 רענני'); }
   }
 
   /* ── PROGRESS PHOTOS (client → coach album) ── */
@@ -3651,14 +3673,14 @@
       <div style="background:radial-gradient(120% 80% at 50% 0%,rgba(139,92,246,0.1),transparent 60%),linear-gradient(160deg,#17181c,#0d0e11);border:1px solid rgba(139,92,246,0.3);border-radius:16px;padding:16px;">
         <div style="font-weight:900;font-size:1.02rem;color:#fff;margin-bottom:10px;">🌐 קהילת המתאמנים</div>
         <div style="display:flex;gap:8px;align-items:flex-start;margin-bottom:6px;">
-          <textarea id="feed-input" rows="2" placeholder="שתף עדכון, ניצחון או שאלה עם הקהילה..." style="flex:1;padding:9px 12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:10px;color:#fff;font-family:'Heebo';font-size:0.84rem;resize:vertical;"></textarea>
+          <textarea id="feed-input" rows="2" placeholder="${byG('שתף', 'שתפי')} עדכון, ניצחון או שאלה עם הקהילה..." style="flex:1;padding:9px 12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:10px;color:#fff;font-family:'Heebo';font-size:0.84rem;resize:vertical;"></textarea>
         </div>
         <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:14px;">
           <div><input type="file" id="feed-photo-inp" accept="image/*" style="display:none;" onchange="attachFeedPhoto(this.files[0])"><button onclick="document.getElementById('feed-photo-inp').click()" id="feed-photo-btn" style="padding:7px 12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:10px;color:#aaa;font-family:'Heebo';font-size:0.78rem;cursor:pointer;">📷 תמונה</button></div>
           <button onclick="submitPost()" style="padding:8px 18px;background:linear-gradient(135deg,#8b5cf6,#a855f7);color:#fff;border:none;border-radius:10px;font-family:'Heebo';font-weight:800;font-size:0.82rem;cursor:pointer;">פרסם</button>
         </div>
         <div style="font-size:0.66rem;color:#777;margin-bottom:12px;line-height:1.6;">
-          בפרסום בקהילה אתה מאשר את <a href="terms.html" style="color:#c4b5fd;">תנאי השימוש</a>.
+          בפרסום בקהילה ${byG('אתה מאשר', 'את מאשרת')} את <a href="terms.html" style="color:#c4b5fd;">תנאי השימוש</a>.
           תוכן פוגעני, מטריד או מסחרי אסור ויוסר. אפשר לדווח על פוסט (🚩) או לחסום משתמש (🚫).
         </div>
         <div style="display:flex;flex-direction:column;gap:10px;">
@@ -3670,14 +3692,14 @@
               <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">
                 <div style="font-weight:800;color:#c4b5fd;font-size:0.85rem;">${esc(p.author_name || p.author_email.split('@')[0])}${p.author_email === owner ? ' <span style="font-size:0.62rem;color:#FFD700;">מאמן</span>' : ''}</div>
                 <div style="font-size:0.66rem;color:#666;">${when}${mine
-                  ? ` · <span onclick="deletePost(${p.id})" style="color:#f87171;cursor:pointer;">מחק</span>`
-                  : ` · <span onclick="reportPost(${p.id},'${esc(p.author_email)}')" title="דיווח על תוכן פוגעני" style="color:#888;cursor:pointer;">🚩 דווח</span> · <span onclick="blockUser('${esc(p.author_email)}','${esc(p.author_name || '')}')" title="חסימת המשתמש" style="color:#888;cursor:pointer;">🚫 חסום</span>`}</div>
+                  ? ` · <span onclick="deletePost(${p.id})" style="color:#f87171;cursor:pointer;">${byG('מחק', 'מחקי')}</span>`
+                  : ` · <span onclick="reportPost(${p.id},'${esc(p.author_email)}')" title="דיווח על תוכן פוגעני" style="color:#888;cursor:pointer;">🚩 ${byG('דווח', 'דווחי')}</span> · <span onclick="blockUser('${esc(p.author_email)}','${esc(p.author_name || '')}')" title="חסימת המשתמש" style="color:#888;cursor:pointer;">🚫 חסום</span>`}</div>
               </div>
               ${p.content ? `<div style="font-size:0.86rem;color:#ddd;white-space:pre-wrap;line-height:1.5;">${esc(p.content)}</div>` : ''}
               ${p.image_url ? `<a href="${p.image_url}" target="_blank"><img src="${p.image_url}" style="margin-top:7px;max-width:100%;max-height:280px;border-radius:10px;display:block;"/></a>` : ''}
               <div style="margin-top:8px;"><button onclick="toggleLike(${p.id})" style="background:none;border:none;cursor:pointer;font-size:0.82rem;color:${liked ? '#f472b6' : '#888'};font-weight:700;font-family:'Heebo';">${liked ? '❤️' : '🤍'} ${cnt || ''} ${cnt ? 'לייקים' : 'אהבתי'}</button></div>
             </div>`;
-          }).join('') : '<div style="color:#666;text-align:center;padding:14px;font-size:0.84rem;">עדיין אין פוסטים — היה הראשון לשתף! 👋</div>'}
+          }).join('') : '<div style="color:#666;text-align:center;padding:14px;font-size:0.84rem;">עדיין אין פוסטים — ' + byG('היה הראשון', 'היי הראשונה') + ' לשתף! 👋</div>'}
         </div>
       </div>`;
   }
@@ -3685,7 +3707,7 @@
   async function submitPost() {
     if (await coachFreezeBlockedAsync()) return;
     const text = (document.getElementById('feed-input')?.value || '').trim();
-    if (!text && !_feedPhoto) { showDashToast('כתוב משהו או צרף תמונה'); return; }
+    if (!text && !_feedPhoto) { showDashToast(byG('כתוב משהו או צרף תמונה', 'כתבי משהו או צרפי תמונה')); return; }
     let imageUrl = null;
     if (_feedPhoto) {
       try {
@@ -3718,7 +3740,7 @@
 
   async function reportPost(postId, authorEmail) {
     const menu = REPORT_REASONS.map((r, i) => `${i + 1}. ${r}`).join('\n');
-    const pick = prompt(`דיווח על פוסט — מה הבעיה?\n\n${menu}\n\nהקלד מספר (1-${REPORT_REASONS.length}):`);
+    const pick = prompt(`דיווח על פוסט — מה הבעיה?\n\n${menu}\n\n${byG('הקלד', 'הקלידי')} מספר (1-${REPORT_REASONS.length}):`);
     if (pick === null) return;
     const idx = parseInt(pick, 10) - 1;
     if (!(idx >= 0 && idx < REPORT_REASONS.length)) { showDashToast('בחירה לא תקינה'); return; }
@@ -3727,16 +3749,16 @@
       coach_email: clientData?.coach_email || null, reason: REPORT_REASONS[idx],
     });
     if (error && error.code === '23505') { showDashToast('כבר דיווחת על הפוסט הזה'); return; }
-    if (error) { showDashToast('הדיווח נכשל — נסה שוב'); return; }
+    if (error) { showDashToast(byG('הדיווח נכשל — נסה שוב', 'הדיווח נכשל — נסי שוב')); return; }
     showDashToast('✓ הדיווח נשלח. נטפל בו תוך 24 שעות');
-    if (confirm('הדיווח נשלח.\n\nלחסום גם את המשתמש הזה, כך שלא תראה יותר תוכן ממנו?')) {
+    if (confirm('הדיווח נשלח.\n\nלחסום גם את המשתמש הזה, כך שלא ' + byG('תראה', 'תראי') + ' יותר תוכן ממנו?')) {
       await blockUser(authorEmail, '', true);
     }
   }
 
   async function blockUser(email, name, skipConfirm) {
     const who = name || email.split('@')[0];
-    if (!skipConfirm && !confirm(`לחסום את ${who}?\n\nלא תראה יותר פוסטים ממנו בקהילה. אפשר לבטל בכל עת.`)) return;
+    if (!skipConfirm && !confirm(`לחסום את ${who}?\n\nלא ${byG('תראה', 'תראי')} יותר פוסטים ממנו בקהילה. אפשר לבטל בכל עת.`)) return;
     const { error } = await sb.from('user_blocks').insert({ user_email: currentEmail, blocked_email: email });
     if (error && error.code !== '23505') { showDashToast('החסימה נכשלה'); return; }
     showDashToast(`${who} נחסם 🚫`);
@@ -3748,7 +3770,7 @@
     const list = (data || []).map(b => b.blocked_email);
     if (!list.length) { alert('לא חסמת אף אחד.'); return; }
     const menu = list.map((e, i) => `${i + 1}. ${e}`).join('\n');
-    const pick = prompt(`משתמשים חסומים:\n\n${menu}\n\nהקלד מספר כדי לבטל חסימה, או בטל:`);
+    const pick = prompt(`משתמשים חסומים:\n\n${menu}\n\n${byG('הקלד מספר כדי לבטל חסימה, או בטל', 'הקלידי מספר כדי לבטל חסימה, או בטלי')}:`);
     if (pick === null) return;
     const idx = parseInt(pick, 10) - 1;
     if (!(idx >= 0 && idx < list.length)) return;
@@ -3780,18 +3802,18 @@
     }
     if (!code) return;
     const rewardTxt = _coachReferralReward || 'מתנה מהמאמן';
-    const shareMsg = `היי! אני מתאמן/ת בליווי אישי והתוצאות מדברות 💪 בוא/י להצטרף — תגיד/י שהקוד שלי הוא ${code} ושנינו נקבל ${rewardTxt}! 🎁`;
+    const shareMsg = `היי! אני ${byG('מתאמן', 'מתאמנת')} בליווי אישי והתוצאות מדברות 💪 בוא/י להצטרף — תגיד/י שהקוד שלי הוא ${code} ושנינו נקבל ${rewardTxt}! 🎁`;
     card.style.display = 'block';
     card.innerHTML = `
       <div style="background:radial-gradient(120% 80% at 50% 0%,rgba(255,215,0,0.1),transparent 60%),linear-gradient(160deg,#17181c,#0d0e11);border:1px solid rgba(255,215,0,0.3);border-radius:16px;padding:16px;">
-        <div style="font-weight:900;font-size:1.02rem;color:#fff;margin-bottom:4px;">🎁 הזמן חבר — ושניכם מרוויחים</div>
-        <div style="font-size:0.78rem;color:#aaa;margin-bottom:12px;">שתף את הקוד האישי שלך. חבר שיצטרף — שניכם מקבלים: <b style="color:#FFD700;">${esc(rewardTxt)}</b></div>
+        <div style="font-weight:900;font-size:1.02rem;color:#fff;margin-bottom:4px;">🎁 ${byG('הזמן', 'הזמיני')} חבר — ושניכם מרוויחים</div>
+        <div style="font-size:0.78rem;color:#aaa;margin-bottom:12px;">${byG('שתף', 'שתפי')} את הקוד האישי שלך. חבר שיצטרף — שניכם מקבלים: <b style="color:#FFD700;">${esc(rewardTxt)}</b></div>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
           <div onclick="copyReferralCode('${code}')" style="flex:1;min-width:120px;text-align:center;background:rgba(255,215,0,0.08);border:1px dashed rgba(255,215,0,0.5);border-radius:10px;padding:10px;cursor:pointer;">
-            <div style="font-size:0.62rem;color:#888;">הקוד שלי (לחץ להעתקה)</div>
+            <div style="font-size:0.62rem;color:#888;">הקוד שלי (${byG('לחץ', 'לחצי')} להעתקה)</div>
             <div style="font-weight:900;font-size:1.3rem;color:#FFD700;letter-spacing:2px;">${code}</div>
           </div>
-          <button onclick="shareReferral('${encodeURIComponent(shareMsg)}')" style="padding:12px 16px;background:linear-gradient(135deg,#25D366,#128C7E);color:#fff;border:none;border-radius:10px;font-family:'Heebo';font-size:0.84rem;font-weight:800;cursor:pointer;white-space:nowrap;">📲 שתף בוואטסאפ</button>
+          <button onclick="shareReferral('${encodeURIComponent(shareMsg)}')" style="padding:12px 16px;background:linear-gradient(135deg,#25D366,#128C7E);color:#fff;border:none;border-radius:10px;font-family:'Heebo';font-size:0.84rem;font-weight:800;cursor:pointer;white-space:nowrap;">📲 ${byG('שתף', 'שתפי')} בוואטסאפ</button>
         </div>
       </div>`;
   }
@@ -3867,8 +3889,8 @@
         <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
           <a onclick="openStudioTerms()" style="font-size:0.72rem;color:#f87171;font-weight:700;cursor:pointer;text-decoration:underline;">📄 תנאי שימוש</a>
           <div style="display:flex;gap:6px;">
-            <button onclick="openPkgCatalog()" style="padding:5px 12px;background:rgba(255,215,0,0.1);border:1px solid rgba(255,215,0,0.35);color:#FFD700;border-radius:8px;font-family:'Heebo';font-size:0.72rem;font-weight:700;cursor:pointer;">🎟️ חדש חבילה</button>
-            <button onclick="reportInjury()" style="padding:5px 12px;background:rgba(248,113,113,0.1);border:1px solid rgba(248,113,113,0.35);color:#f87171;border-radius:8px;font-family:'Heebo';font-size:0.72rem;font-weight:700;cursor:pointer;">🩹 דווח פציעה</button>
+            <button onclick="openPkgCatalog()" style="padding:5px 12px;background:rgba(255,215,0,0.1);border:1px solid rgba(255,215,0,0.35);color:#FFD700;border-radius:8px;font-family:'Heebo';font-size:0.72rem;font-weight:700;cursor:pointer;">🎟️ ${byG('חדש', 'חדשי')} חבילה</button>
+            <button onclick="reportInjury()" style="padding:5px 12px;background:rgba(248,113,113,0.1);border:1px solid rgba(248,113,113,0.35);color:#f87171;border-radius:8px;font-family:'Heebo';font-size:0.72rem;font-weight:700;cursor:pointer;">🩹 ${byG('דווח', 'דווחי')} פציעה</button>
           </div>
         </div>
         ${frozen ? `<div style="margin-bottom:12px;padding:10px 12px;border-radius:10px;background:rgba(56,189,248,0.1);border:1px solid rgba(56,189,248,0.4);color:#7dd3fc;font-size:0.82rem;font-weight:700;text-align:center;">❄️ המנוי שלך מוקפא עד ${frozenUntilTxt} — לא ניתן לשבץ שיעורים עד שיופשר</div>` : ''}
@@ -3878,12 +3900,12 @@
   }
 
   async function studioBook(slotId, slotStart, coachEmail) {
-    if (clientData.frozen_until && clientData.frozen_until >= todayStr()) { showDashToast('המנוי מוקפא ❄️ — פנה לבעל הסטודיו להפשרה'); renderStudioClient(); return; }
+    if (clientData.frozen_until && clientData.frozen_until >= todayStr()) { showDashToast(byG('המנוי מוקפא ❄️ — פנה לבעל הסטודיו להפשרה', 'המנוי מוקפא ❄️ — פני לבעל הסטודיו להפשרה')); renderStudioClient(); return; }
     if (new Date(slotStart).getTime() <= Date.now()) { showDashToast('לא ניתן להשתבץ — השיעור כבר התחיל'); renderStudioClient(); return; }
     // exact-24h model: booking does NOT deduct now — a cron punches 24h before the slot.
     // overbooking guard: active (booked) reservations must not exceed the remaining balance.
     const activeCount = _studioBookings.length; // booked, non-cancelled, loaded in renderStudioClient
-    if (activeCount >= (clientData.sessions_remaining || 0)) { showDashToast('כל האימונים בכרטיסייה כבר משובצים — בטל שיבוץ או פנה לבעל הסטודיו'); return; }
+    if (activeCount >= (clientData.sessions_remaining || 0)) { showDashToast(byG('כל האימונים בכרטיסייה כבר משובצים — בטל שיבוץ או פנה לבעל הסטודיו', 'כל האימונים בכרטיסייה כבר משובצים — בטלי שיבוץ או פני לבעל הסטודיו')); return; }
     // capacity via the trigger-maintained booked_count (clients can't read others' bookings)
     const slot = _studioSlots.find(s => s.id === slotId);
     if (slot && (slot.booked_count || 0) >= slot.max_trainees) { showDashToast('השעה מלאה 😕'); renderStudioClient(); return; }
@@ -4025,12 +4047,12 @@
 
     const workoutTile = doneToday
       ? tile('🏋️', 'אימון היום', '✓ הושלם', 'כל הכבוד!', '#4ade80')
-      : tile('🏋️', 'אימון היום', hasPlan ? 'מחכה לך' : 'אין תוכנית', hasPlan ? 'לחץ להתחלה למטה' : 'פנה למאמן', '#FF8C00');
+      : tile('🏋️', 'אימון היום', hasPlan ? 'מחכה לך' : 'אין תוכנית', hasPlan ? byG('לחץ להתחלה למטה', 'לחצי להתחלה למטה') : byG('פנה למאמן', 'פני למאמן'), '#FF8C00');
     const nutriTile = calLeft === null
       ? tile('🍽️', 'תזונה', '—', 'לא הוגדר יעד', '#aaa')
       : tile('🍽️', 'נותרו היום', `${calLeft.toLocaleString('he-IL')}`, `מתוך ${calTarget.toLocaleString('he-IL')} קק"ל`, calLeft < 0 ? '#f87171' : '#fff');
     const stepsTile = tile('🚶', 'צעדים', steps.toLocaleString('he-IL'), steps >= 10000 ? '🎯 יעד הושג!' : 'יעד: 10,000', steps >= 10000 ? '#4ade80' : '#fff');
-    const streakTile = tile('🔥', 'רצף אימונים', streak > 0 ? `${streak} ימים` : 'אין רצף', streak >= 3 ? 'אלוף! שמור על זה' : 'התחל היום', streak >= 3 ? '#FFD700' : '#fff');
+    const streakTile = tile('🔥', 'רצף אימונים', streak > 0 ? `${streak} ימים` : 'אין רצף', streak >= 3 ? byG('אלוף! שמור על זה', 'אלופה! שמרי על זה') : byG('התחל היום', 'התחילי היום'), streak >= 3 ? '#FFD700' : '#fff');
 
     document.getElementById('today-tiles').innerHTML = workoutTile + nutriTile + stepsTile + streakTile;
 
@@ -4089,8 +4111,8 @@
     _pedoOn = true; _pedoCount = 0;
     window.addEventListener('devicemotion', _onMotion);
     _pedoSaveTimer = setInterval(saveSteps, 60000); // autosave once a minute while walking
-    btn.textContent = '⏸ עצור ושמור'; btn.style.background = 'rgba(74,222,128,0.15)';
-    showDashToast('מצב הליכה פעיל — השאר את האפליקציה פתוחה 🚶');
+    btn.textContent = byG('⏸ עצור ושמור', '⏸ עצרי ושמרי'); btn.style.background = 'rgba(74,222,128,0.15)';
+    showDashToast(byG('מצב הליכה פעיל — השאר את האפליקציה פתוחה 🚶', 'מצב הליכה פעיל — השאירי את האפליקציה פתוחה 🚶'));
   }
   /* ⌚ HEALTH / ACTIVITY SYNC — reads from a native Health Connect / HealthKit
      plugin when running inside the app (window.Capacitor.Plugins.HealthConnect);
@@ -4111,7 +4133,7 @@
         if (typeof HC.isHealthAvailable === 'function') {
           const av = await HC.isHealthAvailable().catch(() => ({ available: false }));
           if (!av || !av.available) {
-            if (!silent) showDashToast('אפליקציית הבריאות לא זמינה במכשיר — התקן "Health Connect" (אנדרואיד) / ודא שאפליקציית "בריאות" פעילה (iPhone)');
+            if (!silent) showDashToast(byG('אפליקציית הבריאות לא זמינה במכשיר — התקן "Health Connect" (אנדרואיד) / ודא שאפליקציית "בריאות" פעילה (iPhone)', 'אפליקציית הבריאות לא זמינה במכשיר — התקיני "Health Connect" (אנדרואיד) / ודאי שאפליקציית "בריאות" פעילה (iPhone)'));
             return false;
           }
         }
@@ -4182,7 +4204,7 @@
 
   function attachSetVideo(ei, file) {
     if (!file) return;
-    if (file.size > 50 * 1024 * 1024) { showDashToast('הסרטון גדול מדי (מקס׳ 50MB) — צלם קצר יותר'); return; }
+    if (file.size > 50 * 1024 * 1024) { showDashToast(byG('הסרטון גדול מדי (מקס׳ 50MB) — צלם קצר יותר', 'הסרטון גדול מדי (מקס׳ 50MB) — צלמי קצר יותר')); return; }
     setVideos[ei] = file;
     const btn = document.getElementById(`setvid-btn-${ei}`);
     if (btn) { btn.textContent = '🎥 ✓'; btn.style.borderColor = '#4ade80'; btn.style.color = '#4ade80'; }
@@ -4233,13 +4255,13 @@
             <button class="btn-demo" onclick="openDemoSession(${ei})">הדגמה ▶</button>
             <button class="btn-swap" onclick="openSwapModal(${ei})">🔄 החלפה</button>
             ${exNoteBtn(ex.name, ei)}
-            <button class="btn-swap" id="setvid-btn-${ei}" onclick="document.getElementById('setvid-inp-${ei}').click()" title="צלם סט לבדיקת המאמן (עד סרטון אחד לתרגיל)" style="${setVideos[ei] ? 'border-color:#4ade80;color:#4ade80;' : ''}">${setVideos[ei] ? '🎥 ✓' : '🎥 תיעוד'}</button>
+            <button class="btn-swap" id="setvid-btn-${ei}" onclick="document.getElementById('setvid-inp-${ei}').click()" title="${byG('צלם', 'צלמי')} סט לבדיקת המאמן (עד סרטון אחד לתרגיל)" style="${setVideos[ei] ? 'border-color:#4ade80;color:#4ade80;' : ''}">${setVideos[ei] ? '🎥 ✓' : '🎥 תיעוד'}</button>
             <input type="file" id="setvid-inp-${ei}" accept="video/*" capture="environment" style="display:none;" onchange="attachSetVideo(${ei}, this.files[0]); this.value='';">
           </div>
         </div>
         ${exTargetBanner(ex.name)}
         ${ex.overloadTip ? `<div style="margin:4px 0 6px;padding:7px 10px;background:${ex.overloadTip.color}14;border:1px solid ${ex.overloadTip.color}55;border-radius:8px;font-size:0.78rem;line-height:1.45;color:${ex.overloadTip.color};">${ex.overloadTip.icon} <strong>עומס מתקדם:</strong> ${esc(ex.overloadTip.text)}</div>` : ''}
-        ${tech ? `<div style="margin:4px 0 6px;padding:8px 10px;background:rgba(124,58,237,0.12);border:1px solid rgba(168,85,247,0.4);border-radius:8px;font-size:0.8rem;line-height:1.5;color:#c4a5ff;"><strong style="color:#c4a5ff;">🎯 ${tech.name}:</strong> ${esc(tech.explain)}</div>` : ''}
+        ${tech ? `<div style="margin:4px 0 6px;padding:8px 10px;background:rgba(124,58,237,0.12);border:1px solid rgba(168,85,247,0.4);border-radius:8px;font-size:0.8rem;line-height:1.5;color:#c4a5ff;"><strong style="color:#c4a5ff;">🎯 ${tech.name}:</strong> ${esc(byG(tech.explain, tech.explainF || tech.explain))}</div>` : ''}
         ${ex.description ? `<div class="session-ex-desc">${esc(ex.description)}</div>` : ''}
         <div class="rest-ctrl">
           <span class="rest-ctrl-lbl">⏱ מנוחה בין סטים:</span>
@@ -4516,7 +4538,7 @@
       <div id="wt-err" style="font-size:0.8rem;color:#f87171;min-height:20px;margin-top:8px;"></div>
       <button onclick="wtSave()" style="width:100%;padding:15px;border-radius:12px;border:0;margin-top:4px;
         background:linear-gradient(135deg,var(--orange),#FF8C00);color:#fff;font-family:'Heebo',sans-serif;
-        font-weight:900;font-size:1rem;cursor:pointer;">שמור וסמן סט ✓</button>
+        font-weight:900;font-size:1rem;cursor:pointer;">${byG('שמור וסמן', 'שמרי וסמני')} סט ✓</button>
       <button onclick="_wtClose()" style="width:100%;padding:11px;border-radius:12px;background:none;border:0;
         margin-top:6px;color:#888;font-family:'Heebo',sans-serif;font-size:0.85rem;cursor:pointer;">אמלא אחר כך</button>`;
     setTimeout(() => { const r = document.getElementById('wt-reps'); if (r) r.focus(); }, 80);
@@ -4641,7 +4663,7 @@
   // X — ממזער: שומר את האימון ומאפשר להמשיך אותו
   function confirmCloseSession() {
     if (!workoutSession) { hideSession(); return; }
-    if (confirm('לצאת מהאימון? הוא יישמר ותוכל להמשיך אותו בכל רגע.\n\n(לביטול מוחלט — לחץ "בטל אימון" בבאנר שיופיע)')) {
+    if (confirm(byG('לצאת מהאימון? הוא יישמר ותוכל להמשיך אותו בכל רגע.\n\n(לביטול מוחלט — לחץ "בטל אימון" בבאנר שיופיע)', 'לצאת מהאימון? הוא יישמר ותוכלי להמשיך אותו בכל רגע.\n\n(לביטול מוחלט — לחצי "בטלי" בבאנר שיופיע)'))) {
       persistWorkout();
       hideSession();
       workoutSession = null;
@@ -4684,8 +4706,8 @@
         <div style="font-weight:900;font-size:0.92rem;">⏸ אימון פעיל: ${esc(saved.dayName || '')}</div>
         <div style="font-size:0.72rem;opacity:0.9;">${filled} סטים מולאו · לא נשלח עדיין</div>
       </div>
-      <button onclick="resumeWorkout()" style="background:#fff;color:#FF6B00;border:none;border-radius:8px;padding:8px 14px;font-family:'Heebo',sans-serif;font-weight:900;font-size:0.84rem;cursor:pointer;">המשך ▶</button>
-      <button onclick="cancelActiveWorkout()" style="background:rgba(0,0,0,0.25);color:#fff;border:none;border-radius:8px;padding:8px 10px;font-family:'Heebo',sans-serif;font-weight:700;font-size:0.78rem;cursor:pointer;">בטל</button>`;
+      <button onclick="resumeWorkout()" style="background:#fff;color:#FF6B00;border:none;border-radius:8px;padding:8px 14px;font-family:'Heebo',sans-serif;font-weight:900;font-size:0.84rem;cursor:pointer;">${byG('המשך', 'המשיכי')} ▶</button>
+      <button onclick="cancelActiveWorkout()" style="background:rgba(0,0,0,0.25);color:#fff;border:none;border-radius:8px;padding:8px 10px;font-family:'Heebo',sans-serif;font-weight:700;font-size:0.78rem;cursor:pointer;">${byG('בטל', 'בטלי')}</button>`;
     document.body.appendChild(b);
   }
   function removeResumeBanner() {
@@ -4749,7 +4771,7 @@
       notes: `משך אימון: ${Math.floor(elapsed / 60)} דקות${pace ? ` · יעד ${pace.est} דקות` : ''}`,
       total_volume: totalVolume
     });
-    if (error) { btn.disabled = false; btn.textContent = '✓ סיים ושלח'; alert('שגיאה בשמירה: ' + error.message); return; }
+    if (error) { btn.disabled = false; btn.textContent = byG('✓ סיים ושלח', '✓ סיימי ושלחי'); alert('שגיאה בשמירה: ' + error.message); return; }
 
     // upload set videos (if any) → coach chat, before re-enabling the button
     if (Object.keys(setVideos).length) {
@@ -4757,7 +4779,7 @@
       const sent = await uploadSetVideos();
       if (sent > 0) showDashToast(`${sent} סרטוני תיעוד נשלחו למאמן ✓`);
     }
-    btn.disabled = false; btn.textContent = '✓ סיים ושלח';
+    btn.disabled = false; btn.textContent = byG('✓ סיים ושלח', '✓ סיימי ושלחי');
 
     // PR detection
     const bestHist = {};
@@ -4862,8 +4884,8 @@
             <div style="font-size:0.78rem;color:#FFD700;">${Math.round(p.orm)} ק״ג · 1RM משוער</div></div>`).join('')}
         </div>
         <div style="display:flex;gap:8px;margin-top:18px;">
-          <button onclick="sharePR('${encodeURIComponent(shareText)}')" style="flex:1;padding:12px;background:linear-gradient(135deg,#25D366,#128C7E);color:#fff;border:none;border-radius:12px;font-family:'Heebo';font-weight:800;font-size:0.9rem;cursor:pointer;">📲 שתף את השיא</button>
-          <button onclick="document.getElementById('pr-celebrate').remove()" style="flex:0 0 auto;padding:12px 16px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);color:#fff;border-radius:12px;font-family:'Heebo';font-weight:700;cursor:pointer;">סגור</button>
+          <button onclick="sharePR('${encodeURIComponent(shareText)}')" style="flex:1;padding:12px;background:linear-gradient(135deg,#25D366,#128C7E);color:#fff;border:none;border-radius:12px;font-family:'Heebo';font-weight:800;font-size:0.9rem;cursor:pointer;">📲 ${byG('שתף', 'שתפי')} את השיא</button>
+          <button onclick="document.getElementById('pr-celebrate').remove()" style="flex:0 0 auto;padding:12px 16px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);color:#fff;border-radius:12px;font-family:'Heebo';font-weight:700;cursor:pointer;">${byG('סגור', 'סגרי')}</button>
         </div>
       </div>`;
     ov.addEventListener('click', e => { if (e.target === ov) ov.remove(); });
@@ -4895,7 +4917,7 @@
   function switchTab(name) {
     const btn = document.querySelector('.tab-btn[data-tab="' + name + '"]');
     if (btn && btn.classList.contains('locked')) {
-      showDashToast('🔒 התוכן נעול — חדש את הליווי כדי לגשת לתזונה');
+      showDashToast(byG('🔒 התוכן נעול — חדש את הליווי כדי לגשת לתזונה', '🔒 התוכן נעול — חדשי את הליווי כדי לגשת לתזונה'));
       return;
     }
     if (typeof clearWorkoutScope === 'function') clearWorkoutScope();
@@ -4993,7 +5015,7 @@
         lock.style.cssText = 'margin:20px 0;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.1);border-radius:16px;padding:34px 20px;text-align:center;';
         lock.innerHTML = '<div style="font-size:2.6rem;margin-bottom:10px;">🔒</div>' +
           '<div style="font-weight:900;font-size:1.05rem;color:#fff;margin-bottom:6px;">הסייקל שלי — נעול</div>' +
-          '<div style="font-size:0.85rem;color:#888;line-height:1.6;">הפיצ׳ר זמין למתאמנים בליווי סייקל.<br>אתה מוגדר כ־<b style="color:#4ade80;">טבעי</b> 💪</div>';
+          '<div style="font-size:0.85rem;color:#888;line-height:1.6;">הפיצ׳ר זמין למתאמנים בליווי סייקל.<br>' + byG('אתה מוגדר כ־<b style="color:#4ade80;">טבעי</b>', 'את מוגדרת כ־<b style="color:#4ade80;">טבעית</b>') + ' 💪</div>';
         sec.parentNode.insertBefore(lock, sec);
       }
       lock.style.display = 'block';
@@ -5014,8 +5036,8 @@
      "איך אני מסמן אימון", לא "מה יש בלשונית אימון". */
   const GUIDE = [
     ['🏋️', 'האימון שלי', [
-      ['להתחיל אימון', 'לשונית <b>אימון</b> ← בחר יום ← <b>▶ החל אימון</b>. המסך נפתח עם כל התרגילים והסטים.'],
-      ['לרשום משקל וחזרות', 'בכל סט יש שני שדות. המספר האפור הוא מה שעשית בפעם הקודמת — כתוב מעליו. ✓ מסמן שהסט בוצע.'],
+      ['להתחיל אימון', ['לשונית <b>אימון</b> ← בחר יום ← <b>▶ החל אימון</b>. המסך נפתח עם כל התרגילים והסטים.', 'לשונית <b>אימון</b> ← בחרי יום ← <b>▶ התחילי אימון</b>. המסך נפתח עם כל התרגילים והסטים.']],
+      ['לרשום משקל וחזרות', ['בכל סט יש שני שדות. המספר האפור הוא מה שעשית בפעם הקודמת — כתוב מעליו. ✓ מסמן שהסט בוצע.', 'בכל סט יש שני שדות. המספר האפור הוא מה שעשית בפעם הקודמת — כתבי מעליו. ✓ מסמן שהסט בוצע.']],
       ['מה זה חימום / עבודה / כשל / דרופ', 'הצבע ליד כל סט אומר מה סוגו. <b>חימום</b> אינו נספר בנפח ובגרף — הוא הכנה. <b>כשל</b> הוא סט שנלקח עד הסוף. <b>דרופ</b> — מורידים משקל וממשיכים בלי מנוחה.'],
       ['🔗 סופר-סט', 'שני תרגילים מחוברים = עוברים ביניהם בלי מנוחה, ומנוחה רק בסוף הסיבוב.'],
       ['🔄 להחליף תרגיל', 'מכשיר תפוס או כואב? <b>החלפה</b> מציע חלופה לאותו שריר. ההחלפה נשמרת לאימון הזה.'],
@@ -5032,7 +5054,7 @@
       ['💧 מים', 'מונה השתייה במסך הבית — לחיצה מוסיפה כוס.'],
     ]],
     ['📊', 'מעקב והתקדמות', [
-      ['⚖️ שקילה יומית', 'הרצועה במסך הבית: לחיצה, מספר, שמור. מוצג ההפרש מהשקילה הקודמת. <b>המאמן מקבל סיכום שבועי אוטומטי.</b>'],
+      ['⚖️ שקילה יומית', ['הרצועה במסך הבית: לחיצה, מספר, שמור. מוצג ההפרש מהשקילה הקודמת. <b>המאמן מקבל סיכום שבועי אוטומטי.</b>', 'הרצועה במסך הבית: לחיצה, מספר, שמרי. מוצג ההפרש מהשקילה הקודמת. <b>המאמן מקבל סיכום שבועי אוטומטי.</b>']],
       ['מתי להישקל', 'אותה שעה, אותם תנאים — הכי טוב בבוקר אחרי שירותים ולפני אוכל. המשקל קופץ מיום ליום; מה שחשוב הוא <b>המגמה</b>.'],
       ['📏 מדידות', 'היקפים ואחוז שומן. נכנסים לאותה רשומה יומית של המשקל.'],
       ['📸 תמונות התקדמות', 'התמונות נשלחות למאמן ומופיעות באלבום שלך לפי תאריך.'],
@@ -5044,7 +5066,7 @@
       ['צ׳אט עם המאמן', 'שיחה פרטית — טקסט, קבצים והודעות קוליות.'],
       ['🌐 קהילה', 'הצ׳אט הקבוצתי של כל המתאמנים.'],
       ['צ׳ק-אין שבועי', 'שאלון קצר על השבוע. התשובות מגיעות למאמן ומשמשות אותו לעדכן לך את התוכנית.'],
-      ['🔔 התראות', 'המתג במסך הבית — בלעדיו לא תדע שהמאמן ענה או עדכן.'],
+      ['🔔 התראות', ['המתג במסך הבית — בלעדיו לא תדע שהמאמן ענה או עדכן.', 'המתג במסך הבית — בלעדיו לא תדעי שהמאמן ענה או עדכן.']],
     ]],
     ['⚙️', 'החשבון', [
       ['📝 הצהרת בריאות', 'חתימה חד-פעמית לפני תחילת הליווי.'],
@@ -5083,12 +5105,12 @@
                 ${g[2].map(([q, ans]) => `
                   <div style="padding:9px 0;border-top:1px solid rgba(255,255,255,0.05);">
                     <div style="font-weight:800;font-size:0.84rem;color:var(--gold);margin-bottom:3px;">${q}</div>
-                    <div style="font-size:0.8rem;color:#bbb;line-height:1.65;">${ans}</div>
+                    <div style="font-size:0.8rem;color:#bbb;line-height:1.65;">${Array.isArray(ans) ? byG(ans[0], ans[1]) : ans}</div>
                   </div>`).join('')}
               </div>
             </div>`).join('')}
           <div style="font-size:0.74rem;color:#777;text-align:center;line-height:1.7;margin-top:6px;">
-            לא מצאת תשובה? שאל את המאמן בצ׳אט — הוא רואה הכול.
+            לא מצאת תשובה? ${byG('שאל', 'שאלי')} את המאמן בצ׳אט — הוא רואה הכול.
           </div>
         </div>
       </div>`;
@@ -5154,7 +5176,7 @@
       renew.innerHTML =
         `<div><div style="font-size:0.72rem;color:var(--muted);">⏳ נותרו לסיום הליווי</div>` +
         `<div style="margin-top:2px;"><span style="font-size:1.5rem;font-weight:900;color:${days !== null && days <= 7 ? '#f87171' : 'var(--orange)'};">${days !== null ? days : '—'}</span> <span style="color:var(--orange);font-weight:800;">ימים</span></div></div>` +
-        `<button onclick="renewFromHome()" style="background:linear-gradient(135deg,var(--orange),#FF8C00);color:#fff;border:none;border-radius:12px;font-family:'Heebo',sans-serif;font-weight:800;font-size:0.9rem;padding:12px 16px;cursor:pointer;box-shadow:0 3px 14px rgba(255,107,0,0.4);white-space:nowrap;">🔄 חדש ליווי ←</button>`;
+        `<button onclick="renewFromHome()" style="background:linear-gradient(135deg,var(--orange),#FF8C00);color:#fff;border:none;border-radius:12px;font-family:'Heebo',sans-serif;font-weight:800;font-size:0.9rem;padding:12px 16px;cursor:pointer;box-shadow:0 3px 14px rgba(255,107,0,0.4);white-space:nowrap;">🔄 ${byG('חדש', 'חדשי')} ליווי ←</button>`;
     }
     // 💳 debt on the home — only when there's an open balance
     const debtEl = document.getElementById('hl-debt');
@@ -5233,7 +5255,7 @@
 
   async function clientUnfreeze() {
     if (_coachSubFrozen) {
-      alert('❄️ הליווי מוקפא כי ' + _coachSubReason + '.\n\nההקפאה תוסר אוטומטית ברגע שהמאמן יחדש את המנוי שלו. פנה אליו לפרטים.');
+      alert('❄️ הליווי מוקפא כי ' + _coachSubReason + '.\n\nההקפאה תוסר אוטומטית ברגע שהמאמן יחדש את המנוי שלו. ' + byG('פנה', 'פני') + ' אליו לפרטים.');
       return;
     }
     if (!clientData?.frozen_until || clientData.frozen_until < todayStr()) return;
@@ -5299,7 +5321,7 @@
           <div style="font-size:1.8rem;">🔋</div>
           <div style="flex:1;">
             <div style="font-weight:900;font-size:0.98rem;color:#fbbf24;">אולי הגיע הזמן לשבוע הקלה (Deload)</div>
-            <div style="font-size:0.78rem;color:#cbb;line-height:1.5;margin-top:2px;">הנפח ב"${esc(d.day)}" ירד ${d.dropPct}% ב-3 האימונים האחרונים — סימן אפשרי לעייפות מצטברת. שקול/י שבוע קליל יותר (משקלים 40–60%, פחות סטים) כדי להתאושש ולחזור חזק יותר. כדאי להתייעץ עם המאמן.</div>
+            <div style="font-size:0.78rem;color:#cbb;line-height:1.5;margin-top:2px;">הנפח ב"${esc(d.day)}" ירד ${d.dropPct}% ב-3 האימונים האחרונים — סימן אפשרי לעייפות מצטברת. ${byG('שקול', 'שקלי')} שבוע קליל יותר (משקלים 40–60%, פחות סטים) כדי להתאושש ולחזור ${byG('חזק', 'חזקה')} יותר. כדאי להתייעץ עם המאמן.</div>
           </div>
         </div>
       </div>`;
@@ -5320,7 +5342,7 @@
       });
     });
     const exNames = Object.keys(byEx).filter(n => byEx[n].length >= 2).sort((a, b) => byEx[b].length - byEx[a].length);
-    if (!exNames.length) { wrap.innerHTML = '<div class="empty">תעד לפחות 2 אימונים לאותו תרגיל כדי לראות גרף כוח 📈</div>'; return; }
+    if (!exNames.length) { wrap.innerHTML = '<div class="empty">' + byG('תעד', 'תעדי') + ' לפחות 2 אימונים לאותו תרגיל כדי לראות גרף כוח 📈</div>'; return; }
     if (!_strengthEx || !byEx[_strengthEx]) _strengthEx = exNames[0];
     wrap._byEx = byEx; wrap._exNames = exNames;
     const opts = exNames.map(n => `<option value="${esc(n)}" ${n === _strengthEx ? 'selected' : ''}>${esc(n)} (${byEx[n].length})</option>`).join('');
@@ -5371,7 +5393,7 @@
     renderStrengthChart(logs);
     const wrap = document.getElementById('history-wrap');
     if (!logs.length) {
-      wrap.innerHTML = '<div class="empty">עדיין לא תועד אימון — לחץ "✏️ תעד" על כל יום אימון</div>';
+      wrap.innerHTML = '<div class="empty">עדיין לא תועד אימון — ' + byG('לחץ', 'לחצי') + ' "✏️ תעד" על כל יום אימון</div>';
       return;
     }
     wrap.innerHTML = logs.map((log, li) => {
@@ -5385,7 +5407,7 @@
               <div class="hist-day">${log.day_name}</div>
             </div>
             <div style="display:flex;align-items:center;gap:12px;">
-              <button class="btn-del-log" onclick="event.stopPropagation();deleteLog(${log.id})">מחק</button>
+              <button class="btn-del-log" onclick="event.stopPropagation();deleteLog(${log.id})">${byG('מחק', 'מחקי')}</button>
               <span class="hist-arr">▼</span>
             </div>
           </div>
@@ -5485,7 +5507,7 @@
       const foodList    = (foodItems||[]).map(f => `${f.name}: ${f.calories}קק"ל P${f.protein}g C${f.carbs}g F${f.fat}g`).join('\n');
       const recipeList  = (recipes||[]).map(rec => `[${rec.type}] ${rec.name} | ${rec.ingredients} | ${rec.calories}קק"ל P${rec.protein}g C${rec.carbs}g F${rec.fat}g`).join('\n');
 
-      const systemPrompt = `אתה דיאטן ספורט מקצועי של אפליקציית כושר. ענה תמיד בעברית בלבד.
+      const systemPrompt = `אתה דיאטן ספורט מקצועי של אפליקציית כושר. ענה תמיד בעברית בלבד.${clientIsFemale() ? ' המשתמשת היא אישה: פנה אליה תמיד בלשון נקבה.' : ''}
 
 ⚠️ ערכי מאקרו שנותרו למתאמן להיום (זהו התקציב הקלורי שנשאר — אל תחרוג ממנו):
 קלוריות: ${r.cal} קק"ל | חלבון: ${r.p}g | פחמימה: ${r.c}g | שומן: ${r.f}g
@@ -5539,7 +5561,7 @@ ${foodList || 'אין פריטים'}
       aiChatHistory.push({ role: 'bot', content: text });
     } catch {
       aiChatHistory = aiChatHistory.filter(m => !m.loading);
-      aiChatHistory.push({ role: 'bot', content: 'שגיאה בחיבור לסוכן. נסה שוב.' });
+      aiChatHistory.push({ role: 'bot', content: 'שגיאה בחיבור לסוכן. ' + byG('נסה שוב', 'נסי שוב') + '.' });
     }
     renderAiChat();
   }
@@ -5566,7 +5588,7 @@ ${foodList || 'אין פריטים'}
       });
 
       const r = getRemaining();
-      const sys = `אתה דיאטן ספורט. נתח את תמונת הארוחה וחשב ערכים תזונתיים. ענה בעברית בלבד.
+      const sys = `אתה דיאטן ספורט. נתח את תמונת הארוחה וחשב ערכים תזונתיים. ענה בעברית בלבד.${clientIsFemale() ? ' המשתמשת היא אישה: פנה אליה בלשון נקבה.' : ''}
 שיטת חישוב מחייבת: (א) זהה כל רכיב בצלחת. (ב) הערך משקל בגרמים לכל רכיב לפי גודל מנה סביר. (ג) חשב לפי ערכים ל-100 גרם (עוף ~165, אורז מבושל ~130, פסטה ~155, לאפה/פיתה ~275, טחינה ~590, שמן זית כף ~120, גבינה צהובה ~350). (ד) אל תיתן מספרים נמוכים מדי — אנשים מזלזלים ברטבים ובשמן.
 פורמט תשובה:
 🍽️ מה זיהיתי: [רשימת רכיבים + משקל משוער]
@@ -5587,7 +5609,7 @@ ${foodList || 'אין פריטים'}
       aiChatHistory.push({ role: 'bot', content: text });
     } catch (e) {
       aiChatHistory = aiChatHistory.filter(m => !m.loading);
-      aiChatHistory.push({ role: 'bot', content: 'שגיאה בניתוח התמונה. נסה שוב.' });
+      aiChatHistory.push({ role: 'bot', content: 'שגיאה בניתוח התמונה. ' + byG('נסה שוב', 'נסי שוב') + '.' });
     }
     renderAiChat();
   }
@@ -5738,7 +5760,7 @@ ${foodList || 'אין פריטים'}
     const hasMacroTargets = !!(clientData && (clientData.target_calories || clientData.target_protein));
 
     if (!hasPlan && !hasMacroTargets) {
-      body.innerHTML = '<div class="empty">עדיין לא הוגדרו לך תפריט או ערכים — פנה למאמן 🥗</div>';
+      body.innerHTML = '<div class="empty">עדיין לא הוגדרו לך תפריט או ערכים — ' + byG('פנה', 'פני') + ' למאמן 🥗</div>';
       return;
     }
     if (!hasPlan    && nutriMode !== 'track') nutriMode = 'track';
@@ -5777,7 +5799,7 @@ ${foodList || 'אין פריטים'}
     _mealCards = {}; _mealShown = [];
     if (nutriMode === 'plan') {
       if (!nutritionPlanLocal.length) {
-        body.innerHTML = tabs + '<div class="empty">תפריט עדיין לא הוגדר — פנה למאמן 🥗</div>';
+        body.innerHTML = tabs + '<div class="empty">תפריט עדיין לא הוגדר — ' + byG('פנה', 'פני') + ' למאמן 🥗</div>';
         return;
       }
       /* סוכן התפריטים נהג להוסיף שורת "סיכום יומי" בתוך רשימת
@@ -5857,7 +5879,7 @@ ${foodList || 'אין פריטים'}
            גבוהים מ-44 פיקסלים, ומסמנים את הנבחר גם בווי ולא רק בצבע —
            כדי שהבחירה תהיה ברורה גם למי שלא מבחין היטב בגוונים. */
         const pickerHtml = vars.length ? `
-          <div style="font-size:0.72rem;color:#888;margin:2px 0 7px;">בחר אופציה לארוחה זו:</div>
+          <div style="font-size:0.72rem;color:#888;margin:2px 0 7px;">${byG('בחר', 'בחרי')} אופציה לארוחה זו:</div>
           <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:8px;margin-bottom:12px;">
             ${[{label:'אופציה 1'}, ...vars].map((v,vi)=>`
               <button onclick="pickMeal('${pickKey}',${vi})" style="min-height:44px;padding:10px 8px;
@@ -5894,9 +5916,9 @@ ${foodList || 'אין פריטים'}
                 <span style="color:var(--muted);font-size:0.75rem;">${g}g · ${aCal} קק"ל · P${aP}g${chosen?' ✓':''}</span>
               </div>`;
             }).join('');
-            const clearBtn = alt?`<button onclick="clearAlt(${mi},${ii})" style="margin-top:4px;padding:4px 12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:6px;color:var(--muted);font-size:0.75rem;cursor:pointer;font-family:'Heebo',sans-serif;">↩ חזור למקורי</button>`:'';
+            const clearBtn = alt?`<button onclick="clearAlt(${mi},${ii})" style="margin-top:4px;padding:4px 12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:6px;color:var(--muted);font-size:0.75rem;cursor:pointer;font-family:'Heebo',sans-serif;">↩ ${byG('חזור', 'חזרי')} למקורי</button>`:'';
             altPanelHtml = `<div style="margin-top:6px;padding:10px 12px;background:rgba(0,0,0,0.5);border:1px solid rgba(255,107,0,0.2);border-radius:10px;">
-              <div style="font-size:0.72rem;color:var(--muted);margin-bottom:8px;">בחר חלופה — הקלוריות והערכים יתעדכנו לפי המוצר:</div>
+              <div style="font-size:0.72rem;color:var(--muted);margin-bottom:8px;">${byG('בחר', 'בחרי')} חלופה — הקלוריות והערכים יתעדכנו לפי המוצר:</div>
               ${rows}${clearBtn}
             </div>`;
           }
@@ -5944,7 +5966,7 @@ ${foodList || 'אין פריטים'}
               : nOpts > 1
                 ? 'background:rgba(255,107,0,0.14);color:var(--orange);border:1px solid rgba(255,107,0,0.45);'
                 : 'background:rgba(255,255,255,0.05);color:#999;border:1px solid rgba(255,255,255,0.12);'}">
-            ${isLogged ? '✓ נאכל' : nOpts > 1 ? nOpts + ' אפשרויות' : 'בחר וסמן'}
+            ${isLogged ? '✓ נאכל' : nOpts > 1 ? nOpts + ' אפשרויות' : byG('בחר וסמן', 'בחרי וסמני')}
           </div>
         </button>`;
       }).join('');
@@ -6035,14 +6057,14 @@ ${foodList || 'אין פריטים'}
       <div class="meal-type-tabs">${MEAL_TYPES.map(m=>`<button class="mt-tab${m===nutriMeal?' active':''}" onclick="setNutriMeal('${m}')">${m}</button>`).join('')}</div>
       <div class="food-add-wrap" id="food-add-wrap">
         <div class="food-input-row">
-          <input class="food-inp" id="food-inp" type="text" placeholder="חפש מאכל..." autocomplete="off"
+          <input class="food-inp" id="food-inp" type="text" placeholder="${byG('חפש', 'חפשי')} מאכל..." autocomplete="off"
             oninput="onFoodInput(this.value)" onblur="setTimeout(hideFoodSugg,180)"/>
           <input class="food-grams" id="food-grams" type="number" min="1" placeholder="גרם" oninput="updateFoodPreview()"/>
-          <button class="btn-add-food" onclick="addFoodLog()">הוסף</button>
+          <button class="btn-add-food" onclick="addFoodLog()">${byG('הוסף', 'הוסיפי')}</button>
         </div>
         <div class="food-preview" id="food-preview"></div>
       </div>
-      <button class="manual-food-toggle" onclick="toggleManualFood()">${manualFoodOpen ? '▲ סגור' : '+ הוסף מזון ידני (לא במאגר)'}</button>
+      <button class="manual-food-toggle" onclick="toggleManualFood()">${manualFoodOpen ? byG('▲ סגור', '▲ סגרי') : byG('+ הוסף מזון ידני (לא במאגר)', '+ הוסיפי מזון ידני (לא במאגר)')}</button>
       ${manualFoodOpen ? `<div class="manual-form-wrap">
         <div style="display:flex;gap:6px;margin-bottom:10px;">
           <button onclick="setManualMode('per100')" style="flex:1;padding:8px;border-radius:8px;font-family:'Heebo',sans-serif;font-size:0.8rem;font-weight:800;cursor:pointer;border:1px solid ${manualMode==='per100'?'var(--orange)':'rgba(255,255,255,0.14)'};background:${manualMode==='per100'?'rgba(255,107,0,0.15)':'rgba(255,255,255,0.03)'};color:${manualMode==='per100'?'var(--orange)':'var(--muted)'};">ערכים ל-100 גרם</button>
@@ -6058,7 +6080,7 @@ ${foodList || 'אין פריטים'}
         </div>
         <input class="manual-inp" id="mf-amt" placeholder="${manualMode==='per100' ? 'כמות בגרמים (למשל 150)' : 'כמות יחידות (ברירת מחדל 1)'}" type="number" min="0" step="0.1" inputmode="decimal" oninput="updateManualPreview()" style="margin-bottom:8px;"/>
         <div id="mf-preview" style="font-size:0.8rem;color:var(--orange);font-weight:700;margin-bottom:10px;min-height:1em;"></div>
-        <button class="btn-manual-add" id="btn-manual-add" onclick="addManualFood()">➕ הוסף למעקב היומי</button>
+        <button class="btn-manual-add" id="btn-manual-add" onclick="addManualFood()">➕ ${byG('הוסף', 'הוסיפי')} למעקב היומי</button>
       </div>` : ''}
       ${nbdTrackHtml(foodLogs) || '<div style="color:#444;font-size:0.85rem;text-align:center;padding:20px 0;">לא נרשם אוכל היום עדיין 🍽️</div>'}`;
   }
@@ -6081,7 +6103,7 @@ ${foodList || 'אין פריטים'}
     const done  = _mealShown.filter(k => _mealCards[k] && _mealCards[k].isLogged).length;
     const all   = _mealShown.length;
     const full  = all > 0 && done === all;
-    return `<button onclick="openNutriShare()" aria-label="סיכום יומי — צור תמונה לשיתוף"
+    return `<button onclick="openNutriShare()" aria-label="סיכום יומי — ${byG('צור', 'צרי')} תמונה לשיתוף"
       style="text-align:center;cursor:pointer;font-family:'Heebo',sans-serif;min-height:112px;
         padding:14px 8px;border-radius:16px;transition:background .2s,border-color .2s;
         background:${full ? 'rgba(255,215,0,0.09)' : 'rgba(255,255,255,0.03)'};
@@ -6091,7 +6113,7 @@ ${foodList || 'אין פריטים'}
       <div style="font-size:0.74rem;color:#999;margin-top:2px;">${Math.round(eaten)} קק"ל · ${done}/${all}</div>
       <div style="display:inline-block;margin-top:7px;padding:3px 10px;border-radius:999px;
         font-size:0.68rem;font-weight:900;background:rgba(255,107,0,0.14);color:var(--orange);
-        border:1px solid rgba(255,107,0,0.45);">📸 צור תמונה</div>
+        border:1px solid rgba(255,107,0,0.45);">📸 ${byG('צור', 'צרי')} תמונה</div>
     </button>`;
   }
 
@@ -6144,7 +6166,7 @@ ${foodList || 'אין פריטים'}
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
         await navigator.share({ files: [file], title: 'סיכום תזונה',
           text: `סגרתי את התפריט של היום 🍽️ ${d.streak ? d.streak + ' ימים ברצף ' : ''}${FJ_TAG}` });
-        if (copied) showDashToast('📋 ' + FJ_TAG + ' הועתק — הדבק בסטורי כדי לתייג אותנו 🎁');
+        if (copied) showDashToast('📋 ' + FJ_TAG + ' הועתק — ' + byG('הדבק', 'הדביקי') + ' בסטורי כדי לתייג אותנו 🎁');
       } else {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -6152,7 +6174,7 @@ ${foodList || 'אין פריטים'}
         document.body.appendChild(a); a.click(); a.remove();
         setTimeout(() => URL.revokeObjectURL(url), 5000);
         showDashToast(copied
-          ? '✓ התמונה נשמרה · 📋 ' + FJ_TAG + ' הועתק — הדבק בסטורי ותייג אותנו 🎁'
+          ? '✓ התמונה נשמרה · 📋 ' + FJ_TAG + ' הועתק — ' + byG('הדבק בסטורי ותייג', 'הדביקי בסטורי ותייגי') + ' אותנו 🎁'
           : 'התמונה נשמרה — אפשר לשתף אותה באינסטגרם');
       }
     } catch (e) {
@@ -6226,8 +6248,8 @@ ${foodList || 'אין פריטים'}
       ' margin-bottom:8px;padding:11px 13px;border-radius:12px;min-height:44px;' +
       ' background:rgba(255,255,255,0.02);border:1px dashed rgba(255,255,255,0.16);">' +
         '<div style="font-weight:900;font-size:0.85rem;color:#888;">אופציה 2</div>' +
-        '<div style="font-size:0.75rem;color:#777;margin-top:3px;">לגיוון בתפריט — צור קשר עם המאמן שלך</div>' +
-        '<div style="font-size:0.72rem;color:var(--orange);margin-top:5px;font-weight:700;">💬 פתח צ\'אט</div>' +
+        '<div style="font-size:0.75rem;color:#777;margin-top:3px;">לגיוון בתפריט — ' + byG('צור', 'צרי') + ' קשר עם המאמן שלך</div>' +
+        '<div style="font-size:0.72rem;color:var(--orange);margin-top:5px;font-weight:700;">💬 ' + byG('פתח', 'פתחי') + ' צ\'אט</div>' +
       '</button>';
 
     return `
@@ -6242,7 +6264,7 @@ ${foodList || 'אין פריטים'}
             <div>
               <div style="font-size:1.35rem;line-height:1;">${mealIcon(meal.meal)}</div>
               <div style="font-weight:900;font-size:1rem;color:var(--orange);margin-top:4px;">${esc(meal.meal)}</div>
-              <div style="font-size:0.74rem;color:#999;">בחר אפשרות אחת</div>
+              <div style="font-size:0.74rem;color:#999;">${byG('בחר', 'בחרי')} אפשרות אחת</div>
             </div>
             <button onclick="closeMealOptions()" aria-label="סגור"
               style="flex-shrink:0;width:36px;height:36px;border-radius:10px;cursor:pointer;
@@ -6272,8 +6294,8 @@ ${foodList || 'אין פריטים'}
               border:1px solid ${isLogged ? 'rgba(74,222,128,0.5)'
                 : (!hasChosen ? 'rgba(255,255,255,0.12)' : 'transparent')};
               color:${isLogged ? '#4ade80' : (!hasChosen ? '#777' : '#fff')};">
-            ${isLogged ? '✓ נרשם — בטל סימון'
-              : (!hasChosen ? 'בחר אפשרות כדי לסמן' : '✓ אכלתי את זה')}
+            ${isLogged ? byG('✓ נרשם — בטל סימון', '✓ נרשם — בטלי סימון')
+              : (!hasChosen ? byG('בחר אפשרות כדי לסמן', 'בחרי אפשרות כדי לסמן') : '✓ אכלתי את זה')}
           </button>
         </div>
       </div>`;
@@ -6365,7 +6387,7 @@ ${foodList || 'אין פריטים'}
       client_email: currentEmail, log_date: today,
       food_name: name, grams, calories: cal, protein: prot, carbs: carb, fat, meal_type: nutriMeal
     }).select().single();
-    if (btn) { btn.disabled=false; btn.textContent='הוסף'; }
+    if (btn) { btn.disabled=false; btn.textContent=byG('הוסף', 'הוסיפי'); }
     if (error) return;
     foodLogs.push(data);
     selectedFood = null;
@@ -6711,12 +6733,12 @@ ${foodList || 'אין פריטים'}
       let msg = null;
 
       if (!prev) {
-        msg = `🏆 @${myName} פתח שיא נבחרת חדש ב${pr.exercise}!\n${bestSet.weight} ק"ג × ${bestSet.reps} חזרות • 1RM: ${pr.orm} ק"ג 💪`;
+        msg = `🏆 @${myName} ${byG('פתח', 'פתחה')} שיא נבחרת חדש ב${pr.exercise}!\n${bestSet.weight} ק"ג × ${bestSet.reps} חזרות • 1RM: ${pr.orm} ק"ג 💪`;
       } else if (pr.orm > prev.orm) {
         if (prev.email === currentEmail) {
           msg = `🏆 @${myName} חיזק את שיאו ב${pr.exercise}!\n${bestSet.weight} ק"ג × ${bestSet.reps} חזרות • 1RM: ${pr.orm} ק"ג 💪`;
         } else {
-          msg = `🏆 @${myName} הוא האלוף החדש ב${pr.exercise}!\nשבר את השיא הקודם שהחזיק @${prev.name}\n${bestSet.weight} ק"ג × ${bestSet.reps} חזרות • 1RM: ${pr.orm} ק"ג 💪`;
+          msg = `🏆 @${myName} ${byG('הוא האלוף החדש', 'היא האלופה החדשה')} ב${pr.exercise}!\n${byG('שבר', 'שברה')} את השיא הקודם של @${prev.name}\n${bestSet.weight} ק"ג × ${bestSet.reps} חזרות • 1RM: ${pr.orm} ק"ג 💪`;
         }
       }
       // pr.orm <= prev.orm → שיא אישי אך לא שיא נבחרת → אין הודעה
@@ -6813,7 +6835,7 @@ ${foodList || 'אין פריטים'}
         <div class="steps-row">
           <input class="steps-input" type="number" id="steps-inp" min="0" placeholder="כמה צעדים עשית היום?"
             value="${myS ? myS.steps : ''}"/>
-          <button class="btn-save-steps" onclick="logSteps()">שמור</button>
+          <button class="btn-save-steps" onclick="logSteps()">${byG('שמור', 'שמרי')}</button>
         </div>
         ${top3.length ? `<div class="podium">${top3.map((s,i)=>`
           <div class="podium-row rank-${i+1}">
@@ -6936,7 +6958,7 @@ ${foodList || 'אין פריטים'}
       { client_email: currentEmail, steps: val, log_date: today },
       { onConflict: 'client_email,log_date' }
     );
-    btn.disabled = false; btn.textContent = 'שמור';
+    btn.disabled = false; btn.textContent = byG('שמור', 'שמרי');
     if (error) return;
     const idx = recSteps.findIndex(s=>s.client_email===currentEmail);
     if (idx>=0) recSteps[idx].steps=val; else recSteps.push({client_email:currentEmail,steps:val});
@@ -6955,7 +6977,7 @@ ${foodList || 'אין פריטים'}
       ol.innerHTML = `
         <div class="lock-icon">🔒</div>
         <div class="lock-title">תוכנית נעולה</div>
-        <div class="lock-sub">חדש את המנוי כדי לגשת לתוכנית האימונים</div>
+        <div class="lock-sub">${byG('חדש', 'חדשי')} את המנוי כדי לגשת לתוכנית האימונים</div>
         <button class="btn-lock-renew" onclick="document.getElementById('renewal-section')?.scrollIntoView({behavior:'smooth',block:'start'})">🔄 לחידוש הליווי</button>`;
       trainingSec.appendChild(ol);
     }
@@ -7053,7 +7075,7 @@ ${foodList || 'אין פריטים'}
           <span style="font-size:0.75rem;color:#888;">ק"ג</span>
           <button onclick="saveWeighIn()" style="flex:none;min-height:40px;padding:8px 16px;border-radius:9px;
             background:var(--orange);border:none;color:#fff;font-family:'Heebo',sans-serif;
-            font-size:0.82rem;font-weight:800;cursor:pointer;">שמור</button>
+            font-size:0.82rem;font-weight:800;cursor:pointer;">${byG('שמור', 'שמרי')}</button>
           <button onclick="closeWeighIn()" aria-label="ביטול" style="flex:none;width:34px;height:34px;
             border-radius:9px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);
             color:#888;font-size:0.9rem;cursor:pointer;">✕</button>
@@ -7074,7 +7096,7 @@ ${foodList || 'אין פריטים'}
           <span style="font-weight:900;font-size:0.95rem;">${w != null ? w : '—'}</span>
           <span style="font-size:0.7rem;font-weight:600;opacity:0.75;">ק"ג</span>
         </span>
-        <span style="font-size:0.72rem;font-weight:800;color:var(--orange);">${w ? 'עדכן' : 'הזן'}</span>
+        <span style="font-size:0.72rem;font-weight:800;color:var(--orange);">${w ? byG('עדכן', 'עדכני') : byG('הזן', 'הזיני')}</span>
       </div>`;
   }
 
@@ -7124,7 +7146,7 @@ ${foodList || 'אין פריטים'}
 
   async function updateWeight() {
     const current = progressEntries[0]?.weight || clientData?.current_weight;
-    const val = prompt(current ? `משקל נוכחי: ${current} ק"ג\nהזן משקל חדש (ק"ג):` : 'הזן את המשקל הנוכחי שלך (ק"ג):');
+    const val = prompt(current ? `משקל נוכחי: ${current} ק"ג\n${byG('הזן', 'הזיני')} משקל חדש (ק"ג):` : byG('הזן את המשקל הנוכחי שלך (ק"ג):', 'הזיני את המשקל הנוכחי שלך (ק"ג):'));
     if (val === null) return;
     const kg = parseFloat(val.replace(',', '.'));
     if (!kg || kg < 20 || kg > 500) { alert('משקל לא תקין'); return; }
@@ -7230,17 +7252,17 @@ ${foodList || 'אין פריטים'}
     let carb = parseFloat(document.getElementById('mf-carb')?.value) || 0;
     let fat  = parseFloat(document.getElementById('mf-fat')?.value)  || 0;
     const amt = parseFloat(document.getElementById('mf-amt')?.value);
-    if (!name) { document.getElementById('mf-name')?.focus(); showDashToast('הזן שם מאכל'); return; }
+    if (!name) { document.getElementById('mf-name')?.focus(); showDashToast(byG('הזן שם מאכל', 'הזיני שם מאכל')); return; }
     let grams = 0;
     if (manualMode === 'per100') {
       grams = amt || 0;
-      if (grams <= 0) { document.getElementById('mf-amt')?.focus(); showDashToast('הזן כמות בגרמים'); return; }
+      if (grams <= 0) { document.getElementById('mf-amt')?.focus(); showDashToast(byG('הזן כמות בגרמים', 'הזיני כמות בגרמים')); return; }
       const r = grams / 100; cal *= r; prot *= r; carb *= r; fat *= r;
     } else {
       const units = (amt && amt > 0) ? amt : 1;
       cal *= units; prot *= units; carb *= units; fat *= units;
     }
-    if (cal <= 0 && prot <= 0 && carb <= 0 && fat <= 0) { showDashToast('הזן ערכים תזונתיים'); return; }
+    if (cal <= 0 && prot <= 0 && carb <= 0 && fat <= 0) { showDashToast(byG('הזן ערכים תזונתיים', 'הזיני ערכים תזונתיים')); return; }
     cal = Math.round(cal); prot = Math.round(prot * 10) / 10; carb = Math.round(carb * 10) / 10; fat = Math.round(fat * 10) / 10;
     const btn = document.getElementById('btn-manual-add');
     if (btn) { btn.disabled = true; btn.textContent = 'מוסיף...'; }
@@ -7248,7 +7270,7 @@ ${foodList || 'אין פריטים'}
       client_email: currentEmail, log_date: todayStr(),
       food_name: name, grams: Math.round(grams), calories: cal, protein: prot, carbs: carb, fat, meal_type: nutriMeal
     }).select().single();
-    if (btn) { btn.disabled = false; btn.textContent = '➕ הוסף למעקב היומי'; }
+    if (btn) { btn.disabled = false; btn.textContent = byG('➕ הוסף למעקב היומי', '➕ הוסיפי למעקב היומי'); }
     if (error) { showDashToast('שגיאה: ' + error.message); return; }
     foodLogs.push(data);
     manualFoodOpen = false;
@@ -7258,17 +7280,17 @@ ${foodList || 'אין פריטים'}
 
   /* ── VOLUME ── */
   const VOL_MILESTONES = [
-    { min: 0,     emoji: '🌱', text: 'כל אימון מתחיל בצעד ראשון — המשך כך!' },
+    { min: 0,     emoji: '🌱', text: 'כל אימון מתחיל בצעד ראשון — המשך כך!', f: 'כל אימון מתחיל בצעד ראשון — המשיכי כך!' },
     { min: 400,   emoji: '🐄', text: 'הרמת משקל של פרה שלמה — לא רע בכלל!' },
-    { min: 900,   emoji: '🐎', text: 'כמו להרים סוס — אתה חזק!' },
+    { min: 900,   emoji: '🐎', text: 'כמו להרים סוס — אתה חזק!', f: 'כמו להרים סוס — את חזקה!' },
     { min: 1500,  emoji: '🚗', text: 'כמו להרים מכונית ספורט — מרשים!' },
     { min: 2500,  emoji: '🦛', text: 'כמו להרים היפופוטם — חיה אמיתית!' },
     { min: 4000,  emoji: '🐘', text: 'כמו להרים פיל אפריקאי — מטורף!' },
-    { min: 6500,  emoji: '🚒', text: 'כמו להרים מכבש אש — מי אתה בכלל?!' },
+    { min: 6500,  emoji: '🚒', text: 'כמו להרים מכבש אש — מי אתה בכלל?!', f: 'כמו להרים מכבש אש — מי את בכלל?!' },
     { min: 10000, emoji: '🦣', text: 'כמו להרים ממוטה — YOU ARE A MACHINE!' },
     { min: 16000, emoji: '🚌', text: 'כמו להרים אוטובוס שלם — אגדה חיה!' },
-    { min: 25000, emoji: '✈️', text: 'כמו להרים מטוס — אתה לא אנושי!' },
-    { min: 40000, emoji: '🐋', text: 'כמו להרים לוויתן כחול — חזק מהטבע עצמו!' },
+    { min: 25000, emoji: '✈️', text: 'כמו להרים מטוס — אתה לא אנושי!', f: 'כמו להרים מטוס — את לא אנושית!' },
+    { min: 40000, emoji: '🐋', text: 'כמו להרים לוויתן כחול — חזק מהטבע עצמו!', f: 'כמו להרים לוויתן כחול — חזקה מהטבע עצמו!' },
   ];
 
   function calcVolume(exercises) {
@@ -7289,7 +7311,7 @@ ${foodList || 'אין פריטים'}
       if (vol >= ms.min) m = ms;
       else break;
     }
-    return m;
+    return { ...m, text: byG(m.text, m.f || m.text) };
   }
 
   function animateCounter(id, to, duration) {
@@ -7310,13 +7332,13 @@ ${foodList || 'אין פריטים'}
 
   // varied motivation lines by how the workout compared to last time
   const MOTIVATION = {
-    big:  ['אלוף אמיתי! 🏆', 'מפלצת! ממשיכים ככה 🔥', 'שיא חדש בדרך — אין עליך!', 'פשוט חיה 💪', 'טירוף! הגוף שלך משתדרג'],
-    up:   ['אתה בדרך הנכונה 👏', 'תמשיך ככה, זה עובד!', 'התקדמות יפה — כל אימון חזק יותר', 'עוד צעד קדימה 🚀', 'ככה בונים תוצאות', 'המשקל עולה, המחויבות ניכרת'],
-    same: ['יציבות זו כוח — שמור על הקצב', 'איתן כסלע 🪨 בדיוק כמו שעבר', 'עקביות מנצחת כישרון — כל הכבוד', 'שומר על הרמה, מכאן פורצים'],
+    big:  [['אלוף אמיתי! 🏆', 'אלופה אמיתית! 🏆'], 'מפלצת! ממשיכים ככה 🔥', 'שיא חדש בדרך — אין עליך!', 'פשוט חיה 💪', 'טירוף! הגוף שלך משתדרג'],
+    up:   [['אתה בדרך הנכונה 👏', 'את בדרך הנכונה 👏'], ['תמשיך ככה, זה עובד!', 'תמשיכי ככה, זה עובד!'], 'התקדמות יפה — כל אימון חזק יותר', 'עוד צעד קדימה 🚀', 'ככה בונים תוצאות', 'המשקל עולה, המחויבות ניכרת'],
+    same: [['יציבות זו כוח — שמור על הקצב', 'יציבות זו כוח — שמרי על הקצב'], ['איתן כסלע 🪨 בדיוק כמו שעבר', 'איתנה כסלע 🪨 בדיוק כמו שעבר'], 'עקביות מנצחת כישרון — כל הכבוד', ['שומר על הרמה, מכאן פורצים', 'שומרת על הרמה, מכאן פורצים']],
     down: ['יום פחות? קורה לאלופים 💪 הבא שלך', 'לא כל יום שיא — העיקר שהגעת', 'התאוששות היא חלק מהתהליך, כבוד שבאת', 'ירידה קטנה, לא נסיגה — נצמד לתוכנית'],
-    first:['התחלה מצוינת! מכאן רק עולים 🚀', 'האימון הראשון ביום הזה — ברוך הבא למסלול!', 'צעד ראשון נעשה — עכשיו בונים מומנטום 🔥'],
+    first:['התחלה מצוינת! מכאן רק עולים 🚀', ['האימון הראשון ביום הזה — ברוך הבא למסלול!', 'האימון הראשון ביום הזה — ברוכה הבאה למסלול!'], 'צעד ראשון נעשה — עכשיו בונים מומנטום 🔥'],
   };
-  const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+  const pick = arr => { const v = arr[Math.floor(Math.random() * arr.length)]; return Array.isArray(v) ? byG(v[0], v[1]) : v; };
 
   /* קצב מול הזמן שהמאמן הגדיר ליום. עד 5 דקות מעל — עדיין נחשב בזמן,
      כדי שדקה של איחור לא תיחשב "איטי". בלי זמן מוגדר — אין משוב בכלל. */
@@ -7329,7 +7351,7 @@ ${foodList || 'אין פריטים'}
   function paceText(p) {
     if (p.dur <= p.est) return `⚡ הספק מעולה! סיימת ב-${p.dur} דקות מתוך ${p.est}.`;
     if (p.ok) return `✅ עמדת בזמנים: ${p.dur} דקות מתוך ${p.est}.`;
-    return `⏱ האימון היה איטי מהמתוכנן: ${p.over} דקות מעל הזמן (${p.dur} מתוך ${p.est}). השתדל לעמוד בזמנים בפעם הבאה.`;
+    return `⏱ האימון היה איטי מהמתוכנן: ${p.over} דקות מעל הזמן (${p.dur} מתוך ${p.est}). ${byG('השתדל', 'השתדלי')} לעמוד בזמנים בפעם הבאה.`;
   }
 
   function showVolumeModal(currentVol, prevVol, totalSets, exCount, durationMin, dayName, pace) {
@@ -7412,7 +7434,7 @@ ${foodList || 'אין פריטים'}
           title: 'נפח אימון',
           text: `סיימתי אימון ${lastVolumeShareData.dayName || ''} 💪 ${FJ_TAG}`
         });
-        if (copied) showDashToast('📋 ' + FJ_TAG + ' הועתק — הדבק בסטורי כדי לתייג אותנו 🎁');
+        if (copied) showDashToast('📋 ' + FJ_TAG + ' הועתק — ' + byG('הדבק', 'הדביקי') + ' בסטורי כדי לתייג אותנו 🎁');
       } else {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -7420,7 +7442,7 @@ ${foodList || 'אין פריטים'}
         document.body.appendChild(a); a.click(); a.remove();
         setTimeout(() => URL.revokeObjectURL(url), 5000);
         showDashToast(copied
-          ? '✓ התמונה נשמרה · 📋 ' + FJ_TAG + ' הועתק — הדבק בסטורי ותייג אותנו 🎁'
+          ? '✓ התמונה נשמרה · 📋 ' + FJ_TAG + ' הועתק — ' + byG('הדבק בסטורי ותייג', 'הדביקי בסטורי ותייגי') + ' אותנו 🎁'
           : 'התמונה נשמרה — אפשר לשתף אותה באינסטגרם');
       }
     } catch (e) {
@@ -8028,7 +8050,7 @@ ${foodList || 'אין פריטים'}
     if (!wrap) return;
     const msgs = activeChatTab === 'private' ? chatMessages : groupMessages;
     if (!msgs.length) {
-      wrap.innerHTML = `<div style="text-align:center;color:#444;padding:80px 0 20px;font-size:0.9rem;">${activeChatTab==='private'?'אין הודעות עדיין\nשלח הודעה ראשונה 👋':'הקבוצה ריקה עדיין\nהיה הראשון לכתוב! 👋'}</div>`;
+      wrap.innerHTML = `<div style="text-align:center;color:#444;padding:80px 0 20px;font-size:0.9rem;">${activeChatTab==='private'?byG('אין הודעות עדיין\nשלח הודעה ראשונה 👋', 'אין הודעות עדיין\nשלחי הודעה ראשונה 👋'):byG('הקבוצה ריקה עדיין\nהיה הראשון לכתוב! 👋', 'הקבוצה ריקה עדיין\nהיי הראשונה לכתוב! 👋')}</div>`;
       return;
     }
     let html = '';
@@ -8112,13 +8134,13 @@ ${foodList || 'אין פריטים'}
     const CAP = 50 * 1024 * 1024;
     if (file.size > CAP) {
       alert(`הקובץ גדול מדי (${(file.size/1048576).toFixed(0)}MB) — מקסימום 50MB.` +
-            (file.type.startsWith('video/') ? ' צלם סרטון קצר יותר.' : ''));
+            (file.type.startsWith('video/') ? byG(' צלם סרטון קצר יותר.', ' צלמי סרטון קצר יותר.') : ''));
       return;
     }
     chatOvFileAttach = file;
     const btn = document.getElementById('btn-ov-file');
     btn.classList.add('has-file'); btn.title = '📎 ' + file.name;
-    document.getElementById('chat-ov-inp').placeholder = '📎 ' + file.name + ' (הוסף הודעה)';
+    document.getElementById('chat-ov-inp').placeholder = '📎 ' + file.name + byG(' (הוסף הודעה)', ' (הוסיפי הודעה)');
   }
 
   /* 🎙️ VOICE MESSAGES — record via MediaRecorder → upload to client-files → send */
@@ -8146,7 +8168,7 @@ ${foodList || 'אין פריטים'}
     let secs = 0;
     mic.textContent = '⏹'; mic.style.color = '#f87171'; mic.style.borderColor = 'rgba(248,113,113,0.6)';
     const inp = document.getElementById('chat-ov-inp');
-    _voiceTimer = setInterval(() => { secs++; inp.placeholder = `🔴 מקליט... ${Math.floor(secs/60)}:${String(secs%60).padStart(2,'0')} — לחץ ⏹ לשליחה`; if (secs >= 180) _voiceRec.stop(); }, 1000);
+    _voiceTimer = setInterval(() => { secs++; inp.placeholder = `🔴 מקליט... ${Math.floor(secs/60)}:${String(secs%60).padStart(2,'0')} — ${byG('לחץ', 'לחצי')} ⏹ לשליחה`; if (secs >= 180) _voiceRec.stop(); }, 1000);
   }
   async function sendVoiceNote(blob) {
     if (!clientData?.coach_email) return;
@@ -8191,18 +8213,18 @@ ${foodList || 'אין פריטים'}
         const { error: upErr } = await sb.storage.from('client-files')
           .upload(path, f, { upsert:false, contentType: f.type || undefined });
         if (upErr) {
-          showDashToast('שליחת הקובץ נכשלה: ' + (upErr.message || 'נסה שוב'));
+          showDashToast('שליחת הקובץ נכשלה: ' + (upErr.message || byG('נסה שוב', 'נסי שוב')));
           btn.disabled = false; return;
         }
         const { data: pub } = sb.storage.from('client-files').getPublicUrl(path);
         fileUrl = pub.publicUrl; fileName = f.name;
       } catch(e) {
-        showDashToast('שליחת הקובץ נכשלה — בדוק את החיבור ונסה שוב');
+        showDashToast(byG('שליחת הקובץ נכשלה — בדוק את החיבור ונסה שוב', 'שליחת הקובץ נכשלה — בדקי את החיבור ונסי שוב'));
         btn.disabled = false; return;
       }
       chatOvFileAttach = null;
       const fBtn = document.getElementById('btn-ov-file');
-      fBtn.classList.remove('has-file'); fBtn.title = 'צרף קובץ';
+      fBtn.classList.remove('has-file'); fBtn.title = byG('צרף קובץ', 'צרפי קובץ');
       document.getElementById('chat-ov-file-inp').value = '';
       document.getElementById('chat-ov-inp').placeholder = activeChatTab==='private'?'הודעה פרטית למאמן...':'הודעה לקבוצה...';
     }
@@ -8212,7 +8234,7 @@ ${foodList || 'אין פריטים'}
         coach_email: clientData.coach_email, client_email: currentEmail, sender_email: currentEmail,
         content: text||null, file_url: fileUrl, file_name: fileName,
       }).select().single();
-      if (error) { showDashToast('ההודעה לא נשלחה — נסה שוב'); btn.disabled = false; return; }
+      if (error) { showDashToast(byG('ההודעה לא נשלחה — נסה שוב', 'ההודעה לא נשלחה — נסי שוב')); btn.disabled = false; return; }
       document.getElementById('chat-ov-inp').value = '';
       if (newMsg && !chatMessages.find(m=>m.id===newMsg.id)) {
         chatMessages.push(newMsg); renderOverlayMsgs();
@@ -8223,7 +8245,7 @@ ${foodList || 'אין פריטים'}
         coach_email: clientData.coach_email, sender_email: currentEmail, sender_name: senderName,
         content: text||null, file_url: fileUrl, file_name: fileName,
       }).select().single();
-      if (error) { showDashToast('ההודעה לא נשלחה לקבוצה — נסה שוב'); btn.disabled = false; return; }
+      if (error) { showDashToast(byG('ההודעה לא נשלחה לקבוצה — נסה שוב', 'ההודעה לא נשלחה לקבוצה — נסי שוב')); btn.disabled = false; return; }
       document.getElementById('chat-ov-inp').value = '';
       if (newMsg && !groupMessages.find(m=>m.id===newMsg.id)) {
         groupMessages.push(newMsg); renderOverlayMsgs();
@@ -8295,9 +8317,9 @@ ${foodList || 'אין פריטים'}
         seconds: _cardio.seconds || 0, running_since: _cardio.running_since,
         updated_at: new Date().toISOString(),
       }, { onConflict: 'client_email,date' });
-      if (error) { showDashToast('האירובי לא נשמר — נסה שוב'); return false; }
+      if (error) { showDashToast(byG('האירובי לא נשמר — נסה שוב', 'האירובי לא נשמר — נסי שוב')); return false; }
       return true;
-    } catch (e) { showDashToast('האירובי לא נשמר — בדוק חיבור'); return false; }
+    } catch (e) { showDashToast(byG('האירובי לא נשמר — בדוק חיבור', 'האירובי לא נשמר — בדקי חיבור')); return false; }
   }
 
   function startCardioTick() {
@@ -8337,7 +8359,7 @@ ${foodList || 'אין פריטים'}
       if (!(await saveCardio())) { _cardio = prev; renderCardio(); return; }
       startCardioTick();
       renderCardio();
-      showDashToast('הספירה החלה — לחץ שוב על השעון לעצירה');
+      showDashToast(byG('הספירה החלה — לחץ שוב על השעון לעצירה', 'הספירה החלה — לחצי שוב על השעון לעצירה'));
     }
   }
 
@@ -8366,7 +8388,7 @@ ${foodList || 'אין פריטים'}
 
     card.innerHTML = `
       <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:14px 16px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
-        <button onclick="toggleCardio()" aria-label="${running ? 'עצור ספירת אירובי' : 'התחל ספירת אירובי'}"
+        <button onclick="toggleCardio()" aria-label="${running ? byG('עצור ספירת אירובי', 'עצרי ספירת אירובי') : byG('התחל ספירת אירובי', 'התחילי ספירת אירובי')}"
           style="background:none;border:none;padding:0;cursor:pointer;flex-shrink:0;line-height:0;">
           <svg viewBox="0 0 120 120" width="112" height="112" role="img"
                class="${running ? 'cardio-beat' : ''}">
@@ -8393,7 +8415,7 @@ ${foodList || 'אין פריטים'}
             ${mins} <span style="font-size:0.8rem;font-weight:400;color:#888;">/ ${target} דקות</span>
           </div>
           <div style="font-size:0.76rem;color:${accent};margin-top:3px;font-weight:700;">
-            ${done ? '✓ היעד הושלם' : running ? '● סופר עכשיו — לחץ על השעון לעצירה' : 'לחץ על השעון כדי להתחיל'}
+            ${done ? '✓ היעד הושלם' : running ? byG('● סופר עכשיו — לחץ על השעון לעצירה', '● סופר עכשיו — לחצי על השעון לעצירה') : byG('לחץ על השעון כדי להתחיל', 'לחצי על השעון כדי להתחיל')}
           </div>
         </div>
       </div>`;
@@ -8495,8 +8517,8 @@ ${foodList || 'אין פריטים'}
         <label style="display:block;cursor:pointer;">
           <div style="font-size:0.78rem;font-weight:700;color:var(--muted);margin-bottom:6px;">📸 תמונות (לא חובה)</div>
           <input id="ci-photos" type="file" accept="image/*" multiple style="display:none;"
-            onchange="document.getElementById('ci-photos-lbl').textContent = this.files.length ? this.files.length + ' נבחרו ✓' : 'בחר תמונות'"/>
-          <div id="ci-photos-lbl" style="${inBox}text-align:center;color:#bbb;font-size:0.85rem;">בחר תמונות</div>
+            onchange="document.getElementById('ci-photos-lbl').textContent = this.files.length ? this.files.length + ' נבחרו ✓' : '${byG('בחר תמונות', 'בחרי תמונות')}'"/>
+          <div id="ci-photos-lbl" style="${inBox}text-align:center;color:#bbb;font-size:0.85rem;">${byG('בחר', 'בחרי')} תמונות</div>
         </label>
       </div>
       ${fields.map(([id,lbl,c])=>`
@@ -8508,10 +8530,10 @@ ${foodList || 'אין פריטים'}
         </div>`).join('')}
       <div style="margin-bottom:14px;">
         <div style="font-size:0.78rem;font-weight:700;color:var(--muted);margin-bottom:6px;">💬 הערות / שאלות למאמן</div>
-        <textarea id="ci-notes" style="width:100%;padding:10px 12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:var(--white);font-family:'Heebo',sans-serif;font-size:0.88rem;resize:vertical;min-height:66px;outline:none;line-height:1.6;transition:border-color 0.2s;" placeholder="שתף את המאמן בחוויות, קשיים, שאלות או הצלחות מהשבוע..."></textarea>
+        <textarea id="ci-notes" style="width:100%;padding:10px 12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:var(--white);font-family:'Heebo',sans-serif;font-size:0.88rem;resize:vertical;min-height:66px;outline:none;line-height:1.6;transition:border-color 0.2s;" placeholder="${byG('שתף', 'שתפי')} את המאמן בחוויות, קשיים, שאלות או הצלחות מהשבוע..."></textarea>
       </div>
-      <button id="ci-send" onclick="submitCheckin()" style="width:100%;padding:12px;background:linear-gradient(135deg,var(--gold),#FFC200);color:#000;font-family:'Heebo',sans-serif;font-size:0.97rem;font-weight:700;border:none;border-radius:8px;cursor:pointer;transition:opacity 0.2s;">שלח למאמן באפליקציה 📤</button>
-      <button onclick="submitCheckin('whatsapp')" style="width:100%;padding:11px;margin-top:8px;background:rgba(37,211,102,0.12);border:1px solid rgba(37,211,102,0.5);color:#25D366;font-family:'Heebo',sans-serif;font-size:0.92rem;font-weight:800;border-radius:8px;cursor:pointer;">🟢 שלח בוואטסאפ <span style="font-weight:400;font-size:0.74rem;opacity:0.8;">(נשמר גם באפליקציה)</span></button>`;
+      <button id="ci-send" onclick="submitCheckin()" style="width:100%;padding:12px;background:linear-gradient(135deg,var(--gold),#FFC200);color:#000;font-family:'Heebo',sans-serif;font-size:0.97rem;font-weight:700;border:none;border-radius:8px;cursor:pointer;transition:opacity 0.2s;">${byG('שלח', 'שלחי')} למאמן באפליקציה 📤</button>
+      <button onclick="submitCheckin('whatsapp')" style="width:100%;padding:11px;margin-top:8px;background:rgba(37,211,102,0.12);border:1px solid rgba(37,211,102,0.5);color:#25D366;font-family:'Heebo',sans-serif;font-size:0.92rem;font-weight:800;border-radius:8px;cursor:pointer;">🟢 ${byG('שלח', 'שלחי')} בוואטסאפ <span style="font-weight:400;font-size:0.74rem;opacity:0.8;">(נשמר גם באפליקציה)</span></button>`;
   }
 
   /* ── תזכורת עדכון שבועי בדף הבית ──
@@ -8608,7 +8630,7 @@ ${foodList || 'אין פריטים'}
       photo_count:   photos.length || null,
     });
     if (error) {
-      if (btn) { btn.disabled = false; btn.textContent = 'שלח למאמן באפליקציה 📤'; }
+      if (btn) { btn.disabled = false; btn.textContent = byG('שלח למאמן באפליקציה 📤', 'שלחי למאמן באפליקציה 📤'); }
       toast('שגיאה בשליחה — ' + error.message, 'err'); return;
     }
 
@@ -8791,8 +8813,8 @@ ${foodList || 'אין פריטים'}
   let cycleData = null;
 
   const CYCLE_STATUS_STYLES = {
-    natural:   { label:'טבעי',      color:'#4ade80', bg:'rgba(74,222,128,0.12)',  border:'rgba(74,222,128,0.35)' },
-    enhanced:  { label:'משופר',     color:'#60a5fa', bg:'rgba(96,165,250,0.12)',  border:'rgba(96,165,250,0.35)' },
+    natural:   { label:'טבעי', f:'טבעית',      color:'#4ade80', bg:'rgba(74,222,128,0.12)',  border:'rgba(74,222,128,0.35)' },
+    enhanced:  { label:'משופר', f:'משופרת',     color:'#60a5fa', bg:'rgba(96,165,250,0.12)',  border:'rgba(96,165,250,0.35)' },
     trt:       { label:'TRT',       color:'#a78bfa', bg:'rgba(167,139,250,0.12)', border:'rgba(167,139,250,0.35)' },
     off_cycle: { label:'אוף סייקל', color:'#f87171', bg:'rgba(248,113,113,0.1)',  border:'rgba(248,113,113,0.3)' },
     cruise:    { label:'קרוז',      color:'#fb923c', bg:'rgba(251,146,60,0.1)',   border:'rgba(251,146,60,0.3)' },
@@ -8838,7 +8860,7 @@ ${foodList || 'אין פריטים'}
       '<div style="font-size:0.7rem;font-weight:700;color:var(--muted);margin-bottom:5px;">' + label + '</div>' + html;
 
     document.getElementById('cycle-status-wrap').innerHTML = fld('סטטוס',
-      `<span class="cycle-status-badge" style="color:${s.color};background:${s.bg};border:1px solid ${s.border};">● ${s.label}</span>`);
+      `<span class="cycle-status-badge" style="color:${s.color};background:${s.bg};border:1px solid ${s.border};">● ${byG(s.label, s.f || s.label)}</span>`);
     document.getElementById('cycle-goal-wrap').innerHTML = fld('מטרה',
       `<span style="font-size:0.92rem;font-weight:700;color:var(--white);">${esc(goalLabel)}</span>`);
 
@@ -8943,7 +8965,7 @@ ${foodList || 'אין פריטים'}
         </details>` : '';
       return `<div class="cycle-card" style="margin-bottom:10px;">
         <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap;">
-          <span class="cycle-status-badge" style="color:${s.color};background:${s.bg};border:1px solid ${s.border};">● ${esc(s.label)}</span>
+          <span class="cycle-status-badge" style="color:${s.color};background:${s.bg};border:1px solid ${s.border};">● ${esc(byG(s.label, s.f || s.label))}</span>
           ${goal ? `<span style="font-size:0.86rem;font-weight:700;color:var(--white);">${esc(goal)}</span>` : ''}
         </div>
         <div style="font-size:0.74rem;color:#6e7479;margin-top:6px;">
@@ -9158,7 +9180,7 @@ ${foodList || 'אין פריטים'}
         </div>
         ${rows}
         <button onclick="saveMeasurements()" style="width:100%;margin-top:12px;padding:10px;background:linear-gradient(135deg,var(--orange),#FF8C00);border:none;border-radius:8px;color:#fff;font-family:'Heebo',sans-serif;font-size:0.9rem;font-weight:900;cursor:pointer;">
-          שמור מדידות
+          ${byG('שמור', 'שמרי')} מדידות
         </button>
       </div>`;
   }
@@ -9283,8 +9305,8 @@ ${foodList || 'אין פריטים'}
         <div class="vol-stat-lbl">דקות</div>
       </div>
     </div>
-    <button class="vol-share-btn" id="vol-share-btn" onclick="shareWorkoutSummary()">📤 שתף לאינסטגרם</button>
-    <button class="vol-btn-close" onclick="closeVolumeModal()">🔥 המשך כך!</button>
+    <button class="vol-share-btn" id="vol-share-btn" onclick="shareWorkoutSummary()" data-f="📤 שתפי לאינסטגרם">📤 שתף לאינסטגרם</button>
+    <button class="vol-btn-close" onclick="closeVolumeModal()" data-f="🔥 המשיכי כך!">🔥 המשך כך!</button>
   </div>
 </div>
 <!-- ═══ HEALTH DECLARATION MODAL — הצהרת בריאות ═══ -->
@@ -9293,7 +9315,7 @@ ${foodList || 'אין פריטים'}
     <button onclick="closeHealthDecl()" style="position:absolute;top:12px;left:14px;background:none;border:none;color:#666;font-size:1.3rem;cursor:pointer;z-index:1;">✕</button>
     <div style="text-align:center;padding:20px 20px 8px;">
       <div style="font-weight:900;font-size:1.15rem;color:#fff;">📝 הצהרת בריאות</div>
-      <div style="font-size:0.75rem;color:#888;margin-top:3px;">סמן את התשובה הנכונה עבורך על כל שאלה</div>
+      <div style="font-size:0.75rem;color:#888;margin-top:3px;" data-f="סמני את התשובה הנכונה עבורך על כל שאלה">סמן את התשובה הנכונה עבורך על כל שאלה</div>
     </div>
     <div style="overflow-y:auto;padding:10px 18px;flex:1;" id="health-decl-body">
       <div id="hd-questions"></div>
@@ -9310,30 +9332,34 @@ ${foodList || 'אין פריטים'}
       <div style="margin-top:14px;">
         <div style="font-size:0.72rem;color:#888;margin-bottom:4px;">חתימה (צייר באצבע/עכבר) *</div>
         <canvas id="hd-canvas" width="420" height="130" style="width:100%;height:130px;background:#fff;border-radius:10px;touch-action:none;cursor:crosshair;"></canvas>
-        <button onclick="hdClearSig()" style="margin-top:6px;padding:5px 12px;background:transparent;border:1px solid rgba(255,255,255,0.15);color:#999;border-radius:8px;font-family:'Heebo';font-size:0.75rem;cursor:pointer;">🗑 נקה חתימה</button>
+        <button onclick="hdClearSig()" style="margin-top:6px;padding:5px 12px;background:transparent;border:1px solid rgba(255,255,255,0.15);color:#999;border-radius:8px;font-family:'Heebo';font-size:0.75rem;cursor:pointer;" data-f="🗑 נקי חתימה">🗑 נקה חתימה</button>
       </div>
       <div style="font-size:0.68rem;color:#777;margin-top:12px;line-height:1.6;">
         אני מצהיר/ה כי כל התשובות שמסרתי נכונות, כי אני כשיר/ה לפעילות גופנית, וכי אעדכן את המאמן על כל שינוי במצבי הבריאותי. חתימתי מהווה הסכמה לתקנון הליווי.
       </div>
     </div>
     <div style="padding:12px 18px 16px;border-top:1px solid rgba(255,255,255,0.06);">
-      <button id="hd-submit" onclick="submitHealthDecl()" style="width:100%;padding:13px;background:linear-gradient(135deg,#FF6B00,#FF8C00);color:#fff;border:none;border-radius:12px;font-family:'Heebo';font-weight:800;font-size:1rem;cursor:pointer;">✍️ אשר וחתום</button>
+      <button id="hd-submit" onclick="submitHealthDecl()" style="width:100%;padding:13px;background:linear-gradient(135deg,#FF6B00,#FF8C00);color:#fff;border:none;border-radius:12px;font-family:'Heebo';font-weight:800;font-size:1rem;cursor:pointer;" data-f="✍️ אשרי וחתמי">✍️ אשר וחתום</button>
     </div>
   </div>
 </div>
 
 <script>
   /* ── HEALTH DECLARATION (חתימה דיגיטלית) ── */
-  const HD_QUESTIONS = [
-    'האם רופא קבע שאתה סובל ממחלת לב או בעיה לבבית?',
-    'האם אתה חש כאבים בחזה בזמן מאמץ גופני?',
-    'האם חווית סחרחורת או איבוד הכרה בחודש האחרון?',
-    'האם אתה סובל מלחץ דם גבוה או סוכרת?',
-    'האם יש לך בעיה אורתופדית שעלולה להחמיר במאמץ?',
-    'האם אתה נוטל תרופות באופן קבוע?',
-    'האם עברת ניתוח בשנה האחרונה?',
-    'האם את בהריון? (אם רלוונטי)',
-  ];
+  /* השאלות נבנות כשהטופס נפתח ולא בטעינה, כדי שיהיו בלשון של המתאמן/ת.
+     התשובות נשמרות לפי נוסח השאלה, והמאמן רואה אותן כמו שהן. שאלת ההריון רק למתאמנות. */
+  function hdQuestions() {
+    return [
+      byG('האם רופא קבע שאתה סובל ממחלת לב או בעיה לבבית?', 'האם רופא קבע שאת סובלת ממחלת לב או בעיה לבבית?'),
+      byG('האם אתה חש כאבים בחזה בזמן מאמץ גופני?', 'האם את חשה כאבים בחזה בזמן מאמץ גופני?'),
+      'האם חווית סחרחורת או איבוד הכרה בחודש האחרון?',
+      byG('האם אתה סובל מלחץ דם גבוה או סוכרת?', 'האם את סובלת מלחץ דם גבוה או סוכרת?'),
+      'האם יש לך בעיה אורתופדית שעלולה להחמיר במאמץ?',
+      byG('האם אתה נוטל תרופות באופן קבוע?', 'האם את נוטלת תרופות באופן קבוע?'),
+      'האם עברת ניתוח בשנה האחרונה?',
+      ...(clientIsFemale() ? ['האם את בהריון? (אם רלוונטי)'] : []),
+    ];
+  }
   let _hdSigDrawn = false;
 
   async function checkHealthDecl() {
@@ -9346,7 +9372,7 @@ ${foodList || 'אין פריטים'}
 
   function openHealthDecl() {
     const wrap = document.getElementById('hd-questions');
-    wrap.innerHTML = HD_QUESTIONS.map((q, i) => `
+    wrap.innerHTML = hdQuestions().map((q, i) => `
       <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,0.05);">
         <div style="font-size:0.82rem;color:#ddd;flex:1;">${q}</div>
         <div style="display:flex;gap:6px;flex-shrink:0;">
@@ -9384,7 +9410,7 @@ ${foodList || 'אין פריטים'}
     const btn = document.getElementById('hd-submit');
     btn.disabled = true; btn.textContent = 'שומר...';
     const answers = {};
-    HD_QUESTIONS.forEach((q, i) => {
+    hdQuestions().forEach((q, i) => {
       answers[q] = (document.querySelector(`input[name="hdq${i}"]:checked`) || {}).value || 'לא';
     });
     const sig = document.getElementById('hd-canvas').toDataURL('image/png');
@@ -9394,7 +9420,7 @@ ${foodList || 'אין פריטים'}
       id_number: document.getElementById('hd-id').value.trim() || null,
       answers, signature_data: sig, user_agent: navigator.userAgent.slice(0, 200),
     });
-    btn.disabled = false; btn.textContent = '✍️ אשר וחתום';
+    btn.disabled = false; btn.textContent = byG('✍️ אשר וחתום', '✍️ אשרי וחתמי');
     if (error) { showDashToast('שגיאה בשמירה: ' + error.message); return; }
     closeHealthDecl();
     document.getElementById('health-decl-banner').style.display = 'none';
@@ -9446,7 +9472,7 @@ ${foodList || 'אין פריטים'}
       _leagueCache = j; _leagueCacheAt = Date.now();
       renderLeague(j);
     } catch (e) {
-      document.getElementById('league-body').innerHTML = '<div style="text-align:center;color:#ff8080;padding:30px;">שגיאה בטעינת הליגה — נסה שוב</div>';
+      document.getElementById('league-body').innerHTML = '<div style="text-align:center;color:#ff8080;padding:30px;">שגיאה בטעינת הליגה — ' + byG('נסה שוב', 'נסי שוב') + '</div>';
     }
   }
   function closeLeague() { document.getElementById('league-modal').style.display = 'none'; }
@@ -9534,8 +9560,8 @@ ${foodList || 'אין פריטים'}
   <!-- Input row -->
   <div class="chat-ov-inp-row">
     <input type="file" id="chat-ov-file-inp" style="display:none;" accept="image/*,video/*,.pdf" onchange="attachOvFile()"/>
-    <button class="btn-ov-file" id="btn-ov-file" onclick="document.getElementById('chat-ov-file-inp').click()" title="צרף קובץ">📎</button>
-    <button class="btn-ov-file" id="btn-ov-mic" onclick="toggleVoiceRecord()" title="הקלט הודעה קולית">🎙️</button>
+    <button class="btn-ov-file" id="btn-ov-file" onclick="document.getElementById('chat-ov-file-inp').click()" title="צרף קובץ" data-f-title="צרפי קובץ">📎</button>
+    <button class="btn-ov-file" id="btn-ov-mic" onclick="toggleVoiceRecord()" title="הקלט הודעה קולית" data-f-title="הקליטי הודעה קולית">🎙️</button>
     <input class="chat-ov-inp" id="chat-ov-inp" placeholder="הודעה..."
       onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendOverlayMsg();}"/>
     <button class="btn-ov-send" id="btn-ov-send" onclick="sendOverlayMsg()">↑</button>
@@ -9547,7 +9573,7 @@ ${foodList || 'אין פריטים'}
   <div class="swap-backdrop"></div>
   <div class="swap-box">
     <div class="swap-header">
-      <div class="swap-title">🔄 החלף תרגיל</div>
+      <div class="swap-title" data-f="🔄 החליפי תרגיל">🔄 החלף תרגיל</div>
       <button class="swap-close" onclick="closeSwapModal()">✕</button>
     </div>
     <div class="swap-search"><input id="swap-search-input" placeholder="חיפוש תרגיל..." oninput="renderSwapList()" autocomplete="off"/></div>
@@ -9592,7 +9618,7 @@ ${foodList || 'אין פריטים'}
         <textarea id="exnotes-input" rows="2" placeholder="הערה חדשה... (למשל: יכולתי להרים עוד — לנסות שיפוע 1)" style="flex:1;box-sizing:border-box;padding:10px 12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:10px;color:#fff;font-family:'Heebo',sans-serif;font-size:0.86rem;resize:none;outline:none;"></textarea>
         <button id="exnotes-mic" onclick="startExVoice()" title="הכתבה קולית" style="flex-shrink:0;width:46px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);border-radius:10px;color:#ccc;font-size:1.2rem;cursor:pointer;">🎤</button>
       </div>
-      <button onclick="addExerciseNote()" id="exnotes-add-btn" style="width:100%;padding:11px;background:linear-gradient(135deg,var(--orange),#FF8C00);color:#fff;border:none;border-radius:10px;font-family:'Heebo',sans-serif;font-weight:800;font-size:0.9rem;cursor:pointer;">＋ הוסף</button>
+      <button onclick="addExerciseNote()" id="exnotes-add-btn" style="width:100%;padding:11px;background:linear-gradient(135deg,var(--orange),#FF8C00);color:#fff;border:none;border-radius:10px;font-family:'Heebo',sans-serif;font-weight:800;font-size:0.9rem;cursor:pointer;" data-f="＋ הוסיפי">＋ הוסף</button>
     </div>
   </div>
 </div>

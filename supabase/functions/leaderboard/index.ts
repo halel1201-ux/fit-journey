@@ -66,10 +66,12 @@ Deno.serve(async (req) => {
 
     // 4. team members (active coaching)
     const { data: team } = await admin.from('clients')
-      .select('email,name')
+      .select('email,name,gender')
       .eq('coach_email', coachEmail)
       .gte('coaching_end', monthStart)
     if (!team?.length) return json({ month: ym, rows: [], me: email })
+    // המין משמש רק לבחירת התואר, ולא נשלח לדפדפן עם השורות של חברי הקבוצה
+    const female = new Set(team.filter(t => t.gender === 'female').map(t => t.email))
     const emails = team.map(t => t.email)
 
     // 5. batched month data
@@ -108,15 +110,15 @@ Deno.serve(async (req) => {
     // 7. monthly titles (only when there's actual activity)
     const withActivity = rows.filter(r => r.points > 0)
     if (withActivity.length) {
-      withActivity[0].titles.push('🥇 אלוף/ת החודש')
+      withActivity[0].titles.push(female.has(withActivity[0].email) ? '🥇 אלופת החודש' : '🥇 אלוף החודש')
       const byStreak = [...withActivity].sort((a, b) => b.streak - a.streak)[0]
       if (byStreak.streak >= 3) byStreak.titles.push('🔥 רצף ברזל')
       const byVolume = [...withActivity].sort((a, b) => b.volume - a.volume)[0]
       if (byVolume.volume > 0) byVolume.titles.push('🏋️ מפלצת נפח')
       const byNutri = [...withActivity].sort((a, b) => b.nutriDays - a.nutriDays)[0]
-      if (byNutri.nutriDays >= 5) byNutri.titles.push('🥗 מלך/מלכת העקביות')
+      if (byNutri.nutriDays >= 5) byNutri.titles.push(female.has(byNutri.email) ? '🥗 מלכת העקביות' : '🥗 מלך העקביות')
       const bySteps = [...withActivity].sort((a, b) => b.steps - a.steps)[0]
-      if (bySteps.steps >= 10000) bySteps.titles.push('🚶 מלך/מלכת הצעדים')
+      if (bySteps.steps >= 10000) bySteps.titles.push(female.has(bySteps.email) ? '🚶 מלכת הצעדים' : '🚶 מלך הצעדים')
     }
 
     return json({ month: ym, rows, me: email, coach: coachEmail })
