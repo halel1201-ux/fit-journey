@@ -2215,7 +2215,7 @@
     (async () => {
       const { data: tok } = await sb.from('push_tokens').select('onesignal_player_id').eq('user_email', coachMail).single();
       if (tok?.onesignal_player_id) {
-        await sendPushToPlayer(tok.onesignal_player_id, `${clientName} דיווח על תשלום`, `${amount.toLocaleString()} ₪ (${method}) — מחכה לאישור`);
+        await sendPushToPlayer(tok.onesignal_player_id, `${clientName} ${byG('דיווח', 'דיווחה')} על תשלום`, `${amount.toLocaleString()} ₪ (${method}) — מחכה לאישור`);
       }
     })();
   }
@@ -4822,7 +4822,7 @@
           const clientName = clientData?.name || currentEmail.split('@')[0];
           const prTxt = prs.length ? ` 🏆 שיא ב${prs[0].exercise}!` : '';
           const paceTxt = pace ? (pace.ok ? ' · בזמן ✓' : ` · איטי ב-${pace.over} דק׳`) : '';
-          await sendPushToPlayer(tok.onesignal_player_id, `${clientName} סיים אימון`, `${workoutSession.dayName} — ${Math.floor(elapsed/60)} דקות${paceTxt}${prTxt}`);
+          await sendPushToPlayer(tok.onesignal_player_id, `${clientName} ${byG('סיים', 'סיימה')} אימון`, `${workoutSession.dayName} — ${Math.floor(elapsed/60)} דקות${paceTxt}${prTxt}`);
         }
       })();
     }
@@ -6736,7 +6736,7 @@ ${foodList || 'אין פריטים'}
         msg = `🏆 @${myName} ${byG('פתח', 'פתחה')} שיא נבחרת חדש ב${pr.exercise}!\n${bestSet.weight} ק"ג × ${bestSet.reps} חזרות • 1RM: ${pr.orm} ק"ג 💪`;
       } else if (pr.orm > prev.orm) {
         if (prev.email === currentEmail) {
-          msg = `🏆 @${myName} חיזק את שיאו ב${pr.exercise}!\n${bestSet.weight} ק"ג × ${bestSet.reps} חזרות • 1RM: ${pr.orm} ק"ג 💪`;
+          msg = `🏆 @${myName} ${byG('חיזק את שיאו', 'חיזקה את שיאה')} ב${pr.exercise}!\n${bestSet.weight} ק"ג × ${bestSet.reps} חזרות • 1RM: ${pr.orm} ק"ג 💪`;
         } else {
           msg = `🏆 @${myName} ${byG('הוא האלוף החדש', 'היא האלופה החדשה')} ב${pr.exercise}!\n${byG('שבר', 'שברה')} את השיא הקודם של @${prev.name}\n${bestSet.weight} ק"ג × ${bestSet.reps} חזרות • 1RM: ${pr.orm} ק"ג 💪`;
         }
