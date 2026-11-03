@@ -1553,6 +1553,14 @@
     return g === 'female' || g === 'f' || g === 'אישה' || g.indexOf('נק') === 0;
   }
   function byG(m, f) { return clientIsFemale() ? f : m; }
+  /* מחמאות בשם: "את חזקה, עדי!". השם הפרטי מהפרופיל; בלי שם — המשפט בלי שם.
+     בטקסט: {,n} הופך ל-", עדי" ו-{n,} (בתחילת משפט) ל-"עדי, ". */
+  function clientFirstName() { return String((clientData || {}).name || '').trim().split(/\s+/)[0] || ''; }
+  function nameSuffix() { const n = clientFirstName(); return n ? ', ' + n : ''; }
+  function withName(t) {
+    const n = clientFirstName();
+    return String(t).replace('{,n}', n ? ', ' + n : '').replace('{n,}', n ? n + ', ' : '');
+  }
   /* טקסט קבוע ב-HTML: data-f מחליף את הטקסט, data-f-ph את ה-placeholder, data-f-title את ה-title */
   function applyGenderText(root) {
     if (!clientIsFemale()) return;
@@ -2387,7 +2395,7 @@
     await sb.from('exercise_notes').update({ done: true }).eq('id', id).eq('client_email', currentEmail);
     const el = document.getElementById('extgt-' + id); if (el) el.remove();
     for (const k in _exOpenTargets) _exOpenTargets[k] = _exOpenTargets[k].filter(t => t.id !== id);
-    showDashToast('כל הכבוד! יעד הושלם 💪');
+    showDashToast('כל הכבוד' + nameSuffix() + '! יעד הושלם 💪');
   }
   function openExerciseNotesFromSession(ei) {
     const ex = workoutSession && workoutSession.exercises && workoutSession.exercises[ei]; if (!ex) return;
@@ -4046,13 +4054,13 @@
       </div>`;
 
     const workoutTile = doneToday
-      ? tile('🏋️', 'אימון היום', '✓ הושלם', 'כל הכבוד!', '#4ade80')
+      ? tile('🏋️', 'אימון היום', '✓ הושלם', 'כל הכבוד' + esc(nameSuffix()) + '!', '#4ade80')
       : tile('🏋️', 'אימון היום', hasPlan ? 'מחכה לך' : 'אין תוכנית', hasPlan ? byG('לחץ להתחלה למטה', 'לחצי להתחלה למטה') : byG('פנה למאמן', 'פני למאמן'), '#FF8C00');
     const nutriTile = calLeft === null
       ? tile('🍽️', 'תזונה', '—', 'לא הוגדר יעד', '#aaa')
       : tile('🍽️', 'נותרו היום', `${calLeft.toLocaleString('he-IL')}`, `מתוך ${calTarget.toLocaleString('he-IL')} קק"ל`, calLeft < 0 ? '#f87171' : '#fff');
     const stepsTile = tile('🚶', 'צעדים', steps.toLocaleString('he-IL'), steps >= 10000 ? '🎯 יעד הושג!' : 'יעד: 10,000', steps >= 10000 ? '#4ade80' : '#fff');
-    const streakTile = tile('🔥', 'רצף אימונים', streak > 0 ? `${streak} ימים` : 'אין רצף', streak >= 3 ? byG('אלוף! שמור על זה', 'אלופה! שמרי על זה') : byG('התחל היום', 'התחילי היום'), streak >= 3 ? '#FFD700' : '#fff');
+    const streakTile = tile('🔥', 'רצף אימונים', streak > 0 ? `${streak} ימים` : 'אין רצף', streak >= 3 ? byG('אלוף', 'אלופה') + esc(nameSuffix()) + '! ' + byG('שמור על זה', 'שמרי על זה') : byG('התחל היום', 'התחילי היום'), streak >= 3 ? '#FFD700' : '#fff');
 
     document.getElementById('today-tiles').innerHTML = workoutTile + nutriTile + stepsTile + streakTile;
 
@@ -4877,7 +4885,7 @@
       ${confetti}
       <div style="position:relative;text-align:center;background:radial-gradient(120% 90% at 50% 0%,rgba(255,215,0,0.15),transparent 60%),linear-gradient(160deg,#1b1c20,#0d0e11);border:1px solid rgba(255,215,0,0.45);border-radius:22px;padding:30px 26px;max-width:340px;margin:16px;box-shadow:0 20px 60px rgba(0,0,0,0.6);animation:prPop 0.5s ease-out;">
         <div style="font-size:3.6rem;line-height:1;">🏆</div>
-        <div style="font-weight:900;font-size:1.5rem;color:#FFD700;margin-top:8px;">שיא אישי חדש!</div>
+        <div style="font-weight:900;font-size:1.5rem;color:#FFD700;margin-top:8px;">שיא אישי חדש${esc(nameSuffix())}!</div>
         <div style="margin-top:14px;display:flex;flex-direction:column;gap:8px;">
           ${top.map(p => `<div style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,215,0,0.25);border-radius:12px;padding:9px 12px;">
             <div style="font-weight:800;color:#fff;font-size:0.98rem;">${esc(p.exercise)}</div>
@@ -7279,18 +7287,19 @@ ${foodList || 'אין פריטים'}
   }
 
   /* ── VOLUME ── */
+  /* f = נוסח למתאמנת, {,n} = מקום השם (withName) */
   const VOL_MILESTONES = [
-    { min: 0,     emoji: '🌱', text: 'כל אימון מתחיל בצעד ראשון — המשך כך!', f: 'כל אימון מתחיל בצעד ראשון — המשיכי כך!' },
-    { min: 400,   emoji: '🐄', text: 'הרמת משקל של פרה שלמה — לא רע בכלל!' },
-    { min: 900,   emoji: '🐎', text: 'כמו להרים סוס — אתה חזק!', f: 'כמו להרים סוס — את חזקה!' },
-    { min: 1500,  emoji: '🚗', text: 'כמו להרים מכונית ספורט — מרשים!' },
-    { min: 2500,  emoji: '🦛', text: 'כמו להרים היפופוטם — חיה אמיתית!' },
-    { min: 4000,  emoji: '🐘', text: 'כמו להרים פיל אפריקאי — מטורף!' },
-    { min: 6500,  emoji: '🚒', text: 'כמו להרים מכבש אש — מי אתה בכלל?!', f: 'כמו להרים מכבש אש — מי את בכלל?!' },
+    { min: 0,     emoji: '🌱', text: 'כל אימון מתחיל בצעד ראשון — המשך כך{,n}!', f: 'כל אימון מתחיל בצעד ראשון — המשיכי כך{,n}!' },
+    { min: 400,   emoji: '🐄', text: 'הרמת משקל של פרה שלמה — לא רע בכלל{,n}!' },
+    { min: 900,   emoji: '🐎', text: 'כמו להרים סוס — אתה חזק{,n}!', f: 'כמו להרים סוס — את חזקה{,n}!' },
+    { min: 1500,  emoji: '🚗', text: 'כמו להרים מכונית ספורט — מרשים{,n}!' },
+    { min: 2500,  emoji: '🦛', text: 'כמו להרים היפופוטם — חיה אמיתית{,n}!' },
+    { min: 4000,  emoji: '🐘', text: 'כמו להרים פיל אפריקאי — מטורף{,n}!' },
+    { min: 6500,  emoji: '🚒', text: 'כמו להרים מכבש אש — מי אתה בכלל{,n}?!', f: 'כמו להרים מכבש אש — מי את בכלל{,n}?!' },
     { min: 10000, emoji: '🦣', text: 'כמו להרים ממוטה — YOU ARE A MACHINE!' },
-    { min: 16000, emoji: '🚌', text: 'כמו להרים אוטובוס שלם — אגדה חיה!' },
-    { min: 25000, emoji: '✈️', text: 'כמו להרים מטוס — אתה לא אנושי!', f: 'כמו להרים מטוס — את לא אנושית!' },
-    { min: 40000, emoji: '🐋', text: 'כמו להרים לוויתן כחול — חזק מהטבע עצמו!', f: 'כמו להרים לוויתן כחול — חזקה מהטבע עצמו!' },
+    { min: 16000, emoji: '🚌', text: 'כמו להרים אוטובוס שלם — אגדה חיה{,n}!' },
+    { min: 25000, emoji: '✈️', text: 'כמו להרים מטוס — אתה לא אנושי{,n}!', f: 'כמו להרים מטוס — את לא אנושית{,n}!' },
+    { min: 40000, emoji: '🐋', text: 'כמו להרים לוויתן כחול — חזק מהטבע עצמו{,n}!', f: 'כמו להרים לוויתן כחול — חזקה מהטבע עצמו{,n}!' },
   ];
 
   function calcVolume(exercises) {
@@ -7311,7 +7320,7 @@ ${foodList || 'אין פריטים'}
       if (vol >= ms.min) m = ms;
       else break;
     }
-    return { ...m, text: byG(m.text, m.f || m.text) };
+    return { ...m, text: withName(byG(m.text, m.f || m.text)) };
   }
 
   function animateCounter(id, to, duration) {
@@ -7331,14 +7340,15 @@ ${foodList || 'אין פריטים'}
   let lastVolumeShareData = null;
 
   // varied motivation lines by how the workout compared to last time
+  /* [זכר, נקבה] כשהנוסח שונה; {,n} / {n,} = מקום השם (withName) */
   const MOTIVATION = {
-    big:  [['אלוף אמיתי! 🏆', 'אלופה אמיתית! 🏆'], 'מפלצת! ממשיכים ככה 🔥', 'שיא חדש בדרך — אין עליך!', 'פשוט חיה 💪', 'טירוף! הגוף שלך משתדרג'],
-    up:   [['אתה בדרך הנכונה 👏', 'את בדרך הנכונה 👏'], ['תמשיך ככה, זה עובד!', 'תמשיכי ככה, זה עובד!'], 'התקדמות יפה — כל אימון חזק יותר', 'עוד צעד קדימה 🚀', 'ככה בונים תוצאות', 'המשקל עולה, המחויבות ניכרת'],
-    same: [['יציבות זו כוח — שמור על הקצב', 'יציבות זו כוח — שמרי על הקצב'], ['איתן כסלע 🪨 בדיוק כמו שעבר', 'איתנה כסלע 🪨 בדיוק כמו שעבר'], 'עקביות מנצחת כישרון — כל הכבוד', ['שומר על הרמה, מכאן פורצים', 'שומרת על הרמה, מכאן פורצים']],
-    down: ['יום פחות? קורה לאלופים 💪 הבא שלך', 'לא כל יום שיא — העיקר שהגעת', 'התאוששות היא חלק מהתהליך, כבוד שבאת', 'ירידה קטנה, לא נסיגה — נצמד לתוכנית'],
-    first:['התחלה מצוינת! מכאן רק עולים 🚀', ['האימון הראשון ביום הזה — ברוך הבא למסלול!', 'האימון הראשון ביום הזה — ברוכה הבאה למסלול!'], 'צעד ראשון נעשה — עכשיו בונים מומנטום 🔥'],
+    big:  [['אלוף אמיתי{,n}! 🏆', 'אלופה אמיתית{,n}! 🏆'], 'מפלצת{,n}! ממשיכים ככה 🔥', ['שיא חדש בדרך — אין עליך{,n}!', 'שיא חדש בדרך — אין עלייך{,n}!'], 'פשוט חיה{,n} 💪', 'טירוף{,n}! הגוף שלך משתדרג'],
+    up:   [['אתה בדרך הנכונה{,n} 👏', 'את בדרך הנכונה{,n} 👏'], ['תמשיך ככה{,n} — זה עובד!', 'תמשיכי ככה{,n} — זה עובד!'], 'התקדמות יפה{,n} — כל אימון חזק יותר', 'עוד צעד קדימה{,n} 🚀', 'ככה בונים תוצאות{,n}', 'המשקל עולה, המחויבות ניכרת'],
+    same: [['יציבות זו כוח — שמור על הקצב{,n}', 'יציבות זו כוח — שמרי על הקצב{,n}'], ['{n,}איתן כסלע 🪨 בדיוק כמו שעבר', '{n,}איתנה כסלע 🪨 בדיוק כמו שעבר'], 'עקביות מנצחת כישרון — כל הכבוד{,n}', ['שומר על הרמה{,n} — מכאן פורצים', 'שומרת על הרמה{,n} — מכאן פורצים']],
+    down: [['יום פחות? קורה לאלופים 💪 הבא שלך{,n}', 'יום פחות? קורה גם לאלופות 💪 הבא שלך{,n}'], 'לא כל יום שיא — העיקר שהגעת{,n}', 'התאוששות היא חלק מהתהליך — כבוד שבאת{,n}', 'ירידה קטנה, לא נסיגה — נצמד לתוכנית'],
+    first:['התחלה מצוינת{,n}! מכאן רק עולים 🚀', ['האימון הראשון ביום הזה — ברוך הבא למסלול{,n}!', 'האימון הראשון ביום הזה — ברוכה הבאה למסלול{,n}!'], 'צעד ראשון נעשה{,n} — עכשיו בונים מומנטום 🔥'],
   };
-  const pick = arr => { const v = arr[Math.floor(Math.random() * arr.length)]; return Array.isArray(v) ? byG(v[0], v[1]) : v; };
+  const pick = arr => { const v = arr[Math.floor(Math.random() * arr.length)]; return withName(Array.isArray(v) ? byG(v[0], v[1]) : v); };
 
   /* קצב מול הזמן שהמאמן הגדיר ליום. עד 5 דקות מעל — עדיין נחשב בזמן,
      כדי שדקה של איחור לא תיחשב "איטי". בלי זמן מוגדר — אין משוב בכלל. */
@@ -7349,8 +7359,8 @@ ${foodList || 'אין פריטים'}
     return { est: estMin, dur: durMin, over: Math.max(0, over), ok: over <= PACE_GRACE_MIN };
   }
   function paceText(p) {
-    if (p.dur <= p.est) return `⚡ הספק מעולה! סיימת ב-${p.dur} דקות מתוך ${p.est}.`;
-    if (p.ok) return `✅ עמדת בזמנים: ${p.dur} דקות מתוך ${p.est}.`;
+    if (p.dur <= p.est) return `⚡ הספק מעולה${nameSuffix()}! סיימת ב-${p.dur} דקות מתוך ${p.est}.`;
+    if (p.ok) return `✅ עמדת בזמנים${nameSuffix()}: ${p.dur} דקות מתוך ${p.est}.`;
     return `⏱ האימון היה איטי מהמתוכנן: ${p.over} דקות מעל הזמן (${p.dur} מתוך ${p.est}). ${byG('השתדל', 'השתדלי')} לעמוד בזמנים בפעם הבאה.`;
   }
 
