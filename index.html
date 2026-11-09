@@ -1912,38 +1912,40 @@
     @media (max-width: 900px) { .hero-easy { margin-bottom: 0; font-size: .86rem; gap: 6px 14px; } }
     .lead-f.full { grid-column: 1 / -1; }
 
-    /* ── תוצאות מהצדדים: בכל מעבר בין חלקים נכנסים "לפני" ו"אחרי" של מתאמן אחד מ-results-data.
-       במחשב הם יושבים בשוליים, על קו המעבר, בלי לתפוס מקום. בטלפון הם רצועה קצרה בין החלקים. ── */
-    .rs { --rsw: clamp(108px, 9vw, 170px); --rsx: max(12px, calc((100vw - 1200px) / 2 - var(--rsw) + 24px));
-          position: relative; z-index: 6; height: 1px; margin-top: -1px; pointer-events: none; overflow-x: clip; }
-    .rs-card { position: absolute; top: 0; width: var(--rsw); padding: 6px 6px 8px; border-radius: 10px; background: #0d0f0f; border: 1px solid rgba(229,232,232,.16);
-               box-shadow: 0 22px 44px -20px #000, 0 0 34px -14px rgba(131,245,44,.5); color: #fff; text-decoration: none; text-align: center; pointer-events: auto;
-               opacity: 0; transform: translate(var(--from), var(--y)) rotate(var(--r0));
-               transition: transform .95s cubic-bezier(.16,1,.3,1), opacity .4s ease-out, border-color .2s; }
-    .rs-card img { display: block; width: 100%; height: auto; aspect-ratio: 4 / 5; object-fit: cover; border-radius: 6px; background: #151718; }
-    .rs-tag { position: absolute; top: 12px; padding: 1px 8px; border-radius: 20px; font-size: .68rem; font-weight: 800; background: rgba(9,9,9,.78); color: #fff; }
-    .rs-b .rs-tag { right: 12px; } .rs-a .rs-tag { left: 12px; color: var(--neon); }
-    .rs-cap { display: block; margin-top: 6px; font-size: .78rem; font-weight: 800; line-height: 1.2; color: #d6d9db; }
-    .rs-num { font-family: 'Barlow Condensed', Heebo, sans-serif; font-style: italic; font-size: 1.5rem; color: var(--neon); line-height: 1; }
-    .rs-num small { font-family: Heebo, sans-serif; font-style: normal; font-size: .72rem; color: #fff; margin-inline-start: 4px; }
-    .rs-b { right: var(--rsx); --from: calc(100% + var(--rsx) + 30px); --y: -62%; --r0: 12deg; --r1: 4deg; }
-    .rs-a { left: var(--rsx); --from: calc(-100% - var(--rsx) - 30px); --y: -40%; --r0: -12deg; --r1: -3deg; transition-delay: .12s, .12s, 0s; }
-    .rs.in .rs-card { opacity: 1; transform: translate(0, var(--y)) rotate(var(--r1)); }
-    @media (hover: hover) and (pointer: fine) { .rs-card:hover { border-color: rgba(131,245,44,.6); } }
+    /* ── תוצאות בגדול: בכל מעבר בין חלקים "לפני" ו"אחרי" של מתאמן אחד (מ-results-data) מסתערים מהצדדים,
+       גדולים ומסובבים, ונוחתים במרכז לפי הגלילה. הדף לא נעצר. --q יורד מ-1 (בחוץ) ל-0 (נחת) ── */
+    .rs { --q: 1; position: relative; height: clamp(560px, 80vh, 760px); overflow: hidden; contain: paint; pointer-events: none; }
+    .rs:empty { display: none; }
+    .rs-card { position: absolute; top: 46%; width: clamp(240px, 27vw, 400px); margin: 0; padding: 8px 8px 10px; border-radius: 14px; background: #0d0f0f;
+               border: 1px solid rgba(229,232,232,.18); box-shadow: 0 30px 60px -24px #000, 0 0 50px -18px rgba(131,245,44,.55); will-change: transform; }
+    .rs-card img { display: block; width: 100%; height: auto; aspect-ratio: 4 / 5; object-fit: cover; border-radius: 9px; background: #151718; }
+    .rs-tag { position: absolute; top: 18px; padding: 3px 12px; border-radius: 20px; font-size: .8rem; font-weight: 800; background: rgba(9,9,9,.8); color: #fff; }
+    .rs-b .rs-tag { right: 18px; } .rs-a .rs-tag { left: 18px; color: var(--neon); }
+    .rs-b { left: 50%; margin-left: -24px; transform: translate3d(calc(var(--q) * 62vw), -50%, 0) rotate(calc(4deg + var(--q) * 18deg)) scale(calc(1 + var(--q) * .35)); }
+    .rs-a { right: 50%; margin-right: -24px; z-index: 2; transform: translate3d(calc(var(--q) * -62vw), -50%, 0) rotate(calc(-3deg - var(--q) * 18deg)) scale(calc(1 + var(--q) * .35)); }
+    .rs-cap { position: absolute; left: 50%; bottom: 5%; z-index: 3; text-align: center; white-space: nowrap; padding: 8px 22px 10px; border-radius: 16px;
+              background: rgba(7,8,8,.88); border: 1px solid rgba(131,245,44,.35); box-shadow: 0 0 40px -10px rgba(131,245,44,.5);
+              opacity: calc(1 - var(--q) * 2.4); transform: translateX(-50%) scale(calc(1 - var(--q) * .4)); }
+    .rs-num { display: block; font: italic 900 clamp(2.4rem, 4.6vw, 3.6rem)/1 'Barlow Condensed', Heebo, sans-serif; color: var(--neon); text-shadow: 0 0 24px rgba(131,245,44,.45); }
+    .rs-num small { font: normal 800 .32em Heebo, sans-serif; color: #fff; margin-inline-start: 6px; }
+    .rs-name { display: block; margin-top: 4px; font-size: .95rem; font-weight: 800; color: #e5e8e8; }
+    /* נחיתה: גל ירוק מהמרכז והמספר "נוחת" */
+    .rs::after { content: ''; position: absolute; left: 50%; top: 46%; width: 70vmin; height: 70vmin; border-radius: 50%; border: 2px solid var(--neon);
+                 box-shadow: 0 0 40px rgba(131,245,44,.5); transform: translate(-50%, -50%) scale(.1); opacity: 0; pointer-events: none; }
+    .rs.hit::after { animation: rsRing .8s cubic-bezier(.16,1,.3,1) both; }
+    .rs.hit .rs-cap { animation: rsLand .5s cubic-bezier(.2,.9,.3,1.3) both; }
+    @keyframes rsRing { 0% { opacity: .9; transform: translate(-50%, -50%) scale(.1); } 100% { opacity: 0; transform: translate(-50%, -50%) scale(1.15); } }
+    @keyframes rsLand { 0% { transform: translateX(-50%) scale(1.35); } 100% { transform: translateX(-50%) scale(1); } }
     @media (max-width: 900px) {
-      .rs { --rsw: min(40vw, 168px); height: auto; margin: 0; display: flex; justify-content: center; align-items: center; gap: 16px; padding: 30px 12px 34px; overflow: hidden; }
-      .rs:empty { display: none; }
-      .rs-card { position: relative; top: auto; left: auto; right: auto; --y: 0px; }
-      .rs-b { --from: 70vw; } .rs-a { --from: -70vw; }
+      .rs { height: clamp(380px, 108vw, 500px); }
+      .rs-card { top: 45%; width: 50vw; padding: 6px 6px 8px; }
+      .rs-b { margin-left: -6vw; } .rs-a { margin-right: -6vw; }
+      .rs-tag { top: 12px; font-size: .72rem; } .rs-b .rs-tag { right: 12px; } .rs-a .rs-tag { left: 12px; }
+      .rs-cap { bottom: 3%; padding: 6px 16px 8px; }
+      .rs-num { font-size: 2.4rem; }
     }
-    @media (prefers-reduced-motion: reduce) { .rs-card { transition: none; } }
 
     /* ── סבב המועצה: שורת האלוף, 3 השלבים, מטרה בלחיצה, פס תחתון בטלפון ── */
-    .hero-champ { display: inline-flex; align-items: center; gap: 10px; margin: 0 auto 22px; padding-block: 6px; padding-inline: 6px 16px; border-radius: 40px;
-                  background: rgba(131,245,44,.07); border: 1px solid rgba(131,245,44,.35); text-decoration: none; text-align: right; }
-    .hero-champ img { width: 46px; height: 46px; border-radius: 50%; object-fit: cover; object-position: 50% 18%; border: 1px solid rgba(131,245,44,.6); flex: none; }
-    .hero-champ span { display: flex; flex-direction: column; font-size: .8rem; line-height: 1.3; color: #c9cdcf; }
-    .hero-champ b { font-size: .95rem; font-weight: 800; color: #fff; }
     .th-note { color: var(--muted); font-size: .82rem; margin: -6px 0 14px; }
     .how { max-width: 820px; margin: 0 auto 28px; }
     .how ol { list-style: none; display: grid; gap: 10px; counter-reset: how; padding: 0; margin: 0; }
@@ -1979,7 +1981,7 @@
       .mbar-wa { flex: none; width: 50px; height: 50px; border-radius: 12px; background: #25d366; display: grid; place-items: center; }
       body { padding-bottom: 76px; }
     }
-    @media (prefers-reduced-motion: reduce) { .mbar { transition: none; } }
+    @media (prefers-reduced-motion: reduce) { .mbar { transition: none; } .rs.hit::after, .rs.hit .rs-cap { animation: none; } }
   </style>
 </head>
 <body>
@@ -2047,10 +2049,6 @@
 
     <div class="hero-from">ליווי אישי אונליין · <b>למתאמנים ולמתאמנות</b></div>
 
-    <a class="hero-champ" href="#achievements" onclick="goTo('achievements'); return false;">
-      <img src="landing/ba/nesiel-stage.jpg" alt="" width="46" height="46">
-      <span><b>המאמן של נשיאל מדמון</b>אלוף ישראל 2026 בקלאסיק פיזיק טבעי</span>
-    </a>
 
     <div class="hero-buttons">
       <a href="#lead" class="btn-primary" onclick="goTo('lead'); return false;">
@@ -3038,32 +3036,45 @@
 })();
 </script>
 <script>
-/* ── תוצאות מהצדדים ──
-   כל [data-rs] מקבל מתאמן אחד מ-#results-data לפי הסדר: "לפני" נכנס מימין ו"אחרי" משמאל כשמגיעים אליו בגלילה.
-   מקום שאין לו מתאמן נמחק. התמונות נטענות קצת לפני שמגיעים, כדי שהכרטיס לא ייכנס ריק. */
+/* ── תוצאות בגדול ──
+   כל [data-rs] מקבל מתאמן אחד מ-#results-data לפי הסדר. "לפני" מגיע מימין ו"אחרי" משמאל, ונוחתים במרכז לפי
+   הגלילה (הדף לא נעצר). בנחיתה: גל ירוק והמספר עולה מ-0. מקום שאין לו מתאמן נמחק. */
 (function () {
-  var slots = document.querySelectorAll('[data-rs]'), el = document.getElementById('results-data'); if (!slots.length || !el) return;
+  var slots = Array.prototype.slice.call(document.querySelectorAll('[data-rs]')), el = document.getElementById('results-data'); if (!slots.length || !el) return;
   var DATA = []; try { DATA = JSON.parse(el.textContent); } catch (e) { return; }
   var calm = matchMedia('(prefers-reduced-motion: reduce)').matches || !('IntersectionObserver' in window);
   function esc(t) { return String(t == null ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;'); }
-  function img(src) { return '<img ' + (calm ? 'src' : 'data-src') + '="' + esc(src) + '" alt="" width="320" height="400" decoding="async">'; }
-  function count(v) {   /* המספר עולה מ-0 כשהכרטיס נוחת */
+  function img(src) { return '<img ' + (calm ? 'src' : 'data-src') + '="' + esc(src) + '" alt="" width="640" height="800" decoding="async">'; }
+  function count(v) {
     var end = +v.dataset.v, t0 = 0; if (!(end > 0)) return;
-    v.textContent = '0';
-    requestAnimationFrame(function tick(t) { if (!t0) t0 = t; var k = Math.min(1, (t - t0) / 900); v.textContent = Math.round(end * (1 - Math.pow(1 - k, 3))); if (k < 1) requestAnimationFrame(tick); });
+    requestAnimationFrame(function tick(t) { if (!t0) t0 = t; var k = Math.min(1, (t - t0) / 800); v.textContent = Math.round(end * (1 - Math.pow(1 - k, 3))); if (k < 1) requestAnimationFrame(tick); });
   }
-  var load = calm ? null : new IntersectionObserver(function (es) { es.forEach(function (e) { if (!e.isIntersecting) return; load.unobserve(e.target);
-    e.target.querySelectorAll('img[data-src]').forEach(function (i) { i.src = i.dataset.src; i.removeAttribute('data-src'); }); }); }, { rootMargin: '900px 0px' });
-  var show = calm ? null : new IntersectionObserver(function (es) { es.forEach(function (e) { if (!e.isIntersecting) return; show.unobserve(e.target);
-    e.target.classList.add('in'); var v = e.target.querySelector('.rs-val'); if (v) setTimeout(function () { count(v); }, 350); }); }, { rootMargin: '0px 0px -22% 0px' });
-  Array.prototype.forEach.call(slots, function (s, i) {
-    var d = DATA[i]; if (!d || !d.before || !d.after) { s.remove(); return; }
-    s.innerHTML = '<a class="rs-card rs-b" href="#results" tabindex="-1">' + img(d.before) + '<span class="rs-tag">לפני</span><b class="rs-cap">' + esc(d.name) + '</b></a>' +
-      '<a class="rs-card rs-a" href="#results" tabindex="-1">' + img(d.after) + '<span class="rs-tag">אחרי</span>' +
-      '<b class="rs-cap rs-num" dir="ltr">' + esc(d.sign) + '<span class="rs-val" data-v="' + esc(d.value) + '">' + esc(d.value) + '</span><small>' + esc(d.unit || 'ק״ג') + '</small></b></a>';
-    if (calm) s.classList.add('in'); else { load.observe(s); show.observe(s); }
+  slots = slots.filter(function (s, i) {
+    var d = DATA[i]; if (!d || !d.before || !d.after) { s.remove(); return false; }
+    s.innerHTML = '<figure class="rs-card rs-b">' + img(d.before) + '<span class="rs-tag">לפני</span></figure>' +
+      '<figure class="rs-card rs-a">' + img(d.after) + '<span class="rs-tag">אחרי</span></figure>' +
+      '<div class="rs-cap"><b class="rs-num" dir="ltr">' + esc(d.sign) + '<span class="rs-val" data-v="' + esc(d.value) + '">' + (calm ? esc(d.value) : '0') + '</span><small>' + esc(d.unit || 'ק״ג') + '</small></b>' +
+      '<span class="rs-name">' + esc(d.name) + '</span></div>';
+    return true;
   });
-  document.addEventListener('click', function (e) { var a = e.target.closest && e.target.closest('.rs-card'); if (!a) return; e.preventDefault(); goTo('results'); });
+  if (calm) { slots.forEach(function (s) { s.style.setProperty('--q', 0); }); return; }
+  var load = new IntersectionObserver(function (es) { es.forEach(function (e) { if (!e.isIntersecting) return; load.unobserve(e.target);
+    e.target.querySelectorAll('img[data-src]').forEach(function (i) { i.src = i.dataset.src; i.removeAttribute('data-src'); }); }); }, { rootMargin: '1000px 0px' });
+  slots.forEach(function (s) { load.observe(s); });
+  var queued = false;
+  function frame() {   /* 0 כשהרצועה נכנסת מלמטה, 1 כשהאמצע שלה מגיע ל-45% מגובה המסך */
+    queued = false;
+    var vh = innerHeight;
+    slots.forEach(function (s) {
+      var r = s.getBoundingClientRect(); if (r.bottom < -100 || r.top > vh + 100) return;
+      var p = Math.max(0, Math.min(1, (vh - r.top) / (vh * .55 + r.height * .5))), q = Math.pow(1 - p, 3);
+      s.style.setProperty('--q', q.toFixed(4));
+      if (q < .01 && !s.classList.contains('hit')) { s.classList.add('hit'); var v = s.querySelector('.rs-val'); if (v) count(v); }
+    });
+  }
+  addEventListener('scroll', function () { if (!queued) { queued = true; requestAnimationFrame(frame); } }, { passive: true });
+  addEventListener('resize', frame);
+  frame();
 })();
 </script>
 <script>
