@@ -12,14 +12,14 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="HF Coaching">
   <link rel="apple-touch-icon" href="apple-touch-icon.png"/>
-  <title>Fit Journey | ליווי אונליין שמביא תוצאות אמיתיות</title>
-  <meta name="description" content="ליווי אונליין שמביא תוצאות אמיתיות: תוכנית אימונים ותפריט אישיים, מעקב צמוד ומענה אישי בוואטסאפ. לגברים ולנשים." />
+  <title>Fit Journey | תוך 90 יום רואים את השינוי במראה</title>
+  <meta name="description" content="ליווי אישי אונליין: תוך 90 יום רואים את השינוי במראה. מסה נכונה או חיטוב בלי לאבד שריר, עם תוכנית אימונים, תפריט ומעקב אישי. לגברים ולנשים." />
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="Fit Journey" />
   <meta property="og:locale" content="he_IL" />
   <meta property="og:url" content="https://fitjourney-net.com/" />
-  <meta property="og:title" content="Fit Journey | ליווי אונליין שמביא תוצאות אמיתיות" />
-  <meta property="og:description" content="תוכנית אימונים ותפריט אישיים, מעקב צמוד ומענה אישי בוואטסאפ." />
+  <meta property="og:title" content="Fit Journey | תוך 90 יום רואים את השינוי במראה" />
+  <meta property="og:description" content="מסה נכונה או חיטוב בלי לאבד שריר. השאירו פרטים לשיחת התאמה, בלי התחייבות." />
   <meta property="og:image" content="https://fitjourney-net.com/landing/og-image.jpg" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
@@ -27,7 +27,7 @@
   <meta name="twitter:card" content="summary_large_image" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;700;800;900&family=Barlow+Condensed:ital,wght@1,600;1,800;1,900&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;700;800;900&family=Barlow+Condensed:ital,wght@1,600;1,800;1,900&family=Karantina:wght@700&display=swap" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -1636,10 +1636,6 @@
     @media (min-width:901px){.champ-story{padding:40px}.champ-grid{grid-template-columns:1fr 1fr;gap:44px;align-items:center}}
     /* חידוש ליד המחיר + קישורים לדפים הנפרדים */
     .renew-note{font-size:.78rem;color:#bbb;margin-top:6px}.renew-note a{color:var(--orange)}
-    #more-links{padding:50px 0}
-    .more-grid{display:grid;gap:12px}@media (min-width:901px){.more-grid{grid-template-columns:1fr 1fr}}
-    .more-card{display:block;background:var(--card-bg);border:1px solid var(--border);border-radius:12px;padding:18px 20px;text-decoration:none;color:var(--white)}
-    .more-card b{display:block;font-size:1.05rem}.more-card span{color:var(--orange);font-size:.9rem;font-weight:700}
     /* הרקעים המקוריים — הסדר החדש לא משנה את הצבעים */
     #story,#client-stories{background:var(--black)}
     #hero{background:rgb(17, 17, 17)}#achievements{background:rgb(9, 9, 9)}#results{background:rgb(17, 17, 17)}#who{background:rgb(9, 9, 9)}#features{background:rgb(17, 17, 17)}#pricing{background:rgb(9, 9, 9)}#closing{background:rgb(9, 9, 9)}
@@ -1831,12 +1827,6 @@
     .hero-from b { color: var(--neon); }
     .spark, .flare i { background: var(--neon) !important; }
     .hero-line { background: linear-gradient(90deg, transparent, var(--neon), transparent) !important; }
-    /* פס מספרים */
-    .stats-strip { display: grid; grid-template-columns: 1fr 1fr; border-top: 1px solid rgba(131,245,44,.18); border-bottom: 1px solid rgba(131,245,44,.18); background: linear-gradient(#0b0c0c, #070808); }
-    .stats-strip div { display: grid; grid-template-columns: 1fr 32px; align-items: center; gap: 0 10px; padding: 16px; border-left: 1px solid var(--line); }
-    .stats-strip div:nth-child(2n) { border-left: 0; } .stats-strip div:nth-child(-n+2) { border-bottom: 1px solid var(--line); }
-    .stats-strip small { font-size: .74rem; color: #c9cdcf; } .stats-strip b { font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 800; font-size: 2rem; line-height: 1.05; color: var(--neon); }
-    .stats-strip span { font-size: .72rem; color: var(--muted); } .stats-strip svg { grid-column: 2; grid-row: 1 / 4; width: 28px; height: 28px; color: var(--chrome); }
     /* עליי */
     #story .story-photo img { filter: grayscale(1) contrast(1.2) brightness(.85); }
     #story .story-kicker { color: var(--neon); }
@@ -1869,21 +1859,6 @@
     .fit { border-color: rgba(131,245,44,.3) !important; box-shadow: 0 0 40px -20px rgba(131,245,44,.5); }
     .feat-card { border: 1px solid rgba(229,232,232,.14) !important; border-radius: 10px; background: #0d0f0f !important; }
     .feat-icon { color: var(--neon) !important; border: 1px solid rgba(131,245,44,.35); background: rgba(131,245,44,.06) !important; border-radius: 10px; }
-    /* אפליקציה */
-    #app-showcase { padding: 70px 0; background: radial-gradient(50% 40% at 20% 60%, rgba(131,245,44,.12), transparent 70%), linear-gradient(#0a0b0b, #070808); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); overflow: hidden; }
-    .app-wrap { display: grid; gap: 30px; }
-    .app-copy ul { list-style: none; margin: 14px 0 22px; display: grid; gap: 8px; } .app-copy li { display: flex; gap: 8px; align-items: center; color: #d6d9db; }
-    .app-copy .section-title { text-align: right; } .app-copy .eyebrow { text-align: right; }
-    .app-vis { position: relative; height: 410px; }
-    .app-vis .ph { position: absolute; width: 190px; height: 390px; border-radius: 32px; padding: 8px; background: linear-gradient(145deg, #4a5054, #0d0e0f 40%, #2a2e31); box-shadow: 0 30px 60px -20px #000, 0 0 0 1px #50565a, 0 0 40px -10px rgba(131,245,44,.4); }
-    .app-vis .p1 { left: 50%; margin-left: -150px; top: 20px; transform: rotate(-8deg); } .app-vis .p2 { left: 50%; margin-left: -30px; top: 0; transform: rotate(4deg); }
-    .app-vis .scr { height: 100%; border-radius: 25px; background: #0b0c0c; overflow: hidden; padding: 22px 12px 10px; text-align: center; }
-    .app-vis .scr .wc-t { font-size: .95rem; } .app-vis .lbl { font-size: .62rem; color: var(--muted); margin-top: 10px; text-align: right; }
-    .app-vis svg { width: 100%; height: 80px; } .app-vis .kg { font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 800; font-size: 1.4rem; text-align: right; } .app-vis .kg small { color: var(--neon); font-size: .7rem; }
-    .ringbig { width: 96px; height: 96px; margin: 10px auto; border-radius: 50%; background: conic-gradient(var(--neon) 0 70%, #23272a 70%); display: grid; place-items: center; box-shadow: 0 0 20px rgba(131,245,44,.3); }
-    .ringbig::after { content: '2,760'; width: 80px; height: 80px; border-radius: 50%; background: #0b0c0c; display: grid; place-items: center; font-weight: 800; }
-    .macro { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; font-size: .62rem; color: var(--muted); } .macro b { display: block; color: #fff; font-size: .85rem; }
-    .app-vis .demo { position: absolute; bottom: -6px; inset-inline: 0; text-align: center; font-size: .7rem; color: var(--steel); }
     /* מסלולים */
     .price-card { border: 1px solid rgba(229,232,232,.16) !important; border-radius: 10px !important; background: linear-gradient(#101213, #0b0c0c) !important; }
     .price-card.featured { border-color: var(--neon) !important; box-shadow: 0 0 0 1px rgba(131,245,44,.35), 0 0 40px -12px rgba(131,245,44,.6) !important; }
@@ -1893,7 +1868,6 @@
     .mo4 li::before { background: var(--neon) !important; }
     .incl svg { color: var(--neon) !important; }
     /* קישורים, סיום, פוטר */
-    .more-card { border-color: rgba(229,232,232,.16) !important; background: #0d0f0f !important; }
     #closing { position: relative; overflow: hidden; }
     .hf-bg { position: absolute; inset: 0; display: grid; place-items: center; font-family: 'Barlow Condensed', sans-serif; font-weight: 900; font-size: 60vw; color: transparent; -webkit-text-stroke: 1px rgba(131,245,44,.18); transform: skewX(-10deg); line-height: 1; pointer-events: none; }
     #closing .container { position: relative; }
@@ -1903,9 +1877,7 @@
     @media (min-width: 901px) {
       .hf-big { font-size: 640px; left: 32%; top: 80px; }
       .side-words { display: flex; flex-direction: column; gap: 10px; position: absolute; z-index: 4; left: 48px; top: 300px; font-family: 'Barlow Condensed', sans-serif; letter-spacing: .32em; font-size: .78rem; color: #c9cdcf; border-right: 1px solid rgba(131,245,44,.6); padding-right: 14px; direction: ltr; text-align: left; }
-      .stats-strip { grid-template-columns: repeat(4, 1fr); } .stats-strip div { border-bottom: 0 !important; border-left: 1px solid var(--line) !important; padding: 24px 40px; } .stats-strip div:last-child { border-left: 0 !important; }
       #theater .th-cards { grid-auto-flow: row; grid-template-columns: repeat(4, 1fr); overflow: visible; max-width: 1200px; margin: 0 auto; padding: 0 24px; }
-      .app-wrap { grid-template-columns: 1fr 1fr; align-items: center; } .app-vis { height: 470px; } .app-vis .ph { width: 220px; height: 450px; }
       .hf-bg { font-size: 520px; }
     }
     @media (prefers-reduced-motion: reduce) { .hf-big { filter: none; } }
@@ -1952,6 +1924,42 @@
     @media (hover: hover) and (pointer: fine) { .rw-more:hover { background: rgba(131,245,44,.08); } }
     #theater .th-story { display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
     @media (max-width: 900px) { .rw-filters { flex-wrap: nowrap; overflow-x: auto; justify-content: flex-start; max-width: 100%; padding: 2px 4px 6px; scrollbar-width: none; } .rw-filters::-webkit-scrollbar { display: none; } .rw-chip { flex: none; } }
+
+    /* ── מסך ראשון: תת-כותרת ירוקה בגופן תצוגה, וחסמי כניסה מתחת לכפתור ── */
+    .hero-title .hero-l2 { font-size: .8em; }
+    .hero-sub { font-family: 'Karantina', 'Heebo', sans-serif; font-weight: 700; color: var(--neon); font-size: clamp(1.45rem, 3vw, 1.9rem); line-height: 1.15; letter-spacing: .01em; max-width: 620px; margin: 0 auto 34px; text-wrap: balance; text-shadow: 0 0 18px rgba(131,245,44,.28); }
+    .hero-buttons { margin-bottom: 0; }
+    .hero-easy { list-style: none; display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 18px; margin: 16px auto 44px; padding: 0; font-size: .92rem; font-weight: 600; color: #d6d9db; }
+    .hero-easy li { display: inline-flex; align-items: center; gap: 6px; }
+    .hero-easy svg { width: 15px; height: 15px; color: var(--neon); flex: none; }
+    @media (max-width: 900px) { .hero-easy { margin-bottom: 0; font-size: .86rem; gap: 6px 14px; } }
+    .lead-f.full { grid-column: 1 / -1; }
+
+    /* ── תוצאות מהצדדים: בכל מעבר בין חלקים נכנסים "לפני" ו"אחרי" של מתאמן אחד מ-results-data.
+       במחשב הם יושבים בשוליים, על קו המעבר, בלי לתפוס מקום. בטלפון הם רצועה קצרה בין החלקים. ── */
+    .rs { --rsw: clamp(108px, 9vw, 170px); --rsx: max(12px, calc((100vw - 1200px) / 2 - var(--rsw) + 24px));
+          position: relative; z-index: 6; height: 1px; margin-top: -1px; pointer-events: none; overflow-x: clip; }
+    .rs-card { position: absolute; top: 0; width: var(--rsw); padding: 6px 6px 8px; border-radius: 10px; background: #0d0f0f; border: 1px solid rgba(229,232,232,.16);
+               box-shadow: 0 22px 44px -20px #000, 0 0 34px -14px rgba(131,245,44,.5); color: #fff; text-decoration: none; text-align: center; pointer-events: auto;
+               opacity: 0; transform: translate(var(--from), var(--y)) rotate(var(--r0));
+               transition: transform .95s cubic-bezier(.16,1,.3,1), opacity .4s ease-out, border-color .2s; }
+    .rs-card img { display: block; width: 100%; height: auto; aspect-ratio: 4 / 5; object-fit: cover; border-radius: 6px; background: #151718; }
+    .rs-tag { position: absolute; top: 12px; padding: 1px 8px; border-radius: 20px; font-size: .68rem; font-weight: 800; background: rgba(9,9,9,.78); color: #fff; }
+    .rs-b .rs-tag { right: 12px; } .rs-a .rs-tag { left: 12px; color: var(--neon); }
+    .rs-cap { display: block; margin-top: 6px; font-size: .78rem; font-weight: 800; line-height: 1.2; color: #d6d9db; }
+    .rs-num { font-family: 'Barlow Condensed', Heebo, sans-serif; font-style: italic; font-size: 1.5rem; color: var(--neon); line-height: 1; }
+    .rs-num small { font-family: Heebo, sans-serif; font-style: normal; font-size: .72rem; color: #fff; margin-inline-start: 4px; }
+    .rs-b { right: var(--rsx); --from: calc(100% + var(--rsx) + 30px); --y: -62%; --r0: 12deg; --r1: 4deg; }
+    .rs-a { left: var(--rsx); --from: calc(-100% - var(--rsx) - 30px); --y: -40%; --r0: -12deg; --r1: -3deg; transition-delay: .12s, .12s, 0s; }
+    .rs.in .rs-card { opacity: 1; transform: translate(0, var(--y)) rotate(var(--r1)); }
+    @media (hover: hover) and (pointer: fine) { .rs-card:hover { border-color: rgba(131,245,44,.6); } }
+    @media (max-width: 900px) {
+      .rs { --rsw: min(40vw, 168px); height: auto; margin: 0; display: flex; justify-content: center; align-items: center; gap: 16px; padding: 30px 12px 34px; overflow: hidden; }
+      .rs:empty { display: none; }
+      .rs-card { position: relative; top: auto; left: auto; right: auto; --y: 0px; }
+      .rs-b { --from: 70vw; } .rs-a { --from: -70vw; }
+    }
+    @media (prefers-reduced-motion: reduce) { .rs-card { transition: none; } }
   </style>
 </head>
 <body>
@@ -1966,20 +1974,14 @@
         <li><a href="#" onclick="goTo('achievements'); return false;">הישגים</a></li>
         <li><a href="#" onclick="goTo('results'); return false;">תוצאות</a></li>
         <li><a href="#" onclick="goTo('features'); return false;">מה מקבלים</a></li>
-        <li><a href="#" onclick="goTo('pricing'); return false;">מסלולים</a></li>
         <li><a href="coaching-terms.html">תקנון</a></li>
-        <li><a href="join.html" style="color:var(--orange);">מנוי למתאמן</a></li>
         <li><a href="intake.html" style="color:var(--orange);">שאלון קליטה</a></li>
-        <li><a href="webinar.html" style="color:var(--gold);">FIT JOURNEY APP</a></li>
         <li><a href="#" onclick="openRecipeBook(); return false;" style="color:var(--gold);">ספר מתכונים</a></li>
       </ul>
 
       <div class="nav-cta">
-        <a href="login.html" style="padding:10px 18px;font-size:0.85rem;background:transparent;border:1px solid rgba(131,245,44,0.4);color:var(--orange);border-radius:6px;text-decoration:none;font-weight:700;transition:background 0.2s;" onmouseover="this.style.background='rgba(131,245,44,0.1)'" onmouseout="this.style.background='transparent'">
-          אזור אישי
-        </a>
-        <a href="#" class="btn-primary" onclick="goTo('pricing'); return false;" style="padding:12px 24px;font-size:0.9rem;animation:none;">
-          התחל עכשיו
+        <a href="#lead" class="btn-primary" onclick="goTo('lead'); return false;" style="padding:12px 24px;font-size:0.9rem;animation:none;">
+          לשיחת התאמה
         </a>
       </div>
 
@@ -1992,14 +1994,10 @@
     <a onclick="goTo('achievements'); closeMobile(); return false;">הישגים</a>
     <a onclick="goTo('results'); closeMobile(); return false;">תוצאות</a>
     <a onclick="goTo('features'); closeMobile(); return false;">מה מקבלים</a>
-    <a onclick="scrollTo('pricing'); closeMobile()">מסלולים</a>
     <a href="coaching-terms.html">תקנון</a>
     <a onclick="openRecipeBook(); closeMobile(); return false;" style="color:var(--gold);">ספר מתכונים</a>
-    <a href="join.html" style="color:var(--orange);">מנוי למתאמן</a>
     <a href="intake.html" style="color:var(--orange);">שאלון קליטה</a>
-    <a href="webinar.html" style="color:var(--gold);">FIT JOURNEY APP</a>
-    <a href="login.html" style="color:var(--orange);">אזור אישי</a>
-    <a class="btn-primary" href="#" onclick="goTo('pricing'); closeMobile(); return false;">התחל עכשיו</a>
+    <a class="btn-primary" href="#lead" onclick="goTo('lead'); closeMobile(); return false;">השארת פרטים לשיחת התאמה</a>
   </div>
 </header>
 
@@ -2025,27 +2023,26 @@
     <div class="hero-tag"><span class="wc lg" dir="ltr"><span class="wc-t">H<b>Fit</b>Journey</span><span class="wc-s">ONLINE COACHING</span></span></div>
 
     <h1 class="hero-title">
-      ליווי אונליין שמביא<br>
-      <span class="highlight">תוצאות אמיתיות</span>
+      תוך <span class="highlight">90 יום</span><br>
+      <span class="hero-l2">רואים את השינוי במראה</span>
     </h1>
 
-    <p class="hero-sub">
-      תוכנית אימונים, תזונה וליווי אישי שמותאמים בדיוק למטרה שלך —<br>
-      מסה, חיטוב, שינוי גוף או הכנה לתחרות.
-    </p>
+    <p class="hero-sub">מסה נכונה או חיטוב בלי לאבד שריר.<br>תוכנית אימונים, תפריט ומעקב שנבנים רק עליך.</p>
 
     <div class="hero-from">ליווי אישי אונליין · <b>למתאמנים ולמתאמנות</b></div>
 
     <div class="hero-buttons">
-      <a href="#" class="btn-primary" onclick="goTo('pricing'); return false;">
+      <a href="#lead" class="btn-primary" onclick="goTo('lead'); return false;">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
-        התחל תהליך עכשיו
-      </a>
-      <a href="#" class="btn-secondary" onclick="goTo('results'); return false;">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8" fill="currentColor" stroke="none"/></svg>
-        צפה בתוצאות של מתאמנים
+        השארת פרטים לשיחת התאמה
       </a>
     </div>
+    <!-- חסמי כניסה: מה שמונע ממתלבטים להשאיר פרטים, עונים עליו מתחת לכפתור -->
+    <ul class="hero-easy">
+      <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>בלי התחייבות</li>
+      <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>מתאים גם למתחילים</li>
+      <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>תשובה תוך 24 שעות</li>
+    </ul>
 
     <div class="scroll-hint">
       <span>גלול למטה</span>
@@ -2054,7 +2051,7 @@
   </div>
 </section>
 
-<div class="stats-strip"><div><small>מתאמנים בליווי</small><b dir="ltr">30+</b><span>גברים ונשים</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3 20a6 6 0 0 1 12 0M16 4a3 3 0 0 1 0 6M18 14a5 5 0 0 1 3 6"/></svg></div><div><small>תארים ב-2026</small><b dir="ltr">2</b><span>MBC · WNBF · נשיאל</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 21h8M12 17v4M7 4h10v4a5 5 0 0 1-10 0zM7 6H4a3 3 0 0 0 3 4M17 6h3a3 3 0 0 1-3 4"/></svg></div><div><small>חוזרים אליך</small><b dir="ltr">24h</b><span>אחרי תשלום והודעה</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div><div><small>ליווי מכל מקום</small><b dir="ltr">ONLINE</b><span>דרך האפליקציה</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></svg></div></div>
+<div class="rs" data-rs aria-hidden="true"></div>
 
 <!-- ═══ הסיפור שלי ═══ -->
 <section id="story">
@@ -2268,6 +2265,8 @@
 
 
 
+<div class="rs" data-rs aria-hidden="true"></div>
+
 <!-- ═══ WHO IS IT FOR ═══ -->
 <!-- ═══ מבחן התאמה ═══ -->
 <section id="fit">
@@ -2294,6 +2293,8 @@
 
 
 
+
+<div class="rs" data-rs aria-hidden="true"></div>
 
 <!-- ═══ FEATURES ═══ -->
 <section id="features">
@@ -2358,247 +2359,27 @@
 </section>
 
 
-<!-- ═══ האפליקציה ═══ -->
-<section id="app-showcase"><div class="container app-wrap">
-  <div class="app-copy"><div class="eyebrow">THE APP</div><h2 class="section-title"><span class="slant">כל התהליך</span> <span class="slant">במקום אחד</span></h2>
-    <ul><li><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#83F52C" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>תוכנית אימונים ותפריט אישיים</li><li><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#83F52C" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>מעקב משקל, תמונות וביצועים</li><li><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#83F52C" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>מדדים וגרפים של ההתקדמות</li><li><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#83F52C" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>באייפון ובאנדרואיד</li></ul>
-    <a href="#" class="btn-primary" onclick="goTo('more-links'); return false;">הכירו את האפליקציה <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"/></svg></a></div>
-  <div class="app-vis" aria-hidden="true"><div class="ph p1"><div class="scr"><span class="wc " dir="ltr"><span class="wc-t">H<b>Fit</b>Journey</span><span class="wc-s">ONLINE COACHING</span></span><div class="lbl">Body Progress</div><svg viewBox="0 0 200 80" preserveAspectRatio="none" aria-hidden="true"><path d="M0 70 L25 64 L50 60 L75 52 L100 50 L125 40 L150 34 L175 24 L200 16 L200 80 L0 80Z" fill="rgba(131,245,44,.15)"/><path d="M0 70 L25 64 L50 60 L75 52 L100 50 L125 40 L150 34 L175 24 L200 16" fill="none" stroke="#83F52C" stroke-width="2.4"/></svg><div class="kg" dir="ltr">85.2 <small>kg</small></div></div></div>
-    <div class="ph p2"><div class="scr"><span class="wc " dir="ltr"><span class="wc-t">H<b>Fit</b>Journey</span><span class="wc-s">ONLINE COACHING</span></span><div class="lbl">תזונה היום</div><div class="ringbig"></div><div class="macro"><div><b>190g</b>חלבון</div><div><b>310g</b>פחמימה</div><div><b>70g</b>שומן</div></div></div></div>
-    <div class="demo">המחשה של מסכי האפליקציה</div></div>
-</div></section>
+<div class="rs" data-rs aria-hidden="true"></div>
 
-<!-- ═══ PRICING ═══ -->
+<!-- ═══ שיחת התאמה: רק השארת פרטים. את המסלולים הלל מציע בעצמו בוואטסאפ ═══ -->
 <section id="pricing">
   <div class="container">
-    <h2 class="section-title">מסלולי <span>ליווי</span></h2>
+    <div class="eyebrow">LET'S TALK</div><h2 class="section-title"><span class="slant">שיחת</span> <span class="slant">התאמה</span></h2>
     <div class="title-line"></div>
 
-<div class="mo4"><div class="mo4-h">מה קורה ב-4 החודשים</div><ol><li><b>חודש 1 · בונים</b><span>שאלון היכרות, תשלום בביט והודעה בוואטסאפ, ואנחנו חוזרים אליך תוך 24 שעות. אחר כך תוכנית אימונים ותפריט אישיים באפליקציה.</span></li><li><b>חודש 2 · מכווננים</b><span>לפי המשקל, התמונות והביצועים: משנים מה שצריך בתפריט ובאימונים.</span></li><li><b>חודש 3 · מעמיקים</b><span>מעלים עומסים, מחדדים את התזונה ובונים הרגלים שנשארים.</span></li><li><b>חודש 4 · מסכמים</b><span>תמונות ומדדים לפני/אחרי, ותוכנית ברורה להמשך.</span></li></ol></div>
-    <!-- Gender Tabs -->
-    <div class="gender-tabs">
-      <button class="gender-tab active" id="tab-men" onclick="switchGender('men')">גברים</button>
-      <button class="gender-tab" id="tab-women" onclick="switchGender('women')">נשים</button>
-    </div>
-
-    <!-- ── MEN'S PLANS ── -->
-    <div class="pricing-panel active" id="panel-men">
-    <div class="incl"><b>כל מסלול כולל:</b><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>תוכנית אימונים אישית</span><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>תפריט תזונה אישי</span><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>מעקב התקדמות שוטף</span><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>שינויים לפי תגובת הגוף</span><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>ליווי אונליין בוואטסאפ</span><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>אפליקציית Fit Journey</span></div>
-    <div class="pricing-grid rows">
-
-
-      <div class="price-card">
-        <div class="price-badge">התחלה</div>
-        <div class="plan-name">ליווי 3 חודשים</div>
-        <div class="price-period">3 חודשים של ליווי צמוד</div>
-        <div class="price-divider"></div>
-        <ul class="price-features">
-          <li>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
-            תוכנית אימונים אישית
-          </li>
-          <li>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
-            תפריט תזונה מותאם
-          </li>
-          <li>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
-            מעקב שוטף
-          </li>
-          <li>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
-            עדכונים לפי צורך
-          </li>
-          <li>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
-            ליווי אונליין
-          </li>
-        </ul>
-        <button class="btn-secondary price-cta" onclick="leadFor('ליווי 3 חודשים')">לפרטים נוספים</button>
-      </div>
-
-      <!-- 3 Months (Featured) -->
-      <div class="price-card featured">
-        <div class="price-badge featured-badge">הכי פופולרי</div>
-        <div class="plan-name">ליווי 4 חודשים</div>
-        <div class="price-period">4 חודשים של ליווי צמוד</div>
-        <div class="price-divider"></div>
-        <ul class="price-features">
-          <li>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
-            בניית תוכנית מלאה
-          </li>
-          <li>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
-            תפריט תזונה אישי
-          </li>
-          <li>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
-            מעקב התקדמות שוטף
-          </li>
-          <li>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
-            שינויי תפריט ואימונים
-          </li>
-          <li>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
-            ליווי אונליין מלא
-          </li>
-          <li>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
-            ליווי לאורך 4 חודשים
-          </li>
-        </ul>
-        <button class="btn-primary price-cta" onclick="leadFor('ליווי 4 חודשים')">לפרטים נוספים</button>
-      </div>
-
-      <!-- 6 Months -->
-      <div class="price-card">
-        <div class="price-badge">חצי שנה</div>
-        <div class="plan-name">ליווי חצי שנה</div>
-        <div class="price-period">6 חודשים של ליווי צמוד</div>
-        <div class="price-divider"></div>
-        <ul class="price-features">
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>בניית תוכנית מלאה</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>תפריט תזונה אישי</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>מעקב התקדמות שוטף</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>שינויי תפריט ואימונים</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>ליווי אונליין מלא</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>ליווי לאורך 6 חודשים</li>
-        </ul>
-        <button class="btn-secondary price-cta" onclick="leadFor('ליווי חצי שנה')">לפרטים נוספים</button>
-      </div>
-
-      <!-- 12 Months -->
-      <div class="price-card">
-        <div class="price-badge">הכי משתלם</div>
-        <div class="plan-name">ליווי שנתי</div>
-        <div class="price-period">12 חודשים של ליווי צמוד</div>
-        <div class="price-divider"></div>
-        <ul class="price-features">
-          <li>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
-            ליווי מלא ל-12 חודשים
-          </li>
-          <li>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
-            תוכנית אימונים מתקדמת
-          </li>
-          <li>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
-            תפריט מותאם ומעודכן
-          </li>
-          <li>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
-            מעקב רציף
-          </li>
-          <li>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
-            התאמות לפי התקדמות
-          </li>
-          <li>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
-            בניית תהליך מסודר לתוצאה
-          </li>
-        </ul>
-        <button class="btn-secondary price-cta" onclick="leadFor('ליווי שנתי')">לפרטים נוספים</button>
-      </div>
-
-
-    </div>
-
-    </div><!-- /panel-men -->
-
-    <!-- ── WOMEN'S PLANS ── -->
-    <div class="pricing-panel" id="panel-women">
-    <div class="incl"><b>כל מסלול כולל:</b><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>תוכנית אימונים אישית</span><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>תפריט תזונה אישי</span><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>מעקב התקדמות שוטף</span><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>שינויים לפי תגובת הגוף</span><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>ליווי אונליין בוואטסאפ</span><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>אפליקציית Fit Journey</span></div>
-    <div class="pricing-grid rows">
-
-
-      <div class="price-card">
-        <div class="price-badge">התחלה</div>
-        <div class="plan-name">ליווי 3 חודשים</div>
-        <div class="price-period">3 חודשים של ליווי צמוד</div>
-        <div class="price-divider"></div>
-        <ul class="price-features">
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>תוכנית אימונים אישית</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>תפריט תזונה מותאם</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>מעקב שוטף</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>עדכונים לפי צורך</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>ליווי אונליין</li>
-        </ul>
-        <button class="btn-secondary price-cta" onclick="leadFor('ליווי 3 חודשים')">לפרטים נוספים</button>
-      </div>
-
-      <!-- 2 Months (Women) — Featured -->
-      <div class="price-card featured">
-        <div class="price-badge featured-badge">הכי פופולרי</div>
-        <div class="plan-name">ליווי 4 חודשים</div>
-        <div class="price-period">4 חודשים של ליווי צמוד</div>
-        <div class="price-divider"></div>
-        <ul class="price-features">
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>בניית תוכנית מלאה</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>תפריט תזונה אישי</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>מעקב התקדמות שוטף</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>שינויי תפריט ואימונים</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>ליווי אונליין מלא</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>ליווי לאורך 4 חודשים</li>
-        </ul>
-        <button class="btn-primary price-cta" onclick="leadFor('ליווי 4 חודשים')">לפרטים נוספים</button>
-      </div>
-
-      <!-- 6 Months -->
-      <div class="price-card">
-        <div class="price-badge">חצי שנה</div>
-        <div class="plan-name">ליווי חצי שנה</div>
-        <div class="price-period">6 חודשים של ליווי צמוד</div>
-        <div class="price-divider"></div>
-        <ul class="price-features">
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>בניית תוכנית מלאה</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>תפריט תזונה אישי</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>מעקב התקדמות שוטף</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>שינויי תפריט ואימונים</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>ליווי אונליין מלא</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>ליווי לאורך 6 חודשים</li>
-        </ul>
-        <button class="btn-secondary price-cta" onclick="leadFor('ליווי חצי שנה')">לפרטים נוספים</button>
-      </div>
-
-      <!-- 12 Months (Women) -->
-      <div class="price-card">
-        <div class="price-badge">הכי משתלם</div>
-        <div class="plan-name">ליווי שנתי</div>
-        <div class="price-period">12 חודשים של ליווי צמוד</div>
-        <div class="price-divider"></div>
-        <ul class="price-features">
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>ליווי מלא ל-12 חודשים</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>תוכנית אימונים מתקדמת</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>תפריט מותאם ומעודכן</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>מעקב רציף</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>התאמות לפי התקדמות</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>בניית תהליך מסודר לתוצאה</li>
-        </ul>
-        <button class="btn-secondary price-cta" onclick="leadFor('ליווי שנתי')">לפרטים נוספים</button>
-      </div>
-
-    </div>
-
-    </div><!-- /panel-women -->
-
-    <!-- 📞 השארת פרטים — במקום מחירים: שם וטלפון, ונחזור תוך 24 שעות -->
     <div class="lead" id="lead">
       <div class="lead-k">בלי התחייבות</div>
-      <h3 class="lead-h">רוצה לשמוע פרטים?</h3>
-      <p class="lead-p">השאירו שם וטלפון, ונחזור אליכם תוך 24 שעות עם כל הפרטים על המסלול שמתאים לכם.</p>
+      <h3 class="lead-h">רוצים ליווי אישי? בואו נדבר</h3>
+      <p class="lead-p">השאירו שם וטלפון, ונחזור אליכם תוך 24 שעות לשיחת התאמה קצרה. נכיר את המטרה שלכם, ואז נציע את המסלול שמתאים לכם.</p>
       <form class="lead-form" id="lead-form" novalidate onsubmit="return submitLead(event)">
         <div class="lead-grid">
           <label class="lead-f"><span>שם מלא</span><input id="lead-name" autocomplete="name" maxlength="80" required></label>
           <label class="lead-f"><span>טלפון</span><input id="lead-phone" type="tel" inputmode="tel" autocomplete="tel" maxlength="16" dir="ltr" placeholder="050-0000000" required></label>
-          <label class="lead-f"><span>מסלול שמעניין אותך</span><select id="lead-plan"><option value="">עוד לא בטוח/ה</option><option>ליווי 3 חודשים</option><option>ליווי 4 חודשים</option><option>ליווי חצי שנה</option><option>ליווי שנתי</option></select></label>
-          <label class="lead-f"><span>המטרה</span><select id="lead-goal"><option value="">בחירה</option><option>לעלות מסה</option><option>להתחטב בלי לאבד שריר</option><option>תקוע ולא מתקדם</option><option>להגיע לבמה</option><option>להתחיל להתאמן נכון</option></select></label>
+          <label class="lead-f full"><span>המטרה</span><select id="lead-goal"><option value="">בחירה</option><option>לעלות מסה</option><option>להתחטב בלי לאבד שריר</option><option>תקוע ולא מתקדם</option><option>להגיע לבמה</option><option>להתחיל להתאמן נכון</option></select></label>
         </div>
+        <input type="hidden" id="lead-plan" value="">   <!-- רק ממבחן ההתאמה; את המסלולים מציעים בוואטסאפ -->
         <input id="lead-hp" class="lead-hp" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
-        <button class="btn-primary lead-btn" id="lead-btn" type="submit">שלחו לי פרטים</button>
+        <button class="btn-primary lead-btn" id="lead-btn" type="submit">אני רוצה שיחת התאמה</button>
         <div class="lead-msg" id="lead-msg" role="alert"></div>
         <p class="lead-note">הפרטים משמשים רק כדי לחזור אליכם. מעדיפים לדבר עכשיו? <a href="https://wa.me/972586931163?text=%D7%94%D7%99%D7%99%20%D7%94%D7%9C%D7%9C%2C%20%D7%90%D7%A9%D7%9E%D7%97%20%D7%9C%D7%A9%D7%9E%D7%95%D7%A2%20%D7%A4%D7%A8%D7%98%D7%99%D7%9D%20%D7%A2%D7%9C%20%D7%94%D7%9C%D7%99%D7%95%D7%95%D7%99%20%D7%94%D7%90%D7%99%D7%A9%D7%99" target="_blank" rel="noopener">כתבו לנו בוואטסאפ</a></p>
       </form>
@@ -2607,79 +2388,6 @@
         <h3 class="lead-h">קיבלנו, <span id="lead-done-name"></span>!</h3>
         <p class="lead-p">נחזור אליך תוך 24 שעות. בינתיים אפשר למלא את <a href="intake.html">שאלון הקליטה</a> (3 דקות), כדי שנגיע לשיחה מוכנים.</p>
       </div>
-    </div>
-
-    <!-- 📋 שאלון קליטה -->
-    <div style="max-width:620px;margin:44px auto 0;text-align:center;padding:28px 24px;background:radial-gradient(120% 90% at 50% 0%,rgba(131,245,44,0.12),transparent 65%),rgba(255,255,255,0.03);border:1px solid rgba(131,245,44,0.35);border-radius:18px;">
-      <div style="font-size:2rem;margin-bottom:8px;">📋</div>
-      <div style="font-size:1.25rem;font-weight:900;margin-bottom:8px;">רוצה שאבנה לך תוכנית מדויקת?</div>
-      <p style="color:#aaa;font-size:0.92rem;line-height:1.7;margin-bottom:18px;">
-        מלא/י את שאלון הקליטה — 22 שאלות קצרות על המטרה, הניסיון, התזונה ואורח החיים.<br/>לוקח כ-3 דקות ומגיע ישירות אליי.
-      </p>
-      <a href="intake.html" style="display:inline-block;padding:14px 32px;background:linear-gradient(135deg,var(--orange),#6FD61F);color:#fff;text-decoration:none;border-radius:12px;font-weight:900;font-size:1rem;box-shadow:0 6px 22px rgba(131,245,44,0.35);">
-        למילוי שאלון הקליטה ←
-      </a>
-    </div>
-
-  </div>
-
-  <!-- ═══ DEMO VIDEO BUTTON ═══ -->
-  <div style="display:flex;justify-content:center;margin-top:40px;">
-    <button onclick="document.getElementById('demo-modal').style.display='flex'"
-      style="background:transparent;border:2px solid #83F52C;color:#83F52C;font-family:'Heebo',sans-serif;font-size:1.05rem;font-weight:700;padding:14px 38px;border-radius:50px;cursor:pointer;display:flex;align-items:center;gap:10px;transition:all 0.25s;letter-spacing:0.5px;"
-      onmouseover="this.style.background='rgba(131,245,44,0.12)';this.style.boxShadow='0 0 22px rgba(131,245,44,0.45)'"
-      onmouseout="this.style.background='transparent';this.style.boxShadow='none'">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
-      סרטון דמו
-    </button>
-  </div>
-
-</section>
-
-<!-- ═══ DEMO VIDEO MODAL ═══ -->
-<div id="demo-modal" onclick="if(event.target===this)this.style.display='none'"
-  style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:9999;align-items:center;justify-content:center;padding:16px;">
-  <div style="position:relative;width:100%;max-width:400px;">
-    <button onclick="document.getElementById('demo-modal').style.display='none'"
-      style="position:absolute;top:-40px;left:0;background:none;border:none;color:#fff;font-size:1.6rem;cursor:pointer;line-height:1;">✕</button>
-    <div style="position:relative;padding-bottom:177.78%;height:0;border-radius:16px;overflow:hidden;box-shadow:0 0 40px rgba(131,245,44,0.5);">
-      <iframe src="fit-journey-ad.html" style="position:absolute;inset:0;width:100%;height:100%;border:none;border-radius:16px;" allow="autoplay" title="סרטון דמו"></iframe>
-    </div>
-  </div>
-</div>
-
-
-
-
-
-<!-- ═══ COACH PLANS ═══ -->
-<section id="more-links">
-  <div class="container">
-    <div class="more-grid">
-      <a class="more-card" href="coaching-terms.html"><b>תקנון אימון אונליין</b><span>כל התנאים, החידוש והביטול ›</span></a>
-      <a class="more-card" href="coaches.html"><b>מאמן?</b><span>הפלטפורמה למאמנים ›</span></a>
-    </div>
-    <!-- App Store — התג הרשמי מוגש מהאתר ולא מקושר חיצונית -->
-    <div style="text-align:center;margin-top:26px;">
-      <div style="font-size:0.78rem;color:#666;margin-bottom:9px;">האפליקציה זמינה להורדה באייפון ובאנדרואיד</div>
-      <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
-        <a href="https://apps.apple.com/il/app/hfitjourney/id6795736567?l=he"
-           target="_blank" rel="noopener" aria-label="הורדה מ-App Store"
-           style="display:inline-block;line-height:0;">
-          <img src="appstore-badge.svg" alt="הורדה מ-App Store" width="168" height="58"
-               style="display:block;height:clamp(46px,12.8vw,58px);width:auto;"/>
-        </a>
-        <!-- אנדרואיד: קובץ ההתקנה מוגש מהאתר עצמו (לא Google Play) -->
-        <a class="store-android" href="downloads/FitJourney.apk" download="FitJourney.apk"
-           aria-label="הורדה לאנדרואיד" style="display:inline-block;line-height:0;">
-          <img src="android-badge.svg" alt="הורדה ישירה לאנדרואיד" width="180" height="58"
-               style="display:block;height:clamp(46px,12.8vw,58px);width:auto;"/>
-        </a>
-      </div>
-      <div class="store-android" style="font-size:0.7rem;color:#5f6368;margin-top:9px;">באנדרואיד: קובץ התקנה ישיר · בהתקנה הראשונה מאשרים "התר ממקור זה"</div>
-      <script>/* בתוך האפליקציה עצמה אין טעם בכפתור, ובאייפון אפל לא מתירה להפנות לפלטפורמה אחרת */
-      try { if (window.Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform())
-        document.querySelectorAll('.store-android').forEach(function (e) { e.remove(); }); } catch (e) {}</script>
     </div>
   </div>
 </section>
@@ -2694,9 +2402,9 @@
       הוא משתנה מ<strong>תוכנית מדויקת</strong>, <strong>מעקב נכון</strong> והתמדה.<br>
       כאן מתחילים <span>תהליך אמיתי.</span>"
     </blockquote>
-    <a href="#" class="btn-primary" onclick="goTo('pricing'); return false;" style="font-size:1.1rem;padding:18px 44px;">
+    <a href="#lead" class="btn-primary" onclick="goTo('lead'); return false;" style="font-size:1.1rem;padding:18px 44px;">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
-      התחל תהליך עכשיו
+      השארת פרטים לשיחת התאמה
     </a>
   </div>
 </section>
@@ -2833,11 +2541,10 @@
     <div class="footer-divider"></div>
     <p>HFitJourney &copy; 2026 · כל הזכויות שמורות · <span>Halel Fit Journey</span></p>
     <p style="margin-top:8px;"><a href="privacy.html" style="color:#83F52C;text-decoration:none;">מדיניות פרטיות</a> · <a href="terms.html" style="color:#83F52C;text-decoration:none;">תנאי שימוש</a> · <a href="support.html" style="color:#83F52C;text-decoration:none;">תמיכה</a><a href="calculator.html" class="calc-hidden" rel="nofollow" aria-label="מחשבון קלוריות" tabindex="-1" style="color:transparent;text-decoration:none;user-select:none;padding:0 8px;">·</a><!--
-      כניסה לחנות הפנימית. הצבע זהה לרקע הפוטר כדי שלא ייראה, אבל
-      השטח לחיץ למי שיודע שהוא כאן. rel=nofollow כדי שמנועי חיפוש לא
-      יעקבו אחריו — הדף עצמו נושא noindex.
-      שים לב: קורא-מסך יקריא את הקישור, וסימון טקסט בעכבר יחשוף אותו.
-    --><a href="peptides.html" rel="nofollow" aria-hidden="true" tabindex="-1"
+      כניסה לאפליקציה (התחברות של מתאמנים ומאמנים). היא לא מוצגת בדף הנחיתה, ולכן הקישור
+      בצבע הרקע של הפוטר: לחיץ רק למי שיודע שהוא כאן. rel=nofollow כדי שמנועי חיפוש לא יעקבו אחריו.
+      שים לב: סימון טקסט בעכבר יחשוף אותו.
+    --><a href="login.html" rel="nofollow" aria-hidden="true" tabindex="-1"
         style="color:#0d0d0d;text-decoration:none;user-select:none;padding:0 6px;">·</a></p>
 
   </div>
@@ -2983,14 +2690,13 @@
     try {
       const res = await fetch(LEAD_FN, { method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ full_name: name, phone, plan_interest: el('lead-plan').value, goal: el('lead-goal').value,
-          gender: el('tab-women') && el('tab-women').classList.contains('active') ? 'women' : 'men',
           source: 'landing', website: el('lead-hp').value }) });
       const j = await res.json().catch(() => ({}));
       if (!res.ok || !j.ok) throw new Error(j.error || 'שגיאה');
       el('lead-done-name').textContent = name.split(/\s+/)[0];
       el('lead-form').hidden = true; el('lead-done').hidden = false; el('lead').classList.add('sent'); el('lead-done').focus({ preventScroll: true });
     } catch (err) {
-      btn.disabled = false; btn.textContent = 'שלחו לי פרטים';
+      btn.disabled = false; btn.textContent = 'אני רוצה שיחת התאמה';
       msg.innerHTML = 'השליחה לא הצליחה. נסו שוב, או <a href="https://wa.me/972586931163" target="_blank" rel="noopener">כתבו לנו בוואטסאפ</a>.';
     }
     return false;
@@ -3330,6 +3036,35 @@
   });
   more.addEventListener('click', function () { var before = box.children.length; shown += STEP; render(true); var f = box.children[before]; if (f) { var t = f.querySelector('.ba-range'); if (t) t.focus({ preventScroll: true }); f.scrollIntoView({ block: 'nearest', inline: 'start', behavior: 'smooth' }); } });
   chips(); render();
+})();
+</script>
+<script>
+/* ── תוצאות מהצדדים ──
+   כל [data-rs] מקבל מתאמן אחד מ-#results-data לפי הסדר: "לפני" נכנס מימין ו"אחרי" משמאל כשמגיעים אליו בגלילה.
+   מקום שאין לו מתאמן נמחק. התמונות נטענות קצת לפני שמגיעים, כדי שהכרטיס לא ייכנס ריק. */
+(function () {
+  var slots = document.querySelectorAll('[data-rs]'), el = document.getElementById('results-data'); if (!slots.length || !el) return;
+  var DATA = []; try { DATA = JSON.parse(el.textContent); } catch (e) { return; }
+  var calm = matchMedia('(prefers-reduced-motion: reduce)').matches || !('IntersectionObserver' in window);
+  function esc(t) { return String(t == null ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;'); }
+  function img(src) { return '<img ' + (calm ? 'src' : 'data-src') + '="' + esc(src) + '" alt="" width="320" height="400" decoding="async">'; }
+  function count(v) {   /* המספר עולה מ-0 כשהכרטיס נוחת */
+    var end = +v.dataset.v, t0 = 0; if (!(end > 0)) return;
+    v.textContent = '0';
+    requestAnimationFrame(function tick(t) { if (!t0) t0 = t; var k = Math.min(1, (t - t0) / 900); v.textContent = Math.round(end * (1 - Math.pow(1 - k, 3))); if (k < 1) requestAnimationFrame(tick); });
+  }
+  var load = calm ? null : new IntersectionObserver(function (es) { es.forEach(function (e) { if (!e.isIntersecting) return; load.unobserve(e.target);
+    e.target.querySelectorAll('img[data-src]').forEach(function (i) { i.src = i.dataset.src; i.removeAttribute('data-src'); }); }); }, { rootMargin: '900px 0px' });
+  var show = calm ? null : new IntersectionObserver(function (es) { es.forEach(function (e) { if (!e.isIntersecting) return; show.unobserve(e.target);
+    e.target.classList.add('in'); var v = e.target.querySelector('.rs-val'); if (v) setTimeout(function () { count(v); }, 350); }); }, { rootMargin: '0px 0px -22% 0px' });
+  Array.prototype.forEach.call(slots, function (s, i) {
+    var d = DATA[i]; if (!d || !d.before || !d.after) { s.remove(); return; }
+    s.innerHTML = '<a class="rs-card rs-b" href="#results" tabindex="-1">' + img(d.before) + '<span class="rs-tag">לפני</span><b class="rs-cap">' + esc(d.name) + '</b></a>' +
+      '<a class="rs-card rs-a" href="#results" tabindex="-1">' + img(d.after) + '<span class="rs-tag">אחרי</span>' +
+      '<b class="rs-cap rs-num" dir="ltr">' + esc(d.sign) + '<span class="rs-val" data-v="' + esc(d.value) + '">' + esc(d.value) + '</span><small>' + esc(d.unit || 'ק״ג') + '</small></b></a>';
+    if (calm) s.classList.add('in'); else { load.observe(s); show.observe(s); }
+  });
+  document.addEventListener('click', function (e) { var a = e.target.closest && e.target.closest('.rs-card'); if (!a) return; e.preventDefault(); goTo('results'); });
 })();
 </script>
 </body>
