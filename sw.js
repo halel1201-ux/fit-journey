@@ -3,7 +3,7 @@
 // (שני SW-ים נפרדים על "/" גורמים לבעיות הרשמה ל-Push, בעיקר ב-iOS Safari)
 importScripts('https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js');
 
-const CACHE = 'hf-v53'; // bumped: דף נחיתה 90 יום (שיחת התאמה במקום מסלולים, בלי האפליקציה) + בלי חנות הפפטידים
+const CACHE = 'hf-v54'; // bumped: בניית תפריט ותוכנית עומדת במגבלת 150 השניות של השרת (ai-b, ניסיון חוזר, אופציות בקריאה נפרדת)
 
 // relative paths — work from root AND from a subpath like /fit-journey/
 const STATIC = [

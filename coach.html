@@ -1201,13 +1201,50 @@
   const URL_ = 'https://luwknflmhvcxgifzxgrk.supabase.co';
   const KEY  = 'sb_publishable_k3M7SfBeiBGs3rTKewBzWQ_7RHRskB9';
   const CLAUDE_KEY = ''; // מפתח AI הועבר ל-Edge Function בשרת
+  /* השרת (פונקציית Edge של Supabase, בתוכנית החינמית) סוגר כל worker
+     150 שניות אחרי שעלה, גם באמצע בקשה (שגיאה 546), ו-worker אחד מקבל
+     את כל הבקשות שמגיעות בזמן שהוא חי. לכן בקשה שנכנסת ל-worker ותיק
+     נחתכת מוקדם: כך נפל תפריט של מאמן ב-21.11, אחרי 75 שניות בלבד.
+     שתי הגנות. הבקשות מתחלפות בין שתי פונקציות זהות (ai ו-ai-b), כדי
+     שבקשה עוקבת לא תירש את ה-worker של הקודמת. ובקשה שנחתכה מוקדם נשלחת
+     שוב לאותה פונקציה: ה-worker שלה מת ברגע החיתוך, והבא עולה חדש.
+     בקשה שנחתכה אחרי יותר מ-120 שניות לא נשלחת שוב. היא פשוט ארוכה מדי,
+     וניסיון חוזר היה נכשל שוב אחרי עוד 150 שניות. */
+  const AI_FNS = ['ai', 'ai-b'];
+  let _aiTurn = 0;
   async function aiFetch(_url, options) {
-    const { data: { session } } = await sb.auth.getSession();
-    return fetch(`${URL_}/functions/v1/ai`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "apikey": KEY, "Authorization": `Bearer ${session?.access_token || ""}` },
-      body: (options && options.body) || "{}"
-    });
+    let fn = AI_FNS[_aiTurn++ % AI_FNS.length];
+    for (let attempt = 0; ; attempt++) {
+      const { data: { session } } = await sb.auth.getSession();
+      const t0 = Date.now();
+      let res = null;
+      try {
+        res = await fetch(`${URL_}/functions/v1/${fn}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "apikey": KEY, "Authorization": `Bearer ${session?.access_token || ""}` },
+          body: (options && options.body) || "{}"
+        });
+      } catch (e) {
+        if (attempt >= 2 || Date.now() - t0 > 120000) throw e;          // הרשת נפלה באמצע
+      }
+      if (res) {
+        if (res.status === 404 && fn !== 'ai') { fn = 'ai'; continue; }  // ai-b לא קיימת בשרת
+        const early = Date.now() - t0 < 120000;
+        const again = ((res.status === 546 || res.status === 504 || res.status === 500) && early) ||
+                      res.status === 502 || res.status === 503 || res.status === 529;   // 529: Anthropic עמוס
+        if (!again || attempt >= 2) return res;
+      }
+      await new Promise(r => setTimeout(r, 2000 * (attempt + 1)));
+    }
+  }
+  /* שגיאה מהשרת במילים של המאמן. "HTTP 546" לא אומר לו כלום, וכאן
+     "נסה שוב" הוא בדיוק מה שעוזר. */
+  async function aiHttpError(res) {
+    let msg = '';
+    try { const e = await res.json(); msg = (e.error && e.error.message) || ''; } catch (_) {}
+    if (res.status === 546 || res.status === 504) return new Error('הבנייה לקחה יותר מדי זמן והשרת עצר אותה. נסה שוב');
+    if (res.status === 502 || res.status === 503 || res.status === 529) return new Error('השרת של ה-AI עמוס כרגע. נסה שוב בעוד דקה');
+    return new Error(msg || `HTTP ${res.status}`);
   }
   // קריאה לפעולות auth מאובטחות בשרת (set_password / rename_email)
   async function adminCall(payload) {
@@ -8318,7 +8355,7 @@ ${exLines || 'אין'}
           }), _pendingPlanFiles) }]
         })
       });
-      if (!res.ok) { const e = await res.json(); throw new Error(e.error?.message || `HTTP ${res.status}`); }
+      if (!res.ok) throw await aiHttpError(res);
       const data = await res.json();
       const text = data.content[0].text.trim();
       const plan = parseAiJson(text, 'תוכנית אימון');
@@ -9292,6 +9329,51 @@ ${JSON.stringify(plan)}` }]
     } catch(_) { return null; }
   }
 
+  /* אופציות מלאות לתפריט שכבר נבנה, בקריאה נפרדת (ראו generateNutritionWithAI).
+     הקריאה מקבלת את אותה פתיחה ואותם חוקים של בניית התפריט, כך שהאופציות
+     נבנות לפי אותם כללים בדיוק. מחזירה כמה ארוחות קיבלו אופציות, או null
+     כשנכשלה. אז התפריט נשאר כמו שהוא, בלי אופציות מלאות. */
+  async function requestMealVariants(plan, head, rules) {
+    const sum = (items, f) => Math.round(items.reduce((a, i) => a + (+i[f] || 0), 0));
+    const menu = plan.map(m => {
+      const items = (m.items || []).map(({ food, quantity, calories, protein, carbs, fat }) => ({ food, quantity, calories, protein, carbs, fat }));
+      return { meal: m.meal, day_type: m.day_type, items,
+               total: { calories: sum(items, 'calories'), protein: sum(items, 'protein'), carbs: sum(items, 'carbs'), fat: sum(items, 'fat') } };
+    });
+    try {
+      const res = await aiFetch('', {
+        method: 'POST',
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-6',
+          max_tokens: 6000,
+          messages: [{ role: 'user', content:
+`${head}
+
+## התפריט כבר נבנה. אל תשנה אותו — המשימה עכשיו היא אופציות מלאות בלבד.
+לכל ארוחה מופיע גם סך הערכים שלה (total), כדי שהאופציות יגיעו לאותם מאקרו.
+${JSON.stringify(menu)}
+
+${rules}
+${buildFoodListForPrompt()}
+
+החזר רשומה אחת לכל ארוחה בתפריט, באותו סדר ועם שם הארוחה בדיוק כפי שהוא.
+## פורמט — החזר JSON בלבד ללא markdown, ללא הסברים:
+[{"meal":"ארוחת בוקר","variants":[{"label":"אופציה 2","items":[{"food":"לחם מלא","quantity":"2 פרוסות (60 גרם)","calories":150,"protein":6,"carbs":28,"fat":2},{"food":"חלבון ביצה","quantity":"200 גרם","calories":90,"protein":21,"carbs":2,"fat":0}]}]}]` }]
+        })
+      });
+      if (!res.ok) return null;
+      const data = await res.json();
+      const got = parseAiJson((data.content?.[0]?.text || '').trim(), 'אופציות');
+      let n = 0;
+      plan.forEach((m, i) => {
+        const hit = (got[i] && got[i].meal === m.meal) ? got[i]
+          : got.find(x => x && x.meal === m.meal) || (got.length === plan.length ? got[i] : null);
+        if (hit && Array.isArray(hit.variants) && hit.variants.length) { m.variants = hit.variants; n++; }
+      });
+      return n;
+    } catch (_) { return null; }
+  }
+
   /* ═══ פענוח JSON מהסוכן, עמיד לתקלות ═══
      המודל מחזיר טקסט, ולפעמים הוא לא JSON חוקי. המקרה שנתקלנו בו:
      שם מזון שמכיל גרשיים כפולים ממש — "דפי אורז מאסטר שף 22 ס"מ" —
@@ -9395,48 +9477,22 @@ ${JSON.stringify(plan)}` }]
     const hasFile = _pendingNutriFiles.length > 0;
     const preserveMode = !hasFile && looksLikeMenu(prompt);
     if (preserveMode) statusEl.textContent = 'זוהה תפריט בבקשה — יישמר כלשונו...';
-    try {
-      const res = await aiFetch('', {
-        method: 'POST',
-        headers: { 'Content-Type':'application/json','x-api-key':CLAUDE_KEY,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true' },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-6',
-          max_tokens: wantVariants ? 8192 : 4096,
-          messages: [{ role: 'user', content: _withFile(
-`אתה NUTRITION AI — תזונאי ספורט ברמה הגבוהה ביותר (RD, CISSN), מומחה תזונת פיזיק/פיתוח גוף, מערכת HF Coaching. המטרה: ללוות לגוף חטוב, שרירי ואסתטי — אוכל איכותי בלבד בסגנון מפתחי גוף.
+    /* אופציות מלאות באותה קריאה הכפילו את אורך התשובה ל-140–160 שניות,
+       והשרת עוצר כל בקשה אחרי 150 (ראו aiFetch). במצב יצירה הן נבנות לכן
+       בקריאה שנייה, על התפריט שכבר נבנה ותוקן, וכל קריאה נשארת סביב דקה.
+       בחילוץ מקובץ ובמצב שימור הן נשארות באותה קריאה: שם הן מועתקות ממה
+       שהמאמן נתן, והקריאה השנייה לא רואה את המקור. */
+    const splitVariants  = wantVariants && !hasFile && !preserveMode;
+    const inlineVariants = wantVariants && !splitVariants;
+    /* הפתיחה, החוקים והוראות האופציות משותפים לשתי הקריאות */
+    const nutriHead = `אתה NUTRITION AI — תזונאי ספורט ברמה הגבוהה ביותר (RD, CISSN), מומחה תזונת פיזיק/פיתוח גוף, מערכת HF Coaching. המטרה: ללוות לגוף חטוב, שרירי ואסתטי — אוכל איכותי בלבד בסגנון מפתחי גוף.
 
 ## בקשה:
 "${prompt}"
 ${weightLine ? '\n' + weightLine : ''}
 ${(macrosLine && !preserveMode) ? '\n' + macrosLine : ''}
-${goalLine ? '\n' + goalLine : ''}
-
-${hasFile ? `## 📄 מצב: חילוץ מקובץ מצורף
-**הקובץ המצורף הוא מקור האמת היחיד.** בצע אך ורק את הפעולות הבאות:
-1. קרא את הקובץ במלואו — כל ארוחה, כל מזון, כל כמות, כל אפשרות/חלופה
-2. שמור על כל מה שכתוב בדיוק מוחלט: שמות ארוחות, שמות מזונות, כמויות, יחידות
-3. כל "אפשרות" / "חלופה" / "או" שמופיעה בקובץ → protein_options / carbs_options / fat_options
-4. אל תמציא ואל תוסיף מזונות שלא מופיעים בקובץ
-5. חשב ערכים תזונתיים (calories/protein/carbs/fat) רק אם חסרים — לפי המאגר הבא
-6. אם כמות לא ברורה — השתמש ב-100g כברירת מחדל
-
-` : `## מצב: יצירת תפריט חדש
-`}${preserveMode ? `## 🔒 מצב שימור — הבקשה מכילה תפריט מוכן
-הטקסט שהמאמן כתב הוא מקור האמת היחיד והוא **גובר על כל שאר ההנחיות למטה**.
-1. שמור כל מזון בדיוק כפי שנכתב — אותו שם, אותה כמות, אותה יחידה.
-   אל תחליף, אל תסיר, אל תוסיף מזון, ואל "תשפר" שום דבר.
-2. כל "אופציה" שהמאמן כתב היא גרסה שלמה ונפרדת של אותה ארוחה:
-   אופציה 1 → items · אופציה 2 ואילך → variants (עם label "אופציה 2" וכו').
-3. אם המאמן כתב שארוחה זהה לאחרת ("אותן אופציות של צהריים") —
-   שכפל את כל האופציות שלה במלואן, אחת לאחת.
-4. עקרונות התזונה ורשימת המזון המאושרת **אינם חלים** במצב הזה.
-   מזון שהמאמן כתב נשאר גם אם אינו ברשימה ואפילו אם הוא מעובד.
-5. תפקידך היחיד: להשלים calories/protein/carbs/fat לכל פריט.
-   אם כמות לא צוינה — הנח מנה סבירה וכתוב אותה ב-quantity.
-6. **אל תשנה כמויות כדי להגיע ליעד קלורי או מאקרו כלשהו.** היעדים של המתאמן
-   ייגזרו מהתפריט הזה, ולא להפך. 50 גרם נשארים 50 גרם, ושלוש ביצים נשארות שלוש.
-
-` : ''}## חוקי${(hasFile || preserveMode) ? ' נוספים' : ' קשיח'}:
+${goalLine ? '\n' + goalLine : ''}`;
+    const nutriRules = `## חוקי${(hasFile || preserveMode) ? ' נוספים' : ' קשיח'}:
 ${(hasFile || preserveMode) ? '' : '0. אם המאמן שלח מבנה תפריט קיים (מזונות מופיעים בבקשה) — שמור עליו במדויק, רק מלא ערכים חסרים.\n'}1. ארוחת בוקר — פרווה או חלבית בלבד (אסור לשלב בשר/עוף/דג)
 2. לא לשלב מוצרי חלב עם בשר/עוף/דג באותה ארוחה (כשרות)
 3. בכל ארוחה — 3+ חלופות שוות-ערך לכל מקור מאקרו (protein_options / carbs_options / fat_options), שמות מזון בלבד מהמאגר.
@@ -9464,8 +9520,8 @@ ${(hasFile || preserveMode) ? '' : `4. התאם כמויות וערכים מדו
 טו) איכות חלבון: העדף חלבון מלא עתיר-לאוצין וזמינות ביולוגית גבוהה; נתחים רזים (מודעות לשומן רווי). חלבון צמחי רק לצמחוני, ואז שילוב מקורות להשלמה.
 טז) ירקות/סיבים + מים כבסיס בארוחות עיקריות (ירק ירוקי חופשי).
 יז) סוגי יום — בנה תפריט בסיס אחד ועליו הפרשים, לא שלושה תפריטים נפרדים. רוב הארוחות מקבלות "day_type":"any" ומוצגות בכל יום. סמן "training" רק לארוחות שקיימות ביום אימון בלבד (לפני/אחרי אימון) — בדרך כלל 1-3 ארוחות. סמן "rest" רק לארוחה שמחליפה אותן ביום מנוחה, אם יש כזאת. "target" = יום מסה, רק אם התבקש במפורש. יום אימון חייב לצאת גבוה יותר בקלוריות מיום מנוחה, וההפרש נוצר מהארוחות המסומנות — לא מהקטנת הבסיס.
-`}
-${wantVariants ? `
+`}`;
+    const nutriVariants = `
 ## 🔀 אופציות מלאות לכל ארוחה — חובה
 לכל ארוחה הוסף שדה "variants": מערך של 1–2 גרסאות חלופיות **שלמות** לאותה ארוחה,
 במבנה {"label":"אופציה 2","items":[ ...אותו מבנה items... ]}.
@@ -9477,17 +9533,54 @@ ${wantVariants ? `
 זה **נוסף** ל-protein_options/carbs_options/fat_options ואינו מחליף אותם:
 ה-options הם החלפת מוצר בודד, ו-variants הם ארוחה חלופית שלמה.${hasFile ? `
 במצב חילוץ מקובץ: בנה variants רק אם הקובץ עצמו מציג ארוחה חלופית שלמה. אל תמציא.` : ''}
-` : ''}
+`;
+    try {
+      const res = await aiFetch('', {
+        method: 'POST',
+        headers: { 'Content-Type':'application/json','x-api-key':CLAUDE_KEY,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-6',
+          max_tokens: inlineVariants ? 8192 : 4096,
+          messages: [{ role: 'user', content: _withFile(
+`${nutriHead}
+
+${hasFile ? `## 📄 מצב: חילוץ מקובץ מצורף
+**הקובץ המצורף הוא מקור האמת היחיד.** בצע אך ורק את הפעולות הבאות:
+1. קרא את הקובץ במלואו — כל ארוחה, כל מזון, כל כמות, כל אפשרות/חלופה
+2. שמור על כל מה שכתוב בדיוק מוחלט: שמות ארוחות, שמות מזונות, כמויות, יחידות
+3. כל "אפשרות" / "חלופה" / "או" שמופיעה בקובץ → protein_options / carbs_options / fat_options
+4. אל תמציא ואל תוסיף מזונות שלא מופיעים בקובץ
+5. חשב ערכים תזונתיים (calories/protein/carbs/fat) רק אם חסרים — לפי המאגר הבא
+6. אם כמות לא ברורה — השתמש ב-100g כברירת מחדל
+
+` : `## מצב: יצירת תפריט חדש
+`}${preserveMode ? `## 🔒 מצב שימור — הבקשה מכילה תפריט מוכן
+הטקסט שהמאמן כתב הוא מקור האמת היחיד והוא **גובר על כל שאר ההנחיות למטה**.
+1. שמור כל מזון בדיוק כפי שנכתב — אותו שם, אותה כמות, אותה יחידה.
+   אל תחליף, אל תסיר, אל תוסיף מזון, ואל "תשפר" שום דבר.
+2. כל "אופציה" שהמאמן כתב היא גרסה שלמה ונפרדת של אותה ארוחה:
+   אופציה 1 → items · אופציה 2 ואילך → variants (עם label "אופציה 2" וכו').
+3. אם המאמן כתב שארוחה זהה לאחרת ("אותן אופציות של צהריים") —
+   שכפל את כל האופציות שלה במלואן, אחת לאחת.
+4. עקרונות התזונה ורשימת המזון המאושרת **אינם חלים** במצב הזה.
+   מזון שהמאמן כתב נשאר גם אם אינו ברשימה ואפילו אם הוא מעובד.
+5. תפקידך היחיד: להשלים calories/protein/carbs/fat לכל פריט.
+   אם כמות לא צוינה — הנח מנה סבירה וכתוב אותה ב-quantity.
+6. **אל תשנה כמויות כדי להגיע ליעד קלורי או מאקרו כלשהו.** היעדים של המתאמן
+   ייגזרו מהתפריט הזה, ולא להפך. 50 גרם נשארים 50 גרם, ושלוש ביצים נשארות שלוש.
+
+` : ''}${nutriRules}
+${inlineVariants ? nutriVariants : ''}
 ${buildFoodListForPrompt()}
 
 החזר **ארוחות בלבד**. אל תוסיף שורת סיכום, "סה״כ", הערה או כל רשומה
 שאינה ארוחה שאפשר לאכול — גם לא בסוף המערך.
 
 ## פורמט — החזר JSON בלבד ללא markdown, ללא הסברים:
-[{"meal":"ארוחת בוקר","day_type":"any","items":[{"food":"שיבולת שועל","quantity":"1/2 כוס (40 גרם)","calories":152,"protein":5,"carbs":27,"fat":2.8},{"food":"גבינה לבנה 5% שומן","quantity":"4 כפות (80 גרם)","calories":78,"protein":7.2,"carbs":3.4,"fat":4}],"protein_options":["יוגורט יווני 0%","קוטג׳ 5% שומן","חלבון ביצה"],"carbs_options":["שיבולת שועל","לחם מלא","פריכיות אורז"],"fat_options":["שקדים","אבוקדו","טחינה גולמית"]${wantVariants ? ',"variants":[{"label":"אופציה 2","items":[{"food":"לחם מלא","quantity":"2 פרוסות (60 גרם)","calories":150,"protein":6,"carbs":28,"fat":2},{"food":"חלבון ביצה","quantity":"200 גרם","calories":90,"protein":21,"carbs":2,"fat":0}]}]' : ''}}]`, _pendingNutriFiles) }]
+[{"meal":"ארוחת בוקר","day_type":"any","items":[{"food":"שיבולת שועל","quantity":"1/2 כוס (40 גרם)","calories":152,"protein":5,"carbs":27,"fat":2.8},{"food":"גבינה לבנה 5% שומן","quantity":"4 כפות (80 גרם)","calories":78,"protein":7.2,"carbs":3.4,"fat":4}],"protein_options":["יוגורט יווני 0%","קוטג׳ 5% שומן","חלבון ביצה"],"carbs_options":["שיבולת שועל","לחם מלא","פריכיות אורז"],"fat_options":["שקדים","אבוקדו","טחינה גולמית"]${inlineVariants ? ',"variants":[{"label":"אופציה 2","items":[{"food":"לחם מלא","quantity":"2 פרוסות (60 גרם)","calories":150,"protein":6,"carbs":28,"fat":2},{"food":"חלבון ביצה","quantity":"200 גרם","calories":90,"protein":21,"carbs":2,"fat":0}]}]' : ''}}]`, _pendingNutriFiles) }]
         })
       });
-      if (!res.ok) { const e = await res.json(); throw new Error(e.error?.message || `HTTP ${res.status}`); }
+      if (!res.ok) throw await aiHttpError(res);
       const data = await res.json();
       const text = data.content[0].text.trim();
       let plan;
@@ -9538,13 +9631,20 @@ ${buildFoodListForPrompt()}
       await ensureLibs();
       const alt = applyAgentAlternatives(plan);
 
-      /* 3. אופציות מלאות: ניקוי מה שהסוכן החזיר */
+      /* 3. אופציות מלאות: במצב יצירה הן נבנות כאן, בקריאה נפרדת על התפריט
+            הסופי, ואחר כך מנוקות כמו אלה שהגיעו באותה קריאה */
+      let varNote = '';
+      if (splitVariants) {
+        statusEl.style.color = 'var(--muted)';
+        statusEl.textContent = 'בונה אופציות מלאות לכל ארוחה...';
+        if (!await requestMealVariants(plan, nutriHead, nutriRules + nutriVariants)) varNote = ' · האופציות המלאות לא נבנו';
+      }
       const vr = normalizeAgentVariants(plan);
 
       nutritionPlan = plan;
       renderNutritionEditor();
       statusEl.style.color = chk.bad.length ? '#e0b040' : '#70dd70';
-      statusEl.textContent = `✓ ${plan.length} ארוחות · ${alt.added} חלופות${vr.kept ? ` · ${vr.kept} אופציות` : ''}${fixNote}${dropNote}` +
+      statusEl.textContent = `✓ ${plan.length} ארוחות · ${alt.added} חלופות${vr.kept ? ` · ${vr.kept} אופציות` : ''}${fixNote}${varNote}${dropNote}` +
         (chk.bad.length ? ` — שים לב: ${chk.bad.map(b=>`${b.label} ${b.got}/${b.target}`).join(', ')}` : '');
       // הערכים שנבנו הופכים ליעדי המאקרו של הלקוח
       await saveNutrition(true);
