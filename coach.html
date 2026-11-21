@@ -1231,10 +1231,10 @@
         if (res.status === 404 && fn !== 'ai') { fn = 'ai'; continue; }  // ai-b לא קיימת בשרת
         const early = Date.now() - t0 < 120000;
         const again = ((res.status === 546 || res.status === 504 || res.status === 500) && early) ||
-                      res.status === 502 || res.status === 503 || res.status === 529;   // 529: Anthropic עמוס
+                      [429, 502, 503, 529].includes(res.status);   // 429: מגבלת קצב · 529: Anthropic עמוס
         if (!again || attempt >= 2) return res;
       }
-      await new Promise(r => setTimeout(r, 2000 * (attempt + 1)));
+      await new Promise(r => setTimeout(r, (res && res.status === 429 ? 8000 : 2000) * (attempt + 1)));
     }
   }
   /* שגיאה מהשרת במילים של המאמן. "HTTP 546" לא אומר לו כלום, וכאן
@@ -1243,7 +1243,7 @@
     let msg = '';
     try { const e = await res.json(); msg = (e.error && e.error.message) || ''; } catch (_) {}
     if (res.status === 546 || res.status === 504) return new Error('הבנייה לקחה יותר מדי זמן והשרת עצר אותה. נסה שוב');
-    if (res.status === 502 || res.status === 503 || res.status === 529) return new Error('השרת של ה-AI עמוס כרגע. נסה שוב בעוד דקה');
+    if ([429, 502, 503, 529].includes(res.status)) return new Error('השרת של ה-AI עמוס כרגע. נסה שוב בעוד דקה');
     return new Error(msg || `HTTP ${res.status}`);
   }
   // קריאה לפעולות auth מאובטחות בשרת (set_password / rename_email)
@@ -9329,49 +9329,59 @@ ${JSON.stringify(plan)}` }]
     } catch(_) { return null; }
   }
 
-  /* אופציות מלאות לתפריט שכבר נבנה, בקריאה נפרדת (ראו generateNutritionWithAI).
-     הקריאה מקבלת את אותה פתיחה ואותם חוקים של בניית התפריט, כך שהאופציות
-     נבנות לפי אותם כללים בדיוק. מחזירה כמה ארוחות קיבלו אופציות, או null
-     כשנכשלה. אז התפריט נשאר כמו שהוא, בלי אופציות מלאות. */
-  async function requestMealVariants(plan, head, rules) {
+  /* אופציות מלאות לתפריט שכבר נבנה, ארוחה אחרי ארוחה (ראו generateNutritionWithAI).
+     כל ארוחה היא קריאה קצרה משלה, כך ששום קריאה לא מתקרבת למגבלת השרת, וכשל
+     בארוחה אחת לא מפיל את השאר. כל הקריאות מקבלות את אותה פתיחה, אותם חוקים
+     ואת כל התפריט, כמו בבניית התפריט עצמו. החלק המשותף נשמר במטמון של Anthropic
+     (cache_control), ולכן מהארוחה השלישית הוא כמעט לא עולה ולא מעכב.
+     שתי ארוחות במקביל: מהר יותר מאחת אחרי השנייה, ועדיין רחוק ממגבלת הקצב.
+     מחזירה כמה ארוחות קיבלו אופציות. */
+  async function requestMealVariants(plan, head, rules, onProgress) {
     const sum = (items, f) => Math.round(items.reduce((a, i) => a + (+i[f] || 0), 0));
     const menu = plan.map(m => {
       const items = (m.items || []).map(({ food, quantity, calories, protein, carbs, fat }) => ({ food, quantity, calories, protein, carbs, fat }));
       return { meal: m.meal, day_type: m.day_type, items,
                total: { calories: sum(items, 'calories'), protein: sum(items, 'protein'), carbs: sum(items, 'carbs'), fat: sum(items, 'fat') } };
     });
-    try {
-      const res = await aiFetch('', {
-        method: 'POST',
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-6',
-          max_tokens: 6000,
-          messages: [{ role: 'user', content:
+    const shared =
 `${head}
 
-## התפריט כבר נבנה. אל תשנה אותו — המשימה עכשיו היא אופציות מלאות בלבד.
+## התפריט כבר נבנה. אל תשנה אותו — המשימה היא אופציות מלאות, ארוחה אחת בכל פעם.
 לכל ארוחה מופיע גם סך הערכים שלה (total), כדי שהאופציות יגיעו לאותם מאקרו.
 ${JSON.stringify(menu)}
 
 ${rules}
-${buildFoodListForPrompt()}
-
-החזר רשומה אחת לכל ארוחה בתפריט, באותו סדר ועם שם הארוחה בדיוק כפי שהוא.
-## פורמט — החזר JSON בלבד ללא markdown, ללא הסברים:
-[{"meal":"ארוחת בוקר","variants":[{"label":"אופציה 2","items":[{"food":"לחם מלא","quantity":"2 פרוסות (60 גרם)","calories":150,"protein":6,"carbs":28,"fat":2},{"food":"חלבון ביצה","quantity":"200 גרם","calories":90,"protein":21,"carbs":2,"fat":0}]}]}]` }]
-        })
-      });
-      if (!res.ok) return null;
-      const data = await res.json();
-      const got = parseAiJson((data.content?.[0]?.text || '').trim(), 'אופציות');
-      let n = 0;
-      plan.forEach((m, i) => {
-        const hit = (got[i] && got[i].meal === m.meal) ? got[i]
-          : got.find(x => x && x.meal === m.meal) || (got.length === plan.length ? got[i] : null);
-        if (hit && Array.isArray(hit.variants) && hit.variants.length) { m.variants = hit.variants; n++; }
-      });
-      return n;
-    } catch (_) { return null; }
+${buildFoodListForPrompt()}`;
+    let next = 0, done = 0, got = 0;
+    async function one(i) {
+      const m = plan[i];
+      try {
+        const res = await aiFetch('', {
+          method: 'POST',
+          body: JSON.stringify({
+            model: 'claude-sonnet-4-6',
+            max_tokens: 2000,
+            messages: [{ role: 'user', content: [
+              { type: 'text', text: shared, cache_control: { type: 'ephemeral' } },
+              { type: 'text', text:
+`בנה עכשיו אופציות מלאות רק לארוחה "${m.meal}" (ארוחה ${i + 1} מתוך ${plan.length}), בערכים קרובים ל-total שלה.
+## פורמט — החזר JSON בלבד ללא markdown, ללא הסברים: מערך האופציות של הארוחה הזאת בלבד.
+[{"label":"אופציה 2","items":[{"food":"לחם מלא","quantity":"2 פרוסות (60 גרם)","calories":150,"protein":6,"carbs":28,"fat":2},{"food":"חלבון ביצה","quantity":"200 גרם","calories":90,"protein":21,"carbs":2,"fat":0}]}]` },
+            ] }]
+          })
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        const v = parseAiJson((data.content?.[0]?.text || '').trim(), 'אופציות');
+        /* אם הסוכן עטף בכל זאת את האופציות ברשומת ארוחה — לוקחים את מה שבפנים */
+        const list = Array.isArray(v[0] && v[0].variants) ? v[0].variants : v;
+        if (list.some(x => x && Array.isArray(x.items) && x.items.length)) { m.variants = list; got++; }
+      } catch (_) { /* הארוחה הזאת נשארת בלי אופציות מלאות */ }
+      finally { done++; if (onProgress) onProgress(done, plan.length); }
+    }
+    const lane = async () => { while (next < plan.length) await one(next++); };
+    await Promise.all([lane(), lane()]);
+    return got;
   }
 
   /* ═══ פענוח JSON מהסוכן, עמיד לתקלות ═══
@@ -9479,9 +9489,9 @@ ${buildFoodListForPrompt()}
     if (preserveMode) statusEl.textContent = 'זוהה תפריט בבקשה — יישמר כלשונו...';
     /* אופציות מלאות באותה קריאה הכפילו את אורך התשובה ל-140–160 שניות,
        והשרת עוצר כל בקשה אחרי 150 (ראו aiFetch). במצב יצירה הן נבנות לכן
-       בקריאה שנייה, על התפריט שכבר נבנה ותוקן, וכל קריאה נשארת סביב דקה.
+       אחרי התפריט, ארוחה אחרי ארוחה (requestMealVariants), וכל קריאה קצרה.
        בחילוץ מקובץ ובמצב שימור הן נשארות באותה קריאה: שם הן מועתקות ממה
-       שהמאמן נתן, והקריאה השנייה לא רואה את המקור. */
+       שהמאמן נתן, והקריאות של האופציות לא רואות את המקור. */
     const splitVariants  = wantVariants && !hasFile && !preserveMode;
     const inlineVariants = wantVariants && !splitVariants;
     /* הפתיחה, החוקים והוראות האופציות משותפים לשתי הקריאות */
@@ -9631,13 +9641,16 @@ ${buildFoodListForPrompt()}
       await ensureLibs();
       const alt = applyAgentAlternatives(plan);
 
-      /* 3. אופציות מלאות: במצב יצירה הן נבנות כאן, בקריאה נפרדת על התפריט
+      /* 3. אופציות מלאות: במצב יצירה הן נבנות כאן, ארוחה אחרי ארוחה על התפריט
             הסופי, ואחר כך מנוקות כמו אלה שהגיעו באותה קריאה */
       let varNote = '';
       if (splitVariants) {
         statusEl.style.color = 'var(--muted)';
-        statusEl.textContent = 'בונה אופציות מלאות לכל ארוחה...';
-        if (!await requestMealVariants(plan, nutriHead, nutriRules + nutriVariants)) varNote = ' · האופציות המלאות לא נבנו';
+        statusEl.textContent = `בונה אופציות מלאות לכל ארוחה (0 מתוך ${plan.length})...`;
+        const got = await requestMealVariants(plan, nutriHead, nutriRules + nutriVariants,
+          (done, total) => { statusEl.textContent = `בונה אופציות מלאות לכל ארוחה (${done} מתוך ${total})...`; });
+        if (!got) varNote = ' · האופציות המלאות לא נבנו';
+        else if (got < plan.length) varNote = ` · אופציות מלאות ל-${got} מתוך ${plan.length} ארוחות`;
       }
       const vr = normalizeAgentVariants(plan);
 
