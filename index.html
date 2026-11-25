@@ -1662,19 +1662,17 @@
     .champ-row .medal-ico { color: var(--gold); margin-left: 6px; }
 
     /* ─── סליידר לפני/אחרי ─── */
-    @property --pos { syntax: '<percentage>'; inherits: true; initial-value: 50%; }
-    .ba { --pos: 50%; position: relative; aspect-ratio: 4 / 5; border-radius: 12px; overflow: hidden; border: 1px solid var(--border); background: #111; touch-action: pan-y; user-select: none; -webkit-user-select: none; cursor: ew-resize; margin-bottom: 14px; }
+    @property --pos { syntax: '<percentage>'; inherits: true; initial-value: 0%; }
+    .ba { --pos: 0%; position: relative; aspect-ratio: 4 / 5; border-radius: 12px; overflow: hidden; border: 1px solid var(--border); background: #111; touch-action: pan-y; user-select: none; -webkit-user-select: none; cursor: ew-resize; margin-bottom: 14px; }
     .ba-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
     .ba-before { clip-path: inset(0 0 0 var(--pos)); }
     .ba-handle { position: absolute; top: 0; bottom: 0; left: var(--pos); width: 2px; margin-left: -1px; background: var(--gold); box-shadow: 0 0 12px rgba(131,245,44,.6); pointer-events: none; }
-    .ba-knob { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 44px; height: 44px; border-radius: 50%; background: rgba(9,9,9,.78); border: 2px solid var(--gold); display: flex; align-items: center; justify-content: center; color: var(--gold); direction: ltr; }
+    .ba-knob { position: absolute; top: 50%; left: 50%; transform: translate(calc(-50% + var(--kx, 0px)), -50%); width: 44px; height: 44px; border-radius: 50%; background: rgba(9,9,9,.78); border: 2px solid var(--gold); display: flex; align-items: center; justify-content: center; color: var(--gold); direction: ltr; }
     .ba-knob svg { width: 15px; height: 15px; }
     .ba-tag { position: absolute; top: 10px; padding: 2px 10px; border-radius: 20px; font-size: .75rem; font-weight: 800; background: rgba(9,9,9,.75); color: #fff; pointer-events: none; }
     .ba-tag-b { right: 10px; } .ba-tag-a { left: 10px; color: var(--orange); }
     .ba-range { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
     .ba:focus-within { outline: 2px solid var(--gold); outline-offset: 3px; }
-    .ba-hint { animation: baHint 1.3s cubic-bezier(.77,0,.175,1) 1; }
-    @keyframes baHint { 0%, 100% { --pos: 50%; } 35% { --pos: 28%; } 70% { --pos: 64%; } }
     .champ-photos .ba { margin-bottom: 0; }
     .cs-head { margin-top: 2px; }
 
@@ -2171,7 +2169,7 @@
           <img class="ba-img ba-before" src="landing/ba/nesiel-start.jpg" alt="נשיאל בנקודת ההתחלה, 48 ק״ג" loading="lazy" width="640" height="800">
           <span class="ba-tag ba-tag-b">התחלה · 48 ק״ג</span><span class="ba-tag ba-tag-a">יום התחרות · 74 ק״ג</span>
           <span class="ba-handle" aria-hidden="true"><span class="ba-knob"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6l6 6"/></svg><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6l-6 6"/></svg></span></span>
-          <input class="ba-range" type="range" min="0" max="100" value="50" dir="ltr" aria-label="השוואת לפני ואחרי של נשיאל">
+          <input class="ba-range" type="range" min="0" max="100" value="0" dir="ltr" aria-label="השוואת לפני ואחרי של נשיאל">
         </div><img class="chk" src="landing/nesial-check.jpg" alt="הצ'ק של נשיאל מאליפות MBC 2026" loading="lazy"></div>
         <div class="champ-text">
           <div class="champ-row"><svg class="medal-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 21l8 0"/><path d="M12 17l0 4"/><path d="M7 4l10 0"/><path d="M17 4v8a5 5 0 0 1 -10 0v-8"/><path d="M3 9a2 2 0 1 0 4 0a2 2 0 1 0 -4 0"/><path d="M17 9a2 2 0 1 0 4 0a2 2 0 1 0 -4 0"/></svg>אלוף כללי · MBC 2026 Classic Physique Natural</div>
@@ -2216,8 +2214,8 @@
   ],
   "before": "landing/ba/ohad-before.jpg",
   "after": "landing/ba/ohad-after.jpg",
-  "head": "רצה להגיע לבקו״ם חטוב.",
-  "story": "נכנס ב-95 ק״ג. תוכנית אישית, מעקב צמוד ואפס תירוצים: 81 ק״ג עם ריבועים.",
+  "head": "רצה להתחטב כבר מזמן, אבל פחד לאבד את השריר.",
+  "story": "בא אלינו 3 חודשים לפני הגיוס. ירד מ-95 ל-81 ק״ג, והשריר נשאר במקום.",
   "quote": "צה״ל אולי ייקח לי את שמחת החיים, אבל לא את הריבועים."
  },
  {
@@ -2937,31 +2935,51 @@
       navigator.serviceWorker.register('sw.js').then(reg => reg.update()).catch(e => console.warn('SW:', e));
     }
   </script><script>
-  /* סליידר לפני/אחרי: גרירה באצבע/עכבר (pointer capture), מקלדת דרך range, רמז חד-פעמי כשנכנס למסך.
+  /* סליידר לפני/אחרי: גרירה באצבע/עכבר (pointer capture), מקלדת דרך range.
+     מתחיל מה"לפני" המלא, וכשנכנס למסך עוצר רגע ומחליק עד ה"אחרי" המלא (פעם אחת; נגיעה של המשתמש עוצרת).
+     הידית נשארת כולה בתוך התמונה גם בקצוות (--kx מזיז אותה פנימה).
      initBA(root) מפעיל אותו על כל [data-ba] שעוד לא הופעל, כך שגם כרטיסים מקיר התוצאות עובדים. */
   window.initBA = function (root) {
     var all = Array.prototype.filter.call((root || document).querySelectorAll('[data-ba]'), function (b) { return !b.dataset.baOn; });
     all.forEach(function (ba) {
       ba.dataset.baOn = '1';
       var range = ba.querySelector('.ba-range');
-      function set(p) { p = Math.max(0, Math.min(100, p)); ba.style.setProperty('--pos', p + '%'); range.value = Math.round(p); }
+      function set(p) {
+        p = Math.max(0, Math.min(100, p)); ba._p = p;
+        var w = ba.clientWidth, x = w * p / 100, k = 24;
+        ba.style.setProperty('--pos', p + '%');
+        ba.style.setProperty('--kx', (w > 2 * k ? Math.min(Math.max(x, k), w - k) - x : 0) + 'px');
+        range.value = Math.round(p);
+      }
       function fromX(x) { var r = ba.getBoundingClientRect(); set((x - r.left) / r.width * 100); }
-      ba.addEventListener('pointerdown', function (e) { if (!e.target.closest('.ba-knob')) return; e.preventDefault(); ba.classList.remove('ba-hint'); ba.setPointerCapture(e.pointerId); ba.dataset.drag = '1'; });
+      ba.addEventListener('pointerdown', function (e) { if (!e.target.closest('.ba-knob')) return; e.preventDefault(); ba._stop = true; ba.setPointerCapture(e.pointerId); ba.dataset.drag = '1'; });
       ba.addEventListener('pointermove', function (e) { if (ba.dataset.drag) fromX(e.clientX); });
       ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(function (t) { ba.addEventListener(t, function () { delete ba.dataset.drag; }); });
-      range.addEventListener('input', function () { set(+range.value); });
+      range.addEventListener('input', function () { ba._stop = true; set(+range.value); });
+      ba._baSet = set;
+      set(0);
     });
     if (!('IntersectionObserver' in window) || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     var io = new IntersectionObserver(function (es) {
       es.forEach(function (en) {
         if (!en.isIntersecting) return;
         io.unobserve(en.target);
-        en.target.classList.add('ba-hint');
-        setTimeout(function () { en.target.classList.remove('ba-hint'); }, 1400);
+        sweep(en.target);
       });
     }, { threshold: 0.6 });
     all.forEach(function (b) { io.observe(b); });
   };
+  function sweep(ba) {
+    var t0 = 0, HOLD = 600, DUR = 1400;
+    requestAnimationFrame(function tick(t) {
+      if (ba._stop) return;
+      if (!t0) t0 = t;
+      var k = Math.min(1, Math.max(0, (t - t0 - HOLD) / DUR));
+      ba._baSet(100 * (k < .5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2));
+      if (k < 1) requestAnimationFrame(tick);
+    });
+  }
+  addEventListener('resize', function () { document.querySelectorAll('[data-ba]').forEach(function (b) { if (b._baSet) b._baSet(b._p || 0); }); });
   initBA(document);
 </script>
 <script>
@@ -3019,7 +3037,7 @@
       '<img class="ba-img ba-before" src="' + esc(d.before) + '" alt="' + n + ' לפני" loading="lazy" width="640" height="800">' +
       '<span class="ba-tag ba-tag-b">לפני</span><span class="ba-tag ba-tag-a">אחרי</span>' +
       '<span class="ba-handle" aria-hidden="true"><span class="ba-knob">' + ARROW_L + ARROW_R + '</span></span>' +
-      '<input class="ba-range" type="range" min="0" max="100" value="50" dir="ltr" aria-label="השוואת לפני ואחרי של ' + n + '"></div>' +
+      '<input class="ba-range" type="range" min="0" max="100" value="0" dir="ltr" aria-label="השוואת לפני ואחרי של ' + n + '"></div>' +
       '<figcaption><div class="th-n" dir="ltr"><span class="th-sign">' + esc(d.sign) + '</span><span class="th-val">' + esc(d.value) + '</span><small>' + esc(d.unit || 'ק״ג') + '</small></div>' +
       (d.from ? '<div class="th-from">' + esc(d.from) + '</div>' : '') + '<b>' + n + '</b>' +
       '<p class="th-story"><strong>' + esc(d.head) + '</strong> ' + esc(d.story) + '</p>' +
