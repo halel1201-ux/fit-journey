@@ -3,7 +3,7 @@
 // (שני SW-ים נפרדים על "/" גורמים לבעיות הרשמה ל-Push, בעיקר ב-iOS Safari)
 importScripts('https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js');
 
-const CACHE = 'hf-v54'; // bumped: בניית תפריט ותוכנית עומדת במגבלת 150 השניות של השרת (ai-b, ניסיון חוזר, אופציות בקריאה נפרדת)
+const CACHE = 'hf-v55'; // bumped: אוהד ראשון בתוצאות (‎−14 ק״ג תוך 3 חודשים) + משך התוצאה מתחת למספר ברצועות
 
 // relative paths — work from root AND from a subpath like /fit-journey/
 const STATIC = [

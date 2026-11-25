@@ -1929,6 +1929,7 @@
     .rs-num { display: block; font: italic 900 clamp(2.4rem, 4.6vw, 3.6rem)/1 'Barlow Condensed', Heebo, sans-serif; color: var(--neon); text-shadow: 0 0 24px rgba(131,245,44,.45); }
     .rs-num small { font: normal 800 .32em Heebo, sans-serif; color: #fff; margin-inline-start: 6px; }
     .rs-name { display: block; margin-top: 4px; font-size: .95rem; font-weight: 800; color: #e5e8e8; }
+    .rs-from { display: block; margin-top: 2px; font-size: .78rem; font-weight: 700; color: #bbb; }
     /* נחיתה: גל ירוק מהמרכז והמספר "נוחת" */
     .rs::after { content: ''; position: absolute; left: 50%; top: 46%; width: 70vmin; height: 70vmin; border-radius: 50%; border: 2px solid var(--neon);
                  box-shadow: 0 0 40px rgba(131,245,44,.5); transform: translate(-50%, -50%) scale(.1); opacity: 0; pointer-events: none; }
@@ -2200,9 +2201,24 @@
   <div class="rw-more-wrap"><button type="button" class="rw-more" id="rw-more" hidden>הצגת עוד תוצאות</button></div>
   <!-- קיר התוצאות: כל מתאמן חדש = שורה אחת כאן + שתי תמונות (לפני/אחרי) בתיקייה landing/ba.
        tags: mass = עלייה במסה, cut = חיטוב, loss = ירידה במשקל, women = נשים, stage = תחרויות.
-       מסנן מופיע רק כשיש לו לפחות תוצאה אחת. הסדר כאן = הסדר בדף. -->
+       מסנן מופיע רק כשיש לו לפחות תוצאה אחת. הסדר כאן = הסדר בדף, וארבעת הראשונים מופיעים גם ברצועות הגדולות.
+       from = כמה זמן לקחה התוצאה (מוצג מתחת למספר). -->
   <script type="application/json" id="results-data">
 [
+ {
+  "name": "אוהד",
+  "sign": "−",
+  "value": 14,
+  "from": "תוך 3 חודשים",
+  "tags": [
+   "cut",
+   "loss"
+  ],
+  "before": "landing/ba/ohad-before.jpg",
+  "after": "landing/ba/ohad-after.jpg",
+  "head": "רצה לעשות חיטוב לפני הצבא.",
+  "story": "נכנס לליווי ב-95 ק״ג. שלושה חודשים בדיוק של תוכנית אישית ומעקב צמוד: 81 ק״ג וקוביות בבטן. משימה הושלמה."
+ },
  {
   "name": "דניאל רון",
   "sign": "+",
@@ -2215,19 +2231,6 @@
   "head": "עבר כמה מאמנים. כולם הבטיחו, המאזניים לא זזו.",
   "story": "פה קיבל תוכנית מדויקת ומעקב צמוד, והגוף סוף סוף הגיב: 13 ק״ג, ואחוז השומן נשאר נמוך.",
   "quote": "לא האמנתי שאני יכול לעלות ככה במשקל."
- },
- {
-  "name": "לירן",
-  "sign": "+",
-  "value": 16,
-  "tags": [
-   "mass"
-  ],
-  "before": "landing/ba/liran-before.jpg",
-  "after": "landing/ba/liran-after.jpg",
-  "head": "לא האמין שאפשר לעלות במשקל בלי לתפוח.",
-  "story": "בנינו יחד אימונים ותזונה מדויקים, עם מעקב שוטף ועקביות: 16 ק״ג, ואחוז השומן נשאר נמוך.",
-  "quote": "הגוף פשוט השתנה."
  },
  {
   "name": "אופיר",
@@ -2256,6 +2259,19 @@
   "head": "התחיל רזה, מול המראה בבית.",
   "story": "18 ק״ג מסה אחר כך, עם אחוז שומן נמוך, הוא עלה לבמה ולקח אלוף כללי ב-MBC 2026.",
   "quote": "הגוף שלי השתנה לחלוטין. לא האמנתי שזה אפשרי."
+ },
+ {
+  "name": "לירן",
+  "sign": "+",
+  "value": 16,
+  "tags": [
+   "mass"
+  ],
+  "before": "landing/ba/liran-before.jpg",
+  "after": "landing/ba/liran-after.jpg",
+  "head": "לא האמין שאפשר לעלות במשקל בלי לתפוח.",
+  "story": "בנינו יחד אימונים ותזונה מדויקים, עם מעקב שוטף ועקביות: 16 ק״ג, ואחוז השומן נשאר נמוך.",
+  "quote": "הגוף פשוט השתנה."
  }
 ]
   </script>
@@ -3054,7 +3070,7 @@
     s.innerHTML = '<figure class="rs-card rs-b">' + img(d.before) + '<span class="rs-tag">לפני</span></figure>' +
       '<figure class="rs-card rs-a">' + img(d.after) + '<span class="rs-tag">אחרי</span></figure>' +
       '<div class="rs-cap"><b class="rs-num" dir="ltr">' + esc(d.sign) + '<span class="rs-val" data-v="' + esc(d.value) + '">' + (calm ? esc(d.value) : '0') + '</span><small>' + esc(d.unit || 'ק״ג') + '</small></b>' +
-      '<span class="rs-name">' + esc(d.name) + '</span></div>';
+      '<span class="rs-name">' + esc(d.name) + '</span>' + (d.from ? '<span class="rs-from">' + esc(d.from) + '</span>' : '') + '</div>';
     return true;
   });
   if (calm) { slots.forEach(function (s) { s.style.setProperty('--q', 0); }); return; }
