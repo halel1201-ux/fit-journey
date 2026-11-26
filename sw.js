@@ -3,7 +3,7 @@
 // (שני SW-ים נפרדים על "/" גורמים לבעיות הרשמה ל-Push, בעיקר ב-iOS Safari)
 importScripts('https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js');
 
-const CACHE = 'hf-v55'; // bumped: אוהד ראשון בתוצאות (‎−14 ק״ג תוך 3 חודשים) + משך התוצאה ברצועות + סליידרים מתחילים מה"לפני" ומחליקים ל"אחרי"
+const CACHE = 'hf-v56'; // bumped: איקון HF (כרום וניאון) לדף הנחיתה, לשאלון ולמחשבון, במקום האיקון של FJ
 
 // relative paths — work from root AND from a subpath like /fit-journey/
 const STATIC = [
